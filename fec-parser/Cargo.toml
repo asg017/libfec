@@ -1,0 +1,12 @@
+[package]
+name = "fec-parser"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+csv = "1.2.2"
+indexmap = "2.0.0"
+lazy_static = "1.4.0"
+regex = "1.9.3"
+serde_json = "1.0.104"
+thiserror = "1.0.44"

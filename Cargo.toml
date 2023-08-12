@@ -1,0 +1,6 @@
+[workspace]
+
+members = [
+    "fec-parser",
+    "fec-cli"
+]
