@@ -5,3 +5,10 @@ edition = "2021"
 
 [dependencies]
 fec-parser = {path="../fec-parser"}
+clap = {version="4.1.8", features=["derive"]}
+anyhow = "1.0"
+csv = "1.2.2"
+colored = "2.1.0"
+rusqlite = {version="0.32.1", features = [] }
+thiserror = "1.0.63"
+#rusqlite = {version="0.32.1", features = ["bundled"] }

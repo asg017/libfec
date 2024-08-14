@@ -2,6 +2,7 @@
 
 | Repo                                      | Language      | Release date |
 | ----------------------------------------- | ------------- | ------------ |
+| https://github.com/cschnaars/FEC-Scraper  | Python+SQLite | ~2011        |
 | https://github.com/dwillis/Fech           | Ruby          | ~2012?       |
 | https://github.com/PublicI/fec-parse      | Node.js       | ~2015        |
 | https://github.com/esonderegger/fecfile   | Python        | ~2018        |
@@ -35,3 +36,8 @@ The `mappings.json` path looks like `"^sa[^3]"` -> `"^3"`, based on the CSV head
 - The second line is a ""
 
 `mappings.json` level 1: the "form", the first field in the CSV row. Level 2 is the "version"
+'
+
+## INfo
+
+https://github.com/ryanpitts/journalists-guide-datasets/blob/34f467d0ec5a79ea02c8ef8acd9361aeebadc005/datasets/federal_election_commission.md

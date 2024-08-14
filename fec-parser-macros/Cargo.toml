@@ -1,0 +1,13 @@
+[package]
+name = "fec-parser-macros"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+proc-macro2 = "1.0.39"
+quote = "1.0.21"
+syn = { version = "1.0.95", features = [ "extra-traits", "full", "fold", "parsing" ] }
+serde_json = {version="1.0.104", features=["preserve_order"]}
+
+[lib]
+proc-macro = true

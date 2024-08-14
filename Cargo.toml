@@ -1,6 +1,8 @@
 [workspace]
+resolver = "2"
 
 members = [
+    "fec-parser-macros",
     "fec-parser",
     "fec-cli"
 ]

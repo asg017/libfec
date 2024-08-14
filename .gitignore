@@ -2,3 +2,6 @@ target/
 tests/
 *.db
 mappings.json
+
+notes/
+output/
