@@ -2,16 +2,14 @@ extern crate proc_macro;
 
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::parse_macro_input;
-use syn::LitStr;
+
+const MAPPINGS_JSON_PATH: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/src/mappings2.json");
 
 #[proc_macro]
-pub fn gen_form_types(input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as LitStr);
-    let filename = input.value();
-
+pub fn gen_form_types(_: TokenStream) -> TokenStream {
     let json_data: serde_json::Value = {
-        let contents = std::fs::read_to_string(&filename).expect("Unable to read the JSON file");
+        let contents =
+            std::fs::read_to_string(MAPPINGS_JSON_PATH).expect("Unable to read the JSON file");
         serde_json::from_str(&contents).expect("JSON parsing error")
     };
     let keys: Vec<String> = json_data
@@ -31,12 +29,10 @@ pub fn gen_form_types(input: TokenStream) -> TokenStream {
 }
 
 #[proc_macro]
-pub fn gen_form_type_version_set(input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as LitStr);
-    let filename = input.value();
-
+pub fn gen_form_type_version_set(_: TokenStream) -> TokenStream {
     let json_data: serde_json::Value = {
-        let contents = std::fs::read_to_string(&filename).expect("Unable to read the JSON file");
+        let contents =
+            std::fs::read_to_string(MAPPINGS_JSON_PATH).expect("Unable to read the JSON file");
         serde_json::from_str(&contents).expect("JSON parsing error")
     };
     let values = json_data
@@ -69,13 +65,10 @@ pub fn gen_form_type_version_set(input: TokenStream) -> TokenStream {
     output.into()
 }
 #[proc_macro]
-pub fn gen_column_names(input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as LitStr);
-    let filename = input.value();
-    dbg!(&filename);
-
+pub fn gen_column_names(_: TokenStream) -> TokenStream {
     let json_data: serde_json::Value = {
-        let contents = std::fs::read_to_string(&filename).expect("Unable to read the JSON file");
+        let contents =
+            std::fs::read_to_string(MAPPINGS_JSON_PATH).expect("Unable to read the JSON file");
         serde_json::from_str(&contents).expect("JSON parsing error")
     };
     let mut form_types = vec![];

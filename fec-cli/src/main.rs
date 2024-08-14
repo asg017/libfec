@@ -1,12 +1,14 @@
-use std::io::{Error as IOError, Read};
-
+use clap::{Arg, Command};
+use colored::Colorize;
+use csv::StringRecordsIntoIter;
+use rusqlite::{params_from_iter, Connection, Statement};
 use std::{
     collections::HashMap,
     fs,
+    io::{Error as IOError, Read},
     path::{Path, PathBuf},
 };
-
-use csv::StringRecordsIntoIter;
+use thiserror::Error;
 
 // fields from mappings2.json -> '^hdr$' -> '$[6-8]'
 #[derive(Debug)]
@@ -18,7 +20,7 @@ struct FilingHeader {
     soft_ver: String,
     report_id: String,
     report_number: String,
-    comment: String,
+    comment: Option<String>,
 }
 impl FilingHeader {
     fn from_record(hdr: csv::StringRecord) -> Self {
@@ -30,7 +32,7 @@ impl FilingHeader {
         let soft_ver = hdr.get(4).unwrap();
         let report_id = hdr.get(5).unwrap();
         let report_number = hdr.get(6).unwrap();
-        let comment = hdr.get(7).unwrap_or("");
+        let comment = hdr.get(7).map(String::from);
 
         FilingHeader {
             record_type: record_type.to_owned(),
@@ -40,7 +42,7 @@ impl FilingHeader {
             soft_ver: soft_ver.to_owned(),
             report_id: report_id.to_owned(),
             report_number: report_number.to_owned(),
-            comment: comment.to_owned(),
+            comment,
         }
     }
 }
@@ -160,8 +162,6 @@ fn write_sqlite<R: Read>(filing: Filing<R>, out_db: &mut Connection) {
     }
 }
 
-use thiserror::Error;
-
 #[derive(Error, Debug)]
 pub enum FilingError {
     #[error("Could not parse filing id from path `{0}`")]
@@ -177,7 +177,6 @@ fn cmd_fastfec_compat(filing_file: &str, output_directory: &str) -> Result<(), F
     Ok(())
 }
 
-use colored::Colorize;
 fn cmd_export(filing_file: &str, db: &str) -> Result<(), FilingError> {
     let filing = Filing::<fs::File>::from_path(Path::new(filing_file))?;
     let mut db = Connection::open(db).unwrap();
@@ -197,12 +196,12 @@ fn cmd_info(filing_file: &str) -> Result<(), FilingError> {
     );
     println!("{}: {}", "Report ID".bold(), filing.header.report_id);
     println!("Report #{}", filing.header.report_number);
-    println!("{}: {}", "Comment".bold(), filing.header.comment);
+    if let Some(comment) = filing.header.comment {
+        println!("{}: {}", "Comment".bold(), comment);
+    }
     Ok(())
 }
 
-use clap::{Arg, Command};
-use rusqlite::{params_from_iter, Connection, Statement};
 fn main() {
     let matches = Command::new("pacman")
         .subcommand(
@@ -220,7 +219,7 @@ fn main() {
         )
         .get_matches();
 
-    match matches.subcommand() {
+    let cmd_result = match matches.subcommand() {
         Some(("fastfec-compat", m)) => cmd_fastfec_compat(
             m.get_one::<String>("filing-path").unwrap(),
             m.get_one::<String>("output-directory").unwrap(),
@@ -233,4 +232,8 @@ fn main() {
         Some(_) => todo!(),
         None => todo!(),
     };
+    match cmd_result {
+        Ok(_) => std::process::exit(0),
+        Err(_) => std::process::exit(1),
+    }
 }

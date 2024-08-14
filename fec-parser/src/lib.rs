@@ -1,8 +1,7 @@
 use fec_parser_macros::{gen_column_names, gen_form_type_version_set, gen_form_types};
 use regex::{RegexSet, RegexSetBuilder};
 
-static FORM_TYPES: &[&str] =
-    &gen_form_types!("/Users/alex/projects/libfec/fec-parser/src/mappings2.json");
+static FORM_TYPES: &[&str] = &gen_form_types!("");
 
 lazy_static::lazy_static! {
   static ref FORM_TYPES_SET: RegexSet = RegexSetBuilder::new(FORM_TYPES)
@@ -11,13 +10,11 @@ lazy_static::lazy_static! {
     .unwrap();
 }
 lazy_static::lazy_static! {
-  static ref FORM_TYPE_VERSIONS_SET: Vec<RegexSet> = gen_form_type_version_set!("/Users/alex/projects/libfec/fec-parser/src/mappings2.json");
+  static ref FORM_TYPE_VERSIONS_SET: Vec<RegexSet> = gen_form_type_version_set!("");
 }
 
 lazy_static::lazy_static! {
-  //static ref COLUMN_NAMES: Vec<Vec<Vec<String>>> = gen_column_names!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/mappings2.json"));
-  //static ref COLUMN_NAMES: Vec<Vec<Vec<String>>> = gen_column_names!(env!("CARGO_MANIFEST_DIR").to_string() + "/src/mappings2.json");
-  static ref COLUMN_NAMES: Vec<Vec<Vec<String>>> = gen_column_names!("/Users/alex/projects/libfec/fec-parser/src/mappings2.json");
+  static ref COLUMN_NAMES: Vec<Vec<Vec<String>>> = gen_column_names!();
 }
 
 pub fn field_idx(field: &str) -> Option<usize> {
