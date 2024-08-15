@@ -48,3 +48,11 @@ https://docquery.fec.gov/dcdev/posted/1795717.fec
 https://cg-519a459a-0ea3-42c2-b7bc-fa1143481f74.s3-us-gov-west-1.amazonaws.com/bulk-downloads/index.html
 
 https://cg-519a459a-0ea3-42c2-b7bc-fa1143481f74.s3-us-gov-west-1.amazonaws.com/bulk-downloads/index.html?prefix=bulk-downloads/electronic/
+
+
+
+BEGINTEXT utf8 error sample:
+
+```
+rm june.db; cargo run export june/1787785.fec -o june.db
+```

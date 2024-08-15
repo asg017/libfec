@@ -1,8 +1,9 @@
 use clap::{Arg, Command};
 use colored::Colorize;
-use fec_parser::{Filing, FilingError};
+use fec_parser::{Filing, FilingError, FilingRowReadError};
 use rusqlite::{params_from_iter, Connection, Statement};
 use std::{collections::HashMap, fs, io::Read, path::Path};
+use thiserror::Error;
 
 fn write_fastfec_compat<R: Read>(mut filing: Filing<R>, directory: &std::path::Path) {
     let mut csv_writers: HashMap<String, csv::Writer<fs::File>> = HashMap::new();
@@ -28,11 +29,25 @@ fn write_fastfec_compat<R: Read>(mut filing: Filing<R>, directory: &std::path::P
     }
 }
 
-fn write_sqlite<R: Read>(mut filing: Filing<R>, out_db: &mut Connection) {
+#[derive(Error, Debug)]
+pub enum SqliteWriteError {
+    #[error("INSERT on \"{table_target}\" error: `{source}`")]
+    InsertStmt {
+        source: rusqlite::Error,
+        table_target: String,
+    },
+    #[error("asdf")]
+    NextInvalid(#[source] FilingRowReadError),
+}
+
+fn write_sqlite<R: Read>(
+    mut filing: Filing<R>,
+    out_db: &mut Connection,
+) -> Result<(), SqliteWriteError> {
     let mut stmt_map: HashMap<String, Statement> = HashMap::new();
     //let tx =out_db.transaction().unwrap();
     while let Some(r) = filing.next_row() {
-        let r = r.unwrap();
+        let r = r.map_err(SqliteWriteError::NextInvalid)?;
         //println!("{} {:?}", r.row_type, r.record.position());
 
         if let Some(stmt) = stmt_map.get_mut(&r.row_type) {
@@ -44,7 +59,11 @@ fn write_sqlite<R: Read>(mut filing: Filing<R>, out_db: &mut Connection) {
             if vals.len() == stmt.parameter_count() + 1 {
                 vals.pop();
             }
-            stmt.execute(params_from_iter(vals)).unwrap();
+            stmt.execute(params_from_iter(vals))
+                .map_err(|e| SqliteWriteError::InsertStmt {
+                    source: e,
+                    table_target: r.row_type.clone(),
+                })?;
             stmt.clear_bindings();
         } else {
             let mut sql = String::from("CREATE TABLE IF NOT EXISTS [libfec_");
@@ -57,13 +76,14 @@ fn write_sqlite<R: Read>(mut filing: Filing<R>, out_db: &mut Connection) {
             sql += column_names.join(",\n  ").as_str();
             sql += "\n)";
             out_db.execute(&sql, []).unwrap();
-            let mut stmt = out_db
-                .prepare(&format!(
-                    "INSERT INTO libfec_{} VALUES ({})",
-                    r.row_type,
-                    vec!["?"; column_names.len() + 1].join(",")
-                ))
-                .unwrap();
+            let sql = format!(
+                "INSERT INTO libfec_{} VALUES ({})",
+                r.row_type,
+                vec!["?"; column_names.len() + 1].join(",")
+            );
+
+            let mut stmt = out_db.prepare(&sql).unwrap();
+
             let mut vals: Vec<String> = r.record.iter().map(|r| r.to_string()).collect();
             vals.insert(0, filing.filing_id.clone());
             if vals.len() == stmt.parameter_count() + 1 {
@@ -73,11 +93,16 @@ fn write_sqlite<R: Read>(mut filing: Filing<R>, out_db: &mut Connection) {
             while vals.len() < stmt.parameter_count() {
                 vals.push("".to_owned());
             }
+            if vals.len() > stmt.parameter_count() {
+                eprintln!("Warning too long!");
+                vals.truncate(stmt.parameter_count());
+            }
             stmt.execute(params_from_iter(vals)).unwrap();
             stmt.clear_bindings();
             stmt_map.insert(r.row_type, stmt);
         }
     }
+    Ok(())
 }
 
 fn cmd_fastfec_compat(filing_file: &str, output_directory: &str) -> Result<(), FilingError> {
@@ -87,8 +112,17 @@ fn cmd_fastfec_compat(filing_file: &str, output_directory: &str) -> Result<(), F
     Ok(())
 }
 
-fn cmd_export(filing_paths: Vec<String>, db: &str) -> Result<(), FilingError> {
-    let mut db = Connection::open(db).unwrap();
+#[derive(Error, Debug)]
+pub enum CmdExportError {
+    #[error("Error connecting to SQLite database: `{0}`")]
+    ConnectionError(#[source] rusqlite::Error),
+    #[error("Error inserting data for filing `{0}` to SQLite database: `{1}`")]
+    InsertFilingError(String, #[source] SqliteWriteError),
+}
+
+fn cmd_export(filing_paths: Vec<String>, db: &str) -> Result<(), CmdExportError> {
+    let mut db = Connection::open(db).map_err(CmdExportError::ConnectionError)?;
+
     db.execute(
         "CREATE TABLE libfec_filings(filing_id text primary key)",
         [],
@@ -106,9 +140,11 @@ fn cmd_export(filing_paths: Vec<String>, db: &str) -> Result<(), FilingError> {
     for filing_path in filing_paths {
         pb.set_message(filing_path.clone());
         let filing = Filing::<fs::File>::from_path(Path::new(&filing_path)).unwrap();
+        let filing_id = filing.filing_id.clone();
         db.execute("INSERT INTO libfec_filings VALUES (?)", [&filing.filing_id])
             .unwrap();
-        write_sqlite(filing, &mut db);
+        write_sqlite(filing, &mut db)
+            .map_err(|e| CmdExportError::InsertFilingError(filing_id, e))?;
         pb.inc(1);
     }
     pb.finish();
@@ -158,24 +194,28 @@ fn main() {
         )
         .get_matches();
 
-    let cmd_result = match matches.subcommand() {
-        Some(("fastfec-compat", m)) => cmd_fastfec_compat(
-            m.get_one::<String>("filing-path").unwrap(),
-            m.get_one::<String>("output-directory").unwrap(),
-        ),
-        Some(("info", m)) => cmd_info(m.get_one::<String>("filing-path").unwrap()),
-        Some(("export", m)) => cmd_export(
-            m.get_many::<String>("filing-path")
-                .unwrap()
-                .map(|v| v.to_owned())
-                .collect(),
-            m.get_one::<String>("db").unwrap(),
-        ),
+    match matches.subcommand() {
+        Some(("fastfec-compat", m)) => {
+            cmd_fastfec_compat(
+                m.get_one::<String>("filing-path").unwrap(),
+                m.get_one::<String>("output-directory").unwrap(),
+            )
+            .unwrap();
+        }
+        Some(("info", m)) => {
+            cmd_info(m.get_one::<String>("filing-path").unwrap()).unwrap();
+        }
+        Some(("export", m)) => {
+            cmd_export(
+                m.get_many::<String>("filing-path")
+                    .unwrap()
+                    .map(|v| v.to_owned())
+                    .collect(),
+                m.get_one::<String>("db").unwrap(),
+            )
+            .unwrap();
+        }
         Some(_) => todo!(),
         None => todo!(),
-    };
-    match cmd_result {
-        Ok(_) => std::process::exit(0),
-        Err(_) => std::process::exit(1),
     }
 }

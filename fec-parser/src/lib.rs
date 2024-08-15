@@ -175,28 +175,44 @@ impl<R: Read> Filing<R> {
         Ok(Filing::from_reader(filing_file, filing_id.to_string())?)
     }
 
-    pub fn next_row(&mut self) -> Option<Result<FilingRow, csv::Error>> {
+    pub fn next_row(&mut self) -> Option<Result<FilingRow, FilingRowReadError>> {
         let record = match self.records_iter.next() {
-            Some(record) => record.unwrap(),
+            Some(Ok(record)) => record,
+            Some(Err(err)) => return Some(Err(FilingRowReadError::CsvError(err))),
             None => return None,
         };
-        let row_type = record.get(0).unwrap().to_owned().replace('/', ""); // idk man, 'SC/12'
+
+        let row_type = match record.get(0) {
+            Some(field) => field.to_owned().replace('/', ""), // idk man, 'SC/12',
+            None => {
+                return Some(Err(FilingRowReadError::EmptyRecord(
+                    record.position().unwrap().line(),
+                )));
+            }
+        };
+
         if row_type == "[BEGINTEXT]" {
+            let mut contents = String::new();
             loop {
                 match self.records_iter.next() {
-                    Some(record) => {
-                        let record = record.unwrap();
-                        if record.get(0).unwrap() == "[ENDTEXT]" {
-                            match self.records_iter.next() {
-                                Some(record) => {
-                                    let record = record.unwrap();
-                                    let row_type = record.get(0).unwrap().to_owned();
-                                    return Some(Ok(FilingRow { row_type, record }));
-                                }
-                                None => return None,
+                    Some(Err(e)) => return Some(Err(FilingRowReadError::TextRecordError(e))),
+                    Some(Ok(record)) => match record.get(0) {
+                        Some("[ENDTEXT]") => match self.records_iter.next() {
+                            Some(record) => {
+                                let record = record.unwrap();
+                                let row_type = record.get(0).unwrap().to_owned();
+                                return Some(Ok(FilingRow { row_type, record }));
                             }
+                            None => return None,
+                        },
+                        Some(_) => {
+                            contents += record.as_slice();
+                            contents += "\n";
                         }
-                    }
+                        None => {
+                            contents += "\n";
+                        }
+                    },
                     None => todo!("[BEGINTEXT] did not terminate"),
                 }
             }
@@ -204,6 +220,16 @@ impl<R: Read> Filing<R> {
 
         Some(Ok(FilingRow { row_type, record }))
     }
+}
+
+#[derive(Error, Debug)]
+pub enum FilingRowReadError {
+    #[error("Error reading next row from file: `{0}`")]
+    CsvError(#[source] csv::Error),
+    #[error("Empty record found at line `{0}`")]
+    EmptyRecord(u64),
+    #[error("Error reading contents of a [BEGINTEXT] record: `{0}`")]
+    TextRecordError(#[source] csv::Error),
 }
 
 pub struct FilingRow {

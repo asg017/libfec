@@ -11430,8 +11430,8 @@
       "col_b_cash_on_hand_beginning_period",
       "col_b_receipts_period",
       "col_b_subtotal_period",
-      "col_b_disbursements_period",
-      "col_b_cash_on_hand_close_of_period"
+      "col_b_disbursements_period_TODO_DUP",
+      "col_b_cash_on_hand_close_of_period_TODO_DUP"
     ],
     "^5.3|5.2|5.1|5.0": [
       "form_type",
