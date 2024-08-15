@@ -1,4 +1,4 @@
-use csv::{StringRecord, StringRecordsIntoIter};
+use csv::{ByteRecordsIntoIter, StringRecord};
 use fec_parser_macros::{gen_column_names, gen_form_type_version_set, gen_form_types};
 use regex::{RegexSet, RegexSetBuilder};
 use std::{
@@ -133,7 +133,7 @@ pub enum FilingError {
 pub struct Filing<R: Read> {
     pub filing_id: String,
     pub header: FilingHeader,
-    records_iter: StringRecordsIntoIter<R>,
+    records_iter: ByteRecordsIntoIter<R>,
 }
 
 impl<R: Read> Filing<R> {
@@ -144,18 +144,23 @@ impl<R: Read> Filing<R> {
             .has_headers(false)
             .from_reader(rdr);
 
-        let mut records_iter = csv_reader.into_records();
+        let mut records_iter = csv_reader.into_byte_records();
 
         let hdr = records_iter.next().ok_or(FilingReaderError::NoRecords)??;
 
-        let hdr_record_type = hdr.get(0).ok_or_else(|| FilingReaderError::MissingHeader)?;
+        let hdr_record_type = String::from_utf8(
+            hdr.get(0)
+                .ok_or_else(|| FilingReaderError::MissingHeader)?
+                .to_vec(),
+        )
+        .unwrap();
         if hdr_record_type != "HDR" {
             return Err(FilingReaderError::IncorrectHeader(
                 hdr_record_type.to_owned(),
             ));
         }
 
-        let header = FilingHeader::from_record(hdr)?;
+        let header = FilingHeader::from_record(StringRecord::from_byte_record_lossy(hdr))?;
 
         Ok(Self {
             filing_id,
@@ -177,7 +182,7 @@ impl<R: Read> Filing<R> {
 
     pub fn next_row(&mut self) -> Option<Result<FilingRow, FilingRowReadError>> {
         let record = match self.records_iter.next() {
-            Some(Ok(record)) => record,
+            Some(Ok(record)) => StringRecord::from_byte_record_lossy(record),
             Some(Err(err)) => return Some(Err(FilingRowReadError::CsvError(err))),
             None => return None,
         };
@@ -197,16 +202,16 @@ impl<R: Read> Filing<R> {
                 match self.records_iter.next() {
                     Some(Err(e)) => return Some(Err(FilingRowReadError::TextRecordError(e))),
                     Some(Ok(record)) => match record.get(0) {
-                        Some("[ENDTEXT]") => match self.records_iter.next() {
+                        Some(b"[ENDTEXT]") => match self.records_iter.next() {
                             Some(record) => {
-                                let record = record.unwrap();
+                                let record = StringRecord::from_byte_record_lossy(record.unwrap());
                                 let row_type = record.get(0).unwrap().to_owned();
                                 return Some(Ok(FilingRow { row_type, record }));
                             }
                             None => return None,
                         },
                         Some(_) => {
-                            contents += record.as_slice();
+                            contents += &String::from_utf8_lossy(record.as_slice());
                             contents += "\n";
                         }
                         None => {

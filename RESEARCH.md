@@ -56,3 +56,21 @@ BEGINTEXT utf8 error sample:
 ```
 rm june.db; cargo run export june/1787785.fec -o june.db
 ```
+
+
+
+result:
+
+```
+➜ rm june.db; ./target/release/fec-cli export june/*.fec -o june.db
+[00:00:04] █░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░     261/5805    june/1787062.fec                        Warning too long 209 vs 207!
+[00:08:35] ███████████████████████████████░░░░░░░░░    4606/5805    june/1791562.fec                        Warning too long 62 vs 46!
+[00:11:41] ███████████████████████████████░░░░░░░░░    4606/5805    june/1791562.fec                        Warning too long 62 vs 46!
+[00:51:25] ████████████████████████████████████████    5805/5805    june/1792770.fec
+
+june.db: 2.6GB
+4805 filings
+96 tables
+SA18 - 987k rows
+SA11AO - 976k rows
+```

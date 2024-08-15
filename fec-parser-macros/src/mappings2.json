@@ -2882,7 +2882,7 @@
       "election_district",
       "report_code",
       "election_date",
-      "",
+      "TODO_UNKNOWN_BLANK",
       "semi_annual_period",
       "coverage_from_date",
       "coverage_through_date",

@@ -2,7 +2,7 @@ use clap::{Arg, Command};
 use colored::Colorize;
 use fec_parser::{Filing, FilingError, FilingRowReadError};
 use rusqlite::{params_from_iter, Connection, Statement};
-use std::{collections::HashMap, fs, io::Read, path::Path};
+use std::{collections::HashMap, fs, io::Read, path::Path, time::Duration};
 use thiserror::Error;
 
 fn write_fastfec_compat<R: Read>(mut filing: Filing<R>, directory: &std::path::Path) {
@@ -36,6 +36,12 @@ pub enum SqliteWriteError {
         source: rusqlite::Error,
         table_target: String,
     },
+    #[error("Error creating table \"{table_target}\" with SQL {sql}: {source}")]
+    CreateTable {
+        source: rusqlite::Error,
+        sql: String,
+        table_target: String,
+    },
     #[error("asdf")]
     NextInvalid(#[source] FilingRowReadError),
 }
@@ -59,6 +65,15 @@ fn write_sqlite<R: Read>(
             if vals.len() == stmt.parameter_count() + 1 {
                 vals.pop();
             }
+            if vals.len() > stmt.parameter_count() {
+                eprintln!(
+                    "Warning too long {} vs {}!",
+                    vals.len(),
+                    stmt.parameter_count()
+                );
+                vals.truncate(stmt.parameter_count());
+            }
+
             stmt.execute(params_from_iter(vals))
                 .map_err(|e| SqliteWriteError::InsertStmt {
                     source: e,
@@ -75,7 +90,14 @@ fn write_sqlite<R: Read>(
                     .unwrap();
             sql += column_names.join(",\n  ").as_str();
             sql += "\n)";
-            out_db.execute(&sql, []).unwrap();
+            out_db
+                .execute(&sql, [])
+                .map_err(|e| SqliteWriteError::CreateTable {
+                    source: e,
+                    sql: sql.to_string(),
+                    table_target: r.row_type.clone(),
+                })?;
+
             let sql = format!(
                 "INSERT INTO libfec_{} VALUES ({})",
                 r.row_type,
@@ -94,7 +116,11 @@ fn write_sqlite<R: Read>(
                 vals.push("".to_owned());
             }
             if vals.len() > stmt.parameter_count() {
-                eprintln!("Warning too long!");
+                eprintln!(
+                    "Warning too long {} vs {}!",
+                    vals.len(),
+                    stmt.parameter_count()
+                );
                 vals.truncate(stmt.parameter_count());
             }
             stmt.execute(params_from_iter(vals)).unwrap();
@@ -136,6 +162,7 @@ fn cmd_export(filing_paths: Vec<String>, db: &str) -> Result<(), CmdExportError>
         )
         .unwrap(),
     );
+    pb.enable_steady_tick(Duration::from_millis(750));
 
     for filing_path in filing_paths {
         pb.set_message(filing_path.clone());
