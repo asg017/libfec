@@ -41,3 +41,10 @@ The `mappings.json` path looks like `"^sa[^3]"` -> `"^3"`, based on the CSV head
 ## INfo
 
 https://github.com/ryanpitts/journalists-guide-datasets/blob/34f467d0ec5a79ea02c8ef8acd9361aeebadc005/datasets/federal_election_commission.md
+
+https://docquery.fec.gov/dcdev/posted/13360.fec
+https://docquery.fec.gov/dcdev/posted/1795717.fec
+
+https://cg-519a459a-0ea3-42c2-b7bc-fa1143481f74.s3-us-gov-west-1.amazonaws.com/bulk-downloads/index.html
+
+https://cg-519a459a-0ea3-42c2-b7bc-fa1143481f74.s3-us-gov-west-1.amazonaws.com/bulk-downloads/index.html?prefix=bulk-downloads/electronic/

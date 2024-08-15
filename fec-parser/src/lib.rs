@@ -1,5 +1,11 @@
+use csv::{StringRecord, StringRecordsIntoIter};
 use fec_parser_macros::{gen_column_names, gen_form_type_version_set, gen_form_types};
 use regex::{RegexSet, RegexSetBuilder};
+use std::{
+    fs,
+    io::{Error as IOError, Read},
+    path::{Path, PathBuf},
+};
 
 static FORM_TYPES: &[&str] = &gen_form_types!("");
 
@@ -36,6 +42,173 @@ pub fn column_names_for_field<'a>(
         .unwrap();
     let columns = COLUMN_NAMES.get(idx).unwrap().get(idx2).unwrap();
     Ok(columns)
+}
+
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+pub enum FilingHeaderError {
+    #[error("Missing field '{name:?}' at index {idx:?}")]
+    MissingField { name: String, idx: usize },
+    #[error("`{0}`")]
+    UnsupportedVersion(String),
+}
+// fields from mappings2.json -> '^hdr$' -> '$[6-8]'
+#[derive(Debug)]
+pub struct FilingHeader {
+    pub record_type: String,
+    pub ef_type: String,
+    pub fec_version: String,
+    pub soft_name: String,
+    pub soft_ver: String,
+    pub report_id: Option<String>,
+    pub report_number: Option<String>,
+    pub comment: Option<String>,
+}
+
+macro_rules! header_get_field {
+    ($hdr:expr, $idx:expr, $name:expr) => {
+        $hdr.get($idx)
+            .ok_or_else(|| FilingHeaderError::MissingField {
+                name: $name.to_owned(),
+                idx: $idx,
+            })?
+            .to_string()
+    };
+}
+
+impl FilingHeader {
+    fn from_record(hdr: csv::StringRecord) -> Result<Self, FilingHeaderError> {
+        let record_type = header_get_field!(hdr, 0, "record_type");
+        let ef_type = header_get_field!(hdr, 1, "ef_type");
+        let fec_version = header_get_field!(hdr, 2, "fec_version").trim().to_owned();
+        if fec_version != "8.4" {
+            return Err(FilingHeaderError::UnsupportedVersion(format!(
+                "Unsupported version '{fec_version}', only 8.4 is currently supported."
+            )));
+        }
+        let soft_name = header_get_field!(hdr, 3, "soft_name");
+        let soft_ver = header_get_field!(hdr, 4, "soft_ver");
+        let report_id = hdr.get(5).map(String::from);
+        let report_number = hdr.get(6).map(String::from);
+        let comment = hdr.get(7).map(String::from);
+
+        Ok(FilingHeader {
+            record_type,
+            ef_type,
+            fec_version,
+            soft_name,
+            soft_ver,
+            report_id,
+            report_number,
+            comment,
+        })
+    }
+}
+
+#[derive(Error, Debug)]
+pub enum FilingReaderError {
+    #[error("No records found in the .fec file")]
+    NoRecords,
+    #[error("Error reading CSV row")]
+    CsvRead(#[from] csv::Error),
+    #[error("Missing header as first record")]
+    MissingHeader,
+    #[error("First field in first record is not 'HDR', found `{0}`")]
+    IncorrectHeader(String),
+    #[error("Error parsing header")]
+    HeaderRead(#[from] FilingHeaderError),
+}
+
+#[derive(Error, Debug)]
+pub enum FilingError {
+    #[error("Could not parse filing id from path `{0}`")]
+    UnknownFilingId(PathBuf),
+    #[error("Could not read FEC file")]
+    Read(#[from] IOError),
+    #[error("FEC file error")]
+    Reader(#[from] FilingReaderError),
+}
+
+pub struct Filing<R: Read> {
+    pub filing_id: String,
+    pub header: FilingHeader,
+    records_iter: StringRecordsIntoIter<R>,
+}
+
+impl<R: Read> Filing<R> {
+    pub fn from_reader(rdr: R, filing_id: String) -> Result<Self, FilingReaderError> {
+        let csv_reader = csv::ReaderBuilder::new()
+            .delimiter(b"\x1c"[0])
+            .flexible(true)
+            .has_headers(false)
+            .from_reader(rdr);
+
+        let mut records_iter = csv_reader.into_records();
+
+        let hdr = records_iter.next().ok_or(FilingReaderError::NoRecords)??;
+
+        let hdr_record_type = hdr.get(0).ok_or_else(|| FilingReaderError::MissingHeader)?;
+        if hdr_record_type != "HDR" {
+            return Err(FilingReaderError::IncorrectHeader(
+                hdr_record_type.to_owned(),
+            ));
+        }
+
+        let header = FilingHeader::from_record(hdr)?;
+
+        Ok(Self {
+            filing_id,
+            header,
+            records_iter,
+        })
+    }
+
+    pub fn from_path(filing_path: &Path) -> Result<Filing<fs::File>, FilingError> {
+        let filing_id = filing_path
+            .file_stem()
+            .map(|v| v.to_string_lossy().into_owned())
+            .ok_or_else(|| FilingError::UnknownFilingId(filing_path.to_path_buf()))?;
+
+        let filing_file = std::fs::File::open(filing_path)?;
+
+        Ok(Filing::from_reader(filing_file, filing_id.to_string())?)
+    }
+
+    pub fn next_row(&mut self) -> Option<Result<FilingRow, csv::Error>> {
+        let record = match self.records_iter.next() {
+            Some(record) => record.unwrap(),
+            None => return None,
+        };
+        let row_type = record.get(0).unwrap().to_owned().replace('/', ""); // idk man, 'SC/12'
+        if row_type == "[BEGINTEXT]" {
+            loop {
+                match self.records_iter.next() {
+                    Some(record) => {
+                        let record = record.unwrap();
+                        if record.get(0).unwrap() == "[ENDTEXT]" {
+                            match self.records_iter.next() {
+                                Some(record) => {
+                                    let record = record.unwrap();
+                                    let row_type = record.get(0).unwrap().to_owned();
+                                    return Some(Ok(FilingRow { row_type, record }));
+                                }
+                                None => return None,
+                            }
+                        }
+                    }
+                    None => todo!("[BEGINTEXT] did not terminate"),
+                }
+            }
+        }
+
+        Some(Ok(FilingRow { row_type, record }))
+    }
+}
+
+pub struct FilingRow {
+    pub row_type: String,
+    pub record: StringRecord,
 }
 
 #[cfg(test)]

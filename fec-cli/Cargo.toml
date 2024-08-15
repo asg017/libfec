@@ -11,4 +11,5 @@ csv = "1.2.2"
 colored = "2.1.0"
 rusqlite = {version="0.32.1", features = [] }
 thiserror = "1.0.63"
+indicatif = "0.17.8"
 #rusqlite = {version="0.32.1", features = ["bundled"] }

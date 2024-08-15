@@ -1,6 +1,7 @@
 target/
 tests/
 *.db
+*.db-journal
 mappings.json
 
 notes/
