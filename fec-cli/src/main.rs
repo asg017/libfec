@@ -1,6 +1,7 @@
 use clap::{Arg, Command};
 use colored::Colorize;
 use fec_parser::{Filing, FilingError, FilingRowReadError};
+use indicatif::ProgressBar;
 use rusqlite::{params_from_iter, Connection, Statement};
 use std::{collections::HashMap, fs, io::Read, path::Path, time::Duration};
 use thiserror::Error;
@@ -177,8 +178,13 @@ fn cmd_export(filing_paths: Vec<String>, db: &str) -> Result<(), CmdExportError>
     pb.finish();
     Ok(())
 }
+
+struct FilingFormMetadata {
+    count: usize,
+    bytes: usize,
+}
 fn cmd_info(filing_file: &str) -> Result<(), FilingError> {
-    let filing = Filing::<fs::File>::from_path(Path::new(filing_file))?;
+    let mut filing = Filing::<fs::File>::from_path(Path::new(filing_file))?;
     println!("Info {}", filing_file.bold());
     println!("{}", filing.filing_id);
     println!("{}: {}", "FEC Version".bold(), filing.header.fec_version);
@@ -188,15 +194,49 @@ fn cmd_info(filing_file: &str) -> Result<(), FilingError> {
         filing.header.soft_name,
         filing.header.soft_ver
     );
-    if let Some(report_id) = filing.header.report_id {
+    if let Some(ref report_id) = filing.header.report_id {
         println!("{}: {}", "Report ID".bold(), report_id);
     }
-    if let Some(report_number) = filing.header.report_number {
+    if let Some(ref report_number) = filing.header.report_number {
         println!("Report #{}", report_number);
     }
-    if let Some(comment) = filing.header.comment {
+    if let Some(ref comment) = filing.header.comment {
         println!("{}: {}", "Comment".bold(), comment);
     }
+
+    let mut status: HashMap<String, FilingFormMetadata> = HashMap::new();
+
+    let spinner = ProgressBar::new_spinner().with_message("Summarizing rows...");
+    spinner.enable_steady_tick(Duration::from_millis(100));
+
+    while let Some(row) = filing.next_row() {
+        let row = row.unwrap();
+        if let Some(x) = status.get_mut(&row.row_type) {
+            x.count += 1;
+            x.bytes += row.record.as_byte_record().as_slice().len();
+        } else {
+            status.insert(
+                row.row_type.clone(),
+                FilingFormMetadata {
+                    count: 1,
+                    bytes: row.record.as_byte_record().as_slice().len(),
+                },
+            );
+        }
+    }
+    spinner.finish_and_clear();
+
+    let mut x: Vec<_> = status.iter().collect();
+    x.sort_by(|a, b| b.1.count.cmp(&a.1.count));
+    for (x, y) in x {
+        println!(
+            "{}: {} rows, {}",
+            x.bold(),
+            indicatif::HumanCount(y.count as u64),
+            indicatif::HumanBytes(y.bytes as u64),
+        );
+    }
+
     Ok(())
 }
 
