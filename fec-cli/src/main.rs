@@ -1,16 +1,27 @@
 use clap::{Arg, Command};
 use colored::Colorize;
 use fec_parser::{Filing, FilingError, FilingRowReadError};
-use indicatif::ProgressBar;
-use rusqlite::{params_from_iter, Connection, Statement};
-use std::{collections::HashMap, fs, io::Read, path::Path, time::Duration};
+use indicatif::{HumanDuration, MultiProgress, ProgressBar, ProgressStyle};
+use rusqlite::{params_from_iter, Connection, Statement, Transaction};
+use std::{
+    collections::HashMap,
+    fs,
+    io::Read,
+    path::Path,
+    time::{Duration, Instant},
+};
 use thiserror::Error;
 
 fn write_fastfec_compat<R: Read>(mut filing: Filing<R>, directory: &std::path::Path) {
     let mut csv_writers: HashMap<String, csv::Writer<fs::File>> = HashMap::new();
-    //for r in filing.next_row() {
+    let pb = ProgressBar::new(filing.source_length.unwrap() as u64).with_style(ProgressStyle::with_template(
+      "{msg}.fec:\t[{elapsed_precise}] {bar:40.cyan/blue} {eta} {decimal_bytes_per_sec} {decimal_total_bytes} total",
+  )
+  .unwrap());
     while let Some(r) = filing.next_row() {
         let r = r.unwrap();
+        pb.set_position(r.record.position().unwrap().byte());
+
         if let Some(w) = csv_writers.get_mut(&r.row_type) {
             w.write_record(&r.record.clone()).unwrap();
         } else {
@@ -49,13 +60,14 @@ pub enum SqliteWriteError {
 
 fn write_sqlite<R: Read>(
     mut filing: Filing<R>,
-    out_db: &mut Connection,
+    tx: &mut Transaction,
+    pb: &ProgressBar,
 ) -> Result<(), SqliteWriteError> {
     let mut stmt_map: HashMap<String, Statement> = HashMap::new();
-    //let tx =out_db.transaction().unwrap();
     while let Some(r) = filing.next_row() {
         let r = r.map_err(SqliteWriteError::NextInvalid)?;
         //println!("{} {:?}", r.row_type, r.record.position());
+        pb.set_position(r.record.position().unwrap().byte());
 
         if let Some(stmt) = stmt_map.get_mut(&r.row_type) {
             let mut vals: Vec<String> = r.record.iter().map(|r| r.to_string()).collect();
@@ -67,11 +79,11 @@ fn write_sqlite<R: Read>(
                 vals.pop();
             }
             if vals.len() > stmt.parameter_count() {
-                eprintln!(
+                pb.println(format!(
                     "Warning too long {} vs {}!",
                     vals.len(),
                     stmt.parameter_count()
-                );
+                ));
                 vals.truncate(stmt.parameter_count());
             }
 
@@ -82,6 +94,7 @@ fn write_sqlite<R: Read>(
                 })?;
             stmt.clear_bindings();
         } else {
+            //println!("{:?}", r.record.position().map(|v| v.byte()));
             let mut sql = String::from("CREATE TABLE IF NOT EXISTS [libfec_");
             sql += r.row_type.as_ref();
             sql += "](\n  ";
@@ -91,8 +104,7 @@ fn write_sqlite<R: Read>(
                     .unwrap();
             sql += column_names.join(",\n  ").as_str();
             sql += "\n)";
-            out_db
-                .execute(&sql, [])
+            tx.execute(&sql, [])
                 .map_err(|e| SqliteWriteError::CreateTable {
                     source: e,
                     sql: sql.to_string(),
@@ -105,7 +117,7 @@ fn write_sqlite<R: Read>(
                 vec!["?"; column_names.len() + 1].join(",")
             );
 
-            let mut stmt = out_db.prepare(&sql).unwrap();
+            let mut stmt = tx.prepare(&sql).unwrap();
 
             let mut vals: Vec<String> = r.record.iter().map(|r| r.to_string()).collect();
             vals.insert(0, filing.filing_id.clone());
@@ -148,6 +160,7 @@ pub enum CmdExportError {
 }
 
 fn cmd_export(filing_paths: Vec<String>, db: &str) -> Result<(), CmdExportError> {
+    let t0 = Instant::now();
     let mut db = Connection::open(db).map_err(CmdExportError::ConnectionError)?;
 
     db.execute(
@@ -155,27 +168,39 @@ fn cmd_export(filing_paths: Vec<String>, db: &str) -> Result<(), CmdExportError>
         [],
     )
     .unwrap();
-
-    let pb = indicatif::ProgressBar::new(filing_paths.len() as u64);
-    pb.set_style(
-        indicatif::ProgressStyle::with_template(
+    let mut tx = db.transaction().unwrap();
+    let mb = MultiProgress::new();
+    let pb_files = mb.add(ProgressBar::new(filing_paths.len() as u64));
+    pb_files.set_style(
+        ProgressStyle::with_template(
             "[{elapsed_precise}] {bar:40.cyan/blue} {pos:>7}/{len:7} {msg}",
         )
         .unwrap(),
     );
-    pb.enable_steady_tick(Duration::from_millis(750));
+    pb_files.enable_steady_tick(Duration::from_millis(750));
 
     for filing_path in filing_paths {
-        pb.set_message(filing_path.clone());
+        //pb_files.set_message(filing_path.clone());
         let filing = Filing::<fs::File>::from_path(Path::new(&filing_path)).unwrap();
+        let pb_file = mb.add(ProgressBar::new(filing.source_length.unwrap() as u64));
+        pb_file.set_style(
+            indicatif::ProgressStyle::with_template(
+                "{msg}.fec:\t[{elapsed_precise}] {bar:40.cyan/blue} {eta} {decimal_bytes_per_sec} {decimal_total_bytes} total",
+            )
+            .unwrap(),
+        );
         let filing_id = filing.filing_id.clone();
-        db.execute("INSERT INTO libfec_filings VALUES (?)", [&filing.filing_id])
+        pb_file.set_message(filing_id.clone());
+        tx.execute("INSERT INTO libfec_filings VALUES (?)", [&filing.filing_id])
             .unwrap();
-        write_sqlite(filing, &mut db)
+        write_sqlite(filing, &mut tx, &pb_file)
             .map_err(|e| CmdExportError::InsertFilingError(filing_id, e))?;
-        pb.inc(1);
+        pb_files.inc(1);
     }
-    pb.finish();
+    tx.commit().unwrap();
+    pb_files.finish_and_clear();
+
+    println!("Finished in {}", HumanDuration(Instant::now() - t0));
     Ok(())
 }
 
@@ -183,58 +208,60 @@ struct FilingFormMetadata {
     count: usize,
     bytes: usize,
 }
-fn cmd_info(filing_file: &str) -> Result<(), FilingError> {
-    let mut filing = Filing::<fs::File>::from_path(Path::new(filing_file))?;
-    println!("Info {}", filing_file.bold());
-    println!("{}", filing.filing_id);
-    println!("{}: {}", "FEC Version".bold(), filing.header.fec_version);
-    println!(
-        "{}: {} ({})",
-        "Software".bold(),
-        filing.header.soft_name,
-        filing.header.soft_ver
-    );
-    if let Some(ref report_id) = filing.header.report_id {
-        println!("{}: {}", "Report ID".bold(), report_id);
-    }
-    if let Some(ref report_number) = filing.header.report_number {
-        println!("Report #{}", report_number);
-    }
-    if let Some(ref comment) = filing.header.comment {
-        println!("{}: {}", "Comment".bold(), comment);
-    }
+fn cmd_info(filing_paths: Vec<String>) -> Result<(), FilingError> {
+    for filing_path in filing_paths {
+        let mut filing = Filing::<fs::File>::from_path(Path::new(&filing_path))?;
+        println!("Info {}", filing_path.bold());
+        println!("{}", filing.filing_id);
+        println!("{}: {}", "FEC Version".bold(), filing.header.fec_version);
+        println!(
+            "{}: {} ({})",
+            "Software".bold(),
+            filing.header.soft_name,
+            filing.header.soft_ver
+        );
+        if let Some(ref report_id) = filing.header.report_id {
+            println!("{}: {}", "Report ID".bold(), report_id);
+        }
+        if let Some(ref report_number) = filing.header.report_number {
+            println!("Report #{}", report_number);
+        }
+        if let Some(ref comment) = filing.header.comment {
+            println!("{}: {}", "Comment".bold(), comment);
+        }
 
-    let mut status: HashMap<String, FilingFormMetadata> = HashMap::new();
+        let mut status: HashMap<String, FilingFormMetadata> = HashMap::new();
 
-    let spinner = ProgressBar::new_spinner().with_message("Summarizing rows...");
-    spinner.enable_steady_tick(Duration::from_millis(100));
+        let spinner = ProgressBar::new_spinner().with_message("Summarizing rows...");
+        spinner.enable_steady_tick(Duration::from_millis(100));
 
-    while let Some(row) = filing.next_row() {
-        let row = row.unwrap();
-        if let Some(x) = status.get_mut(&row.row_type) {
-            x.count += 1;
-            x.bytes += row.record.as_byte_record().as_slice().len();
-        } else {
-            status.insert(
-                row.row_type.clone(),
-                FilingFormMetadata {
-                    count: 1,
-                    bytes: row.record.as_byte_record().as_slice().len(),
-                },
+        while let Some(row) = filing.next_row() {
+            let row = row.unwrap();
+            if let Some(x) = status.get_mut(&row.row_type) {
+                x.count += 1;
+                x.bytes += row.record.as_byte_record().as_slice().len();
+            } else {
+                status.insert(
+                    row.row_type.clone(),
+                    FilingFormMetadata {
+                        count: 1,
+                        bytes: row.record.as_byte_record().as_slice().len(),
+                    },
+                );
+            }
+        }
+        spinner.finish_and_clear();
+
+        let mut x: Vec<_> = status.iter().collect();
+        x.sort_by(|a, b| b.1.count.cmp(&a.1.count));
+        for (x, y) in x {
+            println!(
+                "{}: {} rows, {}",
+                x.bold(),
+                indicatif::HumanCount(y.count as u64),
+                indicatif::HumanBytes(y.bytes as u64),
             );
         }
-    }
-    spinner.finish_and_clear();
-
-    let mut x: Vec<_> = status.iter().collect();
-    x.sort_by(|a, b| b.1.count.cmp(&a.1.count));
-    for (x, y) in x {
-        println!(
-            "{}: {} rows, {}",
-            x.bold(),
-            indicatif::HumanCount(y.count as u64),
-            indicatif::HumanBytes(y.bytes as u64),
-        );
     }
 
     Ok(())
@@ -243,7 +270,11 @@ fn cmd_info(filing_file: &str) -> Result<(), FilingError> {
 fn main() {
     let matches = Command::new("libfec-cli")
         .subcommand(
-            Command::new("info").arg(Arg::new("filing-path").help(".fec file to read from")),
+            Command::new("info").arg(
+                Arg::new("filing-path")
+                    .help(".fec file to read from")
+                    .num_args(1..),
+            ),
         )
         .subcommand(
             Command::new("export")
@@ -270,7 +301,13 @@ fn main() {
             .unwrap();
         }
         Some(("info", m)) => {
-            cmd_info(m.get_one::<String>("filing-path").unwrap()).unwrap();
+            cmd_info(
+                m.get_many::<String>("filing-path")
+                    .unwrap()
+                    .map(|v| v.to_owned())
+                    .collect(),
+            )
+            .unwrap();
         }
         Some(("export", m)) => {
             cmd_export(

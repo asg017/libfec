@@ -3,6 +3,24 @@ extern crate proc_macro;
 use proc_macro::TokenStream;
 use quote::quote;
 
+const DATE_COLUMNS_PATH: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/date_columns.txt");
+#[proc_macro]
+pub fn gen_date_columns(_: TokenStream) -> TokenStream {
+    let keys: Vec<String> = std::fs::read_to_string(DATE_COLUMNS_PATH)
+        .expect("unable to read date-columns.txt")
+        .lines()
+        .map(|v| v.to_string())
+        .collect();
+
+    let output = quote! {
+      [
+          #( #keys.to_string() ),*
+      ]
+    };
+
+    output.into()
+}
+
 const MAPPINGS_JSON_PATH: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/src/mappings2.json");
 
 #[proc_macro]

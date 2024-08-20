@@ -1,11 +1,18 @@
 use csv::{ByteRecordsIntoIter, StringRecord};
-use fec_parser_macros::{gen_column_names, gen_form_type_version_set, gen_form_types};
+use fec_parser_macros::{
+    gen_column_names, gen_date_columns, gen_form_type_version_set, gen_form_types,
+};
 use regex::{RegexSet, RegexSetBuilder};
 use std::{
+    collections::HashSet,
     fs,
     io::{Error as IOError, Read},
     path::{Path, PathBuf},
 };
+
+lazy_static::lazy_static! {
+  static ref DATE_COLUMNS: HashSet<String> = HashSet::from(gen_date_columns!(""));
+}
 
 static FORM_TYPES: &[&str] = &gen_form_types!("");
 
@@ -82,10 +89,13 @@ impl FilingHeader {
         let record_type = header_get_field!(hdr, 0, "record_type");
         let ef_type = header_get_field!(hdr, 1, "ef_type");
         let fec_version = header_get_field!(hdr, 2, "fec_version").trim().to_owned();
-        if fec_version != "8.4" {
-            return Err(FilingHeaderError::UnsupportedVersion(format!(
-                "Unsupported version '{fec_version}', only 8.4 is currently supported."
-            )));
+        match fec_version.as_str() {
+            "8.3" | "8.4" => (),
+            _ => {
+                return Err(FilingHeaderError::UnsupportedVersion(format!(
+                    "Unsupported version '{fec_version}', only 8.4 is currently supported."
+                )));
+            }
         }
         let soft_name = header_get_field!(hdr, 3, "soft_name");
         let soft_ver = header_get_field!(hdr, 4, "soft_ver");
@@ -134,10 +144,15 @@ pub struct Filing<R: Read> {
     pub filing_id: String,
     pub header: FilingHeader,
     records_iter: ByteRecordsIntoIter<R>,
+    pub source_length: Option<usize>,
 }
 
 impl<R: Read> Filing<R> {
-    pub fn from_reader(rdr: R, filing_id: String) -> Result<Self, FilingReaderError> {
+    pub fn from_reader(
+        rdr: R,
+        filing_id: String,
+        source_length: Option<usize>,
+    ) -> Result<Self, FilingReaderError> {
         let csv_reader = csv::ReaderBuilder::new()
             .delimiter(b"\x1c"[0])
             .flexible(true)
@@ -166,6 +181,7 @@ impl<R: Read> Filing<R> {
             filing_id,
             header,
             records_iter,
+            source_length,
         })
     }
 
@@ -176,8 +192,13 @@ impl<R: Read> Filing<R> {
             .ok_or_else(|| FilingError::UnknownFilingId(filing_path.to_path_buf()))?;
 
         let filing_file = std::fs::File::open(filing_path)?;
+        let source_length = filing_file.metadata().map(|v| (v.len() as usize)).ok();
 
-        Ok(Filing::from_reader(filing_file, filing_id.to_string())?)
+        Ok(Filing::from_reader(
+            filing_file,
+            filing_id.to_string(),
+            source_length,
+        )?)
     }
 
     pub fn next_row(&mut self) -> Option<Result<FilingRow, FilingRowReadError>> {
