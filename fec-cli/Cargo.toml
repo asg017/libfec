@@ -12,4 +12,6 @@ colored = "2.1.0"
 rusqlite = {version="0.32.1", features = [] }
 thiserror = "1.0.63"
 indicatif = "0.17.8"
+tabled = "0.16.0"
+ureq = "2.10.1"
 #rusqlite = {version="0.32.1", features = ["bundled"] }

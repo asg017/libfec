@@ -7,3 +7,8 @@ mappings.json
 notes/
 output/
 june/
+
+*.fec
+*.db.gz
+*.csv
+*.zip

@@ -1,6 +1,7 @@
 use csv::{ByteRecordsIntoIter, StringRecord};
 use fec_parser_macros::{
-    gen_column_names, gen_date_columns, gen_form_type_version_set, gen_form_types,
+    gen_column_names, gen_date_columns, gen_float_columns, gen_form_type_version_set,
+    gen_form_types,
 };
 use regex::{RegexSet, RegexSetBuilder};
 use std::{
@@ -11,7 +12,10 @@ use std::{
 };
 
 lazy_static::lazy_static! {
-  static ref DATE_COLUMNS: HashSet<String> = HashSet::from(gen_date_columns!(""));
+  pub static ref DATE_COLUMNS: HashSet<String> = HashSet::from(gen_date_columns!(""));
+}
+lazy_static::lazy_static! {
+  pub static ref FLOAT_COLUMNS: HashSet<String> = HashSet::from(gen_float_columns!(""));
 }
 
 static FORM_TYPES: &[&str] = &gen_form_types!("");
@@ -99,9 +103,18 @@ impl FilingHeader {
         }
         let soft_name = header_get_field!(hdr, 3, "soft_name");
         let soft_ver = header_get_field!(hdr, 4, "soft_ver");
-        let report_id = hdr.get(5).map(String::from);
-        let report_number = hdr.get(6).map(String::from);
-        let comment = hdr.get(7).map(String::from);
+        let report_id = hdr
+            .get(5)
+            .map(|v| String::from(v.trim()))
+            .filter(|v| !String::is_empty(v));
+        let report_number = hdr
+            .get(6)
+            .map(|v| String::from(v.trim()))
+            .filter(|v| !String::is_empty(v));
+        let comment = hdr
+            .get(7)
+            .map(|v| String::from(v.trim()))
+            .filter(|v| !String::is_empty(v));
 
         Ok(FilingHeader {
             record_type,
@@ -202,8 +215,11 @@ impl<R: Read> Filing<R> {
     }
 
     pub fn next_row(&mut self) -> Option<Result<FilingRow, FilingRowReadError>> {
-        let record = match self.records_iter.next() {
-            Some(Ok(record)) => StringRecord::from_byte_record_lossy(record),
+        let (record, original_size) = match self.records_iter.next() {
+            Some(Ok(record)) => {
+                let n = record.as_slice().len();
+                (StringRecord::from_byte_record_lossy(record), n)
+            }
             Some(Err(err)) => return Some(Err(FilingRowReadError::CsvError(err))),
             None => return None,
         };
@@ -225,9 +241,15 @@ impl<R: Read> Filing<R> {
                     Some(Ok(record)) => match record.get(0) {
                         Some(b"[ENDTEXT]") => match self.records_iter.next() {
                             Some(record) => {
-                                let record = StringRecord::from_byte_record_lossy(record.unwrap());
+                                let record = record.unwrap();
+                                let original_size = record.as_slice().len();
+                                let record = StringRecord::from_byte_record_lossy(record);
                                 let row_type = record.get(0).unwrap().to_owned();
-                                return Some(Ok(FilingRow { row_type, record }));
+                                return Some(Ok(FilingRow {
+                                    row_type,
+                                    record,
+                                    original_size,
+                                }));
                             }
                             None => return None,
                         },
@@ -244,7 +266,11 @@ impl<R: Read> Filing<R> {
             }
         }
 
-        Some(Ok(FilingRow { row_type, record }))
+        Some(Ok(FilingRow {
+            row_type,
+            record,
+            original_size,
+        }))
     }
 }
 
@@ -261,6 +287,7 @@ pub enum FilingRowReadError {
 pub struct FilingRow {
     pub row_type: String,
     pub record: StringRecord,
+    pub original_size: usize,
 }
 
 #[cfg(test)]
