@@ -20,7 +20,7 @@ clap = {version="4.1.8", features=["derive"]}
 anyhow = "1.0"
 csv = "1.2.2"
 colored = "2.1.0"
-rusqlite = {version="0.32.1", features = [] }
+rusqlite = {version="0.32.1", features = ["bundled"] }
 thiserror = "1.0.63"
 indicatif = "0.17.8"
 tabled = "0.16.0"
