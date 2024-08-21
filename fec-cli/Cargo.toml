@@ -1,7 +1,18 @@
 [package]
 name = "fec-cli"
-version = "0.1.0"
+version = "0.0.1-alpha.1"
 edition = "2021"
+authors = ["Alex Garcia <alexsebastian.garcia@gmail.com>"]
+description = "A fast FEC filing parser and toolkit"
+repository = "https://github.com/asg017/libfec"
+homepage = "https://github.com/asg017/libfec"
+
+[package.metadata.wix]
+upgrade-guid = "BA74C7A9-7590-48BD-B8B4-E502C5DD79B6"
+path-guid = "EC65EB40-397C-4215-A391-CD42F22B75C9"
+license = false
+eula = false
+
 
 [dependencies]
 fec-parser = {path="../fec-parser"}
