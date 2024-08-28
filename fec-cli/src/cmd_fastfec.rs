@@ -24,9 +24,11 @@ fn write_fastfec_compat<R: Read>(mut filing: Filing<R>, directory: &Path) {
                 .has_headers(false)
                 .from_writer(f);
 
-            let column_names =
-                fec_parser::column_names_for_field(&r.row_type, &filing.header.fec_version)
-                    .unwrap();
+            let column_names = fec_parser::mappings::column_names_for_field(
+                &r.row_type,
+                &filing.header.fec_version,
+            )
+            .unwrap();
             w.write_record(column_names).unwrap();
             w.write_record(&r.record.clone()).unwrap();
             csv_writers.insert(r.row_type, w);

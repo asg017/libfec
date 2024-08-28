@@ -1,80 +1,19 @@
+pub mod mappings;
+
 use csv::{ByteRecordsIntoIter, StringRecord};
-use fec_parser_macros::{
-    gen_column_names, gen_date_columns, gen_float_columns, gen_form_type_version_set,
-    gen_form_types,
-};
-use regex::{RegexSet, RegexSetBuilder};
+use mappings::column_names_for_field;
 use std::{
-    collections::HashSet,
     fs,
     io::{Error as IOError, Read},
     path::{Path, PathBuf},
 };
-
-lazy_static::lazy_static! {
-  pub static ref DATE_COLUMNS: HashSet<String> = HashSet::from(gen_date_columns!(""));
-}
-lazy_static::lazy_static! {
-  pub static ref FLOAT_COLUMNS: HashSet<String> = HashSet::from(gen_float_columns!(""));
-}
-
-static FORM_TYPES: &[&str] = &gen_form_types!("");
-
-lazy_static::lazy_static! {
-  static ref FORM_TYPES_SET: RegexSet = RegexSetBuilder::new(FORM_TYPES)
-    .case_insensitive(true)
-    .build()
-    .unwrap();
-}
-lazy_static::lazy_static! {
-  static ref FORM_TYPE_VERSIONS_SET: Vec<RegexSet> = gen_form_type_version_set!("");
-}
-
-lazy_static::lazy_static! {
-  static ref COLUMN_NAMES: Vec<Vec<Vec<String>>> = gen_column_names!();
-}
-
-pub fn field_idx(field: &str) -> Option<usize> {
-    let matches = FORM_TYPES_SET.matches(field);
-    matches.iter().next()
-}
-
-pub fn column_names_for_field<'a>(
-    form_type: &str,
-    fec_version: &str,
-) -> std::result::Result<&'a Vec<String>, ()> {
-    let idx = field_idx(form_type).unwrap();
-    let idx2 = FORM_TYPE_VERSIONS_SET
-        .get(idx)
-        .unwrap()
-        .matches(fec_version)
-        .iter()
-        .next()
-        .unwrap();
-    let columns = COLUMN_NAMES.get(idx).unwrap().get(idx2).unwrap();
-    Ok(columns)
-}
-
 use thiserror::Error;
 
-#[derive(Error, Debug)]
-pub enum FilingHeaderError {
-    #[error("Missing field '{name:?}' at index {idx:?}")]
-    MissingField { name: String, idx: usize },
-    #[error("`{0}`")]
-    UnsupportedVersion(String),
-}
-// fields from mappings2.json -> '^hdr$' -> '$[6-8]'
-#[derive(Debug)]
-pub struct FilingHeader {
-    pub record_type: String,
-    pub ef_type: String,
-    pub fec_version: String,
-    pub soft_name: String,
-    pub soft_ver: String,
-    pub report_id: Option<String>,
-    pub report_number: Option<String>,
-    pub comment: Option<String>,
+pub fn try_format_fec_date(value: &str) -> String {
+    if value.len() == "YYYYMMDD".len() {
+        return format!("{}-{}-{}", &value[0..4], &value[4..6], &value[6..8]);
+    }
+    value.to_owned()
 }
 
 macro_rules! header_get_field {
@@ -86,6 +25,27 @@ macro_rules! header_get_field {
             })?
             .to_string()
     };
+}
+
+#[derive(Error, Debug)]
+pub enum FilingHeaderError {
+    #[error("Missing field '{name:?}' at index {idx:?}")]
+    MissingField { name: String, idx: usize },
+    #[error("`{0}`")]
+    UnsupportedVersion(String),
+}
+// fields from mappings2.json -> '^hdr$' -> '$[6-8]'
+#[derive(Debug)]
+pub struct FilingHeader {
+    pub header_record: StringRecord,
+    pub record_type: String,
+    pub ef_type: String,
+    pub fec_version: String,
+    pub soft_name: String,
+    pub soft_ver: String,
+    pub report_id: Option<String>,
+    pub report_number: Option<String>,
+    pub comment: Option<String>,
 }
 
 impl FilingHeader {
@@ -117,6 +77,7 @@ impl FilingHeader {
             .filter(|v| !String::is_empty(v));
 
         Ok(FilingHeader {
+            header_record: hdr,
             record_type,
             ef_type,
             fec_version,
@@ -125,6 +86,71 @@ impl FilingHeader {
             report_id,
             report_number,
             comment,
+        })
+    }
+}
+
+pub struct FilingCover {
+    cover_record: StringRecord,
+    pub form_type: String,
+    pub filer_id: String,
+    pub filer_name: String,
+    pub report_code: String,
+    pub coverage_from_date: String,
+    pub coverage_through_date: String,
+}
+
+impl FilingCover {
+    fn from_record(fec_version: &str, cover_record: StringRecord) -> Result<Self, String> {
+        let form_type = cover_record
+            .get(0)
+            .ok_or_else(|| "Cover record row contains 0 fields".to_owned())?
+            .to_owned();
+        let columns = column_names_for_field(form_type.as_str(), fec_version).unwrap();
+
+        let id_idx = columns
+            .iter()
+            .position(|v| v == "filer_committee_id_number" || v == "candidate_id_number")
+            .ok_or_else(|| "asdf".to_owned())?;
+
+        let name_idx = columns
+            .iter()
+            .position(|v| v == "committee_name" || v == "organization_name")
+            .ok_or_else(|| "asdf".to_owned())?;
+
+        let report_code_idx = columns
+            .iter()
+            .position(|v| v == "report_code")
+            .ok_or_else(|| "report_code column not found in cover".to_owned())?;
+
+        let coverage_from_date_idx = columns
+            .iter()
+            .position(|v| v == "coverage_from_date")
+            .ok_or_else(|| "coverage_from_date column not found in cover record".to_owned())?;
+
+        let coverage_through_date_idx = columns
+            .iter()
+            .position(|v| v == "coverage_through_date")
+            .ok_or_else(|| {
+            "coverage_through_date column not found in cover record".to_owned()
+        })?;
+
+        let filer_id = cover_record.get(id_idx).unwrap().to_owned();
+        let filer_name = cover_record.get(name_idx).unwrap().to_owned();
+        let report_code = cover_record.get(report_code_idx).unwrap().to_owned();
+        let coverage_from_date =
+            try_format_fec_date(cover_record.get(coverage_from_date_idx).unwrap());
+        let coverage_through_date =
+            try_format_fec_date(cover_record.get(coverage_through_date_idx).unwrap());
+
+        Ok(Self {
+            cover_record,
+            form_type,
+            filer_id,
+            filer_name,
+            report_code,
+            coverage_from_date,
+            coverage_through_date,
         })
     }
 }
@@ -156,6 +182,7 @@ pub enum FilingError {
 pub struct Filing<R: Read> {
     pub filing_id: String,
     pub header: FilingHeader,
+    pub cover: FilingCover,
     records_iter: ByteRecordsIntoIter<R>,
     pub source_length: Option<usize>,
 }
@@ -188,11 +215,22 @@ impl<R: Read> Filing<R> {
             ));
         }
 
-        let header = FilingHeader::from_record(StringRecord::from_byte_record_lossy(hdr))?;
+        let hdr_record = StringRecord::from_byte_record_lossy(hdr);
+        let cover_record = records_iter
+            .next()
+            .expect("2nd record to be cover record")
+            .expect("2nd record to exist");
+        let header = FilingHeader::from_record(hdr_record)?;
+        let cover = FilingCover::from_record(
+            &header.fec_version,
+            StringRecord::from_byte_record_lossy(cover_record),
+        )
+        .unwrap();
 
         Ok(Self {
             filing_id,
             header,
+            cover,
             records_iter,
             source_length,
         })
@@ -293,6 +331,7 @@ pub struct FilingRow {
 #[cfg(test)]
 mod tests {
     use crate::*;
+    use mappings::*;
     use std::{
         fs::File,
         io::{BufRead, BufReader},

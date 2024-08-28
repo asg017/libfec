@@ -18,11 +18,17 @@ pub fn cmd_download(filing_ids: Vec<String>) -> Result<(), ()> {
     pb_files.enable_steady_tick(Duration::from_millis(750));
 
     for filing_id in filing_ids {
+        let filing_id = filing_id
+            .strip_prefix("FEC-")
+            .or_else(|| filing_id.strip_prefix("FEC"))
+            .unwrap_or(&filing_id)
+            .to_owned();
         let request =
             ureq::get(format!("https://docquery.fec.gov/dcdev/posted/{filing_id}.fec").as_str());
         let response = request.call().unwrap();
         let length: usize = response.header("Content-Length").unwrap().parse().unwrap();
-        let mut f = File::create_new(format!("{filing_id}.fec")).unwrap();
+        let path = format!("{filing_id}.fec");
+        let mut f = File::create_new(&path).unwrap();
         //pb_files.set_message(filing_path.clone());
         let pb_file = mb.add(ProgressBar::new(length as u64));
         pb_file.set_style(
@@ -38,6 +44,7 @@ pub fn cmd_download(filing_ids: Vec<String>) -> Result<(), ()> {
         .unwrap();
         pb_file.set_message(filing_id.clone());
         pb_files.inc(1);
+        pb_files.println(format!("{filing_id} downloaded to {path}"));
     }
     pb_files.finish_and_clear();
 
