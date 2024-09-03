@@ -24,11 +24,18 @@ fn main() {
                 .help("Format to output information to")
                 .required(false),
         );
-    let download = Command::new("download").arg(
-        Arg::new("filing-id")
-            .help("Filing ID to download")
-            .num_args(1..),
-    );
+    let download = Command::new("download")
+        .arg(
+            Arg::new("filing")
+                .help("Filing ID to download")
+                .num_args(1..),
+        )
+        .arg(
+            Arg::new("input-file")
+                .short('i')
+                .help(".txt files of FEC filing IDs to fetch, 1 line per filing ID"),
+        )
+        .arg(Arg::new("output-directory").help("Directory to store downloaded files into"));
     let feed = Command::new("feed");
     let export = Command::new("export")
         .arg(
@@ -105,7 +112,8 @@ fn main() {
                 (None, Some(input_file)) => fs::read_to_string(input_file)
                     .unwrap()
                     .lines()
-                    .map(|v| v.to_owned())
+                    .map(|v| v.trim().to_owned())
+                    .filter(|line| !line.is_empty() && !line.starts_with("#"))
                     .collect(),
                 (Some(filing_paths), None) => filing_paths.map(|v| v.to_owned()).collect(),
                 (Some(_), Some(_)) => todo!(),
@@ -114,11 +122,24 @@ fn main() {
                 .unwrap();
         }
         Some(("download", m)) => {
-            cmd_download::cmd_download(
-                m.get_many::<String>("filing-id")
+            let filing_ids: Vec<String> = match (
+                m.get_many::<String>("filing"),
+                m.get_one::<String>("input-file"),
+            ) {
+                (None, Some(input_file)) => fs::read_to_string(input_file)
                     .unwrap()
-                    .map(|v| v.to_owned())
+                    .lines()
+                    .map(|v| v.trim().to_owned())
+                    .filter(|line| !line.is_empty() && !line.starts_with("#"))
                     .collect(),
+                (Some(filing_ids), None) => filing_ids.map(|v| v.to_owned()).collect(),
+                (None, None) => todo!(),
+                (Some(_), Some(_)) => todo!(),
+            };
+            cmd_download::cmd_download(
+                filing_ids,
+                m.get_one::<String>("output-directory")
+                    .map(|v| v.to_owned()),
             )
             .unwrap();
         }

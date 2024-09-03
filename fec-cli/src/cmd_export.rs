@@ -338,9 +338,9 @@ pub fn cmd_export(
         None
     };
 
-    for filing_path in filing_paths {
+    for filing_path in &filing_paths {
         //pb_files.set_message(filing_path.clone());
-        let filing = filing_sourcer.resolve(&filing_path);
+        let filing = filing_sourcer.resolve(filing_path);
         let pb_file = mb.add(ProgressBar::new(filing.source_length.unwrap() as u64));
         pb_file.set_style(BAR_FILE_STYLE.clone());
         let filing_id = filing.filing_id.clone();
@@ -391,7 +391,11 @@ pub fn cmd_export(
         pb_files.finish_and_clear();
     }
 
-    println!("Finished in {}", HumanDuration(Instant::now() - t0));
+    println!(
+        "Finished {} files in {}",
+        filing_paths.len(),
+        HumanDuration(Instant::now() - t0)
+    );
     println!("{:?}", db.path());
     Ok(())
 }
