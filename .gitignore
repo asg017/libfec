@@ -12,3 +12,4 @@ june/
 *.db.gz
 *.csv
 *.zip
+.env
