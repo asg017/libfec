@@ -348,9 +348,17 @@ pub fn cmd_export(
             "FEC-{} ({} {} {} to {})",
             filing_id,
             filing.cover.filer_name,
-            filing.cover.report_code,
-            filing.cover.coverage_from_date,
-            filing.cover.coverage_through_date
+            &filing.cover.report_code.clone().unwrap_or("".to_owned()),
+            &filing
+                .cover
+                .coverage_from_date
+                .clone()
+                .unwrap_or("".to_owned()),
+            &filing
+                .cover
+                .coverage_through_date
+                .clone()
+                .unwrap_or("".to_owned())
         ));
         tx.execute(
             INSERT_FILING_SQL,
@@ -365,9 +373,9 @@ pub fn cmd_export(
                 &filing.cover.form_type,
                 &filing.cover.filer_id,
                 &filing.cover.filer_name,
-                &filing.cover.report_code,
-                &filing.cover.coverage_from_date,
-                &filing.cover.coverage_through_date,
+                &filing.cover.report_code.clone(),
+                &filing.cover.coverage_from_date.clone(),
+                &filing.cover.coverage_through_date.clone(),
             ],
         )
         .unwrap();

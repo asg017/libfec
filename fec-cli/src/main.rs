@@ -23,6 +23,13 @@ fn main() {
                 .short('f')
                 .help("Format to output information to")
                 .required(false),
+        )
+        .arg(
+            Arg::new("full")
+                .long("full")
+                .help("Calculate stats on all itemizations in the provided filings")
+                .num_args(0)
+                .required(false),
         );
     let download = Command::new("download")
         .arg(
@@ -36,7 +43,7 @@ fn main() {
                 .help(".txt files of FEC filing IDs to fetch, 1 line per filing ID"),
         )
         .arg(Arg::new("output-directory").help("Directory to store downloaded files into"));
-    let feed = Command::new("feed");
+    let feed = Command::new("feed").hide(true);
     let export = Command::new("export")
         .arg(
             Arg::new("filing")
@@ -63,15 +70,16 @@ fn main() {
 
     let fastfec_compat = Command::new("fastfec-compat")
         .arg(Arg::new("filing-path").help(".fec file to read from"))
-        .arg(Arg::new("output-directory").help("directory to write CSV files to"));
+        .arg(Arg::new("output-directory").help("directory to write CSV files to"))
+        .hide(true);
 
-    let matches = Command::new("libfec-cli")
+    let mut cmd = Command::new("libfec-cli")
         .subcommand(info)
         .subcommand(download)
         .subcommand(feed)
         .subcommand(export)
-        .subcommand(fastfec_compat)
-        .get_matches();
+        .subcommand(fastfec_compat);
+    let matches = cmd.clone().get_matches();
 
     match matches.subcommand() {
         Some(("fastfec-compat", m)) => {
@@ -95,6 +103,7 @@ fn main() {
                     .map(|v| v.to_owned())
                     .collect(),
                 format,
+                *m.get_one::<bool>("full").unwrap(),
             )
             .unwrap();
         }
@@ -147,6 +156,8 @@ fn main() {
             cmd_feed::cmd_feed().unwrap();
         }
         Some(_) => todo!(),
-        None => todo!(),
+        None => {
+            cmd.print_help();
+        }
     }
 }

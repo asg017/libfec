@@ -14,6 +14,10 @@ license = false
 eula = false
 
 
+[[bin]]
+name = "libfec"
+path = "src/main.rs"
+
 [dependencies]
 fec-parser = {path="../fec-parser"}
 clap = {version="4.1.8", features=["derive"]}

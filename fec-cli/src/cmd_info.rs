@@ -15,6 +15,8 @@ use tabled::{
     builder::Builder as TableBuilder,
     settings::{object::Columns as TableColumns, Alignment as TableAlignment, Style as TableStyle},
 };
+
+use crate::sourcer::FilingSourcer;
 struct FilingFormMetadata {
     count: usize,
     bytes: usize,
@@ -29,6 +31,7 @@ fn process_filing<R: Read>(
     filing: &mut Filing<R>,
     format: &CmdInfoFormat,
     spinner: &Option<ProgressBar>,
+    full: bool,
 ) {
     if matches!(format, CmdInfoFormat::Human) {
         println!(
@@ -38,11 +41,10 @@ fn process_filing<R: Read>(
                 .source_length
                 .map_or("".to_owned(), |v| format!("({})", HumanBytes(v as u64)))
         );
-        println!("{}", filing.filing_id);
-        println!("{}: {}", "FEC Version".bold(), filing.header.fec_version);
         println!(
-            "{}: {} ({})",
-            "Software".bold(),
+            "{} v{} ({} {})",
+            format!("FEC-{}", filing.filing_id).bold(),
+            filing.header.fec_version,
             filing.header.soft_name,
             filing.header.soft_ver
         );
@@ -56,13 +58,24 @@ fn process_filing<R: Read>(
             println!("{}: '{}'", "Comment".bold(), comment);
         }
         println!(
-            "{} {} ({})",
-            filing.cover.form_type, filing.cover.filer_name, filing.cover.filer_id
+            "{} filed by {} ({})",
+            filing.cover.form_type.bold(),
+            filing.cover.filer_id,
+            filing.cover.filer_name,
         );
+
+        if let Some(report_code) = filing.cover.report_code.as_ref() {
+            println!("{}", report_code);
+        }
+    }
+    if !full {
+        if let Some(ref spinner) = spinner {
+            spinner.finish_and_clear();
+        }
+        return;
     }
 
     let mut status: HashMap<String, FilingFormMetadata> = HashMap::new();
-
     while let Some(row) = filing.next_row() {
         let row = row.unwrap();
         if let Some(x) = status.get_mut(&row.row_type) {
@@ -111,7 +124,13 @@ fn process_filing<R: Read>(
     }
 }
 
-pub fn cmd_info(filing_paths: Vec<String>, format: CmdInfoFormat) -> Result<(), FilingError> {
+pub fn cmd_info(
+    filing_paths: Vec<String>,
+    format: CmdInfoFormat,
+    full: bool,
+) -> Result<(), FilingError> {
+    let filing_sourcer = FilingSourcer::new();
+
     let spinner = match format {
         CmdInfoFormat::Human => {
             let s = ProgressBar::new_spinner().with_message("Summarizing rows...");
@@ -121,25 +140,9 @@ pub fn cmd_info(filing_paths: Vec<String>, format: CmdInfoFormat) -> Result<(), 
         _ => None,
     };
 
-    for filing_path in filing_paths {
-        if filing_path.ends_with(".zip") {
-            let f = File::open(filing_path).unwrap();
-            let mut z = zip::ZipArchive::new(f).unwrap();
-            for i in 0..z.len() {
-                let mut file = z.by_index(i).unwrap();
-                let filing_id = Path::new(file.name())
-                    .file_stem()
-                    .map(|v| v.to_string_lossy().into_owned())
-                    .unwrap();
-                let source_length = Some(file.size() as usize);
-                let mut filing =
-                    Filing::<ZipFile>::from_reader(file, filing_id, source_length).unwrap();
-                process_filing(&mut filing, &format, &spinner);
-            }
-        } else {
-            let mut filing = Filing::<fs::File>::from_path(Path::new(&filing_path))?;
-            process_filing(&mut filing, &format, &spinner);
-        }
+    for filing_path in &filing_paths {
+        let mut filing = filing_sourcer.resolve(filing_path);
+        process_filing(&mut filing, &format, &spinner, full);
     }
 
     Ok(())

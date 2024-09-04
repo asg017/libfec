@@ -95,9 +95,9 @@ pub struct FilingCover {
     pub form_type: String,
     pub filer_id: String,
     pub filer_name: String,
-    pub report_code: String,
-    pub coverage_from_date: String,
-    pub coverage_through_date: String,
+    pub report_code: Option<String>,
+    pub coverage_from_date: Option<String>,
+    pub coverage_through_date: Option<String>,
 }
 
 impl FilingCover {
@@ -118,30 +118,23 @@ impl FilingCover {
             .position(|v| v == "committee_name" || v == "organization_name")
             .ok_or_else(|| "asdf".to_owned())?;
 
-        let report_code_idx = columns
+        let report_code = columns
             .iter()
             .position(|v| v == "report_code")
-            .ok_or_else(|| "report_code column not found in cover".to_owned())?;
+            .and_then(|idx| cover_record.get(idx).map(|s| s.to_owned()));
 
-        let coverage_from_date_idx = columns
+        let coverage_from_date = columns
             .iter()
             .position(|v| v == "coverage_from_date")
-            .ok_or_else(|| "coverage_from_date column not found in cover record".to_owned())?;
+            .and_then(|idx| cover_record.get(idx).map(|s| s.to_owned()));
 
-        let coverage_through_date_idx = columns
+        let coverage_through_date = columns
             .iter()
             .position(|v| v == "coverage_through_date")
-            .ok_or_else(|| {
-            "coverage_through_date column not found in cover record".to_owned()
-        })?;
+            .and_then(|idx| cover_record.get(idx).map(|s| s.to_owned()));
 
         let filer_id = cover_record.get(id_idx).unwrap().to_owned();
         let filer_name = cover_record.get(name_idx).unwrap().to_owned();
-        let report_code = cover_record.get(report_code_idx).unwrap().to_owned();
-        let coverage_from_date =
-            try_format_fec_date(cover_record.get(coverage_from_date_idx).unwrap());
-        let coverage_through_date =
-            try_format_fec_date(cover_record.get(coverage_through_date_idx).unwrap());
 
         Ok(Self {
             cover_record,
