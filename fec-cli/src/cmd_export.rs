@@ -1,6 +1,6 @@
 use fec_parser::{
     mappings::{DATE_COLUMNS, FLOAT_COLUMNS},
-    try_format_fec_date, Filing, FilingRowReadError,
+    try_format_fec_date, Filing,
 };
 use indicatif::{HumanDuration, MultiProgress, ProgressBar, ProgressStyle};
 use rusqlite::{
@@ -10,9 +10,8 @@ use rusqlite::{
 };
 use std::{
     collections::HashMap,
-    fs::{self, File},
+    error::Error,
     io::Read,
-    path::Path,
     time::{Duration, Instant},
 };
 use thiserror::Error;
@@ -23,8 +22,6 @@ use crate::sourcer::FilingSourcer;
 pub enum CmdExportError {
     #[error("`{0}`: {1}")]
     SqliteError(String, #[source] rusqlite::Error),
-    #[error("asdf")]
-    NextInvalid(#[source] FilingRowReadError),
 }
 
 #[derive(Clone, Copy)]
@@ -316,10 +313,10 @@ pub enum CmdExportTarget {
 }
 
 pub fn cmd_export(
-    filing_paths: Vec<String>,
+    filings: Vec<String>,
     db: &str,
     target: CmdExportTarget,
-) -> Result<(), CmdExportError> {
+) -> Result<(), Box<dyn Error>> {
     let filing_sourcer = FilingSourcer::new();
     let t0 = Instant::now();
     let mut db = Connection::open(db).map_err(|e| {
@@ -329,8 +326,8 @@ pub fn cmd_export(
     let mut tx = db.transaction().unwrap();
     tx.execute(CREATE_FILINGS_SQL, []).unwrap();
     let mb = MultiProgress::new();
-    let pb_files = if filing_paths.len() > 1 {
-        let pb_files = mb.add(ProgressBar::new(filing_paths.len() as u64));
+    let pb_files = if filings.len() > 1 {
+        let pb_files = mb.add(ProgressBar::new(filings.len() as u64));
         pb_files.set_style(BAR_FILES_STYLE.clone());
         pb_files.enable_steady_tick(Duration::from_millis(100));
         Some(pb_files)
@@ -338,9 +335,9 @@ pub fn cmd_export(
         None
     };
 
-    for filing_path in &filing_paths {
+    for filing in &filings {
         //pb_files.set_message(filing_path.clone());
-        let filing = filing_sourcer.resolve(filing_path);
+        let filing = filing_sourcer.resolve(filing);
         let pb_file = mb.add(ProgressBar::new(filing.source_length.unwrap() as u64));
         pb_file.set_style(BAR_FILE_STYLE.clone());
         let filing_id = filing.filing_id.clone();
@@ -401,7 +398,7 @@ pub fn cmd_export(
 
     println!(
         "Finished {} files in {}",
-        filing_paths.len(),
+        filings.len(),
         HumanDuration(Instant::now() - t0)
     );
     println!("{:?}", db.path());

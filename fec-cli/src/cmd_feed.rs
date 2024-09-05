@@ -1,12 +1,7 @@
-use indicatif::{HumanDuration, MultiProgress, ProgressBar, ProgressStyle};
+use indicatif::HumanDuration;
 use quick_xml::events::Event;
 use quick_xml::reader::Reader;
-use std::{
-    fs::File,
-    io::BufWriter,
-    process::{Command, Stdio},
-    time::{Duration, Instant},
-};
+use std::time::Instant;
 
 #[derive(Debug)]
 struct RssFeedItem {

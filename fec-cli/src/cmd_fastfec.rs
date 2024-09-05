@@ -1,6 +1,6 @@
-use fec_parser::{Filing, FilingError};
+use fec_parser::Filing;
 use indicatif::{ProgressBar, ProgressStyle};
-use std::{collections::HashMap, fs::File, io::Read, path::Path};
+use std::{collections::HashMap, error::Error, fs::File, io::Read, path::Path};
 
 fn write_fastfec_compat<R: Read>(mut filing: Filing<R>, directory: &Path) {
     let mut csv_writers: HashMap<String, csv::Writer<File>> = HashMap::new();
@@ -36,7 +36,7 @@ fn write_fastfec_compat<R: Read>(mut filing: Filing<R>, directory: &Path) {
     }
 }
 
-pub fn cmd_fastfec_compat(filing_file: &str, output_directory: &str) -> Result<(), FilingError> {
+pub fn cmd_fastfec_compat(filing_file: &str, output_directory: &str) -> Result<(), Box<dyn Error>> {
     let filing = Filing::<File>::from_path(Path::new(filing_file))?;
     let output_directory = Path::new(output_directory);
     write_fastfec_compat(filing, output_directory);

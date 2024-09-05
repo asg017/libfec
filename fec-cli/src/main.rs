@@ -5,19 +5,41 @@ mod cmd_feed;
 mod cmd_info;
 mod sourcer;
 
-use std::fs;
+use std::{error::Error, fs, process};
 
-use clap::{Arg, Command};
+use clap::{parser::ValuesRef, Arg, Command};
 use cmd_export::CmdExportTarget;
 use cmd_info::CmdInfoFormat;
 
-fn main() {
+fn resolve_filing_ids(
+    filing_matches: Option<ValuesRef<String>>,
+    input_file_match: Option<&String>,
+) -> Vec<String> {
+    match (filing_matches, input_file_match) {
+        (None, Some(input_file)) => fs::read_to_string(input_file)
+            .unwrap()
+            .lines()
+            .map(|v| v.trim().to_owned())
+            .filter(|line| !line.is_empty() && !line.starts_with("#"))
+            .collect(),
+        (Some(filing_ids), None) => filing_ids.map(|v| v.to_owned()).collect(),
+        (None, None) => todo!(),
+        (Some(_), Some(_)) => todo!(),
+    }
+}
+
+fn cmd() -> Command {
+    let arg_filings = Arg::new("filing")
+        .help("Filing ID to download")
+        .num_args(1..);
+    let arg_input_file = Arg::new("input-file")
+        .short('i')
+        .help(".txt files of FEC filing IDs to fetch, 1 line per filing ID");
+
     let info = Command::new("info")
-        .arg(
-            Arg::new("filing-path")
-                .help(".fec file to read from")
-                .num_args(1..),
-        )
+        .about("Retrieve information about a specified FEC filing")
+        .arg(arg_filings.clone())
+        .arg(arg_input_file.clone())
         .arg(
             Arg::new("format")
                 .short('f')
@@ -32,35 +54,21 @@ fn main() {
                 .required(false),
         );
     let download = Command::new("download")
-        .arg(
-            Arg::new("filing")
-                .help("Filing ID to download")
-                .num_args(1..),
-        )
-        .arg(
-            Arg::new("input-file")
-                .short('i')
-                .help(".txt files of FEC filing IDs to fetch, 1 line per filing ID"),
-        )
+        .about("Downloads a FEC filing files from the fec.gov website.")
+        .arg(arg_filings.clone())
+        .arg(arg_input_file.clone())
         .arg(Arg::new("output-directory").help("Directory to store downloaded files into"));
-    let feed = Command::new("feed").hide(true);
+
     let export = Command::new("export")
-        .arg(
-            Arg::new("filing")
-                .help("FEC file, id, or URL to read from")
-                .num_args(1..),
-        )
+        .about("Export FEC filings itemizations to a SQLite database.")
+        .arg(arg_filings.clone())
         .arg(
             Arg::new("db")
                 .short('o')
                 .help("SQLite db to export to")
                 .required(true),
         )
-        .arg(
-            Arg::new("input-file")
-                .short('i')
-                .help(".txt files of FEC filing IDs to fetch, 1 line per filing ID"),
-        )
+        .arg(arg_input_file.clone())
         .arg(
             Arg::new("target")
                 .long("target")
@@ -68,96 +76,81 @@ fn main() {
                 .default_value("form-type"),
         );
 
+    let feed = Command::new("feed").hide(true);
+
     let fastfec_compat = Command::new("fastfec-compat")
         .arg(Arg::new("filing-path").help(".fec file to read from"))
         .arg(Arg::new("output-directory").help("directory to write CSV files to"))
         .hide(true);
 
-    let mut cmd = Command::new("libfec-cli")
-        .subcommand(info)
-        .subcommand(download)
-        .subcommand(feed)
-        .subcommand(export)
-        .subcommand(fastfec_compat);
+    Command::new(clap::crate_name!())
+  .version(clap::crate_version!())
+  .about("A CLI for downloading, inspecting, and exporting data found in United States Federal Election Commission filings (aka FEC filings). ")
+  .subcommand(info)
+  .subcommand(download)
+  .subcommand(feed)
+  .subcommand(export)
+  .subcommand(fastfec_compat)
+}
+
+fn main() {
+    let mut cmd = cmd();
     let matches = cmd.clone().get_matches();
 
-    match matches.subcommand() {
-        Some(("fastfec-compat", m)) => {
-            cmd_fastfec::cmd_fastfec_compat(
-                m.get_one::<String>("filing-path")
-                    .expect("filing-path is required"),
-                m.get_one::<String>("output-directory")
-                    .expect("output-directory is required."),
-            )
-            .unwrap();
-        }
+    let result: Result<_, Box<dyn Error>> = match matches.subcommand() {
+        Some(("fastfec-compat", m)) => cmd_fastfec::cmd_fastfec_compat(
+            m.get_one::<String>("filing-path")
+                .expect("filing-path is required"),
+            m.get_one::<String>("output-directory")
+                .expect("output-directory is required."),
+        ),
         Some(("info", m)) => {
+            let filings = resolve_filing_ids(
+                m.get_many::<String>("filing"),
+                m.get_one::<String>("input-file"),
+            );
             let format = match m.get_one::<String>("format").map(String::as_str) {
                 None => CmdInfoFormat::Human,
                 Some("json") => CmdInfoFormat::Json,
                 Some(f) => todo!("Unknown format {f}"),
             };
-            cmd_info::cmd_info(
-                m.get_many::<String>("filing-path")
-                    .unwrap()
-                    .map(|v| v.to_owned())
-                    .collect(),
-                format,
-                *m.get_one::<bool>("full").unwrap(),
-            )
-            .unwrap();
+            let full = *m.get_one::<bool>("full").unwrap();
+            cmd_info::cmd_info(filings, format, full)
         }
         Some(("export", m)) => {
+            let filings = resolve_filing_ids(
+                m.get_many::<String>("filing"),
+                m.get_one::<String>("input-file"),
+            );
+            let db = m.get_one::<String>("db").unwrap();
             let target = match m.get_one::<String>("target").map(|v| v.as_str()) {
                 Some("form-type") => CmdExportTarget::ByFormType,
                 Some("schedule-a") | Some("a") => CmdExportTarget::ScheduleA,
                 Some(_) | None => todo!(),
             };
-            let filing_paths: Vec<String> = match (
-                m.get_many::<String>("filing"),
-                m.get_one::<String>("input-file"),
-            ) {
-                (None, None) => todo!(),
-                (None, Some(input_file)) => fs::read_to_string(input_file)
-                    .unwrap()
-                    .lines()
-                    .map(|v| v.trim().to_owned())
-                    .filter(|line| !line.is_empty() && !line.starts_with("#"))
-                    .collect(),
-                (Some(filing_paths), None) => filing_paths.map(|v| v.to_owned()).collect(),
-                (Some(_), Some(_)) => todo!(),
-            };
-            cmd_export::cmd_export(filing_paths, m.get_one::<String>("db").unwrap(), target)
-                .unwrap();
+            cmd_export::cmd_export(filings, db, target)
         }
         Some(("download", m)) => {
-            let filing_ids: Vec<String> = match (
+            let filings = resolve_filing_ids(
                 m.get_many::<String>("filing"),
                 m.get_one::<String>("input-file"),
-            ) {
-                (None, Some(input_file)) => fs::read_to_string(input_file)
-                    .unwrap()
-                    .lines()
-                    .map(|v| v.trim().to_owned())
-                    .filter(|line| !line.is_empty() && !line.starts_with("#"))
-                    .collect(),
-                (Some(filing_ids), None) => filing_ids.map(|v| v.to_owned()).collect(),
-                (None, None) => todo!(),
-                (Some(_), Some(_)) => todo!(),
-            };
-            cmd_download::cmd_download(
-                filing_ids,
-                m.get_one::<String>("output-directory")
-                    .map(|v| v.to_owned()),
-            )
-            .unwrap();
+            );
+            let output_directory = m
+                .get_one::<String>("output-directory")
+                .map(|v| v.to_owned());
+
+            cmd_download::cmd_download(filings, output_directory)
         }
-        Some(("feed", m)) => {
+        Some(("feed", _)) => {
             cmd_feed::cmd_feed().unwrap();
+            todo!()
         }
         Some(_) => todo!(),
-        None => {
-            cmd.print_help();
-        }
+        None => cmd.print_help().map_err(|_e| todo!()),
+    };
+
+    match result {
+        Ok(_) => process::exit(0),
+        Err(_) => process::exit(1),
     }
 }

@@ -1,5 +1,6 @@
 use indicatif::{HumanDuration, MultiProgress, ProgressBar, ProgressStyle};
 use std::{
+    error::Error,
     fs::File,
     io::BufWriter,
     time::{Duration, Instant},
@@ -17,18 +18,21 @@ lazy_static::lazy_static! {
   .unwrap();
 }
 
-pub fn cmd_download(filing_ids: Vec<String>, output_directory: Option<String>) -> Result<(), ()> {
+pub fn cmd_download(
+    filings: Vec<String>,
+    output_directory: Option<String>,
+) -> Result<(), Box<dyn Error>> {
     let t0 = Instant::now();
     let mb = MultiProgress::new();
-    let pb_files = mb.add(ProgressBar::new(filing_ids.len() as u64));
+    let pb_files = mb.add(ProgressBar::new(filings.len() as u64));
     pb_files.set_style(BAR_FILES_STYLE.clone());
     pb_files.enable_steady_tick(Duration::from_millis(750));
 
-    for filing_id in filing_ids {
-        let filing_id = filing_id
+    for filing in filings {
+        let filing_id = filing
             .strip_prefix("FEC-")
-            .or_else(|| filing_id.strip_prefix("FEC"))
-            .unwrap_or(&filing_id)
+            .or_else(|| filing.strip_prefix("FEC"))
+            .unwrap_or(&filing)
             .to_owned();
         let request =
             ureq::get(format!("https://docquery.fec.gov/dcdev/posted/{filing_id}.fec").as_str());

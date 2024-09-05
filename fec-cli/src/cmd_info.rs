@@ -1,15 +1,8 @@
 use colored::Colorize;
-use fec_parser::{mappings::column_names_for_field, Filing, FilingError};
+use fec_parser::{report_code_label, Filing};
 use indicatif::{HumanBytes, ProgressBar};
 use serde_json::Value;
-use std::{
-    collections::HashMap,
-    fs::{self, File},
-    io::Read,
-    path::Path,
-    time::Duration,
-};
-use zip::read::ZipFile;
+use std::{collections::HashMap, error::Error, io::Read, time::Duration};
 
 use tabled::{
     builder::Builder as TableBuilder,
@@ -35,18 +28,14 @@ fn process_filing<R: Read>(
 ) {
     if matches!(format, CmdInfoFormat::Human) {
         println!(
-            "Info {} {}",
-            filing.filing_id,
-            filing
-                .source_length
-                .map_or("".to_owned(), |v| format!("({})", HumanBytes(v as u64)))
-        );
-        println!(
-            "{} v{} ({} {})",
+            "{} v{} ({} {}) {}",
             format!("FEC-{}", filing.filing_id).bold(),
             filing.header.fec_version,
             filing.header.soft_name,
-            filing.header.soft_ver
+            filing.header.soft_ver,
+            filing
+                .source_length
+                .map_or("".to_owned(), |v| format!("({})", HumanBytes(v as u64)))
         );
         if let Some(ref report_id) = filing.header.report_id {
             println!("{}: '{}'", "Report ID".bold(), report_id);
@@ -58,15 +47,17 @@ fn process_filing<R: Read>(
             println!("{}: '{}'", "Comment".bold(), comment);
         }
         println!(
-            "{} filed by {} ({})",
+            "{} \"{}\" filed by {} ({})",
             filing.cover.form_type.bold(),
-            filing.cover.filer_id,
+            filing
+                .cover
+                .report_code
+                .as_ref()
+                .map(|report_code| report_code_label(report_code.as_str()))
+                .unwrap_or(""),
             filing.cover.filer_name,
+            filing.cover.filer_id,
         );
-
-        if let Some(report_code) = filing.cover.report_code.as_ref() {
-            println!("{}", report_code);
-        }
     }
     if !full {
         if let Some(ref spinner) = spinner {
@@ -125,10 +116,10 @@ fn process_filing<R: Read>(
 }
 
 pub fn cmd_info(
-    filing_paths: Vec<String>,
+    filings: Vec<String>,
     format: CmdInfoFormat,
     full: bool,
-) -> Result<(), FilingError> {
+) -> Result<(), Box<dyn Error>> {
     let filing_sourcer = FilingSourcer::new();
 
     let spinner = match format {
@@ -140,8 +131,8 @@ pub fn cmd_info(
         _ => None,
     };
 
-    for filing_path in &filing_paths {
-        let mut filing = filing_sourcer.resolve(filing_path);
+    for filing in &filings {
+        let mut filing = filing_sourcer.resolve(filing);
         process_filing(&mut filing, &format, &spinner, full);
     }
 

@@ -20,7 +20,7 @@ path = "src/main.rs"
 
 [dependencies]
 fec-parser = {path="../fec-parser"}
-clap = {version="4.1.8", features=["derive"]}
+clap = {version="4.1.8", features=["derive", "cargo"]}
 anyhow = "1.0"
 csv = "1.2.2"
 colored = "2.1.0"

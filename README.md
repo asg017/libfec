@@ -10,7 +10,11 @@ Work-in-progress parser for [`.fec` files](https://www.fec.gov/help-candidates-a
 | https://github.com/esonderegger/fecfile   | Python        | ~2018        |
 | https://github.com/washingtonpost/FastFEC | C/Python/WASM | ~2021        |
 
-Only FEC filings with version 8.3 and 8.4 are supported, though older versions may work in certain commands.
+- A single-binary CLI that works on all operating systems, no other dependencies required.
+- Really really fast
+- Only FEC filings with version 8.3 and 8.4 are currently supported, though older versions may work in certain commands.
+- Only a CLI for now. Could eventually add Python/Node.js/Ruby/WASM bindings in the future, if it ever makes sense.
+- Focused on only outputting data to SQLite/CSVs, though this could change in the future
 
 ## Installation
 
@@ -29,27 +33,10 @@ libfec export FEC-1813847 -o virginia.db
 ```
 
 This will download all the itemizations from [this FEC filing]() and export them to a SQLite database at `virginia.db`.
-The generated SQLite database will have the following tables:
+ A new table is created for every "form type" for all itemizations.
 
-```
-libfec_H1
-libfec_H2
-libfec_H3
-libfec_H4
-libfec_SA11AI
-libfec_SA11C
-libfec_SA12
-libfec_SB21B
-libfec_SB28A
-libfec_SB29
-libfec_SB30B
-libfec_TEXT
-libfec_filings
-```
 
-A new table is created for every "form type" for all itemizations. The `libfec_SA*` ones refer to "Schedule A" itemizations, aka "receipts" or contributions.
-
-If you only care about Schedule A itemizations, you can pass in the `--target schedule-a` flag like so:
+If you only care about Schedule A itemizations, you can pass in the `--target schedule-a` argument:
 
 ```
 libfec export FEC-1813847 --target schedule-a -o virginia.db
@@ -71,28 +58,31 @@ A new ID must appear on it's own line. Blank lines and lines that start with "#"
 
 ```
 # inside input.txt
- FEC-1813847
-
- FEC-1813838
-
- FEC-1813835
+FEC-1813847
+FEC-1813838
+FEC-1813835
 ```
 
 ```
 libfec export -i input.txt --target schedule-a -o project.db
 ```
 
-### Export afiling from a file, URL, or ID
+### Export a filing from a file, URL, or ID
 
 You can provide a filing as a file, URL, or ID to `libfec`. If it's a URL or ID, then `libfec` will download it from the FEC website.
 
-All these commands are functionaly equivalent:
+All these commands are functionally equivalent:
 
 ```bash
 # downloads the FEC-1813847 filings from the fec website
 libfec export FEC-1813847 --target schedule-a -o project.db
+
+# equivalent as above, the  'FEC-' prefix is optional
+libfec export 1813847 --target schedule-a -o project.db
+
 # uses the already downloaded file called 1813847.fec
 libfec export 1813847.fec --target schedule-a -o project.db
+
 # downloads directly from the provided URL
 libfec export https://docquery.fec.gov/dcdev/posted/1813847.fec --target schedule-a -o project.db
 ```
