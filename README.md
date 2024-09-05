@@ -1,20 +1,12 @@
 # `libfec`
 
-Work-in-progress parser for [`.fec` files](https://www.fec.gov/help-candidates-and-committees/filing-reports/fecfile-software/). Inspired by:
-
-| Repo                                      | Language      | Release date |
-| ----------------------------------------- | ------------- | ------------ |
-| https://github.com/cschnaars/FEC-Scraper  | Python+SQLite | ~2011        |
-| https://github.com/dwillis/Fech           | Ruby          | ~2012?       |
-| https://github.com/PublicI/fec-parse      | Node.js       | ~2015        |
-| https://github.com/esonderegger/fecfile   | Python        | ~2018        |
-| https://github.com/washingtonpost/FastFEC | C/Python/WASM | ~2021        |
+Work-in-progress parser for [`.fec` files](https://www.fec.gov/help-candidates-and-committees/filing-reports/fecfile-software/)
 
 - A single-binary CLI that works on all operating systems, no other dependencies required.
-- Really really fast
+- Outputs data to SQLite/CSVs, more targets coming soon
 - Only FEC filings with version 8.3 and 8.4 are currently supported, though older versions may work in certain commands.
 - Only a CLI for now. Could eventually add Python/Node.js/Ruby/WASM bindings in the future, if it ever makes sense.
-- Focused on only outputting data to SQLite/CSVs, though this could change in the future
+- Really really fast
 
 ## Installation
 
@@ -96,3 +88,14 @@ libfec export 1813847.fec --target schedule-a -o project.db
 # downloads directly from the provided URL
 libfec export https://docquery.fec.gov/dcdev/posted/1813847.fec --target schedule-a -o project.db
 ```
+
+
+## Prior Art
+
+| Repo                                      | Language      | Release date |
+| ----------------------------------------- | ------------- | ------------ |
+| https://github.com/cschnaars/FEC-Scraper  | Python+SQLite | ~2011        |
+| https://github.com/dwillis/Fech           | Ruby          | ~2012?       |
+| https://github.com/PublicI/fec-parse      | Node.js       | ~2015        |
+| https://github.com/esonderegger/fecfile   | Python        | ~2018        |
+| https://github.com/washingtonpost/FastFEC | C/Python/WASM | ~2021        |
