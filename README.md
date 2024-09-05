@@ -22,23 +22,33 @@ Work-in-progress parser for [`.fec` files](https://www.fec.gov/help-candidates-a
 curl --proto '=https' --tlsv1.2 -LsSf https://github.com/asg017/libfec/releases/latest/download/fec-cli-installer.sh | sh
 ```
 
-Or download the CLI directly from [a recent release](https://github.com/asg017/libfec/releases).
+Or download binaries directly from [a recent release](https://github.com/asg017/libfec/releases).
 
 ## Usage
 
+`libfec` is a CLI that exports itemizations from FEC filings. For example, to get all the itemizations from [ActBlue's latest filing](https://docquery.fec.gov/cgi-bin/forms/C00401224/1812188/), which itself is a
+[5GB file](https://docquery.fec.gov/dcdev/posted/1812188.fec), you can run:
+
+```bash
+libfec export FEC-1812188 -o actblue-2024-07.db
+```
+
+And you'll have a SQLite database with all that data!
+
+
 ### Export itemizations of a FEC filing to a SQLite database
 
-```
+```bash
 libfec export FEC-1813847 -o virginia.db
 ```
 
-This will download all the itemizations from [this FEC filing]() and export them to a SQLite database at `virginia.db`.
- A new table is created for every "form type" for all itemizations.
+This will download all the itemizations from [this FEC filing](https://docquery.fec.gov/cgi-bin/forms/C00155952/1813847/) and export them to a SQLite database at `virginia.db`.
+A new table is created for every "form type" for all itemizations.
 
 
 If you only care about Schedule A itemizations, you can pass in the `--target schedule-a` argument:
 
-```
+```bash
 libfec export FEC-1813847 --target schedule-a -o virginia.db
 ```
 
@@ -49,7 +59,7 @@ This is probably what you want if you're doing stories like "who has donated to 
 
 You can provide multiple FEC filing IDs to the `libfec` command line:
 
-```
+```bash
 libfec export FEC-1813847 FEC-1813838 FEC-1813835 --target schedule-a -o project.db
 ```
 
@@ -63,7 +73,7 @@ FEC-1813838
 FEC-1813835
 ```
 
-```
+```bash
 libfec export -i input.txt --target schedule-a -o project.db
 ```
 
