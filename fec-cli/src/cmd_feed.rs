@@ -61,8 +61,8 @@ pub fn cmd_feed() -> Result<(), ()> {
     let t0 = Instant::now();
 
     let request = ureq::get("https://efilingapps.fec.gov/rss/generate?preDefinedFilingType=ALL");
-    let response = request.call().unwrap();
-    let contents = response.into_string().unwrap();
+    let mut response = request.call().unwrap();
+    let contents = response.body_mut().read_to_string().unwrap();
     let mut items = vec![];
 
     let mut reader = Reader::from_str(&contents);

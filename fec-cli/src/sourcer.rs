@@ -34,16 +34,17 @@ impl FilingSourcer {
                             .file_stem()
                             .map(|os_str| os_str.to_string_lossy().to_string());
                         let source_length = response
-                            .header("Content-Length")
+                            .headers()
+                            .get("Content-Length")
+                            .unwrap()
+                            .to_str()
+                            .ok()
                             .map(|v| v.parse().unwrap());
-                        (
-                            Box::new(response.into_reader()),
-                            filing_id.unwrap(),
-                            source_length,
-                        )
+                        let r = response.into_parts().1.into_reader();
+                        (Box::new(r), filing_id.unwrap(), source_length)
                     } else {
                         match self.cache_directory.as_ref() {
-                            Some(cache_directory) => todo!(),
+                            Some(_) => todo!(),
                             None => {
                                 let filing_id = input
                                     .strip_prefix("FEC-")
@@ -56,9 +57,14 @@ impl FilingSourcer {
                                 let request = ureq::get(&url);
                                 let response = request.call().unwrap();
                                 let source_length = response
-                                    .header("Content-Length")
+                                    .headers()
+                                    .get("Content-Length")
+                                    .unwrap()
+                                    .to_str()
+                                    .ok()
                                     .map(|v| v.parse().unwrap());
-                                (Box::new(response.into_reader()), filing_id, source_length)
+                                let r = response.into_parts().1.into_reader();
+                                (Box::new(r), filing_id, source_length)
                             }
                         }
                     }

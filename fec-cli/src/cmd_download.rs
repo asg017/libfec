@@ -36,8 +36,15 @@ pub fn cmd_download(
             .to_owned();
         let request =
             ureq::get(format!("https://docquery.fec.gov/dcdev/posted/{filing_id}.fec").as_str());
-        let response = request.call().unwrap();
-        let length: usize = response.header("Content-Length").unwrap().parse().unwrap();
+        let mut response = request.call().unwrap();
+        let length: usize = response
+            .headers()
+            .get("Content-Length")
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .parse()
+            .unwrap();
         let path = format!(
             "{}{filing_id}.fec",
             output_directory.clone().unwrap_or("".to_owned())
@@ -47,7 +54,7 @@ pub fn cmd_download(
         let pb_file = mb.add(ProgressBar::new(length as u64));
         pb_file.set_style(BAR_FILE_STYLE.clone());
         std::io::copy(
-            &mut pb_file.wrap_read(response.into_reader()),
+            &mut pb_file.wrap_read(response.body_mut().as_reader()),
             &mut BufWriter::new(&mut f),
         )
         .unwrap();

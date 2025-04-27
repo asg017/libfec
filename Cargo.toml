@@ -4,7 +4,8 @@ resolver = "2"
 members = [
     "fec-parser-macros",
     "fec-parser",
-    "fec-cli"
+    "fec-cli",
+    "fec-api",
 ]
 
 # Config for 'cargo dist'

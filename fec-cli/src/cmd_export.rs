@@ -297,9 +297,9 @@ const CREATE_FILINGS_SQL: &str = r#"
     cover_record_form_type TEXT NOT NULL,
     filer_id TEXT NOT NULL,
     filer_name TEXT NOT NULL,
-    report_code TEXT NOT NULL,
-    coverage_from_date TEXT NOT NULL,
-    coverage_through_date TEXT NOT NULL
+    report_code TEXT,
+    coverage_from_date TEXT,
+    coverage_through_date TEXT
   )
 "#;
 
@@ -342,20 +342,12 @@ pub fn cmd_export(
         pb_file.set_style(BAR_FILE_STYLE.clone());
         let filing_id = filing.filing_id.clone();
         pb_file.set_message(format!(
-            "FEC-{} ({} {} {} to {})",
+            "FEC-{} ({} {})",
             filing_id,
             filing.cover.filer_name,
             &filing.cover.report_code.clone().unwrap_or("".to_owned()),
-            &filing
-                .cover
-                .coverage_from_date
-                .clone()
-                .unwrap_or("".to_owned()),
-            &filing
-                .cover
-                .coverage_through_date
-                .clone()
-                .unwrap_or("".to_owned())
+            //&filing.cover.coverage_from_date.clone(),
+            //&filing.cover.coverage_through_date.clone()
         ));
         tx.execute(
             INSERT_FILING_SQL,

@@ -20,18 +20,20 @@ path = "src/main.rs"
 
 [dependencies]
 fec-parser = {path="../fec-parser"}
+fec-api = {path="../fec-api"}
 clap = {version="4.1.8", features=["derive", "cargo"]}
 anyhow = "1.0"
 csv = "1.2.2"
 colored = "2.1.0"
-rusqlite = {version="0.32.1", features = ["bundled"] }
+rusqlite = {version="0.34", features = ["bundled", "jiff"] }
 thiserror = "1.0.63"
 indicatif = "0.17.8"
 tabled = "0.16.0"
-ureq = "2.10.1"
+ureq = "3.0.10"
 quick-xml = "=0.36.1"
 serde_json = "1.0.125"
 zip = "2.2.0"
 lazy_static = "1.5.0"
 url = "2.5.2"
+jiff = "0.2.5"
 #rusqlite = {version="0.32.1", features = ["bundled"] }

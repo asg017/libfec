@@ -19,6 +19,34 @@ pub(crate) enum CmdInfoFormat {
     Human,
     Json,
 }
+fn form_name(form_type: &str) -> &str {
+    let base_form_type = if form_type.ends_with('A') || form_type.ends_with('N') {
+        &form_type[..form_type.len() - 1]
+    } else {
+        form_type
+    };
+
+    match base_form_type {
+    "F1"  => "Statement of Organization",
+    "F1M"  => "Notification of Multicandidate Status",
+    "F2"  => "Statement of Candidacy",
+    "F24"  => "24/48 Hour Report of Independent Expenditures",
+    "F3"  => "Report of Receipts and Disbursements for an Authorized Committee",
+    "F3P"  => "Report of Receipts and Disbursements by an Authorized Committee of a Candidate for The Office of President or Vice President",
+    "F3L"  => "Report of Contributions Bundled by Lobbyists/Registrants and Lobbyist/Registrant PACs",
+    "F3X"  => "Report of Receipts and Disbursements for other than an Authorized Committee",
+    "F4"  => "Report of Receipts and Disbursements for a Committee or Organization Supporting a Nomination Convention",
+    "F5"  => "Report of Independent Expenditures Made and Contributions Received",
+    "F6"  => "48 Hour Notice of Contributions/Loans Received",
+    "F7"  => "Report of Communication Costs by Corporations and Membership Organizations",
+    "F8"  => "Debt Settlement Plan",
+    "F9"  => "24 Hour Notice of Disbursements for Electioneering Communications",
+    "F13"  => "Report of Donations Accepted for Inaugural Committee",
+    "F99"  => "Miscellaneous Text",
+    "FRQ"  => "Request for Additional Information",
+    _ => "",
+  }
+}
 
 fn process_filing<R: Read>(
     filing: &mut Filing<R>,
@@ -47,8 +75,9 @@ fn process_filing<R: Read>(
             println!("{}: '{}'", "Comment".bold(), comment);
         }
         println!(
-            "{} \"{}\" filed by {} ({})",
-            filing.cover.form_type.bold(),
+            "{} ({})\n\"{}\" filed by {} ({})",
+            form_name(&filing.cover.form_type),
+            filing.cover.form_type,
             filing
                 .cover
                 .report_code
@@ -64,6 +93,10 @@ fn process_filing<R: Read>(
             spinner.finish_and_clear();
         }
         return;
+    }
+
+    if let Some(spinner) = spinner {
+      spinner.set_message("Summarizing rows...");
     }
 
     let mut status: HashMap<String, FilingFormMetadata> = HashMap::new();
@@ -115,8 +148,13 @@ fn process_filing<R: Read>(
     }
 }
 
+enum InfoInput {
+  Filing(String),
+  Commitee(String),
+  //Canddate(String),
+}
 pub fn cmd_info(
-    filings: Vec<String>,
+    inputs: Vec<String>,
     format: CmdInfoFormat,
     full: bool,
 ) -> Result<(), Box<dyn Error>> {
@@ -124,17 +162,33 @@ pub fn cmd_info(
 
     let spinner = match format {
         CmdInfoFormat::Human => {
-            let s = ProgressBar::new_spinner().with_message("Summarizing rows...");
+            let s = ProgressBar::new_spinner();
             s.enable_steady_tick(Duration::from_millis(100));
             Some(s)
         }
         _ => None,
     };
-
-    for filing in &filings {
-        let mut filing = filing_sourcer.resolve(filing);
-        process_filing(&mut filing, &format, &spinner, full);
+    let inputs = inputs.iter().map(|v| {
+      if v.starts_with("C") {
+        InfoInput::Commitee(v.clone())
+      } else {
+        InfoInput::Filing(v.clone())
+      }
+    });
+    for input in inputs {
+      match input {
+        InfoInput::Filing(filing) => {
+            let mut filing = filing_sourcer.resolve(&filing);
+            process_filing(&mut filing, &format, &spinner, full);
+        }
+        InfoInput::Commitee(commitee_id) => {
+          // TODO print info about the committee
+            println!("{commitee_id}");
+        }
+      }
     }
+
+    
 
     Ok(())
 }

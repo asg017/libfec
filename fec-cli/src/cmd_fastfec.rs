@@ -7,9 +7,13 @@ fn write_fastfec_compat<R: Read>(mut filing: Filing<R>, directory: &Path) {
 
     let pb_style = ProgressStyle::with_template(
       "{msg}.fec:\t[{elapsed_precise}] {bar:40.cyan/blue} {eta} {decimal_bytes_per_sec} {decimal_total_bytes} total",
-  )
-  .unwrap();
+    )
+    .unwrap();
+
     let pb = ProgressBar::new(filing.source_length.unwrap() as u64).with_style(pb_style);
+
+    let filing_directory = directory.join(filing.filing_id.to_string());
+    std::fs::create_dir_all(&filing_directory).unwrap();
 
     while let Some(r) = filing.next_row() {
         let r = r.unwrap();
@@ -18,7 +22,7 @@ fn write_fastfec_compat<R: Read>(mut filing: Filing<R>, directory: &Path) {
         if let Some(w) = csv_writers.get_mut(&r.row_type) {
             w.write_record(&r.record.clone()).unwrap();
         } else {
-            let f = File::create_new(directory.join(format!("{}.csv", r.row_type))).unwrap();
+            let f = File::create_new(filing_directory.join(format!("{}.csv", r.row_type))).unwrap();
             let mut w = csv::WriterBuilder::new()
                 .flexible(true)
                 .has_headers(false)
@@ -39,6 +43,7 @@ fn write_fastfec_compat<R: Read>(mut filing: Filing<R>, directory: &Path) {
 pub fn cmd_fastfec_compat(filing_file: &str, output_directory: &str) -> Result<(), Box<dyn Error>> {
     let filing = Filing::<File>::from_path(Path::new(filing_file))?;
     let output_directory = Path::new(output_directory);
+    std::fs::create_dir_all(output_directory)?;
     write_fastfec_compat(filing, output_directory);
     Ok(())
 }

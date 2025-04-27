@@ -13,3 +13,6 @@ june/
 *.csv
 *.zip
 .env
+
+
+.test-files

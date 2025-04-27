@@ -1,11 +1,10 @@
 pub mod mappings;
 
 use csv::{ByteRecordsIntoIter, StringRecord};
+use jiff::civil::Date;
 use mappings::column_names_for_field;
 use std::{
-    fs,
-    io::{Error as IOError, Read},
-    path::{Path, PathBuf},
+    collections::HashMap, fs, io::{Error as IOError, Read}, path::{Path, PathBuf}
 };
 use thiserror::Error;
 
@@ -92,6 +91,7 @@ impl FilingHeader {
 
 pub fn report_code_label(report_code: &str) -> &'static str {
     // labels from: https://api.open.fec.gov/developers/#/filings/get_v1_filings_:~:text=(query)-,Name%20of%20report%20where%20the%20underlying%20data%20comes%20from%3A,-%2D%2010D%20Pre%2DElection
+    // also: https://www.fec.gov/campaign-finance-data/report-type-code-descriptions/
     match report_code {
         "10D" => "Pre-Election",
         "10G" => "Pre-General",
@@ -109,6 +109,7 @@ pub fn report_code_label(report_code: &str) -> &'static str {
         "30R" => "Post-Run-Off",
         "30S" => "Post-Special",
         "60D" => "Post-Convention",
+
         "M1" => "January Monthly",
         "M10" => "October Monthly",
         "M11" => "November Monthly",
@@ -116,15 +117,18 @@ pub fn report_code_label(report_code: &str) -> &'static str {
         "M2" => "February Monthly",
         "M3" => "March Monthly",
         "M4" => "April Monthly",
-        "M5" => "May Monthly",
+        "M5" => "May Month        ly",
         "M6" => "June Monthly",
         "M7" => "July Monthly",
         "M8" => "August Monthly",
         "M9" => "September Monthly",
+
         "MY" => "Mid-Year Report",
+
         "Q1" => "April Quarterly",
         "Q2" => "July Quarterly",
         "Q3" => "October Quarterly",
+        
         "TER" => "Termination Report",
         "YE" => "Year-End",
         "ADJ" => "COMP ADJUST AMEND",
@@ -145,14 +149,16 @@ pub fn report_code_label(report_code: &str) -> &'static str {
         _ => "[Unknown report code]",
     }
 }
+
 pub struct FilingCover {
-    cover_record: StringRecord,
+    pub record: StringRecord,
     pub form_type: String,
     pub filer_id: String,
     pub filer_name: String,
     pub report_code: Option<String>,
-    pub coverage_from_date: Option<String>,
-    pub coverage_through_date: Option<String>,
+    pub coverage_from_date: Option<Date>,
+    pub coverage_through_date: Option<Date>,
+    cover_record_kv: HashMap<String, String>,
 }
 
 impl FilingCover {
@@ -161,8 +167,13 @@ impl FilingCover {
             .get(0)
             .ok_or_else(|| "Cover record row contains 0 fields".to_owned())?
             .to_owned();
-        let columns = column_names_for_field(form_type.as_str(), fec_version).unwrap();
 
+        let columns = column_names_for_field(form_type.as_str(), fec_version).unwrap();
+        let mut cover_record_kv = HashMap::new();
+        for (column_name, field) in columns.iter().zip(cover_record.iter()) {
+          cover_record_kv.insert(column_name.to_owned(), field.to_owned());
+        }
+        
         let id_idx = columns
             .iter()
             .position(|v| v == "filer_committee_id_number" || v == "candidate_id_number")
@@ -178,27 +189,41 @@ impl FilingCover {
             .position(|v| v == "report_code")
             .and_then(|idx| cover_record.get(idx).map(|s| s.to_owned()));
 
-        let coverage_from_date = columns
+        // provided as '20240901'
+        let coverage_from_date = match columns
             .iter()
             .position(|v| v == "coverage_from_date")
-            .and_then(|idx| cover_record.get(idx).map(|s| s.to_owned()));
+            .and_then(|idx| cover_record.get(idx).map(|s| s.to_owned()))
+            .map(|s| Date::strptime("%Y%m%d", s))
+        {
+            Some(Ok(date)) => Some(date),
+            None => None,
+            Some(Err(_)) => todo!(),
+        };
 
-        let coverage_through_date = columns
+        let coverage_through_date = match columns
             .iter()
             .position(|v| v == "coverage_through_date")
-            .and_then(|idx| cover_record.get(idx).map(|s| s.to_owned()));
+            .and_then(|idx| cover_record.get(idx).map(|s| s.to_owned()))
+            .map(|s| Date::strptime("%Y%m%d", s))
+        {
+            Some(Ok(date)) => Some(date),
+            None => None,
+            Some(Err(_)) => todo!(),
+        };
 
         let filer_id = cover_record.get(id_idx).unwrap().to_owned();
         let filer_name = cover_record.get(name_idx).unwrap().to_owned();
 
         Ok(Self {
-            cover_record,
+            record: cover_record,
             form_type,
             filer_id,
             filer_name,
             report_code,
             coverage_from_date,
             coverage_through_date,
+            cover_record_kv
         })
     }
 }
