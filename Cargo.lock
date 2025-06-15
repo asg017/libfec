@@ -485,7 +485,7 @@ dependencies = [
 
 [[package]]
 name = "fec-cli"
-version = "0.0.7"
+version = "0.0.9"
 dependencies = [
  "anyhow",
  "clap",
