@@ -1,5 +1,6 @@
 [workspace]
 members = ["cargo:."]
+packages = ["fec-cli"]
 
 # Config for 'dist'
 [dist]
