@@ -40,7 +40,7 @@ fn write_fastfec_compat<R: Read>(mut filing: Filing<R>, directory: &Path) {
     }
 }
 
-pub fn cmd_fastfec_compat(filing_file: &str, output_directory: &str) -> Result<(), Box<dyn Error>> {
+pub fn cmd_fastfec_compat(filing_file: &str, output_directory: &Path) -> Result<(), Box<dyn Error>> {
     let filing = Filing::<File>::from_path(Path::new(filing_file))?;
     let output_directory = Path::new(output_directory);
     std::fs::create_dir_all(output_directory)?;

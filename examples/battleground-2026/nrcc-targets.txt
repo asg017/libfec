@@ -1,0 +1,27 @@
+# https://www.nrcc.org/2025/03/17/nrcc-targets-26-offensive-seats-to-expand-house-majority/
+CA09
+CA13
+CA27
+CA45
+CA47
+FL09
+FL23
+IN01
+ME02
+MI08
+NC01
+NH01
+NJ09
+NM02
+NV01
+NV03
+NV04
+NY03
+NY04
+NY19
+OH09
+OH13
+TX28
+TX34
+VA07
+WA03

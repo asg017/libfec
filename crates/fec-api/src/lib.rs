@@ -1,4 +1,6 @@
-use anyhow::Result;
+use std::str::FromStr;
+
+use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use url::Url;
@@ -21,6 +23,66 @@ pub struct FilingArgs {
     pub form_types: Option<Vec<String>>,
 }
 
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub enum Office {
+    #[serde(rename = "H")]
+    House,
+    #[serde(rename = "S")]
+    Senate,
+    #[serde(rename = "P")]
+    President,
+}
+
+impl ToString for Office {
+    fn to_string(&self) -> String {
+        match self {
+            Office::House => "house".to_string(),
+            Office::Senate => "senate".to_string(),
+            Office::President => "president".to_string(),
+        }
+    }
+}
+
+impl FromStr for Office {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        match s.to_lowercase().as_str() {
+            "h" | "house" => Ok(Office::House),
+            "s" | "senate" => Ok(Office::Senate),
+            "p" | "president" | "prez" => Ok(Office::President),
+            _ => Err(anyhow::anyhow!("Invalid office type")),
+        }
+    }
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+pub struct ElectionsArgs {
+    pub cycle: u16,
+    pub office: Office,
+    pub state: Option<String>,
+    pub district: Option<u16>,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+pub struct ElectionItem {
+    pub candidate_election_year: i64,
+    pub candidate_id: String,
+    pub candidate_name: String,
+    pub candidate_pcc_id: String,
+    pub candidate_pcc_name: String,
+    pub cash_on_hand_end_period: f64,
+    pub committee_ids: Vec<String>,
+    pub coverage_end_date: Option<String>,
+    pub incumbent_challenge_full: String,
+    pub party_full: String,
+    pub total_disbursements: f64,
+    pub total_receipts: i64,
+}
+
+
+
+
 #[derive(Deserialize, Serialize, Debug)]
 pub struct FilingItem {
     pub filing_id: String,
@@ -29,6 +91,7 @@ pub struct FilingItem {
 
 
 pub struct FilingsUrl(pub Url);
+pub struct ElectionsUrl(pub Url);
 
 
 impl Api {
@@ -86,6 +149,23 @@ impl Api {
       Ok(FilingsUrl(url))
     }
 
+    pub fn elections_url(&self, args: ElectionsArgs) -> Result<ElectionsUrl> {
+      let mut url = Url::parse(&format!("{}/v1/elections", self.base_url))?;
+      let mut qp = url.query_pairs_mut();
+      qp.append_pair("api_key", &self.api_key);
+
+      qp.append_pair("cycle", &args.cycle.to_string());
+      qp.append_pair("office", &args.office.to_string());
+      if let Some(state) = &args.state {
+          qp.append_pair("state", state);
+      }
+      if let Some(district) = &args.district {
+          qp.append_pair("district", format!("{:02}", district).as_str());
+      }
+      drop(qp);
+      Ok(ElectionsUrl(url))
+    }
+
     pub fn filings(
         &self,
         url: FilingsUrl,
@@ -113,5 +193,25 @@ impl Api {
             .collect::<Vec<FilingItem>>();
 
         Ok(ids)
+    }
+    pub fn elections(
+        &self,
+        url: ElectionsUrl,
+    ) -> Result<Vec<ElectionItem>> {
+        
+        let mut response = ureq::get(url.0.as_str())
+            .header("accept", "application/json")
+            .header(
+                "User-Agent",
+                format!("libfec/{}", env!("CARGO_PKG_VERSION")),
+            )
+            .call().context("Elections URL hit error")?;
+        let body: serde_json::Value = response.body_mut().read_json().unwrap();
+        let results = body.get("results").unwrap().as_array().unwrap();
+        Ok(results
+            .iter()
+            .map(|v| serde_json::from_value(v.clone()))
+            .collect::<Result<Vec<ElectionItem>, _>>().context("Error collecting election items")?
+        )
     }
 }

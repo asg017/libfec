@@ -9,16 +9,13 @@ use tabled::{
     settings::{object::Columns as TableColumns, Alignment as TableAlignment, Style as TableStyle},
 };
 
-use crate::sourcer::FilingSourcer;
+use crate::{cli::{CmdInfoFormat, InfoArgs}, sourcer::FilingSourcer};
 struct FilingFormMetadata {
     count: usize,
     bytes: usize,
 }
 
-pub(crate) enum CmdInfoFormat {
-    Human,
-    Json,
-}
+
 fn form_name(form_type: &str) -> &str {
     let base_form_type = if form_type.ends_with('A') || form_type.ends_with('N') {
         &form_type[..form_type.len() - 1]
@@ -55,16 +52,43 @@ fn process_filing<R: Read>(
     full: bool,
 ) {
     if matches!(format, CmdInfoFormat::Human) {
+        
+
+        print!(
+            "{} {} {} by {} ({})",
+            format!("{}", filing.filing_id).bold(),
+            
+            filing.cover.form_type,
+            filing
+                .cover
+                .report_code
+                .as_ref()
+                .map(|report_code| report_code_label(report_code.as_str()))
+                .unwrap_or(""),
+            filing.cover.filer_name.bold(),
+            filing.cover.filer_id,
+        );
+        if let (Some(from), Some(through)) = (filing.cover.coverage_from_date, filing.cover.coverage_through_date) {
+            print!(
+                " covering {} to {}",
+                from.to_string(),
+                through.to_string(),
+            );
+        }
+        println!();
+
+        println!("{}", form_name(&filing.cover.form_type).dimmed());
+
         println!(
-            "{} v{} ({} {}) {}",
-            format!("FEC-{}", filing.filing_id).bold(),
+            "v{} {} filed with {} {}",
             filing.header.fec_version,
-            filing.header.soft_name,
-            filing.header.soft_ver,
             filing
                 .source_length
-                .map_or("".to_owned(), |v| format!("({})", HumanBytes(v as u64)))
+                .map_or("".to_owned(), |v| format!("({})", HumanBytes(v as u64))),
+                filing.header.soft_name, filing.header.soft_ver
         );
+
+        
         if let Some(ref report_id) = filing.header.report_id {
             println!("{}: '{}'", "Report ID".bold(), report_id);
         }
@@ -74,19 +98,7 @@ fn process_filing<R: Read>(
         if let Some(ref comment) = filing.header.comment {
             println!("{}: '{}'", "Comment".bold(), comment);
         }
-        println!(
-            "{} ({})\n\"{}\" filed by {} ({})",
-            form_name(&filing.cover.form_type),
-            filing.cover.form_type,
-            filing
-                .cover
-                .report_code
-                .as_ref()
-                .map(|report_code| report_code_label(report_code.as_str()))
-                .unwrap_or(""),
-            filing.cover.filer_name,
-            filing.cover.filer_id,
-        );
+        
     }
     if !full {
         if let Some(ref spinner) = spinner {
@@ -154,13 +166,11 @@ enum InfoInput {
   //Canddate(String),
 }
 pub fn cmd_info(
-    inputs: Vec<String>,
-    format: CmdInfoFormat,
-    full: bool,
+    args: InfoArgs
 ) -> Result<(), Box<dyn Error>> {
     let filing_sourcer = FilingSourcer::new();
 
-    let spinner = match format {
+    let spinner = match args.format {
         CmdInfoFormat::Human => {
             let s = ProgressBar::new_spinner();
             s.enable_steady_tick(Duration::from_millis(100));
@@ -168,7 +178,7 @@ pub fn cmd_info(
         }
         _ => None,
     };
-    let inputs = inputs.iter().map(|v| {
+    let inputs = args.filings.iter().map(|v| {
       if v.starts_with("C") {
         InfoInput::Commitee(v.clone())
       } else {
@@ -179,7 +189,7 @@ pub fn cmd_info(
       match input {
         InfoInput::Filing(filing) => {
             let mut filing = filing_sourcer.resolve(&filing);
-            process_filing(&mut filing, &format, &spinner, full);
+            process_filing(&mut filing, &args.format, &spinner, args.full);
         }
         InfoInput::Commitee(commitee_id) => {
           // TODO print info about the committee

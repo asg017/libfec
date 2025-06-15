@@ -1,4 +1,5 @@
 pub mod mappings;
+pub mod schedules;
 
 use csv::{ByteRecordsIntoIter, StringRecord};
 use jiff::civil::Date;
@@ -158,7 +159,7 @@ pub struct FilingCover {
     pub report_code: Option<String>,
     pub coverage_from_date: Option<Date>,
     pub coverage_through_date: Option<Date>,
-    cover_record_kv: HashMap<String, String>,
+    pub cover_record_kv: HashMap<String, String>,
 }
 
 impl FilingCover {
@@ -435,26 +436,4 @@ mod tests {
         );
     }
 
-    #[test]
-    fn xxx() {
-        let file = File::open("../tests/13360.fec").unwrap();
-        let mut reader = BufReader::new(file);
-
-        let mut line = String::with_capacity(1);
-        let mut idx = 0;
-        loop {
-            let n = reader.read_line(&mut line);
-            idx += 1;
-            if idx >= 17 {
-                break;
-            }
-        }
-
-        let mut csv_reader = csv::ReaderBuilder::new()
-            .flexible(true)
-            .has_headers(false)
-            .from_reader(reader);
-        let x = csv_reader.records().next().unwrap().unwrap();
-        assert_eq!(x.get(0), Some("F3XA"));
-    }
 }

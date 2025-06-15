@@ -36,4 +36,5 @@ zip = "2.2.0"
 lazy_static = "1.5.0"
 url = "2.5.2"
 jiff = "0.2.5"
+rust_xlsxwriter = "0.86.1"
 #rusqlite = {version="0.32.1", features = ["bundled"] }

@@ -1,0 +1,22 @@
+[project]
+name = "fec-py"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Alex Garcia", email = "alexsebastian.garcia@gmail.com" }
+]
+requires-python = ">=3.7"
+dependencies = []
+
+[project.scripts]
+fec-py = "fec_py:main"
+
+[tool.maturin]
+module-name = "fec_py._core"
+python-packages = ["fec_py"]
+python-source = "src"
+
+[build-system]
+requires = ["maturin>=1.0,<2.0"]
+build-backend = "maturin"

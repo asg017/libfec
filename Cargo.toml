@@ -2,10 +2,12 @@
 resolver = "2"
 
 members = [
-    "fec-parser-macros",
-    "fec-parser",
-    "fec-cli",
-    "fec-api",
+    "crates/fec-parser-macros",
+    "crates/fec-parser",
+    "crates/fec-cli",
+    "crates/fec-api", 
+    "crates/fec-wasm", 
+    "crates/fec-py",
 ]
 
 # Config for 'cargo dist'
