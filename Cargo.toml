@@ -6,8 +6,8 @@ members = [
     "crates/fec-parser",
     "crates/fec-cli",
     "crates/fec-api", 
-    "crates/fec-wasm", 
-    "crates/fec-py",
+    #"crates/fec-wasm", 
+    #"crates/fec-py",
 ]
 
 # The profile that 'cargo dist' will build with
