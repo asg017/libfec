@@ -3,5 +3,5 @@ requires = ["maturin>=1.0,<2.0"]
 build-backend = "maturin"
 
 [project]
-name = "libefec"
+name = "libfec"
 description = "A command line interface for working with FEC filings"
