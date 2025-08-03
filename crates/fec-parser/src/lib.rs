@@ -1,11 +1,16 @@
+pub mod covers;
 pub mod mappings;
 pub mod schedules;
 
+use crate::covers::Cover;
 use csv::{ByteRecordsIntoIter, StringRecord};
+use indexmap::IndexMap;
 use jiff::civil::Date;
 use mappings::column_names_for_field;
 use std::{
-    collections::HashMap, fs, io::{Error as IOError, Read}, path::{Path, PathBuf}
+    fs,
+    io::{Error as IOError, Read},
+    path::{Path, PathBuf},
 };
 use thiserror::Error;
 
@@ -35,14 +40,20 @@ pub enum FilingHeaderError {
     UnsupportedVersion(String),
 }
 // fields from mappings2.json -> '^hdr$' -> '$[6-8]'
+
+
+/// > The first record of every electronic file that is submitted to the FEC 
+/// > must be an HDR record that precedes the main body of the ASCII CSV 
+/// > (comma separated values) data"
+/// Source: FEC_Format_8.4.pdf, page 3
 #[derive(Debug)]
 pub struct FilingHeader {
     pub header_record: StringRecord,
     pub record_type: String,
     pub ef_type: String,
     pub fec_version: String,
-    pub soft_name: String,
-    pub soft_ver: String,
+    pub software_name: String,
+    pub software_version: String,
     pub report_id: Option<String>,
     pub report_number: Option<String>,
     pub comment: Option<String>,
@@ -61,8 +72,8 @@ impl FilingHeader {
                 )));
             }
         }
-        let soft_name = header_get_field!(hdr, 3, "soft_name");
-        let soft_ver = header_get_field!(hdr, 4, "soft_ver");
+        let software_name = header_get_field!(hdr, 3, "soft_name");
+        let software_version = header_get_field!(hdr, 4, "soft_ver");
         let report_id = hdr
             .get(5)
             .map(|v| String::from(v.trim()))
@@ -81,8 +92,8 @@ impl FilingHeader {
             record_type,
             ef_type,
             fec_version,
-            soft_name,
-            soft_ver,
+            software_name,
+            software_version,
             report_id,
             report_number,
             comment,
@@ -129,7 +140,7 @@ pub fn report_code_label(report_code: &str) -> &'static str {
         "Q1" => "April Quarterly",
         "Q2" => "July Quarterly",
         "Q3" => "October Quarterly",
-        
+
         "TER" => "Termination Report",
         "YE" => "Year-End",
         "ADJ" => "COMP ADJUST AMEND",
@@ -151,6 +162,9 @@ pub fn report_code_label(report_code: &str) -> &'static str {
     }
 }
 
+
+/// > "The second record will be a "cover" record for the particular filing, 
+/// > (for example, a F3 or and F3X record for a FEC-3 or FEC-3X electronic report)."
 pub struct FilingCover {
     pub record: StringRecord,
     pub form_type: String,
@@ -159,7 +173,8 @@ pub struct FilingCover {
     pub report_code: Option<String>,
     pub coverage_from_date: Option<Date>,
     pub coverage_through_date: Option<Date>,
-    pub cover_record_kv: HashMap<String, String>,
+    pub cover_record_kv: IndexMap<String, String>,
+    pub cover_data: Option<Cover>,
 }
 
 impl FilingCover {
@@ -170,11 +185,11 @@ impl FilingCover {
             .to_owned();
 
         let columns = column_names_for_field(form_type.as_str(), fec_version).unwrap();
-        let mut cover_record_kv = HashMap::new();
+        let mut cover_record_kv = IndexMap::new();
         for (column_name, field) in columns.iter().zip(cover_record.iter()) {
-          cover_record_kv.insert(column_name.to_owned(), field.to_owned());
+            cover_record_kv.insert(column_name.to_owned(), field.to_owned());
         }
-        
+
         let id_idx = columns
             .iter()
             .position(|v| v == "filer_committee_id_number" || v == "candidate_id_number")
@@ -215,7 +230,7 @@ impl FilingCover {
 
         let filer_id = cover_record.get(id_idx).unwrap().to_owned();
         let filer_name = cover_record.get(name_idx).unwrap().to_owned();
-
+        let cover_data = covers::cover_from_form_type(&form_type, &cover_record_kv);
         Ok(Self {
             record: cover_record,
             form_type,
@@ -224,7 +239,8 @@ impl FilingCover {
             report_code,
             coverage_from_date,
             coverage_through_date,
-            cover_record_kv
+            cover_record_kv,
+            cover_data,
         })
     }
 }
@@ -302,7 +318,10 @@ impl<R: Read> Filing<R> {
         .unwrap();
 
         Ok(Self {
-            filing_id,
+            filing_id: filing_id
+                .strip_prefix("FEC-")
+                .unwrap_or(&filing_id)
+                .to_owned(),
             header,
             cover,
             records_iter,
@@ -406,10 +425,6 @@ pub struct FilingRow {
 mod tests {
     use crate::*;
     use mappings::*;
-    use std::{
-        fs::File,
-        io::{BufRead, BufReader},
-    };
 
     #[test]
     fn it_works() {
@@ -428,12 +443,11 @@ mod tests {
                 .next(),
             Some(11)
         );
-        let x = &FORM_TYPE_VERSIONS_SET[44];
+        let _x = &FORM_TYPE_VERSIONS_SET[44];
 
         assert_eq!(
             COLUMN_NAMES.get(44).unwrap().get(11).unwrap().join(","),
             "form_type,filer_committee_id_number,entity_type,contributor_name,contributor_street_1,contributor_street_2,contributor_city,contributor_state,contributor_zip_code,election_code,election_other_description,contributor_employer,contributor_occupation,contribution_aggregate,contribution_date,contribution_amount,contribution_purpose_code,contribution_purpose_descrip,donor_committee_fec_id,donor_candidate_fec_id,donor_candidate_name,donor_candidate_office,donor_candidate_state,donor_candidate_district,conduit_name,conduit_street1,conduit_street2,conduit_city,conduit_state,conduit_zip_code,memo_code,memo_text_description,amended_cd,transaction_id,back_reference_tran_id_number,back_reference_sched_name,reference_code"
         );
     }
-
 }

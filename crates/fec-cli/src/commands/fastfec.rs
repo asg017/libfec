@@ -1,16 +1,16 @@
 use fec_parser::Filing;
 use indicatif::{ProgressBar, ProgressStyle};
-use std::{collections::HashMap, error::Error, fs::File, io::Read, path::Path};
+use std::{collections::HashMap, error::Error, fs::File, io::Read, path::Path, sync::LazyLock};
 
-fn write_fastfec_compat<R: Read>(mut filing: Filing<R>, directory: &Path) {
+static STYLE: LazyLock<ProgressStyle> = LazyLock::new(|| {ProgressStyle::with_template(
+    "{msg}.fec:\t[{elapsed_precise}] {bar:40.cyan/blue} {eta} {decimal_bytes_per_sec} {decimal_total_bytes} total",
+  )
+  .expect("valid progress style")
+});
+
+fn write_fastfec_compat<R: Read>(mut filing: Filing<R>, directory: &Path) -> anyhow::Result<()> {
     let mut csv_writers: HashMap<String, csv::Writer<File>> = HashMap::new();
-
-    let pb_style = ProgressStyle::with_template(
-      "{msg}.fec:\t[{elapsed_precise}] {bar:40.cyan/blue} {eta} {decimal_bytes_per_sec} {decimal_total_bytes} total",
-    )
-    .unwrap();
-
-    let pb = ProgressBar::new(filing.source_length.unwrap() as u64).with_style(pb_style);
+    let pb = ProgressBar::new(filing.source_length.unwrap() as u64).with_style(STYLE.clone());
 
     let filing_directory = directory.join(filing.filing_id.to_string());
     std::fs::create_dir_all(&filing_directory).unwrap();
@@ -38,12 +38,13 @@ fn write_fastfec_compat<R: Read>(mut filing: Filing<R>, directory: &Path) {
             csv_writers.insert(r.row_type, w);
         }
     }
+    Ok(())
 }
 
-pub fn cmd_fastfec_compat(filing_file: &str, output_directory: &Path) -> Result<(), Box<dyn Error>> {
+pub fn fastfec(filing_file: &str, output_directory: &Path) -> Result<(), Box<dyn Error>> {
     let filing = Filing::<File>::from_path(Path::new(filing_file))?;
     let output_directory = Path::new(output_directory);
     std::fs::create_dir_all(output_directory)?;
-    write_fastfec_compat(filing, output_directory);
+    write_fastfec_compat(filing, output_directory)?;
     Ok(())
 }

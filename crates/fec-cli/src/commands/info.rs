@@ -1,5 +1,8 @@
 use colored::Colorize;
-use fec_parser::{report_code_label, Filing};
+use fec_parser::{
+    covers::{Cover, Form3PSummary},
+    report_code_label, Filing,
+};
 use indicatif::{HumanBytes, ProgressBar};
 use serde_json::Value;
 use std::{collections::HashMap, error::Error, io::Read, time::Duration};
@@ -9,12 +12,14 @@ use tabled::{
     settings::{object::Columns as TableColumns, Alignment as TableAlignment, Style as TableStyle},
 };
 
-use crate::{cli::{CmdInfoFormat, InfoArgs}, sourcer::FilingSourcer};
+use crate::{
+    cli::{CmdInfoFormat, InfoArgs},
+    sourcer::FilingSourcer,
+};
 struct FilingFormMetadata {
     count: usize,
     bytes: usize,
 }
-
 
 fn form_name(form_type: &str) -> &str {
     let base_form_type = if form_type.ends_with('A') || form_type.ends_with('N') {
@@ -44,6 +49,79 @@ fn form_name(form_type: &str) -> &str {
     _ => "",
   }
 }
+use num_format::{Locale, ToFormattedString};
+use tabled::{builder::Builder, settings::Style};
+
+fn format_usd(amount: f64) -> String {
+    let rounded = (amount * 100.0).round() as i64; // convert to cents
+    let dollars = rounded / 100;
+    let cents = (rounded % 100).abs(); // handle negative cents correctly
+
+    format!("${}.{:02}", dollars.to_formatted_string(&Locale::en), cents)
+}
+
+fn print_summary(summary: &Form3PSummary) {
+    let mut b = Builder::with_capacity(3, 0);
+    b.push_record(["Summary"]);
+
+    let items = vec![
+        (
+            "6. Cash on Hand at BEGINNING of the Reporting Period",
+            summary.line6_cash_on_hand_beginning_period,
+        ),
+        (
+            "7. Total Receipts This Period",
+            summary.line7_total_receipts,
+        ),
+        ("8. Subtotal (6 + 7)", summary.line8_subtotal),
+        (
+            "9. Total Disbursements This Period",
+            summary.line9_total_disbursements,
+        ),
+        (
+            "10. Cash on Hand at CLOSE of the Reporting Period",
+            summary.line10_cash_on_hand_end_period,
+        ),
+        (
+            "11. Debts and Obligations Owed TO the Committee",
+            summary.line11_debts_owed_to_committee,
+        ),
+        (
+            "12. Debts and Obligations Owed BY the Committee",
+            summary.line12_debts_owed_by_committee,
+        ),
+        (
+            "13. Expenditures Subject To Limitation",
+            summary.line13_expenditures_subject_to_limits,
+        ),
+        (
+            "14. NET Contributions (Other than Loans)",
+            summary.line14_net_contributions_other_than_loans,
+        ),
+        (
+            "15. NET Operating Expenditures",
+            summary.line15_net_operating_expenditures,
+        ),
+    ];
+    for (label, value) in items {
+        b.push_record([label.to_string(), format_usd(value)]);
+    }
+
+    let mut table = b.build();
+    table.with(Style::modern());
+    table.modify(
+        tabled::settings::object::Columns::last(),
+        tabled::settings::Alignment::right(),
+    );
+
+    // make 1st row (title) span entire width
+    table
+        .modify((0, 0), tabled::settings::Span::column(2))
+        .modify((0, 0), tabled::settings::Alignment::center());
+    // border correct bc header row does weird stuff
+    table.with(tabled::settings::themes::BorderCorrection::span());
+    println!("{}", table)
+}
 
 fn process_filing<R: Read>(
     filing: &mut Filing<R>,
@@ -52,12 +130,15 @@ fn process_filing<R: Read>(
     full: bool,
 ) {
     if matches!(format, CmdInfoFormat::Human) {
-        
+        if !full {
+            if let Some(ref spinner) = spinner {
+                spinner.finish_and_clear();
+            }
+        }
 
-        print!(
+        println!(
             "{} {} {} by {} ({})",
-            format!("{}", filing.filing_id).bold(),
-            
+            format!("FEC-{}", filing.filing_id).bold(),
             filing.cover.form_type,
             filing
                 .cover
@@ -68,16 +149,38 @@ fn process_filing<R: Read>(
             filing.cover.filer_name.bold(),
             filing.cover.filer_id,
         );
-        if let (Some(from), Some(through)) = (filing.cover.coverage_from_date, filing.cover.coverage_through_date) {
-            print!(
-                " covering {} to {}",
-                from.to_string(),
-                through.to_string(),
-            );
+        if let (Some(from), Some(through)) = (
+            filing.cover.coverage_from_date,
+            filing.cover.coverage_through_date,
+        ) {
+            println!("Covering {} to {}", from.to_string(), through.to_string(),);
         }
         println!();
 
         println!("{}", form_name(&filing.cover.form_type).dimmed());
+
+        if let Some(ref cover) = filing.cover.cover_data {
+            match cover {
+                Cover::Form3P(form) => {
+                    println!(
+                        "Signed by {} on {}",
+                        form.treasurer.to_string().bold(),
+                        form.signed.to_string().bold()
+                    );
+                    print_summary(&form.summary);
+                    //dbg!("{:?}", form.treasurer)
+                }
+            }
+        }
+
+        println!(
+            "{}",
+            format!(
+                "https://docquery.fec.gov/cgi-bin/forms/{}/{}",
+                filing.cover.filer_id, filing.filing_id
+            )
+            .blue()
+        );
 
         println!(
             "v{} {} filed with {} {}",
@@ -85,10 +188,10 @@ fn process_filing<R: Read>(
             filing
                 .source_length
                 .map_or("".to_owned(), |v| format!("({})", HumanBytes(v as u64))),
-                filing.header.soft_name, filing.header.soft_ver
+            filing.header.software_name,
+            filing.header.software_version
         );
 
-        
         if let Some(ref report_id) = filing.header.report_id {
             println!("{}: '{}'", "Report ID".bold(), report_id);
         }
@@ -98,17 +201,13 @@ fn process_filing<R: Read>(
         if let Some(ref comment) = filing.header.comment {
             println!("{}: '{}'", "Comment".bold(), comment);
         }
-        
     }
     if !full {
-        if let Some(ref spinner) = spinner {
-            spinner.finish_and_clear();
-        }
         return;
     }
 
     if let Some(spinner) = spinner {
-      spinner.set_message("Summarizing rows...");
+        spinner.set_message("Summarizing rows...");
     }
 
     let mut status: HashMap<String, FilingFormMetadata> = HashMap::new();
@@ -161,13 +260,11 @@ fn process_filing<R: Read>(
 }
 
 enum InfoInput {
-  Filing(String),
-  Commitee(String),
-  //Canddate(String),
+    Filing(String),
+    Commitee(String),
+    //Canddate(String),
 }
-pub fn cmd_info(
-    args: InfoArgs
-) -> Result<(), Box<dyn Error>> {
+pub fn info(args: InfoArgs) -> Result<(), Box<dyn Error>> {
     let filing_sourcer = FilingSourcer::new();
 
     let spinner = match args.format {
@@ -179,26 +276,24 @@ pub fn cmd_info(
         _ => None,
     };
     let inputs = args.filings.iter().map(|v| {
-      if v.starts_with("C") {
-        InfoInput::Commitee(v.clone())
-      } else {
-        InfoInput::Filing(v.clone())
-      }
+        if v.starts_with("C") {
+            InfoInput::Commitee(v.clone())
+        } else {
+            InfoInput::Filing(v.clone())
+        }
     });
     for input in inputs {
-      match input {
-        InfoInput::Filing(filing) => {
-            let mut filing = filing_sourcer.resolve(&filing);
-            process_filing(&mut filing, &args.format, &spinner, args.full);
+        match input {
+            InfoInput::Filing(filing) => {
+                let mut filing = filing_sourcer.resolve(&filing);
+                process_filing(&mut filing, &args.format, &spinner, args.full);
+            }
+            InfoInput::Commitee(commitee_id) => {
+                // TODO print info about the committee
+                println!("{commitee_id}");
+            }
         }
-        InfoInput::Commitee(commitee_id) => {
-          // TODO print info about the committee
-            println!("{commitee_id}");
-        }
-      }
     }
-
-    
 
     Ok(())
 }

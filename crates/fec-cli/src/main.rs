@@ -1,37 +1,28 @@
 mod api_flags;
-mod cache;
+mod bulk_util;
 mod cli;
-mod cmd_download;
-mod cmd_export;
-mod cmd_fastfec;
-mod cmd_feed;
-mod cmd_filings;
-mod cmd_info;
-mod cmd_interactive;
+mod commands;
 mod sourcer;
-
 use crate::cli::Commands;
 use clap::Parser;
 use std::env;
 
 fn main() {
+    //bulk_util::resolve_candidates();
     let args: Vec<String> = env::args().collect();
-    match *cli::Cli::parse_from(args).command {
-        Commands::Filings(args) => {
-            cmd_filings::cmd_filings(args);
-        }
+    let cli = cli::Cli::parse_from(args.clone());
+    match *cli.command {
         Commands::Info(args) => {
-            cmd_info::cmd_info(args);
+            commands::info(args).unwrap();
         }
-        Commands::Download(args) => todo!(),
         Commands::Export(args) => {
-            cmd_export::cmd_export(args);
+            commands::export(args).unwrap();
         }
         Commands::FastFec(args) => {
-            cmd_fastfec::cmd_fastfec_compat(&args.filing_id, args.output_directory.as_path());
+            commands::fastfec(&args.filing_id, args.output_directory.as_path()).unwrap();
         }
-        Commands::Cache(args) => {
-            cache::cache(args);
+        Commands::Cache(ref args) => {
+            commands::cache(&cli, args).unwrap();
         }
     }
 }

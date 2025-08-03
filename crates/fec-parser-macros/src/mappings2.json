@@ -4090,7 +4090,7 @@
       "b_other_repayments",
       "c_total_loan_repayments_made",
       "a_individuals",
-      "b_political_party_committees",
+      "b_political_party_committees_TODO_DUP",
       "c_other_political_committees",
       "d_total_contributions_refunds",
       "other_disbursements",

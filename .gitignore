@@ -9,11 +9,20 @@ output/
 june/
 
 *.fec
+*.fec.part
 *.db.gz
 *.csv
 *.zip
+*.xlsx
 .env
 
 
 .test-files
 .envrc
+
+.DS_Store
+
+# temporary!!!
+examples/
+
+.vscode/

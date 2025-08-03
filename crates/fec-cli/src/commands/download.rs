@@ -1,3 +1,5 @@
+/// TODO: not used?
+///
 use indicatif::{HumanDuration, MultiProgress, ProgressBar, ProgressStyle};
 use std::{
     error::Error,
@@ -13,12 +15,12 @@ lazy_static::lazy_static! {
 }
 lazy_static::lazy_static! {
   pub static ref BAR_FILE_STYLE: ProgressStyle =indicatif::ProgressStyle::with_template(
-    "{msg}.fec:\t[{elapsed_precise}] {bar:40.cyan/blue} {eta} {decimal_bytes_per_sec} {decimal_total_bytes} total",
+    "{msg}:\t[{elapsed_precise}] {bar:40.cyan/blue} {eta} {decimal_bytes_per_sec} {decimal_total_bytes} total",
   )
   .unwrap();
 }
 
-pub fn cmd_download(
+pub fn _cmd_download(
     filings: Vec<String>,
     output_directory: Option<String>,
 ) -> Result<(), Box<dyn Error>> {
