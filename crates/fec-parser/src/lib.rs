@@ -243,7 +243,6 @@ impl FilingCover {
     }
 }
 
-
 pub struct Filing<R: Read> {
     pub filing_id: String,
     pub header: FilingHeader,
@@ -266,7 +265,9 @@ impl<R: Read> Filing<R> {
 
         let mut records_iter = csv_reader.into_byte_records();
 
-        let hdr = records_iter.next().ok_or_else(|| anyhow::anyhow!("no header record found"))??;
+        let hdr = records_iter
+            .next()
+            .ok_or_else(|| anyhow::anyhow!("no header record found"))??;
 
         let hdr_record_type = String::from_utf8(
             hdr.get(0)
@@ -275,7 +276,9 @@ impl<R: Read> Filing<R> {
         )
         .unwrap();
         if hdr_record_type != "HDR" {
-          return Err(anyhow::anyhow!("Incorrect header record type: {hdr_record_type}"));
+            return Err(anyhow::anyhow!(
+                "Incorrect header record type: {hdr_record_type}"
+            ));
         }
 
         let hdr_record = StringRecord::from_byte_record_lossy(hdr);

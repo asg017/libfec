@@ -22,22 +22,17 @@ struct ResolvedFiling {
 
 fn resolve_from_url(url: &Url) -> Result<ResolvedFiling> {
     let request = ureq::get(url.as_str());
-    let response = request.call().context("Error requesting FEC filing from URL")?;
+    let response = request
+        .call()
+        .context("Error requesting FEC filing from URL")?;
     let filing_id = Path::new(url.path())
         .file_stem()
         .map(|os_str| os_str.to_string_lossy().to_string())
-        .ok_or_else(|| {
-            anyhow::anyhow!(
-                "Failed to extract filing ID from URL: {}",
-                url.as_str()
-            )
-        })?;
+        .ok_or_else(|| anyhow::anyhow!("Failed to extract filing ID from URL: {}", url.as_str()))?;
     let source_length: usize = response
         .headers()
         .get("Content-Length")
-        .ok_or_else(|| anyhow::anyhow!(
-            "No Content-Length header found in response",
-        ))?
+        .ok_or_else(|| anyhow::anyhow!("No Content-Length header found in response",))?
         .to_str()
         .map_err(|_| anyhow::anyhow!("Content-Length header is not valid UTF-8"))?
         .parse()
@@ -122,7 +117,10 @@ impl<'a> IterFilings<'a> {
                 );
 
                 if api_flags.cache {
-                    sourcer.cache.cache_all(sourcer, vec![], &api_flags).unwrap();
+                    sourcer
+                        .cache
+                        .cache_all(sourcer, vec![], &api_flags)
+                        .unwrap();
                 }
             }
         }
@@ -178,9 +176,8 @@ impl FilingSourcer {
                 resolve_from_url(&url).unwrap()
             }
             // 3. check to see if it's cached
-            else if let Some(filing_path) = self
-                .cache
-                .resolve_filing(&FecFilingId::from_str(input)?)
+            else if let Some(filing_path) =
+                self.cache.resolve_filing(&FecFilingId::from_str(input)?)
             {
                 match resolve_from_file(File::open(&filing_path).unwrap(), filing_path) {
                     Ok(filing) => filing,

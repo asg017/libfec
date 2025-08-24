@@ -1,17 +1,16 @@
 use std::path::PathBuf;
 
+use anyhow::{Context, Result};
 use derive_builder::Builder;
 use fec_api::Office;
-use rusqlite::Connection;
-use anyhow::Result;
 use jiff::civil::DateTime;
+use rusqlite::Connection;
 use rusqlite::{OptionalExtension, Transaction};
 use std::{
     io::{BufWriter, Cursor, Read},
     str::FromStr,
 };
 use ureq::{http::Response, Body};
-
 
 static SCHEMA: &str = r#"
 CREATE TABLE IF NOT EXISTS candidate_cycles(
@@ -44,11 +43,14 @@ CREATE INDEX IF NOT EXISTS idx_candidate_cycle_candidate_id ON candidates(cycle,
 
 "#;
 
-
 fn csv_reader_from_response(response: Response<Body>, name: &str) -> csv::Reader<Cursor<Vec<u8>>> {
     let mut buffer = Cursor::new(Vec::new());
-    std::io::copy(&mut response.into_body().into_reader(), &mut BufWriter::new(&mut buffer)).unwrap();
-    
+    std::io::copy(
+        &mut response.into_body().into_reader(),
+        &mut BufWriter::new(&mut buffer),
+    )
+    .unwrap();
+
     let mut archive = zip::ZipArchive::new(buffer).unwrap();
     let mut txt_file = archive.by_name(name).unwrap();
     let mut cn_contents = Vec::new();
@@ -65,8 +67,7 @@ fn write_candidate_rows(tx: &mut Transaction, year: u16, response: Response<Body
         .prepare("INSERT INTO candidates VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
         .unwrap();
     let mut rdr = csv_reader_from_response(response, "cn.txt");
-    
-    
+
     for result in rdr.records() {
         let record = result.unwrap();
         stmt.execute(rusqlite::params![
@@ -190,11 +191,18 @@ pub struct ResolveCandidateParams {
     state: Option<String>,
     district: Option<String>,
 }
-pub fn resolve_candidate_committees(bulk_db_path: &PathBuf, params: ResolveCandidateParams) -> Result<Vec<String>>{
-  let mut db = Connection::open(bulk_db_path)?;
-  db.execute_batch(SCHEMA)?;
-  sync_cycle(db.transaction().unwrap(), params.cycle);
-  let mut stmt = db
+pub fn resolve_candidate_committees(
+    bulk_db_path: &PathBuf,
+    params: ResolveCandidateParams,
+) -> Result<Vec<String>> {
+    let mut db = Connection::open(bulk_db_path)?;
+    db.execute_batch(SCHEMA)?;
+    sync_cycle(
+        db.transaction()
+            .context("Could not start a transaction on the .bulk-data.db database")?,
+        params.cycle,
+    );
+    let mut stmt = db
         .prepare(
             r#"
       SELECT 
@@ -209,23 +217,24 @@ pub fn resolve_candidate_committees(bulk_db_path: &PathBuf, params: ResolveCandi
       "#,
         )
         .unwrap();
-    Ok(stmt.query_map(
-        rusqlite::named_params! {
-          ":cycle": params.cycle,
-          ":office": params.office.map(|o| match o {
-            Office::House => "H",
-            Office::Senate => "S",
-            Office::President => "P",
-          }),
-          ":state": params.state,
-          ":district": params.district
-        },
-        |row| {
-            let committee_id: String = row.get(0)?;
-            Ok(committee_id)
-        },
-    )
-    .unwrap()
-    .collect::<Result<Vec<String>, _>>()
-    .unwrap() )
+    Ok(stmt
+        .query_map(
+            rusqlite::named_params! {
+              ":cycle": params.cycle,
+              ":office": params.office.map(|o| match o {
+                Office::House => "H",
+                Office::Senate => "S",
+                Office::President => "P",
+              }),
+              ":state": params.state,
+              ":district": params.district
+            },
+            |row| {
+                let committee_id: String = row.get(0)?;
+                Ok(committee_id)
+            },
+        )
+        .unwrap()
+        .collect::<Result<Vec<String>, _>>()
+        .unwrap())
 }

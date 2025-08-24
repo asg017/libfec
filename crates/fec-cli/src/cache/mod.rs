@@ -1,13 +1,16 @@
 pub mod bulk_candidates;
 mod bulk_utils;
 
+use crate::{
+    cache::bulk_candidates::ResolveCandidateParams,
+    cli::FilingsApiFlags,
+    commands::download::BAR_FILE_STYLE,
+    sourcer::{FecFilingId, FilingSourcer},
+};
 use anyhow::{Context, Result};
 use etcetera::BaseStrategy;
 use indicatif::{MultiProgress, ProgressBar};
 use std::{fs::File, io::BufWriter, path::PathBuf, thread::spawn};
-use crate::{
-    cache::bulk_candidates::ResolveCandidateParams, cli::FilingsApiFlags, commands::download::BAR_FILE_STYLE, sourcer::{FecFilingId, FilingSourcer}
-};
 
 pub(crate) struct CacheAllStats {
     pub number_downloaded: usize,
@@ -29,7 +32,8 @@ pub struct CacheFilingResult {
 impl Cache {
     pub fn new(cli_cache_directory: Option<PathBuf>) -> Self {
         let cache_directory = cli_cache_directory.unwrap_or_else(|| {
-            let strat = etcetera::choose_base_strategy().unwrap();
+            let strat =
+                etcetera::choose_base_strategy().expect("Could not determine cache directory");
             strat.cache_dir()
         });
         Cache {
@@ -38,8 +42,14 @@ impl Cache {
         }
     }
 
-    pub fn resolve_candidate_committees(&self, params: ResolveCandidateParams) -> Result<Vec<String>> {
-        bulk_candidates::resolve_candidate_committees(&self.cache_directory.join(".bulk-data.db"), params)
+    pub fn resolve_candidate_committees(
+        &self,
+        params: ResolveCandidateParams,
+    ) -> Result<Vec<String>> {
+        bulk_candidates::resolve_candidate_committees(
+            &self.cache_directory.join(".bulk-data.db"),
+            params,
+        )
     }
 
     pub fn resolve_filing(&self, filing_id: &FecFilingId) -> Option<PathBuf> {
