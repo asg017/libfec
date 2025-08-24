@@ -1,5 +1,5 @@
 mod cache;
-mod download;
+pub(crate) mod download;
 mod export;
 mod fastfec;
 mod info;

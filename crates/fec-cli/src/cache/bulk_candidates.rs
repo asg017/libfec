@@ -1,14 +1,19 @@
+use std::path::PathBuf;
+
+use derive_builder::Builder;
 use fec_api::Office;
+use rusqlite::Connection;
+use anyhow::Result;
 use jiff::civil::DateTime;
-use rusqlite::{Connection, OptionalExtension, Transaction};
+use rusqlite::{OptionalExtension, Transaction};
 use std::{
-    io::{BufWriter, Read},
+    io::{BufWriter, Cursor, Read},
     str::FromStr,
 };
 use ureq::{http::Response, Body};
 
-static SCHEMA: &str = r#"
 
+static SCHEMA: &str = r#"
 CREATE TABLE IF NOT EXISTS candidate_cycles(
   year INTEGER PRIMARY KEY,
   modified_at TEXT,
@@ -39,35 +44,35 @@ CREATE INDEX IF NOT EXISTS idx_candidate_cycle_candidate_id ON candidates(cycle,
 
 "#;
 
+
+fn csv_reader_from_response(response: Response<Body>, name: &str) -> csv::Reader<Cursor<Vec<u8>>> {
+    let mut buffer = Cursor::new(Vec::new());
+    std::io::copy(&mut response.into_body().into_reader(), &mut BufWriter::new(&mut buffer)).unwrap();
+    
+    let mut archive = zip::ZipArchive::new(buffer).unwrap();
+    let mut txt_file = archive.by_name(name).unwrap();
+    let mut cn_contents = Vec::new();
+    txt_file.read_to_end(&mut cn_contents).unwrap();
+
+    csv::ReaderBuilder::new()
+        .has_headers(false)
+        .delimiter(b'|')
+        .from_reader(Cursor::new(cn_contents))
+}
+
 fn write_candidate_rows(tx: &mut Transaction, year: u16, response: Response<Body>) {
     let mut stmt = tx
         .prepare("INSERT INTO candidates VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
         .unwrap();
-
-    let mut buffer = std::io::Cursor::new(Vec::new());
-    std::io::copy(
-        &mut response.into_body().into_reader(),
-        &mut BufWriter::new(&mut buffer),
-    )
-    .unwrap();
-
-    let mut archive = zip::ZipArchive::new(buffer).unwrap();
-
-    let mut cn_file = archive.by_name("cn.txt").unwrap();
-    let mut cn_contents = Vec::new();
-    cn_file.read_to_end(&mut cn_contents).unwrap();
-
-    let mut rdr = csv::ReaderBuilder::new()
-        .has_headers(false)
-        .delimiter(b'|')
-        .from_reader(&cn_contents[..]);
-
+    let mut rdr = csv_reader_from_response(response, "cn.txt");
+    
+    
     for result in rdr.records() {
         let record = result.unwrap();
         stmt.execute(rusqlite::params![
             year,
             record.get(0),
-            record.get(1), 
+            record.get(1),
             record.get(2),
             record.get(3),
             record.get(4),
@@ -171,28 +176,25 @@ fn sync_cycle(mut tx: Transaction, year: u16) {
     )
     .unwrap();
 
-  tx.execute("DELETE FROM candidates WHERE cycle = ?", [year.to_string()])
+    tx.execute("DELETE FROM candidates WHERE cycle = ?", [year.to_string()])
         .unwrap();
 
     write_candidate_rows(&mut tx, year, response);
     tx.commit().unwrap();
 }
 
-pub fn resolve_candidates() {
-    let mut db = Connection::open("cn.db").unwrap();
-    db.execute_batch(SCHEMA).unwrap();
-    sync_cycle(db.transaction().unwrap(), 2024);
-
-    //if Path::new("cn.db").exists() {
-    //    std::fs::remove_file("cn.db").unwrap();
-    //}
-
-    //db.execute("vacuum into 'cn.db'", []).unwrap();
+#[derive(Debug, Clone, Builder)]
+pub struct ResolveCandidateParams {
+    cycle: u16,
+    office: Option<Office>,
+    state: Option<String>,
+    district: Option<String>,
 }
-
-pub fn get_committee_ids(cycle: u16, office: Option<Office>, state: &str, district: Option<String>) -> Vec<String> {
-    let db = Connection::open("cn.db").unwrap();
-    let mut stmt = db
+pub fn resolve_candidate_committees(bulk_db_path: &PathBuf, params: ResolveCandidateParams) -> Result<Vec<String>>{
+  let mut db = Connection::open(bulk_db_path)?;
+  db.execute_batch(SCHEMA)?;
+  sync_cycle(db.transaction().unwrap(), params.cycle);
+  let mut stmt = db
         .prepare(
             r#"
       SELECT 
@@ -207,22 +209,23 @@ pub fn get_committee_ids(cycle: u16, office: Option<Office>, state: &str, distri
       "#,
         )
         .unwrap();
-     stmt
-        .query_map(rusqlite::named_params!{
-          ":cycle": cycle,
-          ":office": office.map(|o| match o {
+    Ok(stmt.query_map(
+        rusqlite::named_params! {
+          ":cycle": params.cycle,
+          ":office": params.office.map(|o| match o {
             Office::House => "H",
             Office::Senate => "S",
             Office::President => "P",
           }),
-          ":state": state,
-          ":district": district
-        }, |row| {
+          ":state": params.state,
+          ":district": params.district
+        },
+        |row| {
             let committee_id: String = row.get(0)?;
             Ok(committee_id)
-        })
-        .unwrap()
-        .collect::<Result<Vec<String>, _>>()
-        .unwrap()
-
+        },
+    )
+    .unwrap()
+    .collect::<Result<Vec<String>, _>>()
+    .unwrap() )
 }

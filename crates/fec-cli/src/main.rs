@@ -1,5 +1,5 @@
 mod api_flags;
-mod bulk_util;
+mod cache;
 mod cli;
 mod commands;
 mod sourcer;
@@ -11,18 +11,19 @@ fn main() {
     //bulk_util::resolve_candidates();
     let args: Vec<String> = env::args().collect();
     let cli = cli::Cli::parse_from(args.clone());
+    let sourcer = sourcer::FilingSourcer::new(cli.top_level.cache_directory.clone());
     match *cli.command {
         Commands::Info(args) => {
-            commands::info(args).unwrap();
+            commands::info(sourcer, args).unwrap();
         }
         Commands::Export(args) => {
-            commands::export(args).unwrap();
+            commands::export(sourcer, args).unwrap();
         }
         Commands::FastFec(args) => {
             commands::fastfec(&args.filing_id, args.output_directory.as_path()).unwrap();
         }
         Commands::Cache(ref args) => {
-            commands::cache(&cli, args).unwrap();
+            commands::cache(sourcer, args).unwrap();
         }
     }
 }

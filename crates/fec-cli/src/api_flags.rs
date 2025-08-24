@@ -1,5 +1,9 @@
 use std::{io::Cursor, path::PathBuf, str::FromStr};
 
+use crate::{
+    cache::bulk_candidates::ResolveCandidateParamsBuilder,
+    sourcer::{FecFilingId, FilingSourcer},
+};
 use anyhow::Context;
 use clap::Parser;
 use fec_api::{Api, FilingArgs, FilingArgsBuilder, Office};
@@ -56,19 +60,25 @@ pub struct FilingsApiFlags {
     #[arg(
         long,
         help = "API key to use for OpenFEC API requests. If not provided, the DEMO_KEY will be used.",
-        env = "LIBFEC_API_KEY",
+        env = "LIBFEC_API_KEY"
     )]
     pub api_key: Option<String>,
+
+    #[arg(long)]
+    pub cache: bool,
 }
+
+static BASE_URL: &str =
+    "https://cg-519a459a-0ea3-42c2-b7bc-fa1143481f74.s3-us-gov-west-1.amazonaws.com";
 
 fn cache_day(date: Date, cache_directory: &PathBuf) -> anyhow::Result<()> {
     let _info_path = cache_directory
         .join(date.to_string())
         .with_extension("info");
     let zip_url = format!(
-    "https://cg-519a459a-0ea3-42c2-b7bc-fa1143481f74.s3-us-gov-west-1.amazonaws.com/bulk-downloads/electronic/{}.zip",
-    date.strftime("%Y%m%d")
-  );
+        "{BASE_URL}/bulk-downloads/electronic/{}.zip",
+        date.strftime("%Y%m%d")
+    );
     let response = ureq::get(zip_url)
         .call()
         .unwrap()
@@ -104,37 +114,20 @@ impl FilingsApiFlags {
             || self.election.is_some()
             || self.bulk_daily_between.is_some()
     }
-    pub(crate) fn resolve_ids(&self) -> anyhow::Result<Vec<String>> {
+
+    pub(crate) fn resolve_ids(&self, sourcer: &FilingSourcer) -> anyhow::Result<Vec<FecFilingId>> {
         let client = Api::new(self.api_key.as_deref().unwrap_or("DEMO_KEY"));
 
         let mut results = if let Some(election) = &self.election {
-          todo!("Fix elections usage");
-          /* 
-            let url = client.elections_url(ElectionsArgs {
-                cycle: election.parse::<u16>()?,
-
-                // TODO required
-                office: Office::from_str(self.office.as_deref().unwrap_or("H"))?,
-                state: self.state.clone(),
-                district: self.district,
-            })?;
-            dbg!(&url.0.to_string());
-
-            let items = client.elections(url).context("Elections API Call")?;
-            let committees = items
-                .iter()
-                .map(|item| item.committee_ids.clone())
-                .flatten()
-                .collect::<Vec<String>>();
-              */
-              let committees = crate::bulk_util::get_committee_ids(
-                election.parse::<u16>()?,
-                self.office
-                    .as_ref()
-                    .and_then(|o| Office::from_str(o).ok()),
-                self.state.as_deref().unwrap_or(""),
-                self.district.clone(),
-            );
+            let params = ResolveCandidateParamsBuilder::default()
+                .cycle(election.parse::<u16>()?)
+                .state(self.state.clone())
+                .district(self.district.clone())
+                .office(Some(Office::from_str(
+                    self.office.as_deref().unwrap_or("H"),
+                )?))
+                .build()?;
+            let committees = sourcer.cache.resolve_candidate_committees(params)?;
             if committees.is_empty() {
                 panic!("No committees found for election {}", election);
             }
@@ -188,8 +181,6 @@ impl FilingsApiFlags {
                 committee_types: self.committee_type.clone(),
                 cycle: vec![],
             })?;
-            dbg!(&url.0.to_string());
-
             client.filings(url)?
         } else {
             let url = client.filings_url(FilingArgs {
@@ -226,6 +217,9 @@ impl FilingsApiFlags {
             });
         }
 
-        Ok(results.iter().map(|item| item.filing_id.clone()).collect())
+        Ok(results
+            .iter()
+            .map(|item| FecFilingId::from_str(&item.filing_id).unwrap())
+            .collect())
     }
 }

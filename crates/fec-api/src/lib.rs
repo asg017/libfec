@@ -244,10 +244,9 @@ fn paginate_all_results(url: &Url) -> anyhow::Result<Vec<serde_json::Value>> {
                 next_url.query_pairs_mut().append_pair(&key, &value);
             }
         }
-        next_url.query_pairs_mut().append_pair("page", &(pagination.page + 1).to_string());
-        /*next_url
+        next_url
             .query_pairs_mut()
-            .append_pair("page", &(pagination.page + 1).to_string());*/
+            .append_pair("page", &(pagination.page + 1).to_string());
         current_url = next_url;
     }
 

@@ -264,9 +264,7 @@ enum InfoInput {
     Commitee(String),
     //Canddate(String),
 }
-pub fn info(args: InfoArgs) -> Result<(), Box<dyn Error>> {
-    let filing_sourcer = FilingSourcer::new();
-
+pub fn info(sourcer: FilingSourcer, args: InfoArgs) -> Result<(), Box<dyn Error>> {
     let spinner = match args.format {
         CmdInfoFormat::Human => {
             let s = ProgressBar::new_spinner();
@@ -285,7 +283,7 @@ pub fn info(args: InfoArgs) -> Result<(), Box<dyn Error>> {
     for input in inputs {
         match input {
             InfoInput::Filing(filing) => {
-                let mut filing = filing_sourcer.resolve(&filing);
+                let mut filing = sourcer.resolve_from_user_argument(&filing)?;
                 process_filing(&mut filing, &args.format, &spinner, args.full);
             }
             InfoInput::Commitee(commitee_id) => {

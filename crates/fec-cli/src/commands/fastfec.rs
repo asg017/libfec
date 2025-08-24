@@ -1,8 +1,19 @@
+/**
+ * Export FEC filing data in a format compatible with FastFEC.
+ * FastFEC will read in a single FEC file and output multiple CSV files
+ * in the following directory structure:
+ *   <filing_id>/
+ *     <form_type>.csv
+ * where <form_type> is the type of row in the FEC filing (e.g. " SA15A", "F3X", etc.)
+ *
+ * Reference: https://github.com/washingtonpost/FastFEC
+ */
 use fec_parser::Filing;
 use indicatif::{ProgressBar, ProgressStyle};
 use std::{collections::HashMap, error::Error, fs::File, io::Read, path::Path, sync::LazyLock};
 
-static STYLE: LazyLock<ProgressStyle> = LazyLock::new(|| {ProgressStyle::with_template(
+static STYLE: LazyLock<ProgressStyle> = LazyLock::new(|| {
+    ProgressStyle::with_template(
     "{msg}.fec:\t[{elapsed_precise}] {bar:40.cyan/blue} {eta} {decimal_bytes_per_sec} {decimal_total_bytes} total",
   )
   .expect("valid progress style")

@@ -40,4 +40,5 @@ rust_xlsxwriter = "0.89.0"
 num-format = "0.4.4"
 derive_builder = "0.20.2"
 tempfile = "3.20.0"
+etcetera = "0.10.0"
 #rusqlite = {version="0.32.1", features = ["bundled"] }

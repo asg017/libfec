@@ -47,7 +47,6 @@ pub struct InfoArgs {
     pub full: bool,
 }
 
-
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, clap::ValueEnum)]
 enum ExportFormat {
     #[default]
@@ -64,7 +63,7 @@ pub struct ExportArgs {
 
     #[arg(long, short = 'o', help = "Output file")]
     pub output: PathBuf,
-    
+
     #[arg(long, action, help = "Only export cover records, not itemizations")]
     pub cover_only: bool,
 
@@ -88,7 +87,12 @@ pub struct CacheArgs {
     /// FEC filing id, ex `FEC-C00606962`
     pub filings: Option<Vec<String>>,
 
-    #[arg(long, alias = "concurrent", help = "Number of concurrent downloads", default_value_t = 8)]
+    #[arg(
+        long,
+        alias = "concurrent",
+        help = "Number of concurrent downloads",
+        default_value_t = 8
+    )]
     pub number_concurrent: usize,
 
     #[command(flatten)]

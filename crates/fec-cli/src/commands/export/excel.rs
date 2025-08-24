@@ -1,11 +1,11 @@
-use crate::sourcer::FilingSourcer;
+use crate::{cli::ExportArgs, sourcer::FilingSourcer};
 use fec_parser::{
     mappings::{column_names_for_field, DATE_COLUMNS, FLOAT_COLUMNS},
     schedules::{form_type_schedule_type, ScheduleType},
     Filing, FilingRow,
 };
 use rust_xlsxwriter::{worksheet::Worksheet, ExcelDateTime, Format, Workbook};
-use std::{collections::HashMap, error::Error, io::Read};
+use std::{collections::HashMap, io::Read};
 
 struct ScheduleSheetState {
     worksheet: Worksheet,
@@ -25,7 +25,7 @@ fn write_schedule_row(
     schedule: ScheduleType,
     filing_fec_version: &str,
     row: &FilingRow,
-) -> Result<(), Box<dyn Error>> {
+) -> anyhow::Result<()> {
     let state = sheets.entry(schedule.clone()).or_insert_with(|| {
         let mut new_ws = Worksheet::new();
         new_ws
@@ -151,7 +151,7 @@ fn write_form_type_row(
     sheets: &mut HashMap<String, (usize, Worksheet)>,
     filing_fec_version: &str,
     row: &FilingRow,
-) -> Result<(), Box<dyn Error>> {
+) -> anyhow::Result<()> {
     match sheets.get_mut(&row.row_type) {
         // schedule worksheet already exists, so just append row
         Some((idx, worksheet)) => {
@@ -199,7 +199,7 @@ fn write_form_type_row(
 fn add_summary_worksheet(
     workbook: &mut Workbook,
     filing: &Filing<Box<dyn Read>>,
-) -> Result<(), Box<dyn Error>> {
+) -> anyhow::Result<()> {
     let ws = workbook.add_worksheet();
     ws.set_name("Summary")?;
     ws.write_string(0, 0, &filing.filing_id)?;
@@ -211,18 +211,14 @@ fn add_summary_worksheet(
     Ok(())
 }
 
-pub fn cmd_export_excel(args: crate::cli::ExportArgs) -> Result<(), Box<dyn Error>> {
-    let mut filings = args.filings.clone();
-    if args.api.any_provided() {
-        filings.extend(args.api.resolve_ids()?);
+pub fn cmd_export_excel(sourcer: FilingSourcer, args: ExportArgs) -> anyhow::Result<()> {
+    let mut iter = sourcer.resolve_iterator(args.filings, Some(args.api))?;
+    let mut filing = iter.next().unwrap().unwrap();
+    if iter.next().is_some() {
+        return Err(anyhow::anyhow!(
+            "Only one filing supported for Excel export"
+        ));
     }
-    assert!(
-        filings.len() == 1,
-        "Only one filing supported for Excel export"
-    );
-    let filing = filings[0].clone();
-    let filing_sourcer = FilingSourcer::new();
-    let mut filing = filing_sourcer.resolve(&filing);
 
     let mut workbook = Workbook::new();
     add_summary_worksheet(&mut workbook, &filing)?;

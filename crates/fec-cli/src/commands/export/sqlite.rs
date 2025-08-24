@@ -1,4 +1,5 @@
-use crate::sourcer::FilingSourcer;
+use crate::{cli::ExportArgs, sourcer::FilingSourcer};
+use anyhow::Context;
 use colored::Colorize;
 use csv::StringRecord;
 use fec_parser::{
@@ -14,7 +15,6 @@ use rusqlite::{
 };
 use std::{
     collections::HashMap,
-    error::Error,
     io::Read,
     time::{Duration, Instant},
 };
@@ -211,48 +211,46 @@ impl RecordTable {
         tx.prepare(&sql).unwrap()
     }
     fn prep_row(&self, filing_id: &str, record: &StringRecord, n_params: usize) -> Vec<FieldValue> {
-
-      let mut warnings = Vec::new();
-      let mut values: Vec<FieldValue> = record
-          .iter()
-          .enumerate()
-          .map(|(idx, field)| match self.column_types.get(idx) {
-              Some(FieldFormat::Text) => FieldValue::Text(field.to_owned()),
-              Some(FieldFormat::Date) => match field.len() {
-                  8 => FieldValue::Date(try_format_fec_date(field)),
-                  _ => FieldValue::Text(field.to_owned()),
-              },
-              Some(FieldFormat::Float) => match field.parse::<f64>() {
-                  Ok(value) => FieldValue::Float(value),
-                  Err(_) => FieldValue::Text(field.to_owned()),
-              },
-              None => FieldValue::Text(field.to_owned()),
-          })
-          .collect();
+        let mut warnings = Vec::new();
+        let mut values: Vec<FieldValue> = record
+            .iter()
+            .enumerate()
+            .map(|(idx, field)| match self.column_types.get(idx) {
+                Some(FieldFormat::Text) => FieldValue::Text(field.to_owned()),
+                Some(FieldFormat::Date) => match field.len() {
+                    8 => FieldValue::Date(try_format_fec_date(field)),
+                    _ => FieldValue::Text(field.to_owned()),
+                },
+                Some(FieldFormat::Float) => match field.parse::<f64>() {
+                    Ok(value) => FieldValue::Float(value),
+                    Err(_) => FieldValue::Text(field.to_owned()),
+                },
+                None => FieldValue::Text(field.to_owned()),
+            })
+            .collect();
         // make sure filing_id is the first column
-    values.insert(0, FieldValue::Text(filing_id.to_owned()));
+        values.insert(0, FieldValue::Text(filing_id.to_owned()));
 
-    if values.len() == n_params + 1 {
-        values.pop();
-    }
+        if values.len() == n_params + 1 {
+            values.pop();
+        }
 
-    while values.len() < n_params {
-        values.push(FieldValue::Text("".to_owned()));
-    }
-    if values.len() > n_params {
-        warnings.push(Warning {
-            _message: format!(
-                "Warning too long at {}:{}, {} vs {}!",
-                filing_id,
-                record.position().map(|p| p.line()).unwrap_or(0),
-                values.len(),
-                n_params
-            ),
-        });
-        values.truncate(n_params);
-    }
-    values
-
+        while values.len() < n_params {
+            values.push(FieldValue::Text("".to_owned()));
+        }
+        if values.len() > n_params {
+            warnings.push(Warning {
+                _message: format!(
+                    "Warning too long at {}:{}, {} vs {}!",
+                    filing_id,
+                    record.position().map(|p| p.line()).unwrap_or(0),
+                    values.len(),
+                    n_params
+                ),
+            });
+            values.truncate(n_params);
+        }
+        values
     }
 }
 
@@ -385,7 +383,9 @@ fn insert_filing_metadata(
         &filing.header.fec_version,
         &filing.cover.form_type,
         // strip any lagging "A", "N", or "T", or return form_type
-        &filing.cover.form_type
+        &filing
+            .cover
+            .form_type
             .strip_suffix('A')
             .or_else(|| filing.cover.form_type.strip_suffix('N'))
             .or_else(|| filing.cover.form_type.strip_suffix('T'))
@@ -393,66 +393,59 @@ fn insert_filing_metadata(
     );
     tx.execute(&rt.create_sql(), [])?;
     let mut stmt = rt.insert_statement(tx);
-    let params = rt.prep_row(&filing.filing_id, &filing.cover.record, stmt.parameter_count());
+    let params = rt.prep_row(
+        &filing.filing_id,
+        &filing.cover.record,
+        stmt.parameter_count(),
+    );
     stmt.execute(params_from_iter(params))?;
     Ok(())
 }
-pub fn cmd_export_sqlite(args: crate::cli::ExportArgs) -> Result<(), Box<dyn Error>> {
-    let mut filings = args.filings.clone();
-    if args.api.any_provided() {
-        filings.extend(args.api.resolve_ids()?);
-    }
+
+pub fn cmd_export_sqlite(sourcer: FilingSourcer, args: ExportArgs) -> anyhow::Result<()> {
+    let t0 = Instant::now();
+
     let mut db = Connection::open(&args.output).map_err(|e| {
         CmdExportError::SqliteError(format!("Error connecting to database {:?}", args.output), e)
     })?;
-    let filing_sourcer = FilingSourcer::new();
-    let t0 = Instant::now();
-
-    let mut tx = db.transaction().unwrap();
-    tx.execute(CREATE_FILINGS_SQL, []).unwrap();
-
     let mb = MultiProgress::new();
-    let pb_files = if filings.len() > 1 {
-        let pb_files = mb.add(ProgressBar::new(filings.len() as u64));
-        pb_files.set_style(BAR_FILES_STYLE.clone());
-        pb_files.enable_steady_tick(Duration::from_millis(16));
-        Some(pb_files)
-    } else {
-        None
-    };
+    let spinner = mb.add(ProgressBar::new_spinner());
+    spinner.enable_steady_tick(Duration::from_millis(16));
 
-    for filing in &filings {
-        let filing = filing_sourcer.resolve(filing);
-        let pb_file = mb.add(ProgressBar::new(filing.source_length.unwrap() as u64));
-        pb_file.set_style(BAR_FILE_STYLE.clone());
+    let mut tx = db
+        .transaction()
+        .context("Error starting SQLite transaction")?;
+    tx.execute(CREATE_FILINGS_SQL, [])
+        .context("Error initializing filing schema")?;
 
-        let filing_id = filing.filing_id.clone();
-        pb_file.set_message(format!(
+    let mut nfilings = 0;
+
+    let iter = sourcer.resolve_iterator(args.filings, Some(args.api.clone()))?;
+    for filing in iter {
+        let filing = filing.unwrap();
+        nfilings += 1;
+        let pb = mb.add(ProgressBar::new(filing.source_length.unwrap() as u64));
+        pb.set_style(BAR_FILE_STYLE.clone());
+        pb.set_message(format!(
             "{} ({} {})",
-            format!("FEC-{}", filing_id).bold(),
+            format!("FEC-{}", filing.filing_id.clone()).bold(),
             filing.cover.filer_name,
             &filing.cover.report_code.clone().unwrap_or("".to_owned()),
         ));
 
-        insert_filing_metadata(&mut tx, &filing).unwrap();
+        insert_filing_metadata(&mut tx, &filing).context("Error inserting filing metadata")?;
 
         if !args.cover_only {
-          export_itemizations(&mut tx, filing, &pb_file).unwrap();
+            export_itemizations(&mut tx, filing, &pb).context("Error exporting itemizations")?;
         }
 
-        if let Some(pb_files) = &pb_files {
-            pb_files.inc(1);
-        }
+        pb.finish_and_clear();
     }
-    tx.commit().unwrap();
-    if let Some(pb_files) = &pb_files {
-        pb_files.finish_and_clear();
-    }
+    spinner.finish();
 
-    println!(
-        "Finished {} files in {}",
-        filings.len(),
-        HumanDuration(Instant::now() - t0)
-    );
+    tx.commit().context("Error committing SQLite transaction")?;
+
+    let elapsed = Instant::now() - t0;
+    println!("Finished {} files in {}", nfilings, HumanDuration(elapsed));
     Ok(())
 }

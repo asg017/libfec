@@ -41,9 +41,8 @@ pub enum FilingHeaderError {
 }
 // fields from mappings2.json -> '^hdr$' -> '$[6-8]'
 
-
-/// > The first record of every electronic file that is submitted to the FEC 
-/// > must be an HDR record that precedes the main body of the ASCII CSV 
+/// > The first record of every electronic file that is submitted to the FEC
+/// > must be an HDR record that precedes the main body of the ASCII CSV
 /// > (comma separated values) data"
 /// Source: FEC_Format_8.4.pdf, page 3
 #[derive(Debug)]
@@ -162,8 +161,7 @@ pub fn report_code_label(report_code: &str) -> &'static str {
     }
 }
 
-
-/// > "The second record will be a "cover" record for the particular filing, 
+/// > "The second record will be a "cover" record for the particular filing,
 /// > (for example, a F3 or and F3X record for a FEC-3 or FEC-3X electronic report)."
 pub struct FilingCover {
     pub record: StringRecord,
@@ -245,29 +243,6 @@ impl FilingCover {
     }
 }
 
-#[derive(Error, Debug)]
-pub enum FilingReaderError {
-    #[error("No records found in the .fec file")]
-    NoRecords,
-    #[error("Error reading CSV row")]
-    CsvRead(#[from] csv::Error),
-    #[error("Missing header as first record")]
-    MissingHeader,
-    #[error("First field in first record is not 'HDR', found `{0}`")]
-    IncorrectHeader(String),
-    #[error("Error parsing header")]
-    HeaderRead(#[from] FilingHeaderError),
-}
-
-#[derive(Error, Debug)]
-pub enum FilingError {
-    #[error("Could not parse filing id from path `{0}`")]
-    UnknownFilingId(PathBuf),
-    #[error("Could not read FEC file")]
-    Read(#[from] IOError),
-    #[error("FEC file error")]
-    Reader(#[from] FilingReaderError),
-}
 
 pub struct Filing<R: Read> {
     pub filing_id: String,
@@ -282,7 +257,7 @@ impl<R: Read> Filing<R> {
         rdr: R,
         filing_id: String,
         source_length: Option<usize>,
-    ) -> Result<Self, FilingReaderError> {
+    ) -> anyhow::Result<Self> {
         let csv_reader = csv::ReaderBuilder::new()
             .delimiter(b"\x1c"[0])
             .flexible(true)
@@ -291,18 +266,16 @@ impl<R: Read> Filing<R> {
 
         let mut records_iter = csv_reader.into_byte_records();
 
-        let hdr = records_iter.next().ok_or(FilingReaderError::NoRecords)??;
+        let hdr = records_iter.next().ok_or_else(|| anyhow::anyhow!("no header record found"))??;
 
         let hdr_record_type = String::from_utf8(
             hdr.get(0)
-                .ok_or_else(|| FilingReaderError::MissingHeader)?
+                .ok_or_else(|| anyhow::anyhow!("file missing header"))?
                 .to_vec(),
         )
         .unwrap();
         if hdr_record_type != "HDR" {
-            return Err(FilingReaderError::IncorrectHeader(
-                hdr_record_type.to_owned(),
-            ));
+          return Err(anyhow::anyhow!("Incorrect header record type: {hdr_record_type}"));
         }
 
         let hdr_record = StringRecord::from_byte_record_lossy(hdr);
@@ -329,11 +302,11 @@ impl<R: Read> Filing<R> {
         })
     }
 
-    pub fn from_path(filing_path: &Path) -> Result<Filing<fs::File>, FilingError> {
+    pub fn from_path(filing_path: &Path) -> anyhow::Result<Filing<fs::File>> {
         let filing_id = filing_path
             .file_stem()
             .map(|v| v.to_string_lossy().into_owned())
-            .ok_or_else(|| FilingError::UnknownFilingId(filing_path.to_path_buf()))?;
+            .ok_or_else(|| anyhow::anyhow!("Unknown filing id for {:?}", filing_path))?;
 
         let filing_file = std::fs::File::open(filing_path)?;
         let source_length = filing_file.metadata().map(|v| (v.len() as usize)).ok();
