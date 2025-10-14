@@ -5,6 +5,7 @@ export default defineConfig({
   title: "libfec",
   description: "Tools to work with campaign finance data from the FEC",
   appearance: false,
+  base: "/libfec/",
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
     nav: [
