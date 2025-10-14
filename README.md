@@ -31,7 +31,7 @@ In the United States, all candidates running for federal office (House of Repres
 
 But these filings are extremely complex and hard to analyze. The [FEC website](https://www.fec.gov) offers different APIs and pre-packaged slices of all this data, but it can be hard to navigate or not up-to-date. So, `libfec` allows you to parse and export data directly from raw filings themselves, from the original `.fec` file format. 
 
-There are already many open-source FEC parsers out there (see [Prior Art](#prior-art) for more info). So `libfec` aims to be a fast
+There are already many open-source FEC parsers out there (see [Prior Art](#prior-art) for more info). So, `libfec` aims to be a fast, easy-to-use alternative that natively supports CSV, JSON, and SQLite exports!
 
 ## Installation
 
@@ -178,7 +178,7 @@ There has been nearly 15 years of open source development on various FEC parsers
 
 Specifically, `libfec` adopted many features and configuration from the [FastFEC](https://github.com/washingtonpost/FastFEC) and [fecfile](https://github.com/esonderegger/fecfile) projects. 
 
-Below are all the open source FEC file parsers and tools that I could readily find. Many haven't been updated in a while, but many still work!
+Below are all the open source FEC file parsers and tools that I could readily find. Many haven't been updated in a while, but most still work!
 
 
 | Repo                                      | Language      | Release date |
