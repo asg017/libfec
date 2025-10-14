@@ -1,26 +1,30 @@
-use std::path::PathBuf;
-
+/**
+ * > "The all candidate summary file contains one record including summary financial
+ * > information for all candidates who raised or spent money during the period
+ * > no matter when they are up for election."
+ * https://www.fec.gov/campaign-finance-data/candidate-master-file-description/
+ *
+ * Sample: https://www.fec.gov/files/bulk-downloads/2026/weball26.zip
+ *
+ */
+use crate::cache::bulk_utils::{BulkDataItem, SyncResult, sync_item};
 use anyhow::{Context, Result};
 use derive_builder::Builder;
 use fec_api::Office;
-use jiff::civil::DateTime;
-use rusqlite::Connection;
-use rusqlite::{OptionalExtension, Transaction};
-use std::{
-    io::{BufWriter, Cursor, Read},
-    str::FromStr,
-};
-use ureq::{http::Response, Body};
+use rusqlite::{Connection, Transaction};
+use std::{path::PathBuf, sync::LazyLock};
+
+static ITEM: LazyLock<BulkDataItem> = LazyLock::new(|| BulkDataItem {
+    table_name: "libfec_candidates".to_owned(),
+    url_scheme: "https://www.fec.gov/files/bulk-downloads/$YEAR/cn$YEAR2.zip".to_string(),
+    schema: SCHEMA.to_string(),
+    data_file_name: "cn.txt".to_string(),
+    column_count: 15,
+});
 
 static SCHEMA: &str = r#"
-CREATE TABLE IF NOT EXISTS candidate_cycles(
-  year INTEGER PRIMARY KEY,
-  modified_at TEXT,
-  last_checked_at TEXT
-);
-
-CREATE TABLE IF NOT EXISTS candidates(
-  cycle INTEGER,-- REFERENCES candidate_cycles(year) ON DELETE CASCADE,
+CREATE TABLE IF NOT EXISTS libfec_candidates(
+  cycle INTEGER, -- REFERENCES candidate_cycles(year) ON DELETE CASCADE,
   candidate_id TEXT,
   name,
   party_affiliation,
@@ -39,202 +43,140 @@ CREATE TABLE IF NOT EXISTS candidates(
 
   UNIQUE(cycle, candidate_id)
 );
-CREATE INDEX IF NOT EXISTS idx_candidate_cycle_candidate_id ON candidates(cycle, candidate_id);
-
 "#;
 
-fn csv_reader_from_response(response: Response<Body>, name: &str) -> csv::Reader<Cursor<Vec<u8>>> {
-    let mut buffer = Cursor::new(Vec::new());
-    std::io::copy(
-        &mut response.into_body().into_reader(),
-        &mut BufWriter::new(&mut buffer),
-    )
-    .unwrap();
-
-    let mut archive = zip::ZipArchive::new(buffer).unwrap();
-    let mut txt_file = archive.by_name(name).unwrap();
-    let mut cn_contents = Vec::new();
-    txt_file.read_to_end(&mut cn_contents).unwrap();
-
-    csv::ReaderBuilder::new()
-        .has_headers(false)
-        .delimiter(b'|')
-        .from_reader(Cursor::new(cn_contents))
-}
-
-fn write_candidate_rows(tx: &mut Transaction, year: u16, response: Response<Body>) {
-    let mut stmt = tx
-        .prepare("INSERT INTO candidates VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
-        .unwrap();
-    let mut rdr = csv_reader_from_response(response, "cn.txt");
-
-    for result in rdr.records() {
-        let record = result.unwrap();
-        stmt.execute(rusqlite::params![
-            year,
-            record.get(0),
-            record.get(1),
-            record.get(2),
-            record.get(3),
-            record.get(4),
-            record.get(5),
-            record.get(6),
-            record.get(7),
-            record.get(8),
-            record.get(9),
-            record.get(10),
-            record.get(11),
-            record.get(12),
-            record.get(13),
-            record.get(14),
-        ])
-        .unwrap();
-    }
-}
-fn sync_cycle(mut tx: Transaction, year: u16) {
-    let result = tx
-        .query_row(
-            "select year, modified_at, last_checked_at from candidate_cycles where year = ?",
-            [year],
-            |row| {
-                Ok((
-                    row.get::<usize, u16>(0).expect("1st row to exist"),
-                    row.get::<usize, String>(1).expect("2nd row to exist"),
-                    row.get::<usize, String>(2).expect("3rd row to exist"),
-                ))
-            },
-        )
-        .optional()
-        .unwrap();
-
-    // if there is already data for the given year, and the Last-Modified header
-    // is recent (within the last 30 minutes), skip the update
-    if let Some((year, modified, last_checked_at)) = &result {
-        let _last_modified = jiff::fmt::rfc2822::parse(modified).unwrap();
-        let last_checked_at = DateTime::from_str(last_checked_at)
-            .unwrap()
-            .in_tz("UTC")
-            .unwrap()
-            .timestamp();
-        let minutes_since = jiff::Timestamp::now()
-            .since(last_checked_at)
-            .unwrap()
-            .total(jiff::Unit::Second)
-            .unwrap();
-        println!("{last_checked_at} {} ", minutes_since);
-
-        tx.execute(
-            "UPDATE candidate_cycles SET last_checked_at = datetime('now') WHERE year = ?",
-            [year],
-        )
-        .unwrap();
-        if minutes_since < 30.0 {
-            println!(
-                "Skipping {year} as it was last checked {} minutes ago.",
-                minutes_since
-            );
-            return;
-        }
-    }
-
-    let config = ureq::Agent::config_builder()
-        .timeout_global(Some(std::time::Duration::from_secs(5)))
-        .build();
-
-    let request = config.new_agent().get(format!(
-        "https://www.fec.gov/files/bulk-downloads/{}/cn{}.zip",
-        year,
-        year.to_string()[year.to_string().len() - 2..].to_string()
-    ));
-
-    let request = if let Some((_, modified, _)) = &result {
-        request.header("If-Modified-Since", modified)
-    } else {
-        request
-    };
-
-    let response = request.call().unwrap();
-    if response.status() == 304 {
-        println!("No changes for {year}, skipping.");
-        return;
-    } else if response.status() != 200 {
-        panic!(
-            "Failed to fetch candidates for {year}: {}",
-            response.status()
-        );
-    }
-    println!("changes...");
-
-    let last_modified = response
-        .headers()
-        .get("Last-Modified")
-        .unwrap()
-        .to_str()
-        .unwrap();
-    tx.execute(
-        "INSERT OR REPLACE INTO candidate_cycles (year, modified_at, last_checked_at) VALUES (?, ?, datetime('now'))",
-        rusqlite::params![year, last_modified],
-    )
-    .unwrap();
-
-    tx.execute("DELETE FROM candidates WHERE cycle = ?", [year.to_string()])
-        .unwrap();
-
-    write_candidate_rows(&mut tx, year, response);
-    tx.commit().unwrap();
-}
-
-#[derive(Debug, Clone, Builder)]
+#[derive(Debug, Clone, Builder, Default)]
 pub struct ResolveCandidateParams {
     cycle: u16,
     office: Option<Office>,
     state: Option<String>,
     district: Option<String>,
 }
-pub fn resolve_candidate_committees(
-    bulk_db_path: &PathBuf,
+
+pub(crate) fn include(
+    tx: &mut Transaction,
+    bulk_db_path: PathBuf,
+    params: &ResolveCandidateParams,
+) -> Result<()> {
+    tx.execute_batch(SCHEMA)?;
+
+    if !tx
+        .prepare_cached("select 1 from pragma_database_list where name = 'bulk_db'")?
+        .exists([])?
+    {
+        tx.execute(
+            "ATTACH DATABASE ? AS bulk_db",
+            [bulk_db_path.to_str().unwrap()],
+        )?;
+    }
+
+    let sql = r#"
+      INSERT OR REPLACE INTO libfec_candidates
+        SELECT *
+        FROM bulk_db.libfec_candidates 
+        WHERE cycle = :cycle
+          AND election_year = cast(:cycle as text)
+          AND principal_campaign_committee != ''
+          AND if(:office is null, true, office = :office)
+          AND if(:state is null, true, state = :state)
+          AND if(:district is null, true, cast(district as text) = :district)
+      "#;
+    let params = rusqlite::named_params! {
+      ":cycle": params.cycle,
+      ":office": params.office.clone().map(|o| match o {
+        Office::House => "H",
+        Office::Senate => "S",
+        Office::President => "P",
+      }),
+      ":state": params.state,
+      ":district": params.district
+    };
+    let mut stmt = tx.prepare(sql)?;
+    stmt.execute(params)?;
+    drop(stmt);
+    //tx.execute("DETACH DATABASE bulk_db", [])?;
+    Ok(())
+}
+
+fn query_candidate_principal_campaign_committees(
+    db: &Connection,
     params: ResolveCandidateParams,
 ) -> Result<Vec<String>> {
-    let mut db = Connection::open(bulk_db_path)?;
-    db.execute_batch(SCHEMA)?;
-    sync_cycle(
-        db.transaction()
-            .context("Could not start a transaction on the .bulk-data.db database")?,
-        params.cycle,
-    );
-    let mut stmt = db
-        .prepare(
-            r#"
+    let sql = r#"
       SELECT 
         principal_campaign_committee 
-      FROM candidates 
+      FROM libfec_candidates 
       WHERE cycle = :cycle
         AND election_year = cast(:cycle as text)
         AND principal_campaign_committee != ''
         AND if(:office is null, true, office = :office)
         AND if(:state is null, true, state = :state)
         AND if(:district is null, true, cast(district as text) = :district)
-      "#,
-        )
-        .unwrap();
-    Ok(stmt
-        .query_map(
-            rusqlite::named_params! {
-              ":cycle": params.cycle,
-              ":office": params.office.map(|o| match o {
-                Office::House => "H",
-                Office::Senate => "S",
-                Office::President => "P",
-              }),
-              ":state": params.state,
-              ":district": params.district
-            },
-            |row| {
-                let committee_id: String = row.get(0)?;
-                Ok(committee_id)
-            },
-        )
-        .unwrap()
-        .collect::<Result<Vec<String>, _>>()
-        .unwrap())
+      "#;
+    let params = rusqlite::named_params! {
+      ":cycle": params.cycle,
+      ":office": params.office.map(|o| match o {
+        Office::House => "H",
+        Office::Senate => "S",
+        Office::President => "P",
+      }),
+      ":state": params.state,
+      ":district": params.district
+    };
+    let mut stmt = db.prepare(sql)?;
+    let committee_ids = stmt
+        .query_map(params, |row| {
+            let committee_id: String = row.get(0)?;
+            Ok(committee_id)
+        })?
+        .collect::<Result<Vec<String>, _>>()?;
+    Ok(committee_ids)
+}
+
+pub fn resolve_candidate_principal_campaign_committees(
+    mut bulk_db: Connection,
+    params: ResolveCandidateParams,
+) -> Result<Vec<String>> {
+    bulk_db.execute_batch(SCHEMA)?;
+    let mut tx = bulk_db
+        .transaction()
+        .context("Could not start a transaction on the .bulk-data.db database")?;
+    sync_item(&mut tx, params.cycle, &*ITEM)?;
+    tx.commit()?;
+    query_candidate_principal_campaign_committees(&bulk_db, params)
+}
+
+pub fn search_candidates(
+    bulk_db: &mut Connection,
+    cycle: u16,
+    name_query: &str,
+) -> Result<Vec<(String, String)>> {
+    bulk_db.execute_batch(SCHEMA)?;
+    let mut tx = bulk_db
+        .transaction()
+        .context("Could not start a transaction on the .bulk-data.db database")?;
+    sync_item(&mut tx, cycle, &*ITEM)?;
+    tx.commit()?;
+
+    let sql = r#"
+      SELECT 
+        candidate_id,
+        name
+      FROM libfec_candidates 
+      WHERE cycle = :cycle
+        AND name LIKE '%' || :name_query || '%'
+      "#;
+    let params = rusqlite::named_params! {
+      ":cycle": cycle,
+      ":name_query": name_query,
+    };
+    let mut stmt = bulk_db.prepare(sql)?;
+    let results = stmt
+        .query_map(params, |row| {
+            let candidate_id: String = row.get(0)?;
+            let name: String = row.get(1)?;
+            Ok((candidate_id, name))
+        })?
+        .collect::<Result<Vec<(String, String)>, _>>()?;
+    Ok(results)
 }

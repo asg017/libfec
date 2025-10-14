@@ -5,21 +5,21 @@ layout: home
 hero:
   name: "libfec"
   text: ""
-  tagline: Tools to work with campaign finance data from the FEC
+  tagline: A tool for wranging campaign finance data from the FEC
   actions:
     - theme: brand
-      text: Getting Started
-      link: /getting-started
+      text: Installing
+      link: /getting-started/installation
     - theme: alt
-      text: TODO
-      link: /TODO
+      text: Examples
+      link: /examples
 
 features:
-  - title: Feature A
-    details: Lorem ipsum dolor sit amet, consectetur adipiscing elit
-  - title: Feature B
-    details: Lorem ipsum dolor sit amet, consectetur adipiscing elit
-  - title: Feature C
-    details: Lorem ipsum dolor sit amet, consectetur adipiscing elit
+  - title: Parse FEC filings!
+    details: Convert .fec files into SQLite, Excel, CSVs, etc.
+  - title: Works with the OpenFEC API
+    details: Automatically download all filings for a given committee/candidate in one command
+  - title: Really fast!
+    details: Parses large ActBlue + WinRed Filings in 30 seconds or less
 ---
 

@@ -24,8 +24,6 @@ impl FilingHeaderJs {
 #[wasm_bindgen]
 pub fn greet(name: &str) -> FilingHeaderJs {
   let x = std::io::Cursor::new(include_bytes!("../../1890336.fec"));
-  let f = Filing::from_reader(x, "123".to_string(), None).unwrap();
-  //alert(&format!("Hello, {}!", f.header.fec_version));
+  let f = Filing::from_reader(x, "123".to_string(), None).unwrap_or("TODO");
   FilingHeaderJs::from(&f.header)
-  //JsValue::from_serde().unwrap()
 }

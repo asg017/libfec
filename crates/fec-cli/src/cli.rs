@@ -1,7 +1,11 @@
 pub use crate::api_flags::FilingsApiFlags;
 use clap::{Args, Parser, Subcommand};
 use core::str;
-use std::{env, path::PathBuf};
+use fec_parser::schedules::ScheduleType;
+use std::{
+    env,
+    path::{Path, PathBuf},
+};
 
 #[derive(
     Debug,
@@ -32,9 +36,9 @@ pub struct InfoArgs {
     pub input_file: Option<PathBuf>,
 
     #[arg(
-      long, 
-      short = 'f', 
-      value_enum, 
+      long,
+      short = 'f',
+      value_enum,
       help = "Format to output information to",  
       default_value_t = CmdInfoFormat::Human)]
     pub format: CmdInfoFormat,
@@ -47,13 +51,29 @@ pub struct InfoArgs {
     pub full: bool,
 }
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, clap::ValueEnum)]
-enum ExportFormat {
-    #[default]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, clap::ValueEnum)]
+pub enum ExportFormat {
     Sqlite,
     Excel,
     Csv,
     Json,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, clap::ValueEnum)]
+pub enum ExportTarget {
+    #[value(alias = "receipts")]
+    ScheduleA,
+    #[value(alias = "disbursements")]
+    ScheduleB,
+}
+
+impl Into<ScheduleType> for ExportTarget {
+    fn into(self) -> ScheduleType {
+        match self {
+            ExportTarget::ScheduleA => ScheduleType::ScheduleA,
+            ExportTarget::ScheduleB => ScheduleType::ScheduleB,
+        }
+    }
 }
 
 #[derive(Args, Debug)]
@@ -61,8 +81,20 @@ pub struct ExportArgs {
     #[arg(required = false)]
     pub filings: Vec<String>,
 
+    #[arg(long, short = 'f', help = "Output file")]
+    pub format: Option<ExportFormat>,
+
+    #[arg(long, help = "Output file")]
+    pub target: Option<ExportTarget>,
+
     #[arg(long, short = 'o', help = "Output file")]
-    pub output: PathBuf,
+    pub output: Option<PathBuf>,
+
+    #[arg(long, alias = "outdir", help = "Output directory")]
+    pub output_directory: Option<PathBuf>,
+
+    #[arg(long, action, help = "Overwrite existing files")]
+    pub clobber: bool,
 
     #[arg(long, action, help = "Only export cover records, not itemizations")]
     pub cover_only: bool,
@@ -75,17 +107,22 @@ pub struct ExportArgs {
 
 #[derive(Args, Debug)]
 pub struct FastFecArgs {
-    /// Output directory
-    pub output_directory: PathBuf,
-
     /// FEC filing id OR path to a .fec file
     pub filing_id: String,
+
+    /// Output directory
+
+    #[arg(default_value = "output")]
+    pub output_directory: PathBuf,
 }
 
 #[derive(Args, Debug)]
 pub struct CacheArgs {
     /// FEC filing id, ex `FEC-C00606962`
     pub filings: Option<Vec<String>>,
+
+    #[arg(long, action, help = "Print cache directory location")]
+    pub print: bool,
 
     #[arg(
         long,
@@ -97,6 +134,13 @@ pub struct CacheArgs {
 
     #[command(flatten)]
     pub api: FilingsApiFlags,
+}
+
+#[derive(Args, Debug)]
+pub struct SearchArgs {
+    pub query: String,
+    #[arg(long, default_value_t = 2024, help = "Election cycle year to search")]
+    pub cycle: u16,
 }
 
 #[derive(Subcommand, Debug)]
@@ -112,7 +156,9 @@ pub enum Commands {
 
     //Feed(FeedArgs),
     /// FastFEC compatible export
-    FastFec(FastFecArgs),
+    Fastfec(FastFecArgs),
+
+    Search(SearchArgs),
 }
 
 #[derive(Parser)]

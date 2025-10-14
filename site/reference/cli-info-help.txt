@@ -1,0 +1,15 @@
+Print debug information about a FEC filing, committee, or candidate
+
+Usage: libfec info [OPTIONS] [FILINGS]...
+
+Arguments:
+  [FILINGS]...  
+
+Options:
+  -i, --input-file <INPUT_FILE>  .txt files of FEC filing IDs to fetch, 1 line per filing ID
+  -f, --format <FORMAT>          Format to output information to [default: human] [possible values: human, json]
+      --full                     Calculate stats on all itemizations in the provided filings
+  -h, --help                     Print help
+
+Global options:
+      --cache-directory <CACHE_DIRECTORY>  [env: LIBFEC_CACHE_DIRECTORY=]

@@ -1,4 +1,8 @@
-use crate::{cli::ExportArgs, sourcer::FilingSourcer};
+use crate::{
+    cache::bulk_candidates,
+    cli::ExportArgs,
+    sourcer::{FilingSourcer, ItemizationProgressBar},
+};
 use anyhow::Context;
 use colored::Colorize;
 use csv::StringRecord;
@@ -7,7 +11,7 @@ use fec_parser::{
     schedules::{form_type_schedule_type, ScheduleType},
     try_format_fec_date, Filing, FilingRow,
 };
-use indicatif::{HumanDuration, MultiProgress, ProgressBar, ProgressStyle};
+use indicatif::{HumanDuration, MultiProgress};
 use rusqlite::{
     params_from_iter,
     types::{ToSqlOutput, Value},
@@ -16,37 +20,47 @@ use rusqlite::{
 use std::{
     collections::HashMap,
     io::Read,
-    time::{Duration, Instant},
+    path::PathBuf,
+    time::Instant,
 };
-use thiserror::Error;
-
-lazy_static::lazy_static! {
-  pub static ref BAR_FILES_STYLE: ProgressStyle =ProgressStyle::with_template(
-    "{spinner} {pos}/{len} [{elapsed_precise}]",
-  ).expect("valid progress style");
-}
-lazy_static::lazy_static! {
-  pub static ref BAR_FILE_STYLE: ProgressStyle =ProgressStyle::with_template(
-    "{msg} {elapsed} {bar:30.cyan/blue}  ({decimal_bytes}/{decimal_total_bytes}, {decimal_bytes_per_sec}) [{eta}]",
-  ).expect("valid progress style");
-}
 
 const CREATE_FILINGS_SQL: &str = r#"
   CREATE TABLE IF NOT EXISTS libfec_filings(
+    /**
+     * 
+     * 
+     */
+
+    --- Unique numeric identifier for this filing, assigned by the FEC, ex 1884420
     filing_id TEXT PRIMARY KEY NOT NULL,
+    
+    --- Version of the FEC filing format, ex '8.4'
     fec_version TEXT NOT NULL,
+    
+    --- Name of the software that produced this filing, ex 'NetFile'
     software_name TEXT NOT NULL,
+
+    --- Version of the software that produced this filing, ex '2022451'
     software_version TEXT NOT NULL,
+
+    --- If this filing is an amendment, the report_id of the original filing, otherwise null. ex 1884419
     report_id TEXT,
+
+    --- Sequential number of amendments
     report_number TEXT,
+
+    --- Any header comments provided by the filer
     comment TEXT,
-    cover_record_form_type TEXT NOT NULL,
+
+    --- Form type of the cover record, ex 'F3'
+    cover_record_form TEXT NOT NULL,
+    cover_record_form_amendment_indicator TEXT,
+
     filer_id TEXT NOT NULL,
     filer_name TEXT NOT NULL,
     report_code TEXT,
     coverage_from_date TEXT,
-    coverage_through_date TEXT,
-    cover_data JSON
+    coverage_through_date TEXT
   )
 "#;
 
@@ -289,15 +303,13 @@ fn prepare_form_type_statement<'a>(
 fn export_itemizations<R: Read>(
     tx: &mut Transaction,
     mut filing: Filing<R>,
-    pb: &ProgressBar,
+    pb: &ItemizationProgressBar,
 ) -> Result<(), rusqlite::Error> {
     let mut itemizations_statements: HashMap<ItemizationKey, ItemizationValue> = HashMap::new();
 
     while let Some(r) = filing.next_row() {
         let r = r.unwrap();
-        if let Some(position) = r.record.position() {
-            pb.set_position(position.byte());
-        }
+        pb.update(&r);
 
         let v = match form_type_schedule_type(&r.row_type) {
             Some(schedule_type) => {
@@ -349,16 +361,23 @@ fn export_itemizations<R: Read>(
     Ok(())
 }
 
-#[derive(Error, Debug)]
-pub enum CmdExportError {
-    #[error("`{0}`: {1}")]
-    SqliteError(String, #[source] rusqlite::Error),
+pub(crate) fn form_type_parse(form_type: &str) -> (&str, Option<&str>) {
+    if let Some(stripped) = form_type.strip_suffix('A') {
+        (stripped, Some("A"))
+    } else if let Some(stripped) = form_type.strip_suffix('N') {
+        (stripped, Some("N"))
+    } else if let Some(stripped) = form_type.strip_suffix('T') {
+        (stripped, Some("T"))
+    } else {
+        (form_type, None)
+    }
 }
 
 fn insert_filing_metadata(
     tx: &mut Transaction,
     filing: &Filing<impl Read>,
 ) -> rusqlite::Result<()> {
+    let (form_type, amendment_indicator) = form_type_parse(&filing.cover.form_type);
     tx.execute(
         INSERT_FILING_SQL,
         rusqlite::params![
@@ -369,27 +388,23 @@ fn insert_filing_metadata(
             &filing.header.report_id,
             &filing.header.report_number,
             &filing.header.comment,
-            &filing.cover.form_type,
+            form_type,
+            amendment_indicator,
             &filing.cover.filer_id,
             &filing.cover.filer_name,
             &filing.cover.report_code.clone(),
             &filing.cover.coverage_from_date.clone(),
             &filing.cover.coverage_through_date.clone(),
-            serde_json::to_string(&filing.cover.cover_record_kv).unwrap(),
         ],
     )?;
+
+    let (form_type, _amendment_indicator) = form_type_parse(&filing.cover.form_type);
 
     let rt = RecordTable::new(
         &filing.header.fec_version,
         &filing.cover.form_type,
         // strip any lagging "A", "N", or "T", or return form_type
-        &filing
-            .cover
-            .form_type
-            .strip_suffix('A')
-            .or_else(|| filing.cover.form_type.strip_suffix('N'))
-            .or_else(|| filing.cover.form_type.strip_suffix('T'))
-            .unwrap_or(&filing.cover.form_type),
+        form_type,
     );
     tx.execute(&rt.create_sql(), [])?;
     let mut stmt = rt.insert_statement(tx);
@@ -402,15 +417,16 @@ fn insert_filing_metadata(
     Ok(())
 }
 
-pub fn cmd_export_sqlite(sourcer: FilingSourcer, args: ExportArgs) -> anyhow::Result<()> {
+pub fn cmd_export_sqlite(
+    mut sourcer: FilingSourcer,
+    path: PathBuf,
+    args: ExportArgs,
+) -> anyhow::Result<()> {
     let t0 = Instant::now();
 
-    let mut db = Connection::open(&args.output).map_err(|e| {
-        CmdExportError::SqliteError(format!("Error connecting to database {:?}", args.output), e)
-    })?;
+    let mut db = Connection::open(&path)
+        .context(format!("Could not open or create database at {:?}", path))?;
     let mb = MultiProgress::new();
-    let spinner = mb.add(ProgressBar::new_spinner());
-    spinner.enable_steady_tick(Duration::from_millis(16));
 
     let mut tx = db
         .transaction()
@@ -418,34 +434,64 @@ pub fn cmd_export_sqlite(sourcer: FilingSourcer, args: ExportArgs) -> anyhow::Re
     tx.execute(CREATE_FILINGS_SQL, [])
         .context("Error initializing filing schema")?;
 
+    let p = sourcer.cache.bulk_data_database_path();
+    let (trace, iter) =
+        sourcer.resolve_iterator_from_flags(args.filings, args.api.clone(), Some(&mb))?;
+
+    for params in trace.resolve_candidate_params {
+        bulk_candidates::include(&mut tx, p.clone(), &params).unwrap();
+    }
+
     let mut nfilings = 0;
 
-    let iter = sourcer.resolve_iterator(args.filings, Some(args.api.clone()))?;
+    mb.println(format!(
+        "Exporting filings to SQLite database at {:?}",
+        path
+    ))?;
+
     for filing in iter {
-        let filing = filing.unwrap();
+        let filing = match filing {
+            Ok(f) => f,
+            Err(e) => {
+                if let Some(fec_403) = e.downcast_ref::<crate::sourcer::FecGov403Error>() {
+                    eprintln!(
+                        "Error fetching filing {} from {}: HTTP 403 Forbidden. This filing may no longer be publicly accessible.",
+                        fec_403.filing_id.to_human_readable(), fec_403.url
+                    );
+                    // TODO save warning somewhere
+                    continue;
+                } else {
+                    mb.println(format!("Error fetching filing: {:?}", e));
+                    todo!();
+                }
+            }
+        };
         nfilings += 1;
-        let pb = mb.add(ProgressBar::new(filing.source_length.unwrap() as u64));
-        pb.set_style(BAR_FILE_STYLE.clone());
-        pb.set_message(format!(
-            "{} ({} {})",
-            format!("FEC-{}", filing.filing_id.clone()).bold(),
-            filing.cover.filer_name,
-            &filing.cover.report_code.clone().unwrap_or("".to_owned()),
-        ));
-
-        insert_filing_metadata(&mut tx, &filing).context("Error inserting filing metadata")?;
-
-        if !args.cover_only {
-            export_itemizations(&mut tx, filing, &pb).context("Error exporting itemizations")?;
+        match insert_filing_metadata(&mut tx, &filing) {
+            Ok(_) => {}
+            Err(e) => {
+                mb.println(format!(
+                    "Error inserting filing metadata for FEC-{}: {:?}",
+                    filing.filing_id, e
+                ));
+                continue;
+            }
         }
 
-        pb.finish_and_clear();
+        if !args.cover_only {
+            let pb = ItemizationProgressBar::new(&mb, &filing);
+            export_itemizations(&mut tx, filing, &pb).context("Error exporting itemizations")?;
+        }
     }
-    spinner.finish();
 
     tx.commit().context("Error committing SQLite transaction")?;
 
     let elapsed = Instant::now() - t0;
-    println!("Finished {} files in {}", nfilings, HumanDuration(elapsed));
+    println!(
+        "Finished exporting {} filings into {}, in {}",
+        nfilings,
+        path.to_string_lossy().bold(),
+        HumanDuration(elapsed)
+    );
     Ok(())
 }

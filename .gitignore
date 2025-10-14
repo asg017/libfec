@@ -10,6 +10,8 @@ june/
 
 *.fec
 *.fec.part
+*.fec.gz
+*.fec.zst
 *.db.gz
 *.csv
 *.zip
@@ -23,6 +25,6 @@ june/
 .DS_Store
 
 # temporary!!!
-examples/
+/examples/
 
 .vscode/

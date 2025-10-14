@@ -1,3 +1,5 @@
+use crate::mappings;
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum ScheduleType {
     // Itemized Receipts
@@ -57,6 +59,20 @@ pub fn form_type_schedule_type(form_type: &str) -> Option<ScheduleType> {
         Some(ScheduleType::ScheduleF)
     } else {
         None
+    }
+}
+
+impl ScheduleType {
+    pub fn column_names(&self, fec_version: &str) -> anyhow::Result<Vec<String>> {
+        match self {
+            ScheduleType::ScheduleA => {
+                Ok(mappings::column_names_for_field("SAx", fec_version)?.to_owned())
+            }
+            ScheduleType::ScheduleB => {
+                Ok(mappings::column_names_for_field("SBx", fec_version)?.to_owned())
+            }
+            _ => todo!(),
+        }
     }
 }
 

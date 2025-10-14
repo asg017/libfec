@@ -4,7 +4,7 @@ use fec_parser::Filing;
 #[pyfunction]
 fn hello_from_bin() -> String {
   let x = std::io::Cursor::new(include_bytes!("../../1890336.fec"));
-  let f = Filing::from_reader(x, "123".to_string(), None).unwrap();
+  let f = Filing::from_reader(x, "123".to_string(), None).unwrap_or("TODO FAIL")
   
    f.header.fec_version
 }

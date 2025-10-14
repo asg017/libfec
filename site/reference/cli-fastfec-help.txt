@@ -1,0 +1,13 @@
+FastFEC compatible export
+
+Usage: libfec fastfec [OPTIONS] <FILING_ID> [OUTPUT_DIRECTORY]
+
+Arguments:
+  <FILING_ID>         FEC filing id OR path to a .fec file
+  [OUTPUT_DIRECTORY]  Output directory [default: output]
+
+Options:
+  -h, --help  Print help
+
+Global options:
+      --cache-directory <CACHE_DIRECTORY>  [env: LIBFEC_CACHE_DIRECTORY=]

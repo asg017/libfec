@@ -22,7 +22,7 @@ path = "src/main.rs"
 fec-parser = { path = "../fec-parser" }
 fec-api = { path = "../fec-api" }
 clap = { version = "4.1.8", features = ["derive", "cargo", "env"] }
-anyhow = "1.0"
+anyhow = {version="1.0", features=["backtrace"]}
 csv = "1.2.2"
 colored = "2.1.0"
 rusqlite = { version = "0.34", features = ["bundled", "jiff"] }
@@ -33,7 +33,6 @@ ureq = "3.0.10"
 quick-xml = "=0.36.1"
 serde_json = "1.0.125"
 zip = "4.2.0"
-lazy_static = "1.5.0"
 url = "2.5.2"
 jiff = "0.2.5"
 rust_xlsxwriter = "0.89.0"

@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::{str::FromStr, sync::LazyLock};
 
 use anyhow::{Context, Result};
 use derive_builder::Builder;
@@ -8,7 +8,7 @@ use url::Url;
 
 pub struct Api {
     api_key: String,
-    base_url: String,
+    base_url: Url,
 }
 
 #[derive(Deserialize, Debug)]
@@ -26,6 +26,7 @@ pub struct FilingArgs {
     /// "A unique identifier assigned to each committee or filer registered with the FEC.
     /// In general a committee id begins with the letter C which is followed by eight digits."
     pub committees: Vec<String>,
+    pub candidates: Vec<String>,
     pub form_types: Option<Vec<String>>,
     pub committee_types: Option<Vec<String>>,
     pub cycle: Vec<u16>,
@@ -38,6 +39,11 @@ pub struct FilingArgs {
     // primary_general_indicator
     // party
     // sort options?
+}
+
+pub struct EfilingFilingArgs {
+    pub committees: Vec<String>,
+    pub form_types: Option<Vec<String>>,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -103,19 +109,33 @@ pub struct FilingItem {
     pub value: Value,
 }
 
+static FEC_API_BASE_URL: LazyLock<Url> = LazyLock::new(|| {
+    Url::parse("https://api.open.fec.gov").expect("Failed to parse FEC API base URL")
+});
 pub struct FilingsUrl(pub Url);
 pub struct ElectionsUrl(pub Url);
+
+pub struct EfilingFilingUrl(pub Url);
+
+fn redact_api_key(url: &Url) -> String {
+    let mut redacted = url.clone();
+    let mut qp = redacted.query_pairs_mut();
+    qp.clear().append_pair("api_key", "REDACTED");
+    drop(qp);
+    redacted.to_string()
+}
 
 impl Api {
     pub fn new<'a, S: Into<&'a str>>(api_key: S) -> Self {
         Self {
             api_key: api_key.into().to_string(),
-            base_url: "https://api.open.fec.gov".to_string(),
+            base_url: FEC_API_BASE_URL.clone(),
         }
     }
 
     pub fn search_candidates(&self, q: &str) -> Result<Vec<CandidateSearchItem>> {
-        let mut url = Url::parse(&format!("{}/v1/candidates/search/", self.base_url))?;
+        let mut url = self.base_url.clone();
+        url.set_path("/v1/candidates/search/");
         url.query_pairs_mut()
             .append_pair("api_key", &self.api_key)
             .append_pair("q", q);
@@ -127,21 +147,44 @@ impl Api {
                 format!("libfec/{}", env!("CARGO_PKG_VERSION")),
             )
             .call()?;
-        let x: serde_json::Value = response.body_mut().read_json().unwrap();
+        let x: serde_json::Value = response.body_mut().read_json().with_context(|| {
+            format!(
+                "Could not read API response as JSON at {}",
+                redact_api_key(&url)
+            )
+        })?;
 
         let results = x
             .get("results")
-            .unwrap()
+            .ok_or_else(|| {
+                anyhow::anyhow!(
+                    "Missing 'results' field in API JSON response for {}",
+                    redact_api_key(&url)
+                )
+            })?
             .as_array()
-            .unwrap()
+            .ok_or_else(|| {
+                anyhow::anyhow!(
+                    "Expected 'results' field in API JSON response to be an array, at {}",
+                    redact_api_key(&url)
+                )
+            })?
             .iter()
-            .map(|v| serde_json::from_value(v.clone()).unwrap())
-            .collect();
+            .map(|v| {
+                serde_json::from_value::<CandidateSearchItem>(v.clone()).map_err(|_| {
+                    anyhow::anyhow!(
+                        "Error deserializing candidate search item at {}",
+                        redact_api_key(&url)
+                    )
+                })
+            })
+            .collect::<Result<Vec<CandidateSearchItem>, _>>()?;
         Ok(results)
     }
 
-    pub fn elections_url(&self, args: ElectionsArgs) -> Result<ElectionsUrl> {
-        let mut url = Url::parse(&format!("{}/v1/elections", self.base_url))?;
+    pub fn elections_url(&self, args: ElectionsArgs) -> ElectionsUrl {
+        let mut url = self.base_url.clone();
+        url.set_path("/v1/elections");
         let mut qp = url.query_pairs_mut();
         qp.append_pair("api_key", &self.api_key);
 
@@ -154,21 +197,25 @@ impl Api {
             qp.append_pair("district", format!("{:02}", district).as_str());
         }
         drop(qp);
-        Ok(ElectionsUrl(url))
+        ElectionsUrl(url)
     }
 
-    pub fn filings_url(&self, args: FilingArgs) -> Result<FilingsUrl> {
-        let mut url = Url::parse(&format!("{}/v1/filings", self.base_url))?;
+    pub fn filings_url(&self, args: FilingArgs) -> FilingsUrl {
+        let mut url = self.base_url.clone();
+        url.set_path("/v1/filings");
         let mut qp = url.query_pairs_mut();
         qp.append_pair("api_key", &self.api_key);
 
+        qp.append_pair("per_page", "100");
         // TODO: parameter
         qp.append_pair("most_recent", "true");
-
-        qp.append_pair("per_page", "100");
+        qp.append_pair("filer_type", "e-file");
 
         for committee in &args.committees {
             qp.append_pair("committee_id", &committee);
+        }
+        for candidate in &args.candidates {
+            qp.append_pair("candidate_id", &candidate);
         }
         if let Some(form_types) = &args.form_types {
             for form_type in form_types {
@@ -184,62 +231,97 @@ impl Api {
             qp.append_pair("cycle", &year.to_string());
         }
         drop(qp);
-        Ok(FilingsUrl(url))
+        FilingsUrl(url)
     }
 
-    pub fn filings(&self, url: FilingsUrl) -> Result<Vec<FilingItem>> {
-        Ok(paginate_all_results(&url.0)?
-            .iter()
-            .filter_map(|v| match v.get("fec_file_id").and_then(|id| id.as_str()) {
-                Some(id) => Some(FilingItem {
-                    filing_id: id.to_string(),
-                    value: v.clone(),
-                }),
-                None => None,
-            })
-            .collect::<Vec<FilingItem>>())
-    }
-    pub fn elections(&self, url: ElectionsUrl) -> Result<Vec<ElectionItem>> {
-        let mut response = ureq::get(url.0.as_str())
-            .header("accept", "application/json")
-            .header(
-                "User-Agent",
-                format!("libfec/{}", env!("CARGO_PKG_VERSION")),
-            )
-            .call()
-            .context("Elections URL hit error")?;
-        let body: serde_json::Value = response.body_mut().read_json().unwrap();
-        let results = body.get("results").unwrap().as_array().unwrap();
-        Ok(results
-            .iter()
-            .map(|v| serde_json::from_value(v.clone()))
-            .collect::<Result<Vec<ElectionItem>, _>>()
-            .context("Error collecting election items")?)
-    }
+    pub fn efiling_filings_url(&self, args: EfilingFilingArgs) -> EfilingFilingUrl {
+        let mut url = self.base_url.clone();
+        url.set_path("/v1/efile/filings");
+        let mut qp = url.query_pairs_mut();
+        qp.append_pair("api_key", &self.api_key);
+
+        for committee in &args.committees {
+            qp.append_pair("committee_id", &committee);
+        }
+        if let Some(form_types) = &args.form_types {
+            for form_type in form_types {
+                qp.append_pair("form_type", &form_type);
+            }
+        }
+
+        qp.append_pair("per_page", "100");
+
+        drop(qp);
+        EfilingFilingUrl(url)
+      }
 }
 
-fn paginate_all_results(url: &Url) -> anyhow::Result<Vec<serde_json::Value>> {
-    let mut results = vec![];
-    let mut current_url = url.clone();
-    loop {
-        let mut response = ureq::get(current_url.as_str())
-            .header("accept", "application/json")
-            .header(
-                "User-Agent",
-                format!("libfec/{}", env!("CARGO_PKG_VERSION")),
-            )
-            .call()
-            .context("Error making request to FEC API endpoint")?;
-        let body: serde_json::Value = response.body_mut().read_json().unwrap();
-        let pagination: FecApiPaginationObject =
-            serde_json::from_value(body.get("pagination").unwrap().clone())?;
-        results.extend(body.get("results").unwrap().as_array().unwrap().to_owned());
-        if pagination.page >= pagination.pages {
-            break;
-        }
-        let mut next_url = current_url.clone();
+pub struct FecApiRateLimit {
+    pub limit: usize,
+    pub remaining: usize,
+}
+pub struct ApiResponse {
+    pub json: serde_json::Value,
+    pub result_items: Vec<serde_json::Value>,
+    pub rate_limit: FecApiRateLimit,
+    pub pagination: FecApiPaginationObject,
+    pub next_url: Option<Url>,
+}
+
+static USER_AGENT: &str = concat!("libfec/", env!("CARGO_PKG_VERSION"));
+
+pub fn api_request(url: &Url) -> anyhow::Result<ApiResponse> {
+    let mut response = match ureq::get(url.as_str())
+        .header("accept", "application/json")
+        .header("User-Agent", USER_AGENT)
+        .call() {
+        Ok(resp) => resp,
+          Err(error) => {
+            match error {
+              ureq::Error::StatusCode(429) => {
+                return Err(anyhow::anyhow!("FEC API limit reached for {}", redact_api_key(&url)));
+              }
+              _ => {
+                return Err(anyhow::anyhow!("FEC API request to {} failed: {}", redact_api_key(&url), error));
+              }
+            }
+          }
+        };
+
+    let headers = response.headers();
+
+    let rate_limit = FecApiRateLimit {
+        limit: headers
+            .get("X-RateLimit-Limit")
+            .ok_or_else(|| anyhow::anyhow!("missing X-RateLimit-Limit header"))?
+            .to_str()?
+            .parse::<usize>()?,
+        remaining: headers
+            .get("X-RateLimit-Remaining")
+            .ok_or_else(|| anyhow::anyhow!("missing X-RateLimit-Remaining header"))?
+            .to_str()?
+            .parse::<usize>()?,
+    };
+    let body: serde_json::Value = response.body_mut().read_json()?;
+
+    let pagination: FecApiPaginationObject = serde_json::from_value(
+        body.get("pagination")
+            .ok_or_else(|| anyhow::anyhow!("missing pagination field"))?
+            .clone(),
+    )?;
+
+    let result_items = body["results"]
+        .as_array()
+        .ok_or_else(|| anyhow::anyhow!("missing results array"))?
+        .iter()
+        .map(|v| v.clone())
+        .collect();
+    let next_url = if pagination.page >= pagination.pages {
+        None
+    } else {
+        let mut next_url = url.clone();
         next_url.query_pairs_mut().clear();
-        for (key, value) in current_url.query_pairs() {
+        for (key, value) in url.query_pairs() {
             if key != "page" {
                 next_url.query_pairs_mut().append_pair(&key, &value);
             }
@@ -247,17 +329,23 @@ fn paginate_all_results(url: &Url) -> anyhow::Result<Vec<serde_json::Value>> {
         next_url
             .query_pairs_mut()
             .append_pair("page", &(pagination.page + 1).to_string());
-        current_url = next_url;
-    }
+        Some(next_url)
+    };
 
-    Ok(results)
+    Ok(ApiResponse {
+        json: body,
+        rate_limit,
+        result_items,
+        pagination,
+        next_url,
+    })
 }
 
 #[derive(Deserialize, Debug)]
-struct FecApiPaginationObject {
-    count: usize,
-    is_count_exact: bool,
-    page: usize,
-    pages: usize,
-    per_page: usize,
+pub struct FecApiPaginationObject {
+    pub count: usize,
+    pub is_count_exact: bool,
+    pub page: usize,
+    pub pages: usize,
+    pub per_page: usize,
 }

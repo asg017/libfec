@@ -7,9 +7,14 @@ use crate::{
     sourcer::{FecFilingId, FilingSourcer},
 };
 
-pub fn cache(sourcer: FilingSourcer, args: &CacheArgs) -> Result<(), ()> {
+pub fn cache(sourcer: FilingSourcer, args: &CacheArgs) -> anyhow::Result<()> {
+    if args.print {
+        println!("{}", sourcer.cache.cache_directory.display());
+        return Ok(());
+    }
     let t0 = jiff::Timestamp::now();
-
+    todo!("Fix cache command");
+    /*
     let stats = sourcer
         .cache
         .cache_all(
@@ -40,6 +45,7 @@ pub fn cache(sourcer: FilingSourcer, args: &CacheArgs) -> Result<(), ()> {
     if stats.number_preexisting > 0 {
         println!("  {} pre-existing", stats.number_preexisting);
     }
+     */
 
     Ok(())
 }

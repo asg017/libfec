@@ -1,0 +1,18 @@
+libfec CLI
+
+Usage: libfec [OPTIONS] [COMMAND]
+
+Commands:
+  export   Export FEC filings into SQLite, Excel, CSV, or JSON
+  cache    Cache .fec files from fec.gov to your filesystem
+  info     Print debug information about a FEC filing, committee, or candidate
+  fastfec  FastFEC compatible export
+  search   
+  help     Print this message or the help of the given subcommand(s)
+
+Options:
+  -h, --help     Print help
+  -V, --version  Print version
+
+Global options:
+      --cache-directory <CACHE_DIRECTORY>  [env: LIBFEC_CACHE_DIRECTORY=]

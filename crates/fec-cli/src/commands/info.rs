@@ -168,7 +168,6 @@ fn process_filing<R: Read>(
                         form.signed.to_string().bold()
                     );
                     print_summary(&form.summary);
-                    //dbg!("{:?}", form.treasurer)
                 }
             }
         }
@@ -185,9 +184,7 @@ fn process_filing<R: Read>(
         println!(
             "v{} {} filed with {} {}",
             filing.header.fec_version,
-            filing
-                .source_length
-                .map_or("".to_owned(), |v| format!("({})", HumanBytes(v as u64))),
+            HumanBytes(filing.source_length as u64),
             filing.header.software_name,
             filing.header.software_version
         );
@@ -207,7 +204,7 @@ fn process_filing<R: Read>(
     }
 
     if let Some(spinner) = spinner {
-        spinner.set_message("Summarizing rows...");
+        spinner.set_message("Summarizing rows…");
     }
 
     let mut status: HashMap<String, FilingFormMetadata> = HashMap::new();
@@ -264,7 +261,7 @@ enum InfoInput {
     Commitee(String),
     //Canddate(String),
 }
-pub fn info(sourcer: FilingSourcer, args: InfoArgs) -> Result<(), Box<dyn Error>> {
+pub fn info(sourcer: FilingSourcer, args: InfoArgs) -> anyhow::Result<()> {
     let spinner = match args.format {
         CmdInfoFormat::Human => {
             let s = ProgressBar::new_spinner();

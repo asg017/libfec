@@ -1,50 +1,14 @@
+use crate::covers::Treasurer;
 use indexmap::IndexMap;
 use jiff::civil::Date;
 
-pub(crate) fn cover_from_form_type(
-    cover_record_form_type: &str,
-    data: &IndexMap<String, String>,
-) -> Option<Cover> {
-    // TODO collides with F3PS?
-    if cover_record_form_type.starts_with("F3P") {
-        return Some(Cover::Form3P(Form3P::from_data(data)));
-    }
-    None
+/// "FORM 3P - Report Of Receipts And Disbursements By An Authorized Committee Of A Candidate For The Office Of President Or Vice-President"
+pub struct Form3P {
+    pub treasurer: Treasurer,
+    pub signed: Date,
+    pub summary: Form3PSummary,
+    pub detailed_summary: Form3PDetailedSummary,
 }
-
-pub struct Treasurer {
-    pub first_name: String,
-    pub last_name: String,
-    pub middle_name: Option<String>,
-    pub prefix: Option<String>,
-    pub suffix: Option<String>,
-}
-impl ToString for Treasurer {
-    fn to_string(&self) -> String {
-        let mut name = String::new();
-        if let Some(prefix) = &self.prefix {
-            name.push_str(prefix.trim());
-            name.push(' ');
-        }
-        name.push_str(&self.first_name.trim());
-        if let Some(middle_name) = &self.middle_name {
-            name.push(' ');
-            name.push_str(middle_name.trim());
-        }
-        name.push(' ');
-        name.push_str(&self.last_name.trim());
-        if let Some(suffix) = &self.suffix {
-            name.push(' ');
-            name.push_str(suffix.trim());
-        }
-        name.trim().to_string()
-    }
-}
-
-pub enum Cover {
-    Form3P(Form3P),
-}
-
 pub struct Form3PSummary {
     pub line6_cash_on_hand_beginning_period: f64,
     pub line7_total_receipts: f64,
@@ -312,51 +276,15 @@ impl Form3PDetailedSummary {
             //disbursements: Form3PDetailedSummaryDisbursements::from_data(data),
             items_on_hand_to_be_liquidated: data["col_a_items_on_hand_to_be_liquidated"]
                 .parse()
-                .unwrap(),
+                .unwrap_or(0.0),
         }
     }
 }
 
-/// "FORM 3P - Report Of Receipts And Disbursements By An Authorized Committee Of A Candidate For The Office Of President Or Vice-President"
-pub struct Form3P {
-    pub treasurer: Treasurer,
-    pub signed: Date,
-    pub summary: Form3PSummary,
-    pub detailed_summary: Form3PDetailedSummary,
-}
-
-fn treasurer_from_data(data: &IndexMap<String, String>) -> Treasurer {
-    let first_name = data
-        .get("treasurer_first_name")
-        .cloned()
-        .unwrap_or_default();
-    let last_name = data.get("treasurer_last_name").cloned().unwrap_or_default();
-    let middle_name = data
-        .get("treasurer_middle_name")
-        .cloned()
-        .filter(|s| !s.is_empty());
-    let prefix = data
-        .get("treasurer_prefix")
-        .cloned()
-        .filter(|s| !s.is_empty());
-    let suffix = data
-        .get("treasurer_suffix")
-        .cloned()
-        .filter(|s| !s.is_empty());
-
-    Treasurer {
-        first_name,
-        last_name,
-        middle_name,
-        prefix,
-        suffix,
-    }
-}
-
 impl Form3P {
-    fn from_data(data: &IndexMap<String, String>) -> Self {
+    pub fn from_data(data: &IndexMap<String, String>) -> Self {
         Self {
-            treasurer: treasurer_from_data(data),
+            treasurer: Treasurer::from_data(data),
             signed: Date::strptime("%Y%m%d", data.get("date_signed").unwrap()).unwrap(),
             summary: Form3PSummary {
                 line6_cash_on_hand_beginning_period: data["col_a_cash_on_hand_beginning_period"]

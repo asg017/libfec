@@ -8,22 +8,23 @@ use clap::Parser;
 use std::env;
 
 fn main() {
-    //bulk_util::resolve_candidates();
     let args: Vec<String> = env::args().collect();
     let cli = cli::Cli::parse_from(args.clone());
     let sourcer = sourcer::FilingSourcer::new(cli.top_level.cache_directory.clone());
-    match *cli.command {
-        Commands::Info(args) => {
-            commands::info(sourcer, args).unwrap();
+    let result = match *cli.command {
+        Commands::Info(args) => commands::info(sourcer, args),
+        Commands::Export(args) => commands::export(sourcer, args),
+        Commands::Fastfec(args) => commands::fastfec(sourcer, args),
+        Commands::Cache(ref args) => commands::cache(sourcer, args),
+        Commands::Search(ref args) => commands::search(sourcer, args),
+    };
+
+    match result {
+        Ok(()) => {
+            std::process::exit(0);
         }
-        Commands::Export(args) => {
-            commands::export(sourcer, args).unwrap();
-        }
-        Commands::FastFec(args) => {
-            commands::fastfec(&args.filing_id, args.output_directory.as_path()).unwrap();
-        }
-        Commands::Cache(ref args) => {
-            commands::cache(sourcer, args).unwrap();
+        Err(_) => {
+            std::process::exit(1);
         }
     }
 }

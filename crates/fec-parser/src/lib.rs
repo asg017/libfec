@@ -7,11 +7,7 @@ use csv::{ByteRecordsIntoIter, StringRecord};
 use indexmap::IndexMap;
 use jiff::civil::Date;
 use mappings::column_names_for_field;
-use std::{
-    fs,
-    io::{Error as IOError, Read},
-    path::{Path, PathBuf},
-};
+use std::{fs, io::Read, path::Path};
 use thiserror::Error;
 
 pub fn try_format_fec_date(value: &str) -> String {
@@ -64,10 +60,10 @@ impl FilingHeader {
         let ef_type = header_get_field!(hdr, 1, "ef_type");
         let fec_version = header_get_field!(hdr, 2, "fec_version").trim().to_owned();
         match fec_version.as_str() {
-            "8.3" | "8.4" => (),
+            "8.1" | "8.2" | "8.3" | "8.4" | "8.5" => (),
             _ => {
                 return Err(FilingHeaderError::UnsupportedVersion(format!(
-                    "Unsupported version '{fec_version}', only 8.4 is currently supported."
+                    "Unsupported version '{fec_version}', only 8.5 is currently supported."
                 )));
             }
         }
@@ -165,6 +161,7 @@ pub fn report_code_label(report_code: &str) -> &'static str {
 /// > (for example, a F3 or and F3X record for a FEC-3 or FEC-3X electronic report)."
 pub struct FilingCover {
     pub record: StringRecord,
+    pub record_column_names: Vec<String>,
     pub form_type: String,
     pub filer_id: String,
     pub filer_name: String,
@@ -212,7 +209,8 @@ impl FilingCover {
         {
             Some(Ok(date)) => Some(date),
             None => None,
-            Some(Err(_)) => todo!(),
+            // TODO: F5 forms sometimes have a coverage_from_date column but the value is empty? ex FEC-1917549
+            Some(Err(_)) => None,
         };
 
         let coverage_through_date = match columns
@@ -223,7 +221,8 @@ impl FilingCover {
         {
             Some(Ok(date)) => Some(date),
             None => None,
-            Some(Err(_)) => todo!(),
+            // TODO: F5 forms sometimes have a coverage_from_date column but the value is empty? ex FEC-1917549
+            Some(Err(_)) => None,
         };
 
         let filer_id = cover_record.get(id_idx).unwrap().to_owned();
@@ -231,6 +230,7 @@ impl FilingCover {
         let cover_data = covers::cover_from_form_type(&form_type, &cover_record_kv);
         Ok(Self {
             record: cover_record,
+            record_column_names: columns.to_owned(),
             form_type,
             filer_id,
             filer_name,
@@ -248,15 +248,11 @@ pub struct Filing<R: Read> {
     pub header: FilingHeader,
     pub cover: FilingCover,
     records_iter: ByteRecordsIntoIter<R>,
-    pub source_length: Option<usize>,
+    pub source_length: usize,
 }
 
 impl<R: Read> Filing<R> {
-    pub fn from_reader(
-        rdr: R,
-        filing_id: String,
-        source_length: Option<usize>,
-    ) -> anyhow::Result<Self> {
+    pub fn from_reader(rdr: R, filing_id: String, source_length: usize) -> anyhow::Result<Self> {
         let csv_reader = csv::ReaderBuilder::new()
             .delimiter(b"\x1c"[0])
             .flexible(true)
@@ -312,7 +308,7 @@ impl<R: Read> Filing<R> {
             .ok_or_else(|| anyhow::anyhow!("Unknown filing id for {:?}", filing_path))?;
 
         let filing_file = std::fs::File::open(filing_path)?;
-        let source_length = filing_file.metadata().map(|v| (v.len() as usize)).ok();
+        let source_length = filing_file.metadata().map(|v| (v.len() as usize))?;
 
         Ok(Filing::from_reader(
             filing_file,
@@ -321,6 +317,7 @@ impl<R: Read> Filing<R> {
         )?)
     }
 
+    /// Return the next itemization row in the filing, or None if at end of file.
     pub fn next_row(&mut self) -> Option<Result<FilingRow, FilingRowReadError>> {
         let (record, original_size) = match self.records_iter.next() {
             Some(Ok(record)) => {
@@ -368,7 +365,8 @@ impl<R: Read> Filing<R> {
                             contents += "\n";
                         }
                     },
-                    None => todo!("[BEGINTEXT] did not terminate"),
+                    // Sometimes the file ends without an [ENDTEXT] (ex FEC-1888492), in which we assume the rest of the file is a text entry.
+                    None => return None,
                 }
             }
         }

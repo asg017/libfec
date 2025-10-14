@@ -5,7 +5,7 @@ use fec_parser::{
     Filing, FilingRow,
 };
 use rust_xlsxwriter::{worksheet::Worksheet, ExcelDateTime, Format, Workbook};
-use std::{collections::HashMap, io::Read};
+use std::{collections::HashMap, io::Read, path::PathBuf};
 
 struct ScheduleSheetState {
     worksheet: Worksheet,
@@ -211,8 +211,15 @@ fn add_summary_worksheet(
     Ok(())
 }
 
-pub fn cmd_export_excel(sourcer: FilingSourcer, args: ExportArgs) -> anyhow::Result<()> {
-    let mut iter = sourcer.resolve_iterator(args.filings, Some(args.api))?;
+pub fn cmd_export_excel(
+    mut sourcer: FilingSourcer,
+    path: PathBuf,
+    args: ExportArgs,
+) -> anyhow::Result<()> {
+    let mb = indicatif::MultiProgress::new();
+    let mut iter = sourcer
+        .resolve_iterator_from_flags(args.filings, args.api, Some(&mb))?
+        .1;
     let mut filing = iter.next().unwrap().unwrap();
     if iter.next().is_some() {
         return Err(anyhow::anyhow!(
@@ -261,6 +268,6 @@ pub fn cmd_export_excel(sourcer: FilingSourcer, args: ExportArgs) -> anyhow::Res
         workbook.push_worksheet(ws);
     }
 
-    workbook.save(args.output)?;
+    workbook.save(path)?;
     Ok(())
 }

@@ -1,0 +1,48 @@
+Export FEC filings into SQLite, Excel, CSV, or JSON
+
+Usage: libfec export [OPTIONS] [FILINGS]...
+
+Arguments:
+  [FILINGS]...  
+
+Options:
+  -f, --format <FORMAT>                      Output file [possible values: sqlite, excel, csv, json]
+      --target <TARGET>                      Output file [possible values: schedule-a, schedule-b]
+  -o, --output <OUTPUT>                      Output file
+      --output-directory <OUTPUT_DIRECTORY>  Output directory
+      --clobber                              Overwrite existing files
+      --cover-only                           Only export cover records, not itemizations
+  -h, --help                                 Print help
+
+FEC API options:
+      --committee <COMMITTEE>
+          Filter filings to only these committees
+      --candidate <CANDIDATE>
+          Filter filings to only these candidates
+      --form-type <FORM_TYPE>
+          Form type to filter filings by (e.g. 'F3', 'F3X', 'F1', 'F2', etc)
+      --committee-type <COMMITTEE_TYPE>
+          one-letter type code of the organization
+      --cycle <CYCLE>
+          Election cycle
+      --coverage-before <COVERAGE_BEFORE>
+          Only filings that cover dates before this date
+      --coverage-after <COVERAGE_AFTER>
+          Only filings that cover dates after this date
+      --coverage-between <COVERAGE_BETWEEN> <COVERAGE_BETWEEN>
+          Only filings container coverage between these dates
+      --election <ELECTION>
+          
+      --state <STATE>
+          
+      --district <DISTRICT>
+          
+      --office <OFFICE>
+          
+      --bulk-daily-between <BULK_DAILY_BETWEEN> <BULK_DAILY_BETWEEN>
+          
+      --api-key <API_KEY>
+          API key to use for OpenFEC API requests. If not provided, the DEMO_KEY will be used.
+
+Global options:
+      --cache-directory <CACHE_DIRECTORY>  [env: LIBFEC_CACHE_DIRECTORY=]
