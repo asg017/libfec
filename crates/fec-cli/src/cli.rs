@@ -1,10 +1,10 @@
 pub use crate::api_flags::FilingsApiFlags;
-use clap::{Args, Parser, Subcommand};
+use clap::{Args, Parser, Subcommand, ValueEnum};
 use core::str;
 use fec_parser::schedules::ScheduleType;
 use std::{
     env,
-    path::{Path, PathBuf},
+    path::PathBuf,
 };
 
 #[derive(
@@ -143,6 +143,64 @@ pub struct SearchArgs {
     pub cycle: u16,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CycleArg {
+    Single(u16),
+    Range(u16, u16),
+}
+
+impl std::str::FromStr for CycleArg {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if let Some((start, end)) = s.split_once('-') {
+            let start_year = start.trim().parse::<u16>()
+                .map_err(|_| format!("Invalid start year: {}", start))?;
+            let end_year = end.trim().parse::<u16>()
+                .map_err(|_| format!("Invalid end year: {}", end))?;
+            
+            if start_year > end_year {
+                return Err(format!("Start year {} cannot be greater than end year {}", start_year, end_year));
+            }
+            
+            Ok(CycleArg::Range(start_year, end_year))
+        } else {
+            let year = s.trim().parse::<u16>()
+                .map_err(|_| format!("Invalid year: {}", s))?;
+            Ok(CycleArg::Single(year))
+        }
+    }
+}
+
+impl std::fmt::Display for CycleArg {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            CycleArg::Single(year) => write!(f, "{}", year),
+            CycleArg::Range(start, end) => write!(f, "{}-{}", start, end),
+        }
+    }
+}
+
+#[derive(Args, Debug)]
+pub struct BulkArgs {
+  #[arg(long, short = 'o',  help = "Output file path")]
+  pub output: PathBuf,
+  #[arg(long, help = "Election cycle year (e.g., 2024) or range (e.g., 2024-2026)")]
+  pub cycle: CycleArg,
+
+  #[arg(long, value_delimiter = ',', value_enum, help = "Bulk data source(s) to export (comma-separated, e.g., candidates,committees)")]
+  pub source: Vec<BulkSource>,
+
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
+pub enum BulkSource {
+  Opex,
+  Committees,
+  Candidates,
+}
+
+
 #[derive(Subcommand, Debug)]
 pub enum Commands {
     /// Export FEC filings into SQLite, Excel, CSV, or JSON
@@ -159,6 +217,9 @@ pub enum Commands {
     Fastfec(FastFecArgs),
 
     Search(SearchArgs),
+
+    // Export bulk datasets from fec.gov
+    Bulk(BulkArgs),
 }
 
 #[derive(Parser)]

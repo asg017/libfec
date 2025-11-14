@@ -180,3 +180,9 @@ pub fn search_candidates(
         .collect::<Result<Vec<(String, String)>, _>>()?;
     Ok(results)
 }
+
+
+pub fn export(tx: &mut Transaction<'_>, year: u16) -> Result<()> {
+    sync_item(tx, year, &ITEM)?;
+    Ok(())
+}

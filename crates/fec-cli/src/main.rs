@@ -17,6 +17,7 @@ fn main() {
         Commands::Fastfec(args) => commands::fastfec(sourcer, args),
         Commands::Cache(ref args) => commands::cache(sourcer, args),
         Commands::Search(ref args) => commands::search(sourcer, args),
+        Commands::Bulk(ref args) => commands::bulk(sourcer, args),
     };
 
     match result {

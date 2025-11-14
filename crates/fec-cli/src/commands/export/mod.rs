@@ -1,7 +1,7 @@
 mod dir_csv;
 mod excel;
 mod single;
-mod sqlite;
+pub mod sqlite;
 use anyhow::anyhow;
 use excel::cmd_export_excel;
 use sqlite::cmd_export_sqlite;

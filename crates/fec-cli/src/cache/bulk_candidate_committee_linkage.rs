@@ -11,7 +11,7 @@ use rusqlite::Transaction;
 use std::sync::LazyLock;
 
 static ITEM: LazyLock<BulkDataItem> = LazyLock::new(|| BulkDataItem {
-    table_name: "candidate_committee_linkages".to_owned(),
+    table_name: "libfec_candidate_committee_linkages".to_owned(),
     url_scheme: "https://www.fec.gov/files/bulk-downloads/$YEAR/ccl$YEAR2.zip".to_string(),
     schema: SCHEMA.to_string(),
     data_file_name: "ccl.txt".to_string(),
@@ -19,7 +19,7 @@ static ITEM: LazyLock<BulkDataItem> = LazyLock::new(|| BulkDataItem {
 });
 
 static SCHEMA: &str = r#"
-CREATE TABLE IF NOT EXISTS candidate_committee_linkages(
+CREATE TABLE IF NOT EXISTS libfec_candidate_committee_linkages(
   cycle INTEGER,
   candidate_id,
   candidate_election_year,
