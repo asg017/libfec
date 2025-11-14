@@ -21,7 +21,10 @@ fn target_matches_form_type(target: &ExportTarget, form_type: &str) -> bool {
 }
 
 enum Writer {
-    Csv(csv::Writer<File>),
+    Csv{
+      writer: csv::Writer<File>,
+      nrecords: usize,
+    },
     Json {
         file: File,
         column_names: Vec<String>,
@@ -37,15 +40,19 @@ pub fn cmd_export_single(
     let t0 = jiff::Timestamp::now();
     let mut output = match output_type {
         SingleOutput::Csv => {
-            let mut w = csv::WriterBuilder::new()
+            let mut writer = csv::WriterBuilder::new()
                 .flexible(true)
                 .has_headers(true)
                 .from_writer(std::fs::File::create_new(&output_path)?);
             let mut columns: Vec<String> =
                 Into::<ScheduleType>::into(target).column_names("8.5")?;
             columns.insert(0, "filing_id".to_owned());
-            w.write_record(columns).expect("Writing CSV header");
-            Writer::Csv(w)
+            let nrecords = columns.len();
+            writer.write_record(columns).expect("Writing CSV header");
+            Writer::Csv{
+                writer,
+                nrecords,
+            }
         }
         SingleOutput::Json => {
             let mut f = File::create_new(&output_path)?;
@@ -80,12 +87,13 @@ pub fn cmd_export_single(
             if target_matches_form_type(&target, row.row_type.as_str()) {
                 nrows += 1;
                 match &mut output {
-                    Writer::Csv(w) => {
-                        w.write_field(&filing.filing_id)?;
-                        for field in row.record.iter() {
-                            w.write_field(field)?;
+                    Writer::Csv{writer, nrecords} => {
+                        writer.write_field(&filing.filing_id)?;
+                        // TODO: check if theres non-empty rows beyond nrecords - 1
+                        for field in row.record.iter().take(*nrecords - 1) {
+                        writer.write_field(field)?;
                         }
-                        w.write_record(None::<&[u8]>)?;
+                        writer.write_record(None::<&[u8]>)?;
                     }
                     Writer::Json { file, column_names } => {
                         if first {
