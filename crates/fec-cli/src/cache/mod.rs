@@ -44,6 +44,12 @@ pub(crate) struct CacheAllStats {
     pub downloaded_bytes: usize,
 }
 
+pub(crate) struct CacheBulkDailyZipResultItem {
+  pub(crate) filing_id: FecFilingId,
+  pub(crate) output_path: PathBuf,
+
+}
+
 pub(crate) struct Cache {
     pub cache_directory: PathBuf,
     number_concurrent: usize,
@@ -89,8 +95,10 @@ impl Cache {
         &self,
         date: Date,
         mb: Option<&MultiProgress>,
-    ) -> Result<Vec<FecFilingId>> {
+    ) -> Result<Vec<CacheBulkDailyZipResultItem>> {
         // .daily-zip.YYYY-MM-DD.meta format: Each line is a filing ID that was in the zip for that day.
+        
+        let mut items = vec![];
 
         let meta_path = self
             .cache_directory
@@ -102,21 +110,26 @@ impl Cache {
                 let _ = std::fs::remove_file(&meta_part_path);
             } else {
                 // TODO logic for last-modified check
-                let mut filing_ids = vec![];
                 let mut f = File::open(&meta_path)?;
                 let mut contents = String::new();
                 f.read_to_string(&mut contents)?;
                 for line in contents.lines() {
+                  // TODO handle lines with non FEC filing IDs
                     let filing_id = FecFilingId::from_str(line).unwrap();
-                    filing_ids.push(filing_id);
+                    // TODO handle missing filings
+                    let output_path = self.resolve_filing(&filing_id).unwrap();
+                    items.push(CacheBulkDailyZipResultItem {
+                        filing_id,
+                        output_path
+                    });
                 }
-                return Ok(filing_ids);
+                return Ok(items);
             }
         }
 
         File::create(&meta_part_path).context("Failed to create meta part file")?;
 
-        let mut filing_ids = vec![];
+        
         let zip_url = format!(
             "{BASE_URL}/bulk-downloads/electronic/{}.zip",
             date.strftime("%Y%m%d")
@@ -178,7 +191,6 @@ impl Cache {
                 continue;
             }
             let filing_id = FecFilingId::from_str(file.name().trim_end_matches(".fec")).unwrap();
-            filing_ids.push(filing_id);
             let output_path = self.cache_directory.join(file.name());
             if !output_path.exists() {
                 std::fs::create_dir_all(output_path.parent().unwrap())?;
@@ -186,16 +198,20 @@ impl Cache {
                 std::io::copy(&mut file, &mut out_file)
                     .with_context(|| format!("Failed to write to {:?}", output_path))?;
             }
+            items.push(CacheBulkDailyZipResultItem {
+                filing_id,
+                output_path
+            });
         }
 
         let mut meta_file = File::create(&meta_path).context("Failed to create meta file")?;
-        for filing_id in &filing_ids {
-            writeln!(meta_file, "{}", filing_id.to_bare())?;
+        for item in &items {
+            writeln!(meta_file, "{}", item.filing_id.to_bare())?;
         }
         let _ = std::fs::remove_file(meta_part_path);
         meta_file.set_modified(last_modified.into())?;
 
-        Ok(filing_ids)
+        Ok(items)
     }
 
     pub fn resolve_candidate_principal_campaign_committees(

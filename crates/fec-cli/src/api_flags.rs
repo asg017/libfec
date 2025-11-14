@@ -2,7 +2,7 @@ use std::{str::FromStr, sync::LazyLock};
 
 use crate::{
     cache::bulk_candidates::{ResolveCandidateParams, ResolveCandidateParamsBuilder},
-    sourcer::{FecFilingId, FilingSourcer},
+    sourcer::{FecFilingId, FilingSourcer, resolve_from_path},
 };
 use anyhow::Context;
 use clap::Parser;
@@ -305,8 +305,39 @@ impl FilingsApiFlags {
             });
 
             for day in days {
-                let filing_ids = sourcer.cache.cache_bulk_daily_zip(day, mb)?;
-                all_filing_ids.extend(filing_ids);
+                let items: Vec<crate::cache::CacheBulkDailyZipResultItem> = sourcer.cache.cache_bulk_daily_zip(day, mb)?;
+
+                // if the --form-types filter flag is provided, then we need to manually filter 
+                // by parsing the filing header. Not great performance-wise
+                if let Some(form_types) = &self.form_type {
+                    for item in items {
+                      let f = resolve_from_path(item.output_path.clone())?;
+                      let filing_form_type = crate::commands::export::sqlite::form_type_parse(&f.cover.form_type).0;
+                      if !form_types.iter().any(|ft| ft == filing_form_type) {
+                          continue;
+                      }
+
+                      // also filter by coverage dates, if provided
+                      // TODO does this only work if --form-types is provided?
+                      if let Some(coverage_after) = self.coverage_after {
+                        if let Some(through_date) = f.cover.coverage_through_date {
+                            if through_date < coverage_after {
+                                continue;
+                            }
+                        }
+                      }
+                      if let Some(coverage_before) = self.coverage_before {
+                        if let Some(from_date) = f.cover.coverage_from_date {
+                            if from_date > coverage_before {
+                                continue;
+                            }
+                        }
+                      }
+                      all_filing_ids.push(item.filing_id);
+                    }
+                } else {
+                    all_filing_ids.extend(items.iter().map(|item| item.filing_id.clone()).collect::<Vec<_>>());
+                }
                 pb_days.as_ref().map(|sp| sp.inc(1));
             }
             pb_days.as_ref().map(|sp| {

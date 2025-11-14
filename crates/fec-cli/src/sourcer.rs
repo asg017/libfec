@@ -148,8 +148,8 @@ fn resolve_from_file(f: File, path: PathBuf) -> Result<ResolvedFiling> {
         source_length,
     })
 }
-fn resolve_from_path(path: PathBuf) -> Result<Filing<Box<dyn Read>>> {
-    let f = File::open(&path).context(format!(
+pub(crate) fn resolve_from_path(path: PathBuf) -> Result<Filing<Box<dyn Read>>> {
+    let f: File = File::open(&path).context(format!(
         "Could not open filing at path `{}`",
         path.display()
     ))?;
