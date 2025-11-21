@@ -30,3 +30,4 @@ june/
 .vscode/
 
 dist/
+*.so
