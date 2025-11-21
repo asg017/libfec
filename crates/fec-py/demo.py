@@ -5,6 +5,15 @@ from fec_py.foo import bar
 from pathlib import Path
 import sys
 
+from fec_py.parser import Filing
+
+# input can be 1) path or 2) bytes, or 3) a file-like/url response object
+f = Filing(sys.argv[1])
+print(f.header)
+print(f.cover)
+for itemization in f.itemizations:
+    print(itemization)
+
 def main() -> None:
     # Test the foo module
     print(f"bar() returns: {bar()}")
