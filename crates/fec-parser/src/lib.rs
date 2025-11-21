@@ -1,3 +1,5 @@
+#![deny(clippy::unwrap_used)]
+
 pub mod covers;
 pub mod mappings;
 pub mod schedules;
@@ -179,7 +181,8 @@ impl FilingCover {
             .ok_or_else(|| "Cover record row contains 0 fields".to_owned())?
             .to_owned();
 
-        let columns = column_names_for_field(form_type.as_str(), fec_version).unwrap();
+        let columns = column_names_for_field(form_type.as_str(), fec_version)
+            .map_err(|e| format!("Error getting column names for form type '{form_type}': {e}"))?;
         let mut cover_record_kv = IndexMap::new();
         for (column_name, field) in columns.iter().zip(cover_record.iter()) {
             cover_record_kv.insert(column_name.to_owned(), field.to_owned());
@@ -225,8 +228,14 @@ impl FilingCover {
             Some(Err(_)) => None,
         };
 
-        let filer_id = cover_record.get(id_idx).unwrap().to_owned();
-        let filer_name = cover_record.get(name_idx).unwrap().to_owned();
+        let filer_id = cover_record
+            .get(id_idx)
+            .ok_or_else(|| "Cover record missing filer ID field".to_owned())?
+            .to_owned();
+        let filer_name = cover_record
+            .get(name_idx)
+            .ok_or_else(|| "Cover record missing filer name field".to_owned())?
+            .to_owned();
         let cover_data = covers::cover_from_form_type(&form_type, &cover_record_kv);
         Ok(Self {
             record: cover_record,
@@ -270,7 +279,7 @@ impl<R: Read> Filing<R> {
                 .ok_or_else(|| anyhow::anyhow!("file missing header"))?
                 .to_vec(),
         )
-        .unwrap();
+        .map_err(|e| anyhow::anyhow!("Invalid UTF-8 in header record type: {}", e))?;
         if hdr_record_type != "HDR" {
             return Err(anyhow::anyhow!(
                 "Incorrect header record type: {hdr_record_type}"
@@ -280,14 +289,13 @@ impl<R: Read> Filing<R> {
         let hdr_record = StringRecord::from_byte_record_lossy(hdr);
         let cover_record = records_iter
             .next()
-            .expect("2nd record to be cover record")
-            .expect("2nd record to exist");
+            .ok_or_else(|| anyhow::anyhow!("No cover record found (2nd record missing)"))??;
         let header = FilingHeader::from_record(hdr_record)?;
         let cover = FilingCover::from_record(
             &header.fec_version,
             StringRecord::from_byte_record_lossy(cover_record),
         )
-        .unwrap();
+        .map_err(|e| anyhow::anyhow!("Error parsing cover record: {}", e))?;
 
         Ok(Self {
             filing_id: filing_id
@@ -308,7 +316,7 @@ impl<R: Read> Filing<R> {
             .ok_or_else(|| anyhow::anyhow!("Unknown filing id for {:?}", filing_path))?;
 
         let filing_file = std::fs::File::open(filing_path)?;
-        let source_length = filing_file.metadata().map(|v| (v.len() as usize))?;
+        let source_length = filing_file.metadata().map(|v| v.len() as usize)?;
 
         Ok(Filing::from_reader(
             filing_file,
@@ -332,7 +340,7 @@ impl<R: Read> Filing<R> {
             Some(field) => field.to_owned().replace('/', ""), // idk man, 'SC/12',
             None => {
                 return Some(Err(FilingRowReadError::EmptyRecord(
-                    record.position().unwrap().line(),
+                    record.position().map(|p| p.line()).unwrap_or(0),
                 )));
             }
         };
@@ -345,10 +353,16 @@ impl<R: Read> Filing<R> {
                     Some(Ok(record)) => match record.get(0) {
                         Some(b"[ENDTEXT]") => match self.records_iter.next() {
                             Some(record) => {
-                                let record = record.unwrap();
+                                let record = match record {
+                                    Ok(r) => r,
+                                    Err(e) => return Some(Err(FilingRowReadError::CsvError(e))),
+                                };
                                 let original_size = record.as_slice().len();
                                 let record = StringRecord::from_byte_record_lossy(record);
-                                let row_type = record.get(0).unwrap().to_owned();
+                                let row_type = record
+                                    .get(0)
+                                    .map(|s| s.to_owned())
+                                    .unwrap_or_else(|| String::from(""));
                                 return Some(Ok(FilingRow {
                                     row_type,
                                     record,
@@ -411,7 +425,7 @@ mod tests {
         assert_eq!(
             FORM_TYPE_VERSIONS_SET
                 .get(44)
-                .unwrap()
+                .expect("FORM_TYPE_VERSIONS_SET should have index 44")
                 .matches("3")
                 .iter()
                 .next(),
@@ -420,7 +434,12 @@ mod tests {
         let _x = &FORM_TYPE_VERSIONS_SET[44];
 
         assert_eq!(
-            COLUMN_NAMES.get(44).unwrap().get(11).unwrap().join(","),
+            COLUMN_NAMES
+                .get(44)
+                .expect("COLUMN_NAMES should have index 44")
+                .get(11)
+                .expect("COLUMN_NAMES[44] should have index 11")
+                .join(","),
             "form_type,filer_committee_id_number,entity_type,contributor_name,contributor_street_1,contributor_street_2,contributor_city,contributor_state,contributor_zip_code,election_code,election_other_description,contributor_employer,contributor_occupation,contribution_aggregate,contribution_date,contribution_amount,contribution_purpose_code,contribution_purpose_descrip,donor_committee_fec_id,donor_candidate_fec_id,donor_candidate_name,donor_candidate_office,donor_candidate_state,donor_candidate_district,conduit_name,conduit_street1,conduit_street2,conduit_city,conduit_state,conduit_zip_code,memo_code,memo_text_description,amended_cd,transaction_id,back_reference_tran_id_number,back_reference_sched_name,reference_code"
         );
     }

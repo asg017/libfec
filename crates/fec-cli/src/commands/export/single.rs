@@ -56,7 +56,7 @@ pub fn cmd_export_single(
         }
         SingleOutput::Json => {
             let mut f = File::create_new(&output_path)?;
-            f.write(b"[")?;
+            f.write_all(b"[")?;
             let mut columns: Vec<String> =
                 Into::<ScheduleType>::into(target).column_names("8.5")?;
             columns.insert(0, "filing_id".to_owned());
@@ -99,7 +99,7 @@ pub fn cmd_export_single(
                         if first {
                             first = false;
                         } else {
-                            file.write(b",")?;
+                            file.write_all(b",")?;
                         }
                         let mut record = serde_json::map::Map::new();
                         record.insert(
@@ -114,14 +114,14 @@ pub fn cmd_export_single(
                         }
                         let value = serde_json::Value::Object(record);
                         let s = serde_json::to_string(&value)?;
-                        file.write(s.as_bytes())?;
+                        file.write_all(s.as_bytes())?;
                     }
                 }
             }
         }
     }
     if let Writer::Json { file, .. } = &mut output {
-        file.write(b"]")?;
+        file.write_all(b"]")?;
     }
     let duration = jiff::Timestamp::now() - t0;
     eprintln!(

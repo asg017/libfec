@@ -35,8 +35,14 @@ impl DetailedSummaryRow {
         column_b_key: &str,
     ) -> Self {
         Self {
-            column_a: data[column_a_key].parse().unwrap(),
-            column_b: data[column_b_key].parse().unwrap(),
+            column_a: data
+                .get(column_a_key)
+                .and_then(|s| s.parse::<f64>().ok())
+                .unwrap_or(0.0),
+            column_b: data
+                .get(column_b_key)
+                .and_then(|s| s.parse::<f64>().ok())
+                .unwrap_or(0.0),
         }
     }
 }
@@ -282,33 +288,59 @@ impl Form3PDetailedSummary {
 }
 
 impl Form3P {
-    pub fn from_data(data: &IndexMap<String, String>) -> Self {
-        Self {
+    pub fn from_data(data: &IndexMap<String, String>) -> Option<Self> {
+        let signed = data
+            .get("date_signed")
+            .and_then(|s| Date::strptime("%Y%m%d", s).ok())?;
+
+        let summary = Form3PSummary {
+            line6_cash_on_hand_beginning_period: data
+                .get("col_a_cash_on_hand_beginning_period")
+                .and_then(|s| s.parse::<f64>().ok())
+                .unwrap_or(0.0),
+            line7_total_receipts: data
+                .get("col_a_total_receipts")
+                .and_then(|s| s.parse::<f64>().ok())
+                .unwrap_or(0.0),
+            line8_subtotal: data
+                .get("col_a_subtotal")
+                .and_then(|s| s.parse::<f64>().ok())
+                .unwrap_or(0.0),
+            line9_total_disbursements: data
+                .get("col_a_total_disbursements")
+                .and_then(|s| s.parse::<f64>().ok())
+                .unwrap_or(0.0),
+            line10_cash_on_hand_end_period: data
+                .get("col_a_cash_on_hand_close_of_period")
+                .and_then(|s| s.parse::<f64>().ok())
+                .unwrap_or(0.0),
+            line11_debts_owed_to_committee: data
+                .get("col_a_debts_to")
+                .and_then(|s| s.parse::<f64>().ok())
+                .unwrap_or(0.0),
+            line12_debts_owed_by_committee: data
+                .get("col_a_debts_by")
+                .and_then(|s| s.parse::<f64>().ok())
+                .unwrap_or(0.0),
+            line13_expenditures_subject_to_limits: data
+                .get("col_a_expenditures_subject_to_limits")
+                .and_then(|s| s.parse::<f64>().ok())
+                .unwrap_or(0.0),
+            line14_net_contributions_other_than_loans: data
+                .get("col_a_net_contributions")
+                .and_then(|s| s.parse::<f64>().ok())
+                .unwrap_or(0.0),
+            line15_net_operating_expenditures: data
+                .get("col_a_net_operating_expenditures")
+                .and_then(|s| s.parse::<f64>().ok())
+                .unwrap_or(0.0),
+        };
+
+        Some(Self {
             treasurer: Treasurer::from_data(data),
-            signed: Date::strptime("%Y%m%d", data.get("date_signed").unwrap()).unwrap(),
-            summary: Form3PSummary {
-                line6_cash_on_hand_beginning_period: data["col_a_cash_on_hand_beginning_period"]
-                    .parse()
-                    .unwrap(),
-                line7_total_receipts: data["col_a_total_receipts"].parse().unwrap(),
-                line8_subtotal: data["col_a_subtotal"].parse().unwrap(),
-                line9_total_disbursements: data["col_a_total_disbursements"].parse().unwrap(),
-                line10_cash_on_hand_end_period: data["col_a_cash_on_hand_close_of_period"]
-                    .parse()
-                    .unwrap(),
-                line11_debts_owed_to_committee: data["col_a_debts_to"].parse().unwrap(),
-                line12_debts_owed_by_committee: data["col_a_debts_by"].parse().unwrap(),
-                line13_expenditures_subject_to_limits: data["col_a_expenditures_subject_to_limits"]
-                    .parse()
-                    .unwrap(),
-                line14_net_contributions_other_than_loans: data["col_a_net_contributions"]
-                    .parse()
-                    .unwrap(),
-                line15_net_operating_expenditures: data["col_a_net_operating_expenditures"]
-                    .parse()
-                    .unwrap(),
-            },
+            signed,
+            summary,
             detailed_summary: Form3PDetailedSummary::from_data(data),
-        }
+        })
     }
 }

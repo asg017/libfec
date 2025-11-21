@@ -12,7 +12,7 @@ pub(crate) fn cover_from_form_type(
 ) -> Option<Cover> {
     // TODO collides with F3PS?
     if cover_record_form_type.starts_with("F3P") {
-        return Some(Cover::Form3P(Form3P::from_data(data)));
+        return Form3P::from_data(data).map(Cover::Form3P);
     }
     None
 }
