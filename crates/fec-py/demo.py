@@ -1,11 +1,11 @@
-# uv run --no-project --isolated --with 'fec_py @ file://../../dist/fec_py-0.1.0-cp39-abi3-macosx_11_0_arm64.whl' demo.py <file1.fec> <file2.fec> ...
+# uv run --no-project --isolated --with 'libfec_parser @ file://../../dist/libfec_parser-0.1.0-cp39-abi3-macosx_11_0_arm64.whl' demo.py <file1.fec> <file2.fec> ...
 
-from fec_py.parser import fec_header
-from fec_py.foo import bar
+from libfec_parser.parser import fec_header
+from libfec_parser.foo import bar
 from pathlib import Path
 import sys
 
-from fec_py.parser import Filing
+from libfec_parser.parser import Filing
 
 # input can be 1) path or 2) bytes, or 3) a file-like/url response object
 f = Filing(sys.argv[1])

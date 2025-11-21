@@ -1,4 +1,4 @@
-# fec-py
+# libfec_parser
 
 Python bindings for the FEC parser library.
 
@@ -6,7 +6,7 @@ Python bindings for the FEC parser library.
 
 ```bash
 # Install from wheel (after building)
-pip install dist/fec_py-0.1.0-cp39-abi3-macosx_11_0_arm64.whl
+pip install dist/libfec_parser-0.1.0-cp39-abi3-macosx_11_0_arm64.whl
 ```
 
 ## Building
@@ -44,10 +44,10 @@ maturin build -m crates/fec-py/Cargo.toml --release --out dist
 
 ### fecfile Compatibility API
 
-The `fec_py.fecfile` module provides a compatibility layer that mimics the API of the [fecfile](https://pypi.org/project/fecfile/) PyPI package:
+The `libfec_parser.fecfile` module provides a compatibility layer that mimics the API of the [fecfile](https://pypi.org/project/fecfile/) PyPI package:
 
 ```python
-from fec_py.fecfile import loads, from_file, parse_header, parse_line, print_example
+from libfec_parser.fecfile import loads, from_file, parse_header, parse_line, print_example
 
 # Load and parse a filing from a file
 parsed = from_file("./path/to/filing.fec")
@@ -79,7 +79,7 @@ See [demo-fecfile.py](demo-fecfile.py) for a complete demonstration.
 ### Native Python API
 
 ```python
-from fec_py.parser import Filing
+from libfec_parser.parser import Filing
 
 # Create a Filing from a file path
 f = Filing("./path/to/filing.fec")
@@ -118,7 +118,7 @@ with urllib.request.urlopen("https://example.com/filing.fec") as response:
 The `fec_header` function is also available for quick header parsing:
 
 ```python
-from fec_py.parser import fec_header
+from libfec_parser.parser import fec_header
 from pathlib import Path
 
 contents = Path("./filing.fec").read_bytes()
@@ -135,12 +135,12 @@ cd /Users/alex/projects/libfec/crates/fec-py
 
 # Run with the built wheel using uv (recommended)
 uv run --no-cache --no-project --isolated \
-  --with 'fec_py @ file://../../dist/fec_py-0.1.0-cp39-abi3-macosx_11_0_arm64.whl' \
+  --with 'libfec_parser @ file://../../dist/libfec_parser-0.1.0-cp39-abi3-macosx_11_0_arm64.whl' \
   demo.py ../../cache2/*.fec
 
 # Or with specific files
 uv run --no-cache --no-project --isolated \
-  --with 'fec_py @ file://../../dist/fec_py-0.1.0-cp39-abi3-macosx_11_0_arm64.whl' \
+  --with 'libfec_parser @ file://../../dist/libfec_parser-0.1.0-cp39-abi3-macosx_11_0_arm64.whl' \
   demo.py ../../cache2/1461586.fec ../../cache2/1478292.fec
 
 # Or if installed locally
@@ -220,7 +220,7 @@ After making changes to the Rust code:
 2. Test with the new wheel:
    ```bash
    uv run --no-cache --no-project --isolated \
-     --with 'fec_py @ file://../../dist/fec_py-0.1.0-cp39-abi3-macosx_11_0_arm64.whl' \
+     --with 'libfec_parser @ file://../../dist/libfec_parser-0.1.0-cp39-abi3-macosx_11_0_arm64.whl' \
      demo.py ../../cache2/*.fec
    ```
 

@@ -1,5 +1,5 @@
 [project]
-name = "fec-py"
+name = "libfec-parser"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
@@ -10,11 +10,11 @@ requires-python = ">=3.7"
 dependencies = []
 
 [project.scripts]
-fec-py = "fec_py:main"
+libfec-parser = "libfec_parser:main"
 
 [tool.maturin]
-module-name = "fec_py"
-python-packages = ["fec_py"]
+module-name = "libfec_parser"
+python-packages = ["libfec_parser"]
 python-source = "src"
 
 [build-system]

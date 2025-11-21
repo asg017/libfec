@@ -9,7 +9,7 @@ use pyo3::wrap_pymodule;
 /// the `lib.name` setting in the `Cargo.toml`, else Python will not be able to
 /// import the module.
 #[pymodule]
-fn fec_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
+fn libfec_parser(m: &Bound<'_, PyModule>) -> PyResult<()> {
     // Add submodules
     m.add_wrapped(wrap_pymodule!(parser::parser))?;
     m.add_wrapped(wrap_pymodule!(foo::foo))?;

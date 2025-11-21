@@ -1,10 +1,10 @@
 [package]
-name = "fec_py"
+name = "libfec_parser"
 version = "0.1.0"
 edition = "2021"
 
 [lib]
-name = "fec_py"
+name = "libfec_parser"
 # "cdylib" is necessary to produce a shared library for Python to import from.
 crate-type = ["cdylib"]
 

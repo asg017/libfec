@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Demo script for fec_py.fecfile - a compatibility layer for the fecfile PyPI package.
+Demo script for libfec_parser.fecfile - a compatibility layer for the fecfile PyPI package.
 
 This demonstrates the API that mimics the original fecfile library:
 - loads() - Parse FEC content from string/bytes
@@ -16,7 +16,7 @@ Usage:
 
 import sys
 from pathlib import Path
-from fec_py.fecfile import loads, from_file, parse_header, parse_line, print_example
+from libfec_parser.fecfile import loads, from_file, parse_header, parse_line, print_example
 
 def demo_loads(file_path):
     """Demo the loads() function"""
