@@ -1,6 +1,5 @@
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
-use fec_parser;
 use std::io::Cursor;
 use std::path::PathBuf;
 
