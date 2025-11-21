@@ -13,6 +13,24 @@ pip install dist/libfec_parser-0.1.0-cp39-abi3-macosx_11_0_arm64.whl
 
 **Note:** Don't use `cargo build` directly - use `maturin` to build PyO3 extension modules.
 
+### Quick Start with Makefile
+
+The easiest way to build is using the Makefile:
+
+```bash
+cd /Users/alex/projects/libfec/crates/fec-py
+
+# Build development wheel
+make build
+
+# Build release (optimized) wheel
+make build-release
+
+# Run demo scripts
+make demo
+make demo-fecfile
+```
+
 ### Development Build
 
 For local development and testing, use `maturin develop` to build and install in-place:
@@ -24,9 +42,9 @@ maturin develop -m crates/fec-py/Cargo.toml
 
 This installs the package in editable mode in your current Python environment.
 
-### Build Wheel
+### Manual Build
 
-To build a distributable wheel package:
+To build a distributable wheel package manually:
 
 ```bash
 cd /Users/alex/projects/libfec
@@ -128,28 +146,31 @@ print(version)  # e.g., "8.4"
 
 ## Running the Demo
 
-The `demo.py` file demonstrates the API usage:
+The easiest way to run the demos is using the Makefile:
 
 ```bash
 cd /Users/alex/projects/libfec/crates/fec-py
 
-# Run with the built wheel using uv (recommended)
-uv run --no-cache --no-project --isolated \
-  --with 'libfec_parser @ file://../../dist/libfec_parser-0.1.0-cp39-abi3-macosx_11_0_arm64.whl' \
-  demo.py ../../cache2/*.fec
+# Run demo.py (will build if needed)
+make demo
 
-# Or with specific files
+# Run demo-fecfile.py
+make demo-fecfile
+```
+
+Or run manually with specific files:
+
+```bash
+# Run with the built wheel using uv
 uv run --no-cache --no-project --isolated \
-  --with 'libfec_parser @ file://../../dist/libfec_parser-0.1.0-cp39-abi3-macosx_11_0_arm64.whl' \
+  --with 'libfec_parser @ file://dist/libfec_parser-0.1.0-cp39-abi3-macosx_11_0_arm64.whl' \
   demo.py ../../cache2/1461586.fec ../../cache2/1478292.fec
 
 # Or if installed locally
 python demo.py path/to/filing1.fec path/to/filing2.fec
 ```
 
-The demo will:
-1. Parse each provided FEC file
-2. Extract and print the FEC version for each file
+The demos will parse the provided FEC files and demonstrate the API usage
 
 ## API Reference
 
@@ -212,15 +233,25 @@ Represents a single itemization (schedule) row in the filing.
 
 After making changes to the Rust code:
 
+1. Rebuild and test:
+   ```bash
+   cd /Users/alex/projects/libfec/crates/fec-py
+   make build
+   make demo
+   ```
+
+Or manually:
+
 1. Rebuild the wheel:
    ```bash
-   maturin build -m crates/fec-py/Cargo.toml --out dist
+   cd /Users/alex/projects/libfec/crates/fec-py
+   maturin build -m Cargo.toml --out dist
    ```
 
 2. Test with the new wheel:
    ```bash
    uv run --no-cache --no-project --isolated \
-     --with 'libfec_parser @ file://../../dist/libfec_parser-0.1.0-cp39-abi3-macosx_11_0_arm64.whl' \
+     --with 'libfec_parser @ file://dist/libfec_parser-0.1.0-cp39-abi3-macosx_11_0_arm64.whl' \
      demo.py ../../cache2/*.fec
    ```
 
