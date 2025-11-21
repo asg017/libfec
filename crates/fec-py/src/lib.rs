@@ -2,9 +2,8 @@ use pyo3::prelude::*;
 use fec_parser::Filing;
 
 #[pyfunction]
-fn hello_from_bin() -> String {
-  let x = std::io::Cursor::new(include_bytes!("../../1890336.fec"));
-  let f = Filing::from_reader(x, "123".to_string(), None).unwrap_or("TODO FAIL")
+fn fec_header(contents: &[u8]) -> String {
+  let f = Filing::from_reader(contents, "123".to_string(), contents.len()).unwrap();
   
    f.header.fec_version
 }
@@ -14,6 +13,6 @@ fn hello_from_bin() -> String {
 /// import the module.
 #[pymodule]
 fn _core(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(hello_from_bin, m)?)?;
+    m.add_function(wrap_pyfunction!(fec_header, m)?)?;
     Ok(())
 }
