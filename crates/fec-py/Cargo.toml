@@ -13,3 +13,4 @@ crate-type = ["cdylib"]
 # "abi3-py39" tells pyo3 (and maturin) to build using the stable ABI with minimum Python version 3.9
 pyo3 = { version = "0.22.4", features = ["extension-module", "abi3-py39"] }
 fec-parser = { path="../fec-parser" }
+csv = "1.3"

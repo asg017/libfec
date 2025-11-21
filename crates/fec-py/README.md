@@ -42,7 +42,41 @@ maturin build -m crates/fec-py/Cargo.toml --release --out dist
 
 ## Usage
 
-### Python API
+### fecfile Compatibility API
+
+The `fec_py.fecfile` module provides a compatibility layer that mimics the API of the [fecfile](https://pypi.org/project/fecfile/) PyPI package:
+
+```python
+from fec_py.fecfile import loads, from_file, parse_header, parse_line, print_example
+
+# Load and parse a filing from a file
+parsed = from_file("./path/to/filing.fec")
+
+# Access parsed data
+print(parsed['header']['fec_version'])
+print(parsed['filing']['form_type'])
+print(parsed['itemizations']['Schedule A'][0])
+
+# Parse from string/bytes
+content = open("filing.fec", "rb").read()
+parsed = loads(content)
+
+# Filter specific schedules
+parsed = loads(content, options={'filter_itemizations': ['SA', 'SB']})
+
+# Parse just the header
+header, version, lines_consumed = parse_header(header_line)
+
+# Parse a single line
+line_dict = parse_line(line, version)
+
+# Print example (first item of each type)
+print_example(parsed)
+```
+
+See [demo-fecfile.py](demo-fecfile.py) for a complete demonstration.
+
+### Native Python API
 
 ```python
 from fec_py.parser import Filing
