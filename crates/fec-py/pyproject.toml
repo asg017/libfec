@@ -13,7 +13,7 @@ dependencies = []
 fec-py = "fec_py:main"
 
 [tool.maturin]
-module-name = "fec_py._core"
+module-name = "fec_py"
 python-packages = ["fec_py"]
 python-source = "src"
 
