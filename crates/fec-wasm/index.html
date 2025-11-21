@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FEC WASM Example</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 0 20px;
+            line-height: 1.6;
+        }
+        h1 {
+            color: #333;
+        }
+        .result {
+            background: #f4f4f4;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .result pre {
+            margin: 0;
+        }
+        input[type="file"] {
+            margin: 20px 0;
+        }
+        .error {
+            color: #d32f2f;
+            background: #ffebee;
+            padding: 15px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>FEC WASM Parser</h1>
+    <p>Select an FEC file to parse its header:</p>
+    
+    <input type="file" id="fileInput" accept=".fec">
+    
+    <div id="output"></div>
+
+    <script type="module">
+        import init, { header } from './pkg/fec_wasm.js';
+
+        // Initialize the WASM module
+        await init();
+
+        const fileInput = document.getElementById('fileInput');
+        const output = document.getElementById('output');
+
+        fileInput.addEventListener('change', async (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            try {
+                // Read file as array buffer
+                const arrayBuffer = await file.arrayBuffer();
+                const uint8Array = new Uint8Array(arrayBuffer);
+
+                // Parse the header
+                const filingHeader = header(uint8Array);
+
+                // Display results
+                output.innerHTML = `
+                    <div class="result">
+                        <h2>FEC Filing Header</h2>
+                        <pre>FEC Version: ${filingHeader.fec_version}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                output.innerHTML = `
+                    <div class="error">
+                        <strong>Error:</strong> ${error.message}
+                    </div>
+                `;
+            }
+        });
+
+        // Load the default file if running from a local server
+        async function loadDefaultFile() {
+            try {
+                const response = await fetch('./1926611.fec');
+                if (!response.ok) return;
+                
+                const arrayBuffer = await response.arrayBuffer();
+                const uint8Array = new Uint8Array(arrayBuffer);
+                const filingHeader = header(uint8Array);
+
+                output.innerHTML = `
+                    <div class="result">
+                        <h2>FEC Filing Header (1926611.fec)</h2>
+                        <pre>FEC Version: ${filingHeader.fec_version}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                // Silently fail - user can select their own file
+            }
+        }
+
+        // Try to load default file on page load
+        loadDefaultFile();
+    </script>
+</body>
+</html>
