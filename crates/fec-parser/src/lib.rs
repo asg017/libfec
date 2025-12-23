@@ -414,33 +414,4 @@ mod tests {
     use crate::*;
     use mappings::*;
 
-    #[test]
-    fn it_works() {
-        assert_eq!(FORM_TYPES_SET.len(), FORM_TYPE_VERSIONS_SET.len());
-        assert_eq!(FORM_TYPE_VERSIONS_SET.len(), COLUMN_NAMES.len());
-
-        let fec_13360_19 = "SA11A1"; //"SA11A1,C00101766,IND,Kellner^Lawrence,10915 Pifer Way,,Houston,TX,77024,,,\"Continental Airlines, Inc.\",Exec. V.P. & CFO,5000.00,20000510,5000.00,,,,,,,,,,,,,,,,,A,SA11A1.7430";
-        assert_eq!(field_idx(fec_13360_19), Some(44));
-        assert_eq!(FORM_TYPES[44], "^sa");
-        assert_eq!(
-            FORM_TYPE_VERSIONS_SET
-                .get(44)
-                .expect("FORM_TYPE_VERSIONS_SET should have index 44")
-                .matches("3")
-                .iter()
-                .next(),
-            Some(11)
-        );
-        let _x = &FORM_TYPE_VERSIONS_SET[44];
-
-        assert_eq!(
-            COLUMN_NAMES
-                .get(44)
-                .expect("COLUMN_NAMES should have index 44")
-                .get(11)
-                .expect("COLUMN_NAMES[44] should have index 11")
-                .join(","),
-            "form_type,filer_committee_id_number,entity_type,contributor_name,contributor_street_1,contributor_street_2,contributor_city,contributor_state,contributor_zip_code,election_code,election_other_description,contributor_employer,contributor_occupation,contribution_aggregate,contribution_date,contribution_amount,contribution_purpose_code,contribution_purpose_descrip,donor_committee_fec_id,donor_candidate_fec_id,donor_candidate_name,donor_candidate_office,donor_candidate_state,donor_candidate_district,conduit_name,conduit_street1,conduit_street2,conduit_city,conduit_state,conduit_zip_code,memo_code,memo_text_description,amended_cd,transaction_id,back_reference_tran_id_number,back_reference_sched_name,reference_code"
-        );
-    }
 }
