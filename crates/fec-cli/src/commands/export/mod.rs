@@ -23,18 +23,18 @@ pub fn export(sourcer: FilingSourcer, args: ExportArgs) -> anyhow::Result<()> {
         if args.clobber && output.exists() {
           std::fs::remove_file(&output)?;
         }
-        match output.extension().map(|s| s.to_str()).flatten() {
+        match output.extension().and_then(|s| s.to_str()) {
             Some("db") => cmd_export_sqlite(sourcer, output, args),
             Some("xlsx") => cmd_export_excel(sourcer, output, args),
             Some("csv") => {
-              if let Some(target) = args.target.clone() {
+              if let Some(target) = args.target {
                 single::cmd_export_single(sourcer, output, args, target, single::SingleOutput::Csv)
               }else {
                 Err(anyhow!("Must specify --target when exporting to a single CSV file"))
               }
             },
             Some("json") => {
-              if let Some(target) = args.target.clone() {
+              if let Some(target) = args.target {
                 single::cmd_export_single(sourcer, output, args, target, single::SingleOutput::Json)
               }else {
                 Err(anyhow!("Must specify --target when exporting to a single JSON file"))

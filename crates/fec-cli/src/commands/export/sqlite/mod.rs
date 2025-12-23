@@ -17,12 +17,7 @@ use rusqlite::{
     types::{ToSqlOutput, Value},
     Connection, Statement, ToSql, Transaction,
 };
-use std::{
-    collections::HashMap,
-    io::Read,
-    path::PathBuf,
-    time::Instant,
-};
+use std::{collections::HashMap, hash::Hash, io::Read, path::PathBuf, time::Instant};
 
 const CREATE_FILINGS_SQL: &str = r#"
   CREATE TABLE IF NOT EXISTS libfec_filings(
@@ -103,74 +98,33 @@ enum ItemizationKey {
 }
 
 struct ItemizationValue<'a> {
-    statement: Statement<'a>,
-    column_types: Vec<FieldFormat>,
-}
-
-fn insert_filing_row(
-    filing_id: &str,
-    column_types: &Vec<FieldFormat>,
-    row: FilingRow,
-    statement: &mut Statement,
-) -> anyhow::Result<Vec<Warning>> {
-    let mut warnings = Vec::new();
-    let mut values: Vec<FieldValue> = row
-        .record
-        .iter()
-        .enumerate()
-        .map(|(idx, field)| match column_types.get(idx) {
-            Some(FieldFormat::Text) => FieldValue::Text(field.to_owned()),
-            Some(FieldFormat::Date) => match field.len() {
-                8 => FieldValue::Date(try_format_fec_date(field)),
-                _ => FieldValue::Text(field.to_owned()),
-            },
-            Some(FieldFormat::Float) => match field.parse::<f64>() {
-                Ok(value) => FieldValue::Float(value),
-                Err(_) => FieldValue::Text(field.to_owned()),
-            },
-            None => FieldValue::Text(field.to_owned()),
-        })
-        .collect();
-
-    // make sure filing_id is the first column
-    values.insert(0, FieldValue::Text(filing_id.to_owned()));
-
-    if values.len() == statement.parameter_count() + 1 {
-        values.pop();
-    }
-
-    while values.len() < statement.parameter_count() {
-        values.push(FieldValue::Text("".to_owned()));
-    }
-    if values.len() > statement.parameter_count() {
-        warnings.push(Warning {
-            _message: format!(
-                "Warning too long at {}:{}, {} vs {}!",
-                filing_id,
-                row.record.position().map(|p| p.line()).unwrap_or(0),
-                values.len(),
-                statement.parameter_count()
-            ),
-        });
-        values.truncate(statement.parameter_count());
-    }
-    statement.execute(params_from_iter(values))?;
-    statement.clear_bindings();
-
-    Ok(warnings)
+    record_table: RecordTable,
+    insert_statement: Statement<'a>,
 }
 
 struct RecordTable {
     column_names: Vec<String>,
     column_types: Vec<FieldFormat>,
     suffix: String,
+    current_mapping: Vec<String>,
+    legacy_field_mapping: HashMap<String, Vec<Option<usize>>>,
 }
 
+const LATEST_FEC_VERSION: &str = "8.5";
 impl RecordTable {
-    fn new(fec_version: &str, row_type: &str, suffix: &str) -> Self {
-        let column_names = fec_parser::mappings::column_names_for_field(row_type, fec_version)
-            .unwrap()
-            .to_owned();
+    fn new(row_type: &str, suffix: &str) -> anyhow::Result<Self> {
+        let column_names =
+            fec_parser::mappings::column_names_for_field(row_type, LATEST_FEC_VERSION)
+                // some forms were *removed* in  8.5, like F3Z1, ex FEC-1890921. TODO Need a better fallback strategy
+                .or_else(|_| fec_parser::mappings::column_names_for_field(row_type, "8.4"))
+                .with_context(|| {
+                    format!(
+                        "Error getting mapping column names for field '{}' and fec version '{}'",
+                        row_type, LATEST_FEC_VERSION
+                    )
+                })?
+                .to_owned();
+        let current_mapping = column_names.clone();
         let column_types: Vec<FieldFormat> = column_names
             .iter()
             .map(|c| {
@@ -184,11 +138,13 @@ impl RecordTable {
             })
             .collect();
 
-        RecordTable {
+        Ok(RecordTable {
             column_names,
             column_types,
             suffix: suffix.to_owned(),
-        }
+            current_mapping,
+            legacy_field_mapping: HashMap::new(),
+        })
     }
     fn create_sql(&self) -> String {
         let columns_defs: Vec<String> = self
@@ -216,32 +172,98 @@ impl RecordTable {
         sql += "\n)";
         sql
     }
-    fn insert_statement<'a>(&self, tx: &'a Transaction) -> Statement<'a> {
+    fn insert_statement<'a>(&self, tx: &'a Transaction) -> anyhow::Result<Statement<'a>> {
         let sql = format!(
             "INSERT INTO libfec_{} VALUES ({})",
             self.suffix,
             vec!["?"; self.column_names.len() + 1].join(",")
         );
-        tx.prepare(&sql).unwrap()
+        tx.prepare(&sql).with_context(|| {
+            format!(
+                "Error preparing insert statement for record table libfec_{}",
+                self.suffix
+            )
+        })
     }
-    fn prep_row(&self, filing_id: &str, record: &StringRecord, n_params: usize) -> Vec<FieldValue> {
+
+    fn insert(
+        &mut self,
+        insert_stmt: &mut Statement,
+        filing_id: &str,
+        record: &StringRecord,
+        fec_version: &str,
+    ) -> anyhow::Result<()> {
+        let params = self.prep_row(
+            filing_id,
+            record,
+            insert_stmt.parameter_count(),
+            fec_version,
+        );
+        insert_stmt.execute(params_from_iter(params))?;
+        Ok(())
+    }
+    fn prep_row(
+        &mut self,
+        filing_id: &str,
+        record: &StringRecord,
+        n_params: usize,
+        fec_version: &str,
+    ) -> Vec<FieldValue> {
         let mut warnings = Vec::new();
-        let mut values: Vec<FieldValue> = record
-            .iter()
-            .enumerate()
-            .map(|(idx, field)| match self.column_types.get(idx) {
-                Some(FieldFormat::Text) => FieldValue::Text(field.to_owned()),
-                Some(FieldFormat::Date) => match field.len() {
-                    8 => FieldValue::Date(try_format_fec_date(field)),
-                    _ => FieldValue::Text(field.to_owned()),
-                },
-                Some(FieldFormat::Float) => match field.parse::<f64>() {
-                    Ok(value) => FieldValue::Float(value),
-                    Err(_) => FieldValue::Text(field.to_owned()),
-                },
-                None => FieldValue::Text(field.to_owned()),
-            })
-            .collect();
+        let mut values: Vec<FieldValue> = if fec_version == LATEST_FEC_VERSION {
+            record
+                .iter()
+                .enumerate()
+                .map(|(idx, field)| match self.column_types.get(idx) {
+                    Some(FieldFormat::Text) => FieldValue::Text(field.to_owned()),
+                    Some(FieldFormat::Date) => match field.len() {
+                        8 => FieldValue::Date(try_format_fec_date(field)),
+                        _ => FieldValue::Text(field.to_owned()),
+                    },
+                    Some(FieldFormat::Float) => match field.parse::<f64>() {
+                        Ok(value) => FieldValue::Float(value),
+                        Err(_) => FieldValue::Text(field.to_owned()),
+                    },
+                    None => FieldValue::Text(field.to_owned()),
+                })
+                .collect()
+        } else {
+            let legacy_mapping = self
+                .legacy_field_mapping
+                .entry(fec_version.to_owned())
+                .or_insert_with(|| {
+                    let legacy_columns =
+                        fec_parser::mappings::column_names_for_field(&record[0], fec_version)
+                            .unwrap()
+                            .to_owned();
+                    self.current_mapping
+                        .iter()
+                        .map(|col_name| legacy_columns.iter().position(|c| c == col_name))
+                        .collect::<Vec<Option<usize>>>()
+                });
+            legacy_mapping
+                .iter()
+                .enumerate()
+                .map(|(idx, &record_idx)| {
+                    let field = record_idx
+                        .map(|i| record.get(i).unwrap_or(""))
+                        .unwrap_or("");
+                    match self.column_types.get(idx) {
+                        Some(FieldFormat::Text) => FieldValue::Text(field.to_owned()),
+                        Some(FieldFormat::Date) => match field.len() {
+                            8 => FieldValue::Date(try_format_fec_date(field)),
+                            _ => FieldValue::Text(field.to_owned()),
+                        },
+                        Some(FieldFormat::Float) => match field.parse::<f64>() {
+                            Ok(value) => FieldValue::Float(value),
+                            Err(_) => FieldValue::Text(field.to_owned()),
+                        },
+                        None => FieldValue::Text(field.to_owned()),
+                    }
+                })
+                .collect()
+        };
+
         // make sure filing_id is the first column
         values.insert(0, FieldValue::Text(filing_id.to_owned()));
 
@@ -269,96 +291,92 @@ impl RecordTable {
 }
 
 fn prepare_schedule_statement<'a>(
-    fec_version: &str,
     row: &FilingRow,
     schedule_type: &ScheduleType,
     tx: &'a Transaction,
 ) -> anyhow::Result<ItemizationValue<'a>> {
-    let rt = RecordTable::new(
-        fec_version,
-        &row.row_type,
-        schedule_type.to_sqlite_tablename().as_str(),
-    );
-    tx.execute(&rt.create_sql(), [])?;
+    let record_table: RecordTable =
+        RecordTable::new(&row.row_type, schedule_type.to_sqlite_tablename().as_str())?;
+    tx.execute(&record_table.create_sql(), [])?;
+    let insert_statement = record_table.insert_statement(tx)?;
     Ok(ItemizationValue {
-        statement: rt.insert_statement(tx),
-        column_types: rt.column_types,
+        record_table,
+        insert_statement,
     })
 }
 
 fn prepare_form_type_statement<'a>(
-    fec_version: &str,
     row: &FilingRow,
     form_type: &str,
     tx: &'a Transaction,
 ) -> anyhow::Result<ItemizationValue<'a>> {
-    let rt = RecordTable::new(fec_version, &row.row_type, form_type);
-    tx.execute(&rt.create_sql(), [])?;
+    let record_table: RecordTable = RecordTable::new(&row.row_type, form_type)?;
+    tx.execute(&record_table.create_sql(), [])?;
+    let insert_statement = record_table.insert_statement(tx)?;
     Ok(ItemizationValue {
-        statement: rt.insert_statement(tx),
-        column_types: rt.column_types,
+        record_table,
+        insert_statement,
     })
 }
 
 fn export_itemizations<R: Read>(
     tx: &mut Transaction,
     mut filing: Filing<R>,
-    pb: &ItemizationProgressBar,
-) -> Result<(), rusqlite::Error> {
+    pb: Option<&ItemizationProgressBar>,
+) -> anyhow::Result<usize> {
     let mut itemizations_statements: HashMap<ItemizationKey, ItemizationValue> = HashMap::new();
+    let mut count = 0;
 
     while let Some(r) = filing.next_row() {
-        let r = r.unwrap();
-        pb.update(&r);
+        let r = r.context("Error reading next row from filing")?;
+        if let Some(pb) = pb {
+            pb.update(&r)
+        }
+        count += 1;
 
-        let v = match form_type_schedule_type(&r.row_type) {
-            Some(schedule_type) => {
-                match itemizations_statements
-                    .get_mut(&ItemizationKey::Schedule(schedule_type.clone()))
-                {
-                    Some(v) => v,
-                    None => {
-                        let value = prepare_schedule_statement(
-                            &filing.header.fec_version,
-                            &r,
-                            &schedule_type,
-                            tx,
-                        )
-                        .unwrap();
-
-                        // Insert and return a mutable reference to the value in one operation
-                        itemizations_statements
-                            .entry(ItemizationKey::Schedule(schedule_type.clone()))
-                            .or_insert(value)
-                    }
-                }
-            }
-            None => {
-                match itemizations_statements.get_mut(&ItemizationKey::FormType(r.row_type.clone()))
-                {
-                    Some(v) => v,
-                    // TODO handle form_type
-                    None => {
-                        let value = prepare_form_type_statement(
-                            &filing.header.fec_version,
-                            &r,
-                            &r.row_type,
-                            tx,
-                        )
-                        .unwrap();
-
-                        // Insert and return a mutable reference to the value in one operation
-                        itemizations_statements
-                            .entry(ItemizationKey::FormType(r.row_type.clone()))
-                            .or_insert(value)
-                    }
-                }
-            }
+        let key = match form_type_schedule_type(&r.row_type) {
+            Some(schedule_type) => ItemizationKey::Schedule(schedule_type),
+            None => ItemizationKey::FormType(r.row_type.clone()),
         };
 
-        insert_filing_row(&filing.filing_id, &v.column_types, r, &mut v.statement).unwrap();
+        // We need to handle the or_insert_with error case, but HashMap::Entry doesn't
+        // support fallible closures directly. So we check if we need to insert first.
+        if !itemizations_statements.contains_key(&key) {
+            let value = match &key {
+                ItemizationKey::Schedule(schedule_type) => {
+                    prepare_schedule_statement(&r, schedule_type, tx).with_context(|| {
+                        format!(
+                            "Error preparing statement for schedule type {:?}",
+                            schedule_type
+                        )
+                    })?
+                }
+                ItemizationKey::FormType(form_type) => {
+                    prepare_form_type_statement(&r, form_type, tx).with_context(|| {
+                        format!("Error preparing statement for form type {}", form_type)
+                    })?
+                }
+            };
+            itemizations_statements.insert(key.clone(), value);
+        }
+
+        let v = itemizations_statements.get_mut(&key).unwrap(); // Safe: we just inserted it above
+        v.record_table
+            .insert(
+                &mut v.insert_statement,
+                &filing.filing_id,
+                &r.record,
+                &filing.header.fec_version,
+            )
+            .with_context(|| {
+                format!(
+                    "Error inserting itemization row for filing FEC-{}, line {}",
+                    &filing.filing_id,
+                    r.record.position().map(|p| p.line()).unwrap_or(0),
+                )
+            })?;
     }
-    Ok(())
+    Ok(count)
 }
 
 pub(crate) fn form_type_parse(form_type: &str) -> (&str, Option<&str>) {
@@ -373,10 +391,8 @@ pub(crate) fn form_type_parse(form_type: &str) -> (&str, Option<&str>) {
     }
 }
 
-fn insert_filing_metadata(
-    tx: &mut Transaction,
-    filing: &Filing<impl Read>,
-) -> rusqlite::Result<()> {
+// insert row into libfec_filings and the summary record table
+fn insert_filing_metadata(tx: &mut Transaction, filing: &Filing<impl Read>) -> anyhow::Result<()> {
     let (form_type, amendment_indicator) = form_type_parse(&filing.cover.form_type);
     tx.execute(
         INSERT_FILING_SQL,
@@ -400,20 +416,31 @@ fn insert_filing_metadata(
 
     let (form_type, _amendment_indicator) = form_type_parse(&filing.cover.form_type);
 
-    let rt = RecordTable::new(
-        &filing.header.fec_version,
+    let mut rt = RecordTable::new(
         &filing.cover.form_type,
         // strip any lagging "A", "N", or "T", or return form_type
         form_type,
-    );
+    )
+    .with_context(|| {
+        format!(
+            "Error creating record table for form type '{}' and filing FEC-{}",
+            &filing.cover.form_type, &filing.filing_id
+        )
+    })?;
     tx.execute(&rt.create_sql(), [])?;
-    let mut stmt = rt.insert_statement(tx);
-    let params = rt.prep_row(
+    let mut stmt = rt.insert_statement(tx)?;
+    rt.insert(
+        &mut stmt,
         &filing.filing_id,
         &filing.cover.record,
-        stmt.parameter_count(),
-    );
-    stmt.execute(params_from_iter(params))?;
+        &filing.header.fec_version,
+    )?;
+    Ok(())
+}
+
+fn init(tx: &mut Transaction) -> anyhow::Result<()> {
+    tx.execute(CREATE_FILINGS_SQL, [])
+        .context("Error initializing filing schema")?;
     Ok(())
 }
 
@@ -431,8 +458,8 @@ pub fn cmd_export_sqlite(
     let mut tx = db
         .transaction()
         .context("Error starting SQLite transaction")?;
-    tx.execute(CREATE_FILINGS_SQL, [])
-        .context("Error initializing filing schema")?;
+
+    init(&mut tx)?;
 
     let p = sourcer.cache.bulk_data_database_path();
     let (trace, iter) =
@@ -461,7 +488,7 @@ pub fn cmd_export_sqlite(
                     // TODO save warning somewhere
                     continue;
                 } else {
-                    mb.println(format!("Error fetching filing: {:?}", e));
+                    let _ = mb.println(format!("Error fetching filing: {:?}", e));
                     todo!();
                 }
             }
@@ -470,7 +497,7 @@ pub fn cmd_export_sqlite(
         match insert_filing_metadata(&mut tx, &filing) {
             Ok(_) => {}
             Err(e) => {
-                mb.println(format!(
+                let _ = mb.println(format!(
                     "Error inserting filing metadata for FEC-{}: {:?}",
                     filing.filing_id, e
                 ));
@@ -480,7 +507,9 @@ pub fn cmd_export_sqlite(
 
         if !args.cover_only {
             let pb = ItemizationProgressBar::new(&mb, &filing);
-            export_itemizations(&mut tx, filing, &pb).context("Error exporting itemizations")?;
+            let filing_id = filing.filing_id.clone();
+            export_itemizations(&mut tx, filing, Some(&pb))
+                .with_context(|| format!("Error exporting itemizations for FEC-{}", filing_id))?;
         }
     }
 
@@ -495,3 +524,6 @@ pub fn cmd_export_sqlite(
     );
     Ok(())
 }
+
+#[cfg(test)]
+mod test;
