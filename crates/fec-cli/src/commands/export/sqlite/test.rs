@@ -103,10 +103,15 @@ mod tests {
       insert_filing_metadata(&mut tx, &f1s_84).unwrap();
       export_itemizations(&mut tx, f1s_84, None)?;
       tx.commit()?;
-
+      
       insta::assert_snapshot!("F1S schema", query(&db, "select sql from sqlite_master where name = 'libfec_F1S'"),);
       insta::assert_snapshot!("F1S 8.4 data", query(&db, "select * from libfec_F1S"),);
-
+      
+      let mut tx = db.transaction()?;
+      insert_filing_metadata(&mut tx, &f1s_85).unwrap();
+      export_itemizations(&mut tx, f1s_85, None)?;
+      tx.commit()?;
+      insta::assert_snapshot!("F1S 8.5 data", query(&db, "select * from libfec_F1S where filing_id = '1923816'"),);
 
       Ok(())
     }

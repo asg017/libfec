@@ -337,7 +337,7 @@ impl<R: Read> Filing<R> {
         };
 
         let row_type = match record.get(0) {
-            Some(field) => field.to_owned().replace('/', ""), // idk man, 'SC/12',
+            Some(field) => field.to_owned(),
             None => {
                 return Some(Err(FilingRowReadError::EmptyRecord(
                     record.position().map(|p| p.line()).unwrap_or(0),

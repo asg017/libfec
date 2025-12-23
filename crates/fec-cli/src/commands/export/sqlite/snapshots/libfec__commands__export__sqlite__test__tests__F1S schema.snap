@@ -11,6 +11,7 @@ sql
   filer_committee_id_number text,
   joint_fund_participant_committee_name text,
   joint_fund_participant_committee_id_number text,
+  joint_fund_participant_committee_type text,
   affiliated_committee_id_number text,
   affiliated_committee_name text,
   affiliated_candidate_id_number text,
