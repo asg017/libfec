@@ -17,12 +17,7 @@ use rusqlite::{
     types::{ToSqlOutput, Value},
     Connection, Statement, ToSql, Transaction,
 };
-use std::{
-    collections::HashMap,
-    io::Read,
-    path::PathBuf,
-    time::Instant,
-};
+use std::{collections::HashMap, io::Read, path::PathBuf, time::Instant};
 
 const CREATE_FILINGS_SQL: &str = r#"
   CREATE TABLE IF NOT EXISTS libfec_filings(
@@ -109,7 +104,7 @@ struct ItemizationValue<'a> {
 
 fn insert_filing_row(
     filing_id: &str,
-    column_types: &Vec<FieldFormat>,
+    column_types: &[FieldFormat],
     row: FilingRow,
     statement: &mut Statement,
 ) -> anyhow::Result<Vec<Warning>> {
@@ -216,13 +211,18 @@ impl RecordTable {
         sql += "\n)";
         sql
     }
-    fn insert_statement<'a>(&self, tx: &'a Transaction) -> Statement<'a> {
+    fn insert_statement<'a>(&self, tx: &'a Transaction) -> anyhow::Result<Statement<'a>> {
         let sql = format!(
             "INSERT INTO libfec_{} VALUES ({})",
             self.suffix,
             vec!["?"; self.column_names.len() + 1].join(",")
         );
-        tx.prepare(&sql).unwrap()
+        tx.prepare(&sql).with_context(|| {
+            format!(
+                "Error preparing insert statement for record table libfec_{}",
+                self.suffix
+            )
+        })
     }
     fn prep_row(&self, filing_id: &str, record: &StringRecord, n_params: usize) -> Vec<FieldValue> {
         let mut warnings = Vec::new();
@@ -281,7 +281,7 @@ fn prepare_schedule_statement<'a>(
     );
     tx.execute(&rt.create_sql(), [])?;
     Ok(ItemizationValue {
-        statement: rt.insert_statement(tx),
+        statement: rt.insert_statement(tx)?,
         column_types: rt.column_types,
     })
 }
@@ -295,7 +295,7 @@ fn prepare_form_type_statement<'a>(
     let rt = RecordTable::new(fec_version, &row.row_type, form_type);
     tx.execute(&rt.create_sql(), [])?;
     Ok(ItemizationValue {
-        statement: rt.insert_statement(tx),
+        statement: rt.insert_statement(tx)?,
         column_types: rt.column_types,
     })
 }
@@ -303,62 +303,54 @@ fn prepare_form_type_statement<'a>(
 fn export_itemizations<R: Read>(
     tx: &mut Transaction,
     mut filing: Filing<R>,
-    pb: &ItemizationProgressBar,
-) -> Result<(), rusqlite::Error> {
+    pb: Option<&ItemizationProgressBar>,
+) -> anyhow::Result<usize> {
     let mut itemizations_statements: HashMap<ItemizationKey, ItemizationValue> = HashMap::new();
+    let mut count = 0;
 
     while let Some(r) = filing.next_row() {
-        let r = r.unwrap();
-        pb.update(&r);
+        let r = r.context("Error reading next row from filing")?;
+        if let Some(pb) = pb { pb.update(&r) }
+        /*if r.row_type == "F1S" || r.row_type.starts_with("SC2") {
+            // TODO fuck
+            continue;
+        }*/
+        count += 1;
 
-        let v = match form_type_schedule_type(&r.row_type) {
-            Some(schedule_type) => {
-                match itemizations_statements
-                    .get_mut(&ItemizationKey::Schedule(schedule_type.clone()))
-                {
-                    Some(v) => v,
-                    None => {
-                        let value = prepare_schedule_statement(
-                            &filing.header.fec_version,
-                            &r,
-                            &schedule_type,
-                            tx,
-                        )
-                        .unwrap();
-
-                        // Insert and return a mutable reference to the value in one operation
-                        itemizations_statements
-                            .entry(ItemizationKey::Schedule(schedule_type.clone()))
-                            .or_insert(value)
-                    }
-                }
-            }
-            None => {
-                match itemizations_statements.get_mut(&ItemizationKey::FormType(r.row_type.clone()))
-                {
-                    Some(v) => v,
-                    // TODO handle form_type
-                    None => {
-                        let value = prepare_form_type_statement(
-                            &filing.header.fec_version,
-                            &r,
-                            &r.row_type,
-                            tx,
-                        )
-                        .unwrap();
-
-                        // Insert and return a mutable reference to the value in one operation
-                        itemizations_statements
-                            .entry(ItemizationKey::FormType(r.row_type.clone()))
-                            .or_insert(value)
-                    }
-                }
-            }
+        let key = match form_type_schedule_type(&r.row_type) {
+            Some(schedule_type) => ItemizationKey::Schedule(schedule_type),
+            None => ItemizationKey::FormType(r.row_type.clone()),
         };
 
-        insert_filing_row(&filing.filing_id, &v.column_types, r, &mut v.statement).unwrap();
+        // We need to handle the or_insert_with error case, but HashMap::Entry doesn't
+        // support fallible closures directly. So we check if we need to insert first.
+        if !itemizations_statements.contains_key(&key) {
+            let value = match &key {
+                ItemizationKey::Schedule(schedule_type) => {
+                    prepare_schedule_statement(&filing.header.fec_version, &r, schedule_type, tx)
+                        .with_context(|| {
+                            format!(
+                                "Error preparing statement for schedule type {:?}",
+                                schedule_type
+                            )
+                        })?
+                }
+                ItemizationKey::FormType(form_type) => {
+                    prepare_form_type_statement(&filing.header.fec_version, &r, form_type, tx)
+                        .with_context(|| {
+                            format!("Error preparing statement for form type {}", form_type)
+                        })?
+                }
+            };
+            itemizations_statements.insert(key.clone(), value);
+        }
+
+        let v = itemizations_statements.get_mut(&key).unwrap(); // Safe: we just inserted it above
+
+        insert_filing_row(&filing.filing_id, &v.column_types, r, &mut v.statement)
+            .with_context(|| format!("Error inserting row for filing {}", filing.filing_id))?;
     }
-    Ok(())
+    Ok(count)
 }
 
 pub(crate) fn form_type_parse(form_type: &str) -> (&str, Option<&str>) {
@@ -373,10 +365,8 @@ pub(crate) fn form_type_parse(form_type: &str) -> (&str, Option<&str>) {
     }
 }
 
-fn insert_filing_metadata(
-    tx: &mut Transaction,
-    filing: &Filing<impl Read>,
-) -> rusqlite::Result<()> {
+// insert row into libfec_filings and the summary record table
+fn insert_filing_metadata(tx: &mut Transaction, filing: &Filing<impl Read>) -> anyhow::Result<()> {
     let (form_type, amendment_indicator) = form_type_parse(&filing.cover.form_type);
     tx.execute(
         INSERT_FILING_SQL,
@@ -407,13 +397,19 @@ fn insert_filing_metadata(
         form_type,
     );
     tx.execute(&rt.create_sql(), [])?;
-    let mut stmt = rt.insert_statement(tx);
+    let mut stmt = rt.insert_statement(tx)?;
     let params = rt.prep_row(
         &filing.filing_id,
         &filing.cover.record,
         stmt.parameter_count(),
     );
     stmt.execute(params_from_iter(params))?;
+    Ok(())
+}
+
+fn init(tx: &mut Transaction) -> anyhow::Result<()> {
+    tx.execute(CREATE_FILINGS_SQL, [])
+        .context("Error initializing filing schema")?;
     Ok(())
 }
 
@@ -431,8 +427,8 @@ pub fn cmd_export_sqlite(
     let mut tx = db
         .transaction()
         .context("Error starting SQLite transaction")?;
-    tx.execute(CREATE_FILINGS_SQL, [])
-        .context("Error initializing filing schema")?;
+    
+    init(&mut tx)?;
 
     let p = sourcer.cache.bulk_data_database_path();
     let (trace, iter) =
@@ -461,7 +457,7 @@ pub fn cmd_export_sqlite(
                     // TODO save warning somewhere
                     continue;
                 } else {
-                    mb.println(format!("Error fetching filing: {:?}", e));
+                    let _ = mb.println(format!("Error fetching filing: {:?}", e));
                     todo!();
                 }
             }
@@ -470,7 +466,7 @@ pub fn cmd_export_sqlite(
         match insert_filing_metadata(&mut tx, &filing) {
             Ok(_) => {}
             Err(e) => {
-                mb.println(format!(
+                let _ = mb.println(format!(
                     "Error inserting filing metadata for FEC-{}: {:?}",
                     filing.filing_id, e
                 ));
@@ -480,7 +476,7 @@ pub fn cmd_export_sqlite(
 
         if !args.cover_only {
             let pb = ItemizationProgressBar::new(&mb, &filing);
-            export_itemizations(&mut tx, filing, &pb).context("Error exporting itemizations")?;
+            export_itemizations(&mut tx, filing, Some(&pb)).context("Error exporting itemizations")?;
         }
     }
 
@@ -495,3 +491,6 @@ pub fn cmd_export_sqlite(
     );
     Ok(())
 }
+
+#[cfg(test)]
+mod test;

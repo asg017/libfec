@@ -1,0 +1,8 @@
+---
+source: crates/fec-cli/src/commands/export/sqlite/test.rs
+expression: "query(&db, \"select count(*) from libfec_f99\")"
+snapshot_kind: text
+---
+count(*)
+==== Row 0 ====
+[count(*)]:1

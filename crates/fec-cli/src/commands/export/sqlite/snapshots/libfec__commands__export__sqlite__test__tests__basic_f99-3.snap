@@ -1,0 +1,21 @@
+---
+source: crates/fec-cli/src/commands/export/sqlite/test.rs
+expression: "query(&db, \"select * from libfec_filings\")"
+snapshot_kind: text
+---
+filing_id | fec_version | software_name | software_version | report_id | report_number | comment | cover_record_form | cover_record_form_amendment_indicator | filer_id | filer_name | report_code | coverage_from_date | coverage_through_date
+==== Row 0 ====
+[filing_id]:1913493
+[fec_version]:8.4
+[software_name]:FEC WebForms
+[software_version]:8.4.0.0
+[report_id]:NULL
+[report_number]:NULL
+[comment]:NULL
+[cover_record_form]:F99
+[cover_record_form_amendment_indicator]:NULL
+[filer_id]:C00917203
+[filer_name]:RIGHTS OF AMERICANS ASSOCIATION
+[report_code]:NULL
+[coverage_from_date]:NULL
+[coverage_through_date]:NULL

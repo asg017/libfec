@@ -1,0 +1,26 @@
+---
+source: crates/fec-cli/src/commands/export/sqlite/test.rs
+expression: "query(&db, \"select * from libfec_f99\")"
+snapshot_kind: text
+---
+filing_id | form_type | filer_committee_id_number | committee_name | street_1 | street_2 | city | state | zip_code | treasurer_last_name | treasurer_first_name | treasurer_middle_name | treasurer_prefix | treasurer_suffix | date_signed | text_code | filing_frequency | pdf_attachment | text
+==== Row 0 ====
+[filing_id]:1913493
+[form_type]:F99
+[filer_committee_id_number]:C00917203
+[committee_name]:RIGHTS OF AMERICANS ASSOCIATION
+[street_1]:2444 W. TOUHY AVENUE
+[street_2]:
+[city]:CHICAGO
+[state]:IL
+[zip_code]:60645
+[treasurer_last_name]:Hill
+[treasurer_first_name]:Tamika
+[treasurer_middle_name]:La'Shon
+[treasurer_prefix]:Mrs.
+[treasurer_suffix]:
+[date_signed]:2025-09-01
+[text_code]:
+[filing_frequency]:
+[pdf_attachment]:
+[text]:

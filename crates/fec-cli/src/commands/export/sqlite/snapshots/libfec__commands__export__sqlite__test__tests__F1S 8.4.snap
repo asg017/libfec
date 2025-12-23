@@ -1,0 +1,47 @@
+---
+source: crates/fec-cli/src/commands/export/sqlite/test.rs
+expression: "query(&db, \"select sql from sqlite_master where name = 'libfec_F1S'\")"
+snapshot_kind: text
+---
+sql
+==== Row 0 ====
+[sql]:CREATE TABLE [libfec_F1S](
+  filing_id text references libfec_filings(filing_id),
+  form_type text,
+  filer_committee_id_number text,
+  joint_fund_participant_committee_name text,
+  joint_fund_participant_committee_id_number text,
+  joint_fund_participant_committee_type text,
+  affiliated_committee_id_number text,
+  affiliated_committee_name text,
+  affiliated_candidate_id_number text,
+  affiliated_last_name text,
+  affiliated_first_name text,
+  affiliated_middle_name text,
+  affiliated_prefix text,
+  affiliated_suffix text,
+  affiliated_street_1 text,
+  affiliated_street_2 text,
+  affiliated_city text,
+  affiliated_state text,
+  affiliated_zip_code text,
+  affiliated_relationship_code text,
+  agent_last_name text,
+  agent_first_name text,
+  agent_middle_name text,
+  agent_prefix text,
+  agent_suffix text,
+  agent_street_1 text,
+  agent_street_2 text,
+  agent_city text,
+  agent_state text,
+  agent_zip_code text,
+  agent_title text,
+  agent_telephone text,
+  bank_name text,
+  bank_street_1 text,
+  bank_street_2 text,
+  bank_city text,
+  bank_state text,
+  bank_zip_code text
+)

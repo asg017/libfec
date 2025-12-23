@@ -1,0 +1,120 @@
+---
+source: crates/fec-cli/src/commands/export/sqlite/test.rs
+expression: "query(&db, \"select * from libfec_F1S\")"
+snapshot_kind: text
+---
+filing_id | form_type | filer_committee_id_number | joint_fund_participant_committee_name | joint_fund_participant_committee_id_number | affiliated_committee_id_number | affiliated_committee_name | affiliated_candidate_id_number | affiliated_last_name | affiliated_first_name | affiliated_middle_name | affiliated_prefix | affiliated_suffix | affiliated_street_1 | affiliated_street_2 | affiliated_city | affiliated_state | affiliated_zip_code | affiliated_relationship_code | agent_last_name | agent_first_name | agent_middle_name | agent_prefix | agent_suffix | agent_street_1 | agent_street_2 | agent_city | agent_state | agent_zip_code | agent_title | agent_telephone | bank_name | bank_street_1 | bank_street_2 | bank_city | bank_state | bank_zip_code
+==== Row 0 ====
+[filing_id]:1913562
+[form_type]:F1S
+[filer_committee_id_number]:C00677898
+[joint_fund_participant_committee_name]:
+[joint_fund_participant_committee_id_number]:
+[affiliated_committee_id_number]:C00873331
+[affiliated_committee_name]:HAYES VICTORY FUND
+[affiliated_candidate_id_number]:
+[affiliated_last_name]:
+[affiliated_first_name]:
+[affiliated_middle_name]:
+[affiliated_prefix]:
+[affiliated_suffix]:
+[affiliated_street_1]:PO BOX 65322
+[affiliated_street_2]:
+[affiliated_city]:Washington
+[affiliated_state]:DC
+[affiliated_zip_code]:20035
+[affiliated_relationship_code]:JFR
+[agent_last_name]:
+[agent_first_name]:
+[agent_middle_name]:
+[agent_prefix]:
+[agent_suffix]:
+[agent_street_1]:
+[agent_street_2]:
+[agent_city]:
+[agent_state]:
+[agent_zip_code]:
+[agent_title]:
+[agent_telephone]:
+[bank_name]:
+[bank_street_1]:
+[bank_street_2]:
+[bank_city]:
+[bank_state]:
+[bank_zip_code]:
+==== Row 1 ====
+[filing_id]:1913562
+[form_type]:F1S
+[filer_committee_id_number]:C00677898
+[joint_fund_participant_committee_name]:
+[joint_fund_participant_committee_id_number]:
+[affiliated_committee_id_number]:C00902270
+[affiliated_committee_name]:FRONTLINE PROTECTION FUND
+[affiliated_candidate_id_number]:
+[affiliated_last_name]:
+[affiliated_first_name]:
+[affiliated_middle_name]:
+[affiliated_prefix]:
+[affiliated_suffix]:
+[affiliated_street_1]:PO Box 65322
+[affiliated_street_2]:
+[affiliated_city]:Washington
+[affiliated_state]:DC
+[affiliated_zip_code]:20035
+[affiliated_relationship_code]:JFR
+[agent_last_name]:
+[agent_first_name]:
+[agent_middle_name]:
+[agent_prefix]:
+[agent_suffix]:
+[agent_street_1]:
+[agent_street_2]:
+[agent_city]:
+[agent_state]:
+[agent_zip_code]:
+[agent_title]:
+[agent_telephone]:
+[bank_name]:
+[bank_street_1]:
+[bank_street_2]:
+[bank_city]:
+[bank_state]:
+[bank_zip_code]:
+==== Row 2 ====
+[filing_id]:1913562
+[form_type]:F1S
+[filer_committee_id_number]:C00677898
+[joint_fund_participant_committee_name]:
+[joint_fund_participant_committee_id_number]:
+[affiliated_committee_id_number]:C00916429
+[affiliated_committee_name]:JEFFRIES BATTLEGROUND PROTECTION FUND
+[affiliated_candidate_id_number]:
+[affiliated_last_name]:
+[affiliated_first_name]:
+[affiliated_middle_name]:
+[affiliated_prefix]:
+[affiliated_suffix]:
+[affiliated_street_1]:430 SOUTH CAPITOL STREET SE
+[affiliated_street_2]:2ND FL
+[affiliated_city]:Washington
+[affiliated_state]:DC
+[affiliated_zip_code]:20003
+[affiliated_relationship_code]:JFR
+[agent_last_name]:
+[agent_first_name]:
+[agent_middle_name]:
+[agent_prefix]:
+[agent_suffix]:
+[agent_street_1]:
+[agent_street_2]:
+[agent_city]:
+[agent_state]:
+[agent_zip_code]:
+[agent_title]:
+[agent_telephone]:
+[bank_name]:
+[bank_street_1]:
+[bank_street_2]:
+[bank_city]:
+[bank_state]:
+[bank_zip_code]:
