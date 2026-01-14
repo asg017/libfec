@@ -6,7 +6,7 @@ use crate::{
 };
 use anyhow::Context;
 use clap::Parser;
-use fec_api::{Api, ApiResponse, EfilingFilingUrl, FilingArgsBuilder, FilingItem, FilingsUrl, Office};
+use fec_api::{Api, ApiCache, ApiResponse, FilingArgsBuilder, FilingItem, Office};
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use jiff::civil::Date;
 use url::Url;
@@ -85,10 +85,13 @@ pub struct FilingsApiFlags {
         hide_env = true
     )]
     pub api_key: Option<String>,
+
+    #[arg(long, help = "Include amendments in results", default_value_t = false)]
+    pub include_amendments: bool,
 }
 
-fn filing_items(url: &Url) -> anyhow::Result<(Vec<FilingItem>, ApiResponse)> {
-    let response = fec_api::api_request(url)?;
+fn filing_items(url: &Url, cache: Option<&mut dyn ApiCache>) -> anyhow::Result<(Vec<FilingItem>, ApiResponse)> {
+    let response = fec_api::api_request_cached(url, cache)?;
     let results = response
         .result_items
         .iter()
@@ -153,8 +156,9 @@ impl FilingsApiFlags {
         spinner
             .as_ref()
             .map(|sp| sp.set_message(format!("Found {} candidate committees…", committees.len())));
-        dbg!(&committees);
         let mut results = vec![];
+        let mut cache_hits = 0usize;
+        let mut cache_misses = 0usize;
         for (idx, chunk) in committees.chunks(50).enumerate() {
             let filing_args = FilingArgsBuilder::default()
                 .committees(chunk)
@@ -163,22 +167,29 @@ impl FilingsApiFlags {
                 .report_types(self.report_type.clone())
                 .committee_types(self.committee_type.clone())
                 .cycle(vec![election])
+                .include_amendments(self.include_amendments)
                 .build()
                 .with_context(|| {
                     format!("could not build filing args for election {}", election)
                 })?;
             let mut current = client.filings_url(filing_args);
             loop {
-                let (items, response) = filing_items(&current.0)?;
+                let (items, response) = filing_items(&current.0, sourcer.cache.api_cache_mut().map(|c| c as &mut dyn ApiCache))?;
                 results.extend(items);
+                if response.cache_hit {
+                    cache_hits += 1;
+                } else {
+                    cache_misses += 1;
+                }
                 spinner.as_ref().map(|sp| {
                     sp.set_message(format!(
-                        "chunk={} {} {}/{} pages — {} API requests made, {} remaining",
+                        "chunk={} {} {}/{} pages — {} cache hits, {} API requests, {} remaining",
                         idx,
                         committees.len(),
                         response.pagination.page,
                         response.pagination.pages,
-                        1,
+                        cache_hits,
+                        cache_misses,
                         response.rate_limit.remaining
                     ))
                 });
@@ -197,7 +208,13 @@ impl FilingsApiFlags {
           };
           let mut current = client.efiling_filings_url(efiling_filing_args);
           loop {
-              let (items, response) = filing_items(&current.0)?;
+              // Note: efile/filings has max-age=0 so caching won't help, but we pass the cache anyway
+              let (items, response) = filing_items(&current.0, sourcer.cache.api_cache_mut().map(|c| c as &mut dyn ApiCache))?;
+              if response.cache_hit {
+                  cache_hits += 1;
+              } else {
+                  cache_misses += 1;
+              }
               for item in items {
                   if !results.iter().any(|existing| existing.filing_id == item.filing_id) {
                       results.push(item);
@@ -217,6 +234,7 @@ impl FilingsApiFlags {
     fn resolve_normal(
         &self,
         client: &Api,
+        sourcer: &mut FilingSourcer,
         spinner: &Option<ProgressBar>,
     ) -> anyhow::Result<Vec<FilingItem>> {
         let args = FilingArgsBuilder::default()
@@ -226,24 +244,30 @@ impl FilingsApiFlags {
             .report_types(self.report_type.clone())
             .committee_types(self.committee_type.clone())
             .cycle(self.cycle.clone().unwrap_or_default())
+            .include_amendments(self.include_amendments)
             .build()
             .with_context(|| format!("could not build filing args"))?;
         let filing_url = client.filings_url(args);
-        dbg!(&filing_url.0);
 
         let mut results = vec![];
-        let mut n = 0;
+        let mut cache_hits = 0usize;
+        let mut cache_misses = 0usize;
         let mut current = filing_url;
         loop {
-            let (items, response) = filing_items(&current.0)?;
+            let (items, response) = filing_items(&current.0, sourcer.cache.api_cache_mut().map(|c| c as &mut dyn ApiCache))?;
             results.extend(items);
-            n += 1;
+            if response.cache_hit {
+                cache_hits += 1;
+            } else {
+                cache_misses += 1;
+            }
             spinner.as_ref().map(|sp| {
                 sp.set_message(format!(
-                    "{}/{} pages — {} API requests made, {} remaining",
+                    "{}/{} pages — {} cache hits, {} API requests, {} remaining",
                     response.pagination.page,
                     response.pagination.pages,
-                    n,
+                    cache_hits,
+                    cache_misses,
                     response.rate_limit.remaining
                 ))
             });
@@ -263,7 +287,13 @@ impl FilingsApiFlags {
           };
           let mut current = client.efiling_filings_url(efiling_filing_args);
           loop {
-              let (items, response) = filing_items(&current.0)?;
+              // Note: efile/filings has max-age=0 so caching won't help, but we pass the cache anyway
+              let (items, response) = filing_items(&current.0, sourcer.cache.api_cache_mut().map(|c| c as &mut dyn ApiCache))?;
+              if response.cache_hit {
+                  cache_hits += 1;
+              } else {
+                  cache_misses += 1;
+              }
               for item in items {
                   if !results.iter().any(|existing| existing.filing_id == item.filing_id) {
                       results.push(item);
@@ -370,10 +400,10 @@ impl FilingsApiFlags {
                 self.resolve_election(&client, sourcer, &spinner, *election, trace)?
             } else {
                 self.cycle = self.election.clone().map(|v| vec![v]);
-                self.resolve_normal(&client, &spinner)?
+                self.resolve_normal(&client, sourcer, &spinner)?
             }
         } else {
-            self.resolve_normal(&client, &spinner)?
+            self.resolve_normal(&client, sourcer, &spinner)?
         };
 
         // post-filter coverage dates, if provided

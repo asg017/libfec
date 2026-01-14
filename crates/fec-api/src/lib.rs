@@ -6,6 +6,25 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use url::Url;
 
+/// A cached API response entry.
+#[derive(Debug, Clone)]
+pub struct ApiCacheEntry {
+    /// The cached JSON response body.
+    pub body: serde_json::Value,
+    /// The max-age value from Cache-Control header (in seconds).
+    pub max_age_secs: u64,
+}
+
+/// Trait for caching API responses. Implement this to provide custom caching behavior.
+pub trait ApiCache {
+    /// Get a cached response for the given URL, if it exists and is still valid.
+    /// Returns None if not cached or expired.
+    fn get(&self, url: &Url) -> Option<ApiCacheEntry>;
+
+    /// Store a response in the cache.
+    fn set(&mut self, url: &Url, entry: &ApiCacheEntry) -> Result<()>;
+}
+
 pub struct Api {
     api_key: String,
     base_url: Url,
@@ -31,6 +50,9 @@ pub struct FilingArgs {
     pub report_types: Option<Vec<String>>,
     pub committee_types: Option<Vec<String>>,
     pub cycle: Vec<u16>,
+
+    #[builder(default = "false")]
+    pub include_amendments: bool,
     // TODO:
     // candidates: Vec<String>,
 
@@ -208,8 +230,11 @@ impl Api {
         qp.append_pair("api_key", &self.api_key);
 
         qp.append_pair("per_page", "100");
-        // TODO: parameter
-        qp.append_pair("most_recent", "true");
+        
+        if !args.include_amendments {
+        qp.append_pair("most_recent", "true");    
+        } 
+
         qp.append_pair("filer_type", "e-file");
 
         for committee in &args.committees {
@@ -236,6 +261,7 @@ impl Api {
         for year in &args.cycle {
             qp.append_pair("cycle", &year.to_string());
         }
+        qp.append_pair("sort", "committee_id");
         drop(qp);
         FilingsUrl(url)
     }
@@ -272,6 +298,8 @@ pub struct ApiResponse {
     pub rate_limit: FecApiRateLimit,
     pub pagination: FecApiPaginationObject,
     pub next_url: Option<Url>,
+    /// Whether this response was served from cache.
+    pub cache_hit: bool,
 }
 
 static USER_AGENT: &str = concat!("libfec/", env!("CARGO_PKG_VERSION"));
@@ -344,6 +372,169 @@ pub fn api_request(url: &Url) -> anyhow::Result<ApiResponse> {
         result_items,
         pagination,
         next_url,
+        cache_hit: false,
+    })
+}
+
+/// Parse the max-age value from a Cache-Control header.
+/// Returns None if the header is missing or doesn't contain max-age.
+fn parse_cache_control_max_age(header_value: &str) -> Option<u64> {
+    for directive in header_value.split(',') {
+        let directive = directive.trim();
+        if let Some(value) = directive.strip_prefix("max-age=") {
+            if let Ok(secs) = value.trim().parse::<u64>() {
+                return Some(secs);
+            }
+        }
+    }
+    None
+}
+
+/// Make an API request with optional caching support.
+/// 
+/// If a cache is provided, it will:
+/// 1. Check for a valid cached response first
+/// 2. On cache hit, return the cached response (with placeholder rate limits)
+/// 3. On cache miss, make the request and store the response if max-age > 0
+pub fn api_request_cached(url: &Url, cache: Option<&mut dyn ApiCache>) -> anyhow::Result<ApiResponse> {
+    // Check cache first
+    if let Some(ref cache) = cache {
+        if let Some(entry) = cache.get(url) {
+            // Cache hit - reconstruct ApiResponse from cached body
+            let pagination: FecApiPaginationObject = serde_json::from_value(
+                entry.body.get("pagination")
+                    .ok_or_else(|| anyhow::anyhow!("missing pagination field in cached response"))?
+                    .clone(),
+            )?;
+
+            let result_items = entry.body["results"]
+                .as_array()
+                .ok_or_else(|| anyhow::anyhow!("missing results array in cached response"))?.to_vec();
+
+            let next_url = if pagination.page >= pagination.pages {
+                None
+            } else {
+                let mut next_url = url.clone();
+                next_url.query_pairs_mut().clear();
+                for (key, value) in url.query_pairs() {
+                    if key != "page" {
+                        next_url.query_pairs_mut().append_pair(&key, &value);
+                    }
+                }
+                next_url
+                    .query_pairs_mut()
+                    .append_pair("page", &(pagination.page + 1).to_string());
+                Some(next_url)
+            };
+
+            return Ok(ApiResponse {
+                json: entry.body,
+                // Placeholder values for cached responses - we don't have the real limits
+                rate_limit: FecApiRateLimit {
+                    limit: 0,
+                    remaining: 0,
+                },
+                result_items,
+                pagination,
+                next_url,
+                cache_hit: true,
+            });
+        }
+    }
+
+    // Cache miss - make the actual request
+    let mut response = match ureq::get(url.as_str())
+        .header("accept", "application/json")
+        .header("User-Agent", USER_AGENT)
+        .call()
+    {
+        Ok(resp) => resp,
+        Err(error) => match error {
+            ureq::Error::StatusCode(429) => {
+                return Err(anyhow::anyhow!(
+                    "FEC API limit reached for {}",
+                    redact_api_key(url)
+                ));
+            }
+            _ => {
+                return Err(anyhow::anyhow!(
+                    "FEC API request to {} failed: {}",
+                    redact_api_key(url),
+                    error
+                ));
+            }
+        },
+    };
+
+    let headers = response.headers();
+
+    let rate_limit = FecApiRateLimit {
+        limit: headers
+            .get("X-RateLimit-Limit")
+            .ok_or_else(|| anyhow::anyhow!("missing X-RateLimit-Limit header"))?
+            .to_str()?
+            .parse::<usize>()?,
+        remaining: headers
+            .get("X-RateLimit-Remaining")
+            .ok_or_else(|| anyhow::anyhow!("missing X-RateLimit-Remaining header"))?
+            .to_str()?
+            .parse::<usize>()?,
+    };
+
+    // Parse Cache-Control header for max-age
+    let max_age_secs = headers
+        .get("Cache-Control")
+        .and_then(|v| v.to_str().ok())
+        .and_then(parse_cache_control_max_age)
+        .unwrap_or(0);
+
+    let body: serde_json::Value = response.body_mut().read_json()?;
+
+    // Store in cache if max-age > 0
+    if let Some(cache) = cache {
+        if max_age_secs > 0 {
+            let entry = ApiCacheEntry {
+                body: body.clone(),
+                max_age_secs,
+            };
+            // Ignore cache write errors - caching is best-effort
+            let _ = cache.set(url, &entry);
+        }
+    }
+
+    let pagination: FecApiPaginationObject = serde_json::from_value(
+        body.get("pagination")
+            .ok_or_else(|| anyhow::anyhow!("missing pagination field"))?
+            .clone(),
+    )?;
+
+    let result_items = body["results"]
+        .as_array()
+        .ok_or_else(|| anyhow::anyhow!("missing results array"))?.to_vec();
+
+    let next_url = if pagination.page >= pagination.pages {
+        None
+    } else {
+        let mut next_url = url.clone();
+        next_url.query_pairs_mut().clear();
+        for (key, value) in url.query_pairs() {
+            if key != "page" {
+                next_url.query_pairs_mut().append_pair(&key, &value);
+            }
+        }
+        next_url
+            .query_pairs_mut()
+            .append_pair("page", &(pagination.page + 1).to_string());
+        Some(next_url)
+    };
+
+    Ok(ApiResponse {
+        json: body,
+        rate_limit,
+        result_items,
+        pagination,
+        next_url,
+        cache_hit: false,
     })
 }
 

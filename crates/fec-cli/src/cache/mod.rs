@@ -1,3 +1,4 @@
+pub mod api_cache;
 pub mod bulk_candidate_committee_linkage;
 pub mod bulk_candidates;
 pub mod bulk_committee;
@@ -9,6 +10,7 @@ use crate::{
     sourcer::FecFilingId,
 };
 use anyhow::{Context, Result};
+use api_cache::SqliteApiCache;
 use etcetera::BaseStrategy;
 use indicatif::{MultiProgress, ProgressBar};
 use jiff::civil::Date;
@@ -53,6 +55,7 @@ pub(crate) struct CacheBulkDailyZipResultItem {
 pub(crate) struct Cache {
     pub cache_directory: PathBuf,
     number_concurrent: usize,
+    api_cache: Option<SqliteApiCache>,
 }
 
 pub struct CachedFiling {
@@ -74,10 +77,19 @@ impl Cache {
             .join("cache");
 
         std::fs::create_dir_all(&cache_directory).expect("Could not create cache directory");
+
+        let api_cache = SqliteApiCache::new(&cache_directory).ok();
+
         Cache {
             cache_directory,
             number_concurrent: 8,
+            api_cache,
         }
+    }
+
+    /// Get a mutable reference to the API cache, if available.
+    pub fn api_cache_mut(&mut self) -> Option<&mut SqliteApiCache> {
+        self.api_cache.as_mut()
     }
 
     pub(crate) fn open_bulk_data_database(&mut self) -> Result<Connection> {
