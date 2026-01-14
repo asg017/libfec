@@ -28,6 +28,7 @@ pub struct FilingArgs {
     pub committees: Vec<String>,
     pub candidates: Vec<String>,
     pub form_types: Option<Vec<String>>,
+    pub report_types: Option<Vec<String>>,
     pub committee_types: Option<Vec<String>>,
     pub cycle: Vec<u16>,
     // TODO:
@@ -220,6 +221,11 @@ impl Api {
         if let Some(form_types) = &args.form_types {
             for form_type in form_types {
                 qp.append_pair("form_type", &form_type);
+            }
+        }
+        if let Some(report_types) = &args.report_types {
+            for report_type in report_types {
+                qp.append_pair("report_type", &report_type);
             }
         }
         if let Some(committee_types) = &args.committee_types {

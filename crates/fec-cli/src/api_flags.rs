@@ -37,6 +37,9 @@ pub struct FilingsApiFlags {
     )]
     pub form_type: Option<Vec<String>>,
 
+    #[arg(long, help = "Report type to filter filings by (e.g 'M1', 'Q1', etc)")]
+    pub report_type: Option<Vec<String>>,
+
     #[arg(long, help = "one-letter type code of the organization")]
     pub committee_type: Option<Vec<String>>,
 
@@ -107,6 +110,7 @@ impl FilingsApiFlags {
         self.candidate.is_some()
             || self.committee.is_some()
             || self.form_type.is_some()
+            || self.report_type.is_some()
             || self.election.is_some()
             || self.bulk_daily_between.is_some()
     }
@@ -156,6 +160,7 @@ impl FilingsApiFlags {
                 .committees(chunk)
                 .candidates(vec![])
                 .form_types(self.form_type.clone())
+                .report_types(self.report_type.clone())
                 .committee_types(self.committee_type.clone())
                 .cycle(vec![election])
                 .build()
@@ -218,11 +223,13 @@ impl FilingsApiFlags {
             .committees(self.committee.clone().unwrap_or_default())
             .candidates(self.candidate.clone().unwrap_or_default())
             .form_types(self.form_type.clone())
+            .report_types(self.report_type.clone())
             .committee_types(self.committee_type.clone())
             .cycle(self.cycle.clone().unwrap_or_default())
             .build()
             .with_context(|| format!("could not build filing args"))?;
         let filing_url = client.filings_url(args);
+        dbg!(&filing_url.0);
 
         let mut results = vec![];
         let mut n = 0;
