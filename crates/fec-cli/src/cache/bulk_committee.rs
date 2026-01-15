@@ -1,15 +1,14 @@
 /**
  * > "The committee master file contains one record for each committee registered with the Federal Election Commission. This includes federal political action committees and party committees, campaign committees for presidential, house and senate candidates, as well as groups or organizations who are spending money for or against candidates for federal office."
+ * 
  * https://www.fec.gov/campaign-finance-data/committee-master-file-description/
  *
  * Sample: https://www.fec.gov/files/bulk-downloads/2026/cm26.zip
  *
  */
 use crate::cache::bulk_utils::{sync_item, BulkDataItem};
-use anyhow::{Context, Result};
-use derive_builder::Builder;
-use fec_api::Office;
-use rusqlite::{Connection, Transaction};
+use anyhow::Result;
+use rusqlite::Transaction;
 use std::sync::LazyLock;
 
 static ITEM: LazyLock<BulkDataItem> = LazyLock::new(|| BulkDataItem {

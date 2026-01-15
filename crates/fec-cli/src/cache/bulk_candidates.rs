@@ -2,12 +2,13 @@
  * > "The all candidate summary file contains one record including summary financial
  * > information for all candidates who raised or spent money during the period
  * > no matter when they are up for election."
+ * 
  * https://www.fec.gov/campaign-finance-data/candidate-master-file-description/
  *
  * Sample: https://www.fec.gov/files/bulk-downloads/2026/weball26.zip
  *
  */
-use crate::cache::bulk_utils::{BulkDataItem, SyncResult, sync_item};
+use crate::cache::bulk_utils::{BulkDataItem, sync_item};
 use anyhow::{Context, Result};
 use derive_builder::Builder;
 use fec_api::Office;
@@ -141,11 +142,12 @@ pub fn resolve_candidate_principal_campaign_committees(
     let mut tx = bulk_db
         .transaction()
         .context("Could not start a transaction on the .bulk-data.db database")?;
-    sync_item(&mut tx, params.cycle, &*ITEM)?;
+    sync_item(&mut tx, params.cycle, &ITEM)?;
     tx.commit()?;
     query_candidate_principal_campaign_committees(&bulk_db, params)
 }
 
+#[allow(dead_code)]
 pub fn search_candidates(
     bulk_db: &mut Connection,
     cycle: u16,
@@ -155,7 +157,7 @@ pub fn search_candidates(
     let mut tx = bulk_db
         .transaction()
         .context("Could not start a transaction on the .bulk-data.db database")?;
-    sync_item(&mut tx, cycle, &*ITEM)?;
+    sync_item(&mut tx, cycle, &ITEM)?;
     tx.commit()?;
 
     let sql = r#"

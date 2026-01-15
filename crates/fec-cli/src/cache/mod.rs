@@ -198,7 +198,7 @@ impl Cache {
             std::io::copy(&mut r, &mut buffer)
                 .with_context(|| format!("Failed to read response body for {}", zip_url))?;
         }
-        pb.map(|pb| pb.finish_and_clear());
+        if let Some(pb) = pb { pb.finish_and_clear() }
 
         let reader = Cursor::new(buffer);
         let mut archive = zip::ZipArchive::new(reader)?;
@@ -325,9 +325,7 @@ impl Cache {
                         tx.send(Ok(result)).unwrap();
                     }
                     Err(e) => {
-                        pb.map(|pb| {
-                            pb.println(format!("Error processing item: {}", e));
-                        });
+                        if let Some(pb) = pb { pb.println(format!("Error processing item: {}", e)); }
                         tx.send(Err(anyhow::anyhow!("fuck"))).unwrap();
                     }
                 }
@@ -339,9 +337,8 @@ impl Cache {
             let result = rx.recv().unwrap();
             match result {
                 Err(e) => {
-                    spinner
-                        .as_ref()
-                        .map(|spinner| spinner.println(format!("Error processing item: {}", e)));
+                    if let Some(spinner) = spinner
+                        .as_ref() { spinner.println(format!("Error processing item: {}", e)) }
                 }
                 Ok(result) => {
                     paths.push(result.output_path.clone());
@@ -350,9 +347,8 @@ impl Cache {
                 }
             }
             active -= 1;
-            spinner
-                .as_ref()
-                .map(|spinner| spinner.set_message(format!("{} filings left…", queue.len())));
+            if let Some(spinner) = spinner
+                .as_ref() { spinner.set_message(format!("{} filings left…", queue.len())) }
             let pb = mb.map(|mb| {
                 let pb = mb.add(ProgressBar::new(0));
                 pb.set_style(BAR_FILE_STYLE.clone());
@@ -366,7 +362,7 @@ impl Cache {
                         tx.send(Ok(result)).unwrap();
                     }
                     Err(e) => {
-                        pb.map(|pb| pb.println(format!("Error processing {:?}: {}", filing_id, e)));
+                        if let Some(pb) = pb { pb.println(format!("Error processing {:?}: {}", filing_id, e)); }
                         tx.send(Err(anyhow::anyhow!("fuck"))).unwrap();
                     }
                 },
@@ -378,9 +374,8 @@ impl Cache {
             let result = rx.recv().unwrap();
             match result {
                 Err(e) => {
-                    spinner
-                        .as_ref()
-                        .map(|spinner| spinner.println(format!("Error processing item: {}", e)));
+                    if let Some(spinner) = spinner
+                        .as_ref() { spinner.println(format!("Error processing item: {}", e)) }
                 }
                 Ok(result) => {
                     paths.push(result.output_path.clone());
@@ -391,16 +386,15 @@ impl Cache {
 
             active -= 1;
 
-            spinner
-                .as_ref()
-                .map(|spinner| spinner.set_message(format!("{} filings left…", queue.len())));
+            if let Some(spinner) = spinner
+                .as_ref() { spinner.set_message(format!("{} filings left…", queue.len())) }
         }
 
         for handle in handles {
             handle.join().unwrap();
         }
 
-        spinner.map(|spinner| spinner.finish_and_clear());
+        if let Some(spinner) = spinner { spinner.finish_and_clear() }
 
         Ok(CacheAllResult { stats, paths })
     }
@@ -435,10 +429,10 @@ impl Cache {
             .parse()
             .with_context(|| "Content-Length header is not a valid number")?;
 
-        pb.as_ref().map(|pb| {
+        if let Some(pb) = pb {
             pb.set_message(filing_id.to_human_readable());
             pb.set_length(length as u64);
-        });
+        }
         let mut reader = response.body_mut().as_reader();
         if let Some(ref pb) = pb {
             std::io::copy(&mut pb.wrap_read(&mut reader), &mut BufWriter::new(&mut f))?

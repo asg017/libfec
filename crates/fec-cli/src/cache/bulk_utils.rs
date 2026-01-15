@@ -64,7 +64,7 @@ pub(crate) fn insert_rows(
             record
                 .iter()
                 .take(number_of_columns)
-                .map(|s| ToSqlOutput::from(s)),
+                .map(ToSqlOutput::from),
         );
         stmt.execute(rusqlite::params_from_iter(params))?;
     }
@@ -260,5 +260,5 @@ pub(crate) fn sync_item(
 
     let mut rdr = csv_reader_from_response(response, &item.data_file_name)?;
     insert_rows(tx, year, &mut rdr, &item.table_name, item.column_count)?;
-    return Ok(SyncResult::Updated);
+    Ok(SyncResult::Updated)
 }

@@ -1,8 +1,9 @@
 /**
- * > "TODO"
- * https://TODO
+ * > "The candidate-committee linkage file contains information linking the candidate's information to information about his or her committee. "
+ * 
+ * https://www.fec.gov/campaign-finance-data/candidate-committee-linkage-file-description/
  *
- * Sample: https:TODO
+ * Sample: https://www.fec.gov/files/bulk-downloads/2026/ccl26.zip
  *
  */
 use crate::cache::bulk_utils::{sync_item, BulkDataItem};

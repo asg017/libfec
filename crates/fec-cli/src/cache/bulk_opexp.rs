@@ -1,16 +1,15 @@
 /**
  * > "This file contains disbursements reported on FEC Form 3 Line 17,
- *  FEC Form 3P Line 23, and FEC Form 3X Lines 21(a)(i), 21(a)(ii) and 21(b)."
+ * >  FEC Form 3P Line 23, and FEC Form 3X Lines 21(a)(i), 21(a)(ii) and 21(b)."
+ * 
  * https://www.fec.gov/campaign-finance-data/operating-expenditures-file-description/
  *
  * Sample: https://www.fec.gov/files/bulk-downloads/2026/oppexp26.zip
  *
  */
 use crate::cache::bulk_utils::{sync_item, BulkDataItem};
-use anyhow::{Context, Result};
-use derive_builder::Builder;
-use fec_api::Office;
-use rusqlite::{Connection, Transaction};
+use anyhow::Result;
+use rusqlite::Transaction;
 use std::sync::LazyLock;
 
 static ITEM: LazyLock<BulkDataItem> = LazyLock::new(|| BulkDataItem {
