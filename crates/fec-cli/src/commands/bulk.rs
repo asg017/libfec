@@ -31,7 +31,7 @@ pub fn bulk(sourcer: FilingSourcer, args: &BulkArgs) -> anyhow::Result<()> {
     pb.set_style(
         ProgressStyle::default_bar()
             .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} {msg}")
-            .unwrap()
+            .expect("Progress bar template is valid")
             .progress_chars("#>-")
     );
     

@@ -87,8 +87,8 @@ fn resolve_from_url(url: &Url) -> Result<ResolvedFiling> {
     let r = response.into_parts().1.into_reader();
     Ok(ResolvedFiling {
         reader: Box::new(r),
-        filing_id: filing_id,
-        source_length: source_length,
+        filing_id,
+        source_length,
     })
 }
 
@@ -114,9 +114,9 @@ fn resolve_filing_from_url(url: &Url) -> Result<Filing<Box<dyn Read>>> {
                 }));
             }
             return Err(Error::msg(format!(
-                "Failed to fetch URL {}: HTTP status code {}",
+                "Failed to fetch URL {}: HTTP status code {:?}",
                 url.as_str(),
-                error.to_string()
+                error
             )));
         }
     };
@@ -286,7 +286,7 @@ impl<'a> IterFilingsX<'a> {
                         .push(candidate);
                 }
                 Ok(UserArgument::Contest(contest)) => {
-                    let cycle = api_flags.election.clone().unwrap();
+                    let cycle = api_flags.election.unwrap();
                     let params = contest.resolve_candidate_params(cycle);
                     trace.resolve_candidate_params.push(params.clone());
                     let committees = sourcer

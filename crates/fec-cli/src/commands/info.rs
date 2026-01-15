@@ -5,7 +5,7 @@ use fec_parser::{
 };
 use indicatif::{HumanBytes, ProgressBar};
 use serde_json::Value;
-use std::{collections::HashMap, error::Error, io::Read, time::Duration};
+use std::{collections::HashMap, io::Read, time::Duration};
 
 use tabled::{
     builder::Builder as TableBuilder,
@@ -153,7 +153,7 @@ fn process_filing<R: Read>(
             filing.cover.coverage_from_date,
             filing.cover.coverage_through_date,
         ) {
-            println!("Covering {} to {}", from.to_string(), through.to_string(),);
+            println!("Covering {:?} to {:?}", from, through,);
         }
         println!();
 

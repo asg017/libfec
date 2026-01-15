@@ -33,7 +33,7 @@ fn write_header_csv<R: Read>(filing: &Filing<R>, header_csv_path: &Path) -> anyh
         .has_headers(false)
         .from_writer(f);
 
-    w.write_record(&[
+    w.write_record([
         "record_type",
         "ef_type",
         "fec_version",
@@ -72,7 +72,7 @@ fn write_fastfec_compat<R: Read>(mut filing: Filing<R>, directory: &Path) -> any
     let pb = ProgressBar::new(filing.source_length as u64).with_style(STYLE.clone());
     pb.set_message(filing.filing_id.to_owned());
 
-    let filing_directory = directory.join(filing.filing_id.to_string());
+    let filing_directory = directory.join(filing.filing_id.clone());
     std::fs::create_dir_all(&filing_directory)?;
 
     write_header_csv(&filing, &filing_directory.join("header.csv"))?;
