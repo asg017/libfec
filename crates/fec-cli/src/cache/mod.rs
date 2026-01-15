@@ -53,7 +53,7 @@ pub(crate) struct CacheBulkDailyZipResultItem {
 }
 
 pub(crate) struct Cache {
-    pub cache_directory: PathBuf,
+    cache_directory: PathBuf,
     number_concurrent: usize,
     api_cache: Option<SqliteApiCache>,
 }
@@ -90,6 +90,11 @@ impl Cache {
     /// Get a mutable reference to the API cache, if available.
     pub fn api_cache_mut(&mut self) -> Option<&mut SqliteApiCache> {
         self.api_cache.as_mut()
+    }
+
+    /// Get the cache directory path.
+    pub fn cache_directory(&self) -> &PathBuf {
+        &self.cache_directory
     }
 
     pub(crate) fn open_bulk_data_database(&mut self) -> Result<Connection> {

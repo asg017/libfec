@@ -116,24 +116,18 @@ pub struct FastFecArgs {
     pub output_directory: PathBuf,
 }
 
+#[derive(Subcommand, Debug)]
+pub enum CacheSubcommand {
+    /// Print the cache directory path
+    Print,
+    /// Show summary information about the cache
+    Info,
+}
+
 #[derive(Args, Debug)]
 pub struct CacheArgs {
-    /// FEC filing id, ex `FEC-C00606962`
-    pub filings: Option<Vec<String>>,
-
-    #[arg(long, action, help = "Print cache directory location")]
-    pub print: bool,
-
-    #[arg(
-        long,
-        alias = "concurrent",
-        help = "Number of concurrent downloads",
-        default_value_t = 8
-    )]
-    pub number_concurrent: usize,
-
-    #[command(flatten)]
-    pub api: FilingsApiFlags,
+    #[command(subcommand)]
+    pub command: CacheSubcommand,
 }
 
 #[derive(Args, Debug)]
