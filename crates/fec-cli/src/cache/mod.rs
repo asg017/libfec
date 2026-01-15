@@ -31,7 +31,7 @@ pub static BAR_FILE_STYLE: LazyLock<ProgressStyle> = LazyLock::new(|| {
     ProgressStyle::with_template(
         "{msg}:\t[{elapsed_precise}] {bar:40.cyan/blue} {eta} {decimal_total_bytes} {decimal_bytes_per_sec:.dim}",
     )
-    .unwrap()
+    .expect("valid progress style template")
 });
 
 
@@ -131,10 +131,10 @@ impl Cache {
                 let mut contents = String::new();
                 f.read_to_string(&mut contents)?;
                 for line in contents.lines() {
-                  // TODO handle lines with non FEC filing IDs
-                    let filing_id = FecFilingId::from_str(line).unwrap();
-                    // TODO handle missing filings
-                    let output_path = self.resolve_filing(&filing_id).unwrap();
+                    let filing_id = FecFilingId::from_str(line)
+                        .with_context(|| format!("Invalid filing ID in meta file: {}", line))?;
+                    let output_path = self.resolve_filing(&filing_id)
+                        .ok_or_else(|| anyhow::anyhow!("Filing {} not found in cache", line))?;
                     items.push(CacheBulkDailyZipResultItem {
                         filing_id,
                         output_path
@@ -207,10 +207,14 @@ impl Cache {
             if !file.name().ends_with(".fec") {
                 continue;
             }
-            let filing_id = FecFilingId::from_str(file.name().trim_end_matches(".fec")).unwrap();
+            let file_name = file.name().trim_end_matches(".fec");
+            let filing_id = FecFilingId::from_str(file_name)
+                .with_context(|| format!("Invalid filing ID in zip: {}", file_name))?;
             let output_path = self.cache_directory.join(file.name());
             if !output_path.exists() {
-                std::fs::create_dir_all(output_path.parent().unwrap())?;
+                if let Some(parent) = output_path.parent() {
+                    std::fs::create_dir_all(parent)?;
+                }
                 let mut out_file = std::fs::File::create(&output_path)?;
                 std::io::copy(&mut file, &mut out_file)
                     .with_context(|| format!("Failed to write to {:?}", output_path))?;
@@ -283,7 +287,7 @@ impl Cache {
             if filing_path.exists() {
                 if part_path.exists() {
                     stats.number_unfinished += 1;
-                    std::fs::remove_file(&filing_path).unwrap();
+                    std::fs::remove_file(&filing_path)?;
                 } else {
                     stats.number_preexisting += 1;
                     paths.push(filing_path);
@@ -322,11 +326,11 @@ impl Cache {
             handles.push(spawn(move || {
                 match Cache::cache_filing_static(cache_directory, item, &pb) {
                     Ok(result) => {
-                        tx.send(Ok(result)).unwrap();
+                        let _ = tx.send(Ok(result));
                     }
                     Err(e) => {
                         if let Some(pb) = pb { pb.println(format!("Error processing item: {}", e)); }
-                        tx.send(Err(anyhow::anyhow!("fuck"))).unwrap();
+                        let _ = tx.send(Err(anyhow::anyhow!("Download failed: {}", e)));
                     }
                 }
             }));
@@ -334,7 +338,7 @@ impl Cache {
         }
 
         while let Some(filing_id) = queue.pop() {
-            let result = rx.recv().unwrap();
+            let result = rx.recv().expect("receiver should not be disconnected while workers are active");
             match result {
                 Err(e) => {
                     if let Some(spinner) = spinner
@@ -359,11 +363,11 @@ impl Cache {
             handles.push(std::thread::spawn(
                 move || match Cache::cache_filing_static(cache_directory, filing_id.clone(), &pb) {
                     Ok(result) => {
-                        tx.send(Ok(result)).unwrap();
+                        let _ = tx.send(Ok(result));
                     }
                     Err(e) => {
                         if let Some(pb) = pb { pb.println(format!("Error processing {:?}: {}", filing_id, e)); }
-                        tx.send(Err(anyhow::anyhow!("fuck"))).unwrap();
+                        let _ = tx.send(Err(anyhow::anyhow!("Download failed: {}", e)));
                     }
                 },
             ));
@@ -371,7 +375,7 @@ impl Cache {
         }
 
         while active > 0 {
-            let result = rx.recv().unwrap();
+            let result = rx.recv().expect("receiver should not be disconnected while workers are active");
             match result {
                 Err(e) => {
                     if let Some(spinner) = spinner
@@ -391,7 +395,7 @@ impl Cache {
         }
 
         for handle in handles {
-            handle.join().unwrap();
+            let _ = handle.join();
         }
 
         if let Some(spinner) = spinner { spinner.finish_and_clear() }

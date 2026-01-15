@@ -61,13 +61,17 @@ pub(crate) fn include(
 ) -> Result<()> {
     tx.execute_batch(SCHEMA)?;
 
+    let bulk_db_str = bulk_db_path
+        .to_str()
+        .ok_or_else(|| anyhow::anyhow!("Bulk database path is not valid UTF-8: {:?}", bulk_db_path))?;
+
     if !tx
         .prepare_cached("select 1 from pragma_database_list where name = 'bulk_db'")?
         .exists([])?
     {
         tx.execute(
             "ATTACH DATABASE ? AS bulk_db",
-            [bulk_db_path.to_str().unwrap()],
+            [bulk_db_str],
         )?;
     }
 
