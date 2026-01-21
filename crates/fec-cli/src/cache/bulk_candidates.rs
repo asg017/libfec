@@ -151,12 +151,22 @@ pub fn resolve_candidate_principal_campaign_committees(
     query_candidate_principal_campaign_committees(&bulk_db, params)
 }
 
-#[allow(dead_code)]
+#[derive(Debug, Clone)]
+pub struct CandidateSearchResult {
+    pub candidate_id: String,
+    pub name: String,
+    pub election_year: u16,
+    pub office: String,
+    pub state: String,
+    pub district: String,
+    pub principal_campaign_committee: Option<String>,
+}
+
 pub fn search_candidates(
     bulk_db: &mut Connection,
     cycle: u16,
     name_query: &str,
-) -> Result<Vec<(String, String)>> {
+) -> Result<Vec<CandidateSearchResult>> {
     bulk_db.execute_batch(SCHEMA)?;
     let mut tx = bulk_db
         .transaction()
@@ -165,10 +175,15 @@ pub fn search_candidates(
     tx.commit()?;
 
     let sql = r#"
-      SELECT 
+      SELECT
         candidate_id,
-        name
-      FROM libfec_candidates 
+        name,
+        election_year,
+        COALESCE(office, ''),
+        COALESCE(state, ''),
+        COALESCE(district, ''),
+        principal_campaign_committee
+      FROM libfec_candidates
       WHERE cycle = :cycle
         AND name LIKE '%' || :name_query || '%'
       "#;
@@ -179,11 +194,18 @@ pub fn search_candidates(
     let mut stmt = bulk_db.prepare(sql)?;
     let results = stmt
         .query_map(params, |row| {
-            let candidate_id: String = row.get(0)?;
-            let name: String = row.get(1)?;
-            Ok((candidate_id, name))
+            let pcc: Option<String> = row.get(6)?;
+            Ok(CandidateSearchResult {
+                candidate_id: row.get(0)?,
+                name: row.get(1)?,
+                election_year: row.get(2)?,
+                office: row.get(3)?,
+                state: row.get(4)?,
+                district: row.get(5)?,
+                principal_campaign_committee: pcc.filter(|s| !s.is_empty()),
+            })
         })?
-        .collect::<Result<Vec<(String, String)>, _>>()?;
+        .collect::<Result<Vec<CandidateSearchResult>, _>>()?;
     Ok(results)
 }
 
