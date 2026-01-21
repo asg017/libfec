@@ -248,6 +248,154 @@ pub enum Item {
     FilingId(FecFilingId),
 }
 
+pub(crate) struct ProcessedInputs {
+    trace: Trace,
+    queue: Vec<Item>,
+}
+pub(crate) fn process_inputs(
+    input: &Vec<String>,
+    mut api_flags: FilingsApiFlags,
+    sourcer: &mut FilingSourcer,
+    mb: Option<&MultiProgress>,
+) -> anyhow::Result<ProcessedInputs> {
+    let mut queue = vec![];
+    let mut trace = Trace {
+        resolve_candidate_params: vec![],
+    };
+
+    // process positional user arguments, which should resolve to a UserArgument
+    for item in input {
+        match sourcer.resolve_user_argument(item) {
+            Err(error) => todo!("{}", error),
+            Ok(UserArgument::Filing(item)) => {
+                queue.push(item);
+            }
+            Ok(UserArgument::Committee(committee)) => {
+                // chuck committee ids into api_flags under --committee
+                api_flags
+                    .committee
+                    .get_or_insert_with(Vec::new)
+                    .push(committee);
+            }
+
+            Ok(UserArgument::Candidate(candidate)) => {
+                // chuck candidate ids into api_flags under --candidate
+                api_flags
+                    .candidate
+                    .get_or_insert_with(Vec::new)
+                    .push(candidate);
+            }
+            Ok(UserArgument::Contest(contest)) => {
+                let cycle = api_flags.election.unwrap();
+                let params = contest.resolve_candidate_params(cycle);
+                trace.resolve_candidate_params.push(params.clone());
+                let committees = sourcer
+                    .cache
+                    .resolve_candidate_principal_campaign_committees(params)
+                    .unwrap();
+                api_flags
+                    .committee
+                    .get_or_insert_with(Vec::new)
+                    .extend(committees);
+            }
+            Ok(UserArgument::InputFile(path)) => {
+                let contents = std::fs::read_to_string(&path)
+                    .context(format!("Could not read input file `{}`", path.display()))?;
+                let spinner = mb.as_ref().map(|mb| mb.add(ProgressBar::new_spinner()));
+
+                for (idx, line) in contents.lines().enumerate() {
+                    if line.trim().is_empty() || line.trim_start().starts_with('#') {
+                        continue;
+                    }
+                    let item = line.trim();
+                    if let Ok(id) = FecFilingId::from_str(item) {
+                        queue.push(Item::FilingId(id));
+                    } else if let Ok(url) = Url::parse(item) {
+                        queue.push(Item::CustomUrl(url));
+                    } else if is_committee_input(item) {
+                        api_flags
+                            .committee
+                            .get_or_insert_with(Vec::new)
+                            .push(item.to_owned());
+                    } else if is_candidate_input(item) {
+                        api_flags
+                            .candidate
+                            .get_or_insert_with(Vec::new)
+                            .push(item.to_owned());
+                    } else if let Some(contest) = Contest::from_arg(item).unwrap() {
+                        spinner.as_ref().map(|s| {
+                            s.set_message(format!("Resolving {}...", item));
+                        });
+                        let cycle = api_flags.election.clone().unwrap();
+                        let params = contest.resolve_candidate_params(cycle);
+                        trace.resolve_candidate_params.push(params.clone());
+                        let committees = sourcer
+                            .cache
+                            .resolve_candidate_principal_campaign_committees(params)
+                            .unwrap();
+                        api_flags
+                            .committee
+                            .get_or_insert_with(Vec::new)
+                            .extend(committees);
+                    } else {
+                        return Err(anyhow::anyhow!(
+                            "Could not resolve input on line {} of file {}: {}",
+                            idx + 1,
+                            path.display(),
+                            item
+                        ));
+                    }
+                }
+            }
+        }
+    }
+
+    if api_flags.any_provided() {
+        let ids = api_flags.resolve_ids(sourcer, mb, &mut trace)?;
+        queue.extend(
+            ids.into_iter()
+                .map(|id| match sourcer.filing_cache_path(&id) {
+                    Some(path) => Item::CachedFile(path),
+                    None => Item::FilingId(id),
+                }),
+        );
+    }
+    if true {
+        //api_flags.cache {
+        let mut cacheable: Vec<FecFilingId> = Vec::new();
+
+        // pop out all the bare Item::FilingId's items, to cache them
+        queue.retain(|item| {
+            if let Item::FilingId(filing_id) = item {
+                cacheable.push(filing_id.clone());
+                false // remove from queue
+            } else {
+                true // keep in queue
+            }
+        });
+
+        let caching_result = sourcer.cache.cache_all(cacheable, mb).unwrap();
+
+        if let Some(mb) = mb {
+            let downloaded = caching_result.stats.number_downloaded;
+            let skipped = caching_result.stats.number_preexisting + queue.iter().filter(|item| matches!(item, Item::CachedFile(_))).count();
+            
+                let _ = mb.println(format!(
+                    "{} Cached {} filing(s) ({}), skipped {} already cached",
+                    "✓",
+                    downloaded,
+                    HumanBytes(caching_result.stats.downloaded_bytes as u64),
+                    skipped,
+                ));
+        }
+
+        // re-add cached files to the queue, now as cached files
+        queue.extend(caching_result.paths.into_iter().map(Item::CachedFile));
+    }
+
+    Ok(ProcessedInputs { trace, queue })
+}
+
 pub struct IterFilingsX<'a> {
     sourcer: &'a FilingSourcer,
     queue: Vec<Item>,
@@ -256,160 +404,15 @@ pub struct IterFilingsX<'a> {
 
 impl<'a> IterFilingsX<'a> {
     pub fn new(
-        sourcer: &'a mut FilingSourcer,
-        input: &Vec<String>,
-        mut api_flags: FilingsApiFlags,
-        mb: Option<&MultiProgress>,
-    ) -> anyhow::Result<(Trace, Self)> {
-        let mut queue = vec![];
-        let mut trace = Trace {
-            resolve_candidate_params: vec![],
-        };
-
-        for item in input {
-            match sourcer.resolve_user_argument(item) {
-                Err(error) => todo!("{}", error),
-                Ok(UserArgument::Filing(item)) => {
-                    queue.push(item);
-                }
-                Ok(UserArgument::Committee(committee)) => {
-                    api_flags
-                        .committee
-                        .get_or_insert_with(Vec::new)
-                        .push(committee);
-                }
-
-                Ok(UserArgument::Candidate(candidate)) => {
-                    api_flags
-                        .candidate
-                        .get_or_insert_with(Vec::new)
-                        .push(candidate);
-                }
-                Ok(UserArgument::Contest(contest)) => {
-                    let cycle = api_flags.election.unwrap();
-                    let params = contest.resolve_candidate_params(cycle);
-                    trace.resolve_candidate_params.push(params.clone());
-                    let committees = sourcer
-                        .cache
-                        .resolve_candidate_principal_campaign_committees(params)
-                        .unwrap();
-                    api_flags
-                        .committee
-                        .get_or_insert_with(Vec::new)
-                        .extend(committees);
-                }
-                Ok(UserArgument::InputFile(path)) => {
-                    let contents = std::fs::read_to_string(&path)
-                        .context(format!("Could not read input file `{}`", path.display()))?;
-                    let spinner = mb.as_ref().map(|mb| {
-                        mb.add(ProgressBar::new_spinner())
-                    });
-                    
-                    for (idx, line) in contents.lines().enumerate() {
-                        if line.trim().is_empty() || line.trim_start().starts_with('#') {
-                            continue;
-                        }
-                        let item = line.trim();
-                        if let Ok(id) = FecFilingId::from_str(item) {
-                            queue.push(Item::FilingId(id));
-                        } else if let Ok(url) = Url::parse(item) {
-                            queue.push(Item::CustomUrl(url));
-                        } else if is_committee_input(item) {
-                            api_flags
-                                .committee
-                                .get_or_insert_with(Vec::new)
-                                .push(item.to_owned());
-                        } else if is_candidate_input(item) {
-                            api_flags
-                                .candidate
-                                .get_or_insert_with(Vec::new)
-                                .push(item.to_owned());
-                        } else if let Some(contest) = Contest::from_arg(item).unwrap() {
-                            spinner.as_ref().map(|s| {
-                                s.set_message(format!("Resolving {}...", item));
-                            });
-                            let cycle = api_flags.election.clone().unwrap();
-                            let params = contest.resolve_candidate_params(cycle);
-                            trace.resolve_candidate_params.push(params.clone());
-                            let committees = sourcer
-                                .cache
-                                .resolve_candidate_principal_campaign_committees(params)
-                                .unwrap();
-                            api_flags
-                                .committee
-                                .get_or_insert_with(Vec::new)
-                                .extend(committees);
-                        } else {
-                            return Err(anyhow::anyhow!(
-                                "Could not resolve input on line {} of file {}: {}",
-                                idx + 1,
-                                path.display(),
-                                item
-                            ));
-                        }
-                    }
-                }
-            }
+        filing_progress: Option<ProgressBar>,
+        sourcer: &'a FilingSourcer,
+        queue: Vec<Item>,
+    ) -> Self {
+        IterFilingsX {
+            sourcer,
+            queue,
+            filing_progress,
         }
-
-        if api_flags.any_provided() {
-            let ids = api_flags.resolve_ids(sourcer, mb, &mut trace)?;
-            queue.extend(
-                ids.into_iter()
-                    .map(|id| match sourcer.filing_cache_path(&id) {
-                        Some(path) => Item::CachedFile(path),
-                        None => Item::FilingId(id),
-                    }),
-            );
-        }
-        if true {
-            //api_flags.cache {
-            let mut cacheable: Vec<FecFilingId> = Vec::new();
-
-            queue.retain(|item| {
-                if let Item::FilingId(filing_id) = item {
-                    cacheable.push(filing_id.clone());
-                    false // remove from queue
-                } else {
-                    true // keep in queue
-                }
-            });
-
-            let caching_result = sourcer.cache.cache_all(cacheable, mb).unwrap();
-
-            if let Some(mb) = mb {
-                if caching_result.stats.number_downloaded > 0 {
-                    let _ = mb.println(format!(
-                        "{} Cached {} filings, {}",
-                        "✓",
-                        caching_result.stats.number_downloaded,
-                        HumanBytes(caching_result.stats.downloaded_bytes as u64),
-                    ));
-                }
-            }
-            queue.extend(
-                caching_result
-                    .paths
-                    .into_iter()
-                    .map(|path| Item::CachedFile(path)),
-            );
-        }
-        let filing_progress = if let Some(mb) = mb {
-            let pb = mb.add(ProgressBar::new(queue.len() as u64));
-            pb.set_style(FILINGS_STYLE.clone());
-            Some(pb)
-        } else {
-            None
-        };
-
-        Ok((
-            trace,
-            IterFilingsX {
-                sourcer,
-                queue,
-                filing_progress,
-            },
-        ))
     }
 }
 
@@ -422,27 +425,27 @@ impl<'a> Iterator for IterFilingsX<'a> {
         }
         match self.queue.pop()? {
             Item::File(path) => {
-                self.filing_progress
-                    .as_ref()
-                    .map(|pb| pb.set_message(format!("{}", path.display())));
+                if let Some(pb) = self.filing_progress.as_ref() {
+                    pb.set_message(format!("{}", path.display()))
+                }
                 Some(resolve_from_path(path))
             }
             Item::CachedFile(path) => {
-                self.filing_progress
-                    .as_ref()
-                    .map(|pb| pb.set_message(format!("{} [cached]", path.display())));
+                if let Some(pb) = self.filing_progress.as_ref() {
+                    pb.set_message(format!("{} [cached]", path.display()))
+                }
                 Some(resolve_from_path(path))
             }
             Item::CustomUrl(url) => {
-                self.filing_progress
-                    .as_ref()
-                    .map(|pb| pb.set_message(format!("{}", url)));
+                if let Some(pb) = self.filing_progress.as_ref() {
+                    pb.set_message(format!("{}", url))
+                }
                 Some(resolve_filing_from_url(&url))
             }
             Item::FilingId(filing_id) => {
-                self.filing_progress
-                    .as_ref()
-                    .map(|pb| pb.set_message(filing_id.to_human_readable()));
+                if let Some(pb) = self.filing_progress.as_ref() {
+                    pb.set_message(filing_id.to_human_readable())
+                }
                 Some(self.sourcer.resolve_from_fec_id(&filing_id))
             }
         }
@@ -558,7 +561,15 @@ impl FilingSourcer {
         api_flags: FilingsApiFlags,
         mb: Option<&MultiProgress>,
     ) -> anyhow::Result<(Trace, IterFilingsX<'_>)> {
-        IterFilingsX::new(self, &input, api_flags, mb)
+        let result = process_inputs(&input, api_flags, self, mb)?;
+        let filing_progress = if let Some(mb) = mb {
+            let pb = mb.add(ProgressBar::new(result.queue.len() as u64));
+            pb.set_style(FILINGS_STYLE.clone());
+            Some(pb)
+        } else {
+            None
+        };
+        Ok((result.trace, IterFilingsX::new(filing_progress, self, result.queue)))
     }
 
     // Resolve a FEC filing from an "input" source such as:

@@ -116,12 +116,24 @@ pub struct FastFecArgs {
     pub output_directory: PathBuf,
 }
 
+#[derive(Args, Debug)]
+pub struct CacheAddArgs {
+    /// FEC filing IDs or paths to .fec files to cache
+    #[arg(required = false)]
+    pub filings: Vec<String>,
+
+    #[command(flatten)]
+    pub api: FilingsApiFlags,
+}
+
 #[derive(Subcommand, Debug)]
 pub enum CacheSubcommand {
     /// Print the cache directory path
     Print,
     /// Show summary information about the cache
     Info,
+    /// Download and cache filings from fec.gov
+    Add(CacheAddArgs),
 }
 
 #[derive(Args, Debug)]
@@ -132,8 +144,9 @@ pub struct CacheArgs {
 
 #[derive(Args, Debug)]
 pub struct SearchArgs {
+    #[arg(default_value = "", help = "Initial search query (optional)")]
     pub query: String,
-    #[arg(long, default_value_t = 2024, help = "Election cycle year to search")]
+    #[arg(long, default_value_t = 2026, help = "Election cycle year to search")]
     pub cycle: u16,
 }
 
@@ -198,7 +211,7 @@ pub enum BulkSource {
 #[derive(Subcommand, Debug)]
 pub enum Commands {
     /// Export FEC filings into SQLite, Excel, CSV, or JSON
-    Export(ExportArgs),
+    Export(Box<ExportArgs>),
 
     /// Cache .fec files from fec.gov to your filesystem
     Cache(CacheArgs),
@@ -217,6 +230,18 @@ pub enum Commands {
 }
 
 #[derive(Parser)]
+pub struct TopLevelArgs {
+    // TODO: api-key, api-url
+    #[arg(
+        global = true,
+        long,
+        env = "LIBFEC_CACHE_DIRECTORY",
+        help_heading = "Global options"
+    )]
+    pub cache_directory: Option<PathBuf>,
+}
+
+#[derive(Parser)]
 #[command(
   name = "libfec", 
   author,
@@ -232,16 +257,4 @@ pub struct Cli {
 
     #[command(flatten)]
     pub top_level: TopLevelArgs,
-}
-
-#[derive(Parser)]
-pub struct TopLevelArgs {
-    // TODO: api-key, api-url
-    #[arg(
-        global = true,
-        long,
-        env = "LIBFEC_CACHE_DIRECTORY",
-        help_heading = "Global options"
-    )]
-    pub cache_directory: Option<PathBuf>,
 }

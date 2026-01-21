@@ -1,11 +1,11 @@
 use colored::Colorize;
-use indicatif::HumanBytes;
+use indicatif::{HumanBytes, MultiProgress};
 use num_format::{Locale, ToFormattedString};
 use std::path::Path;
 
 use crate::{
     cli::{CacheArgs, CacheSubcommand},
-    sourcer::FilingSourcer,
+    sourcer::{FilingSourcer, process_inputs},
 };
 
 fn get_file_size(path: &Path) -> Option<u64> {
@@ -48,7 +48,7 @@ fn get_daily_zip_meta_count(cache_dir: &Path) -> usize {
     count
 }
 
-pub fn cache(sourcer: FilingSourcer, args: &CacheArgs) -> anyhow::Result<()> {
+pub fn cache(mut sourcer: FilingSourcer, args: &CacheArgs) -> anyhow::Result<()> {
     match &args.command {
         CacheSubcommand::Print => {
             println!("{}", sourcer.cache.cache_directory().display());
@@ -102,6 +102,16 @@ pub fn cache(sourcer: FilingSourcer, args: &CacheArgs) -> anyhow::Result<()> {
                 println!("  API cache database:    {}", "(not found)".dimmed());
             }
         }
+        CacheSubcommand::Add(add_args) => {
+          let mb = MultiProgress::new();
+            // Resolve filings from API and cache them
+           let result = process_inputs(
+                &add_args.filings,
+                add_args.api.clone(),
+                &mut sourcer,
+                Some(&mb),
+            )?;
+          }
     }
 
     Ok(())

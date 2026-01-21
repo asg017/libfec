@@ -13,7 +13,7 @@ fn main() {
     let sourcer = sourcer::FilingSourcer::new(cli.top_level.cache_directory.clone());
     let result = match *cli.command {
         Commands::Info(args) => commands::info(sourcer, args),
-        Commands::Export(args) => commands::export(sourcer, args),
+        Commands::Export(args) => commands::export(sourcer, *args),
         Commands::Fastfec(args) => commands::fastfec(sourcer, args),
         Commands::Cache(ref args) => commands::cache(sourcer, args),
         Commands::Search(ref args) => commands::search(sourcer, args),
