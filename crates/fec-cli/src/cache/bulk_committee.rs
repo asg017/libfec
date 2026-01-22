@@ -7,8 +7,8 @@
  *
  */
 use crate::cache::bulk_utils::{sync_item, BulkDataItem};
-use anyhow::Result;
-use rusqlite::Transaction;
+use anyhow::{Context, Result};
+use rusqlite::{Connection, Transaction};
 use std::sync::LazyLock;
 
 static ITEM: LazyLock<BulkDataItem> = LazyLock::new(|| BulkDataItem {
@@ -40,6 +40,64 @@ CREATE TABLE IF NOT EXISTS libfec_committees(
   UNIQUE(cycle, committee_id)
 );
 "#;
+
+#[derive(Debug, Clone)]
+pub struct CommitteeSearchResult {
+    pub committee_id: String,
+    pub name: String,
+    pub committee_type: String,
+    pub designation: String,
+    pub party_affiliation: String,
+    pub connected_org_name: String,
+    pub candidate_id: Option<String>,
+}
+
+pub fn search_committees(
+    bulk_db: &mut Connection,
+    cycle: u16,
+    name_query: &str,
+) -> Result<Vec<CommitteeSearchResult>> {
+    bulk_db.execute_batch(SCHEMA)?;
+    let mut tx = bulk_db
+        .transaction()
+        .context("Could not start a transaction on the .bulk-data.db database")?;
+    sync_item(&mut tx, cycle, &ITEM)?;
+    tx.commit()?;
+
+    let sql = r#"
+      SELECT
+        committee_id,
+        name,
+        COALESCE(committee_type, ''),
+        COALESCE(designation, ''),
+        COALESCE(party_affiliation, ''),
+        COALESCE(connected_org_name, ''),
+        candidate_id
+      FROM libfec_committees
+      WHERE cycle = :cycle
+        AND name LIKE '%' || :name_query || '%'
+      "#;
+    let params = rusqlite::named_params! {
+      ":cycle": cycle,
+      ":name_query": name_query,
+    };
+    let mut stmt = bulk_db.prepare(sql)?;
+    let results = stmt
+        .query_map(params, |row| {
+            let cand_id: Option<String> = row.get(6)?;
+            Ok(CommitteeSearchResult {
+                committee_id: row.get(0)?,
+                name: row.get(1)?,
+                committee_type: row.get(2)?,
+                designation: row.get(3)?,
+                party_affiliation: row.get(4)?,
+                connected_org_name: row.get(5)?,
+                candidate_id: cand_id.filter(|s| !s.is_empty()),
+            })
+        })?
+        .collect::<Result<Vec<CommitteeSearchResult>, _>>()?;
+    Ok(results)
+}
 
 pub fn export(tx: &mut Transaction<'_>, year: u16) -> Result<()> {
     sync_item(tx, year, &ITEM)?;
