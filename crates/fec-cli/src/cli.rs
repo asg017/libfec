@@ -24,6 +24,21 @@ pub enum CmdInfoFormat {
     Json,
 }
 
+#[derive(
+    Debug,
+    Default,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    clap::ValueEnum,
+)]
+pub enum InfoDisplayMode {
+    #[default]
+    Text,
+    Tui,
+}
+
 #[derive(Args, Debug)]
 pub struct InfoArgs {
     pub filings: Vec<String>,
@@ -39,9 +54,17 @@ pub struct InfoArgs {
       long,
       short = 'f',
       value_enum,
-      help = "Format to output information to",  
+      help = "Format to output information to",
       default_value_t = CmdInfoFormat::Human)]
     pub format: CmdInfoFormat,
+
+    #[arg(
+      long,
+      short = 'd',
+      value_enum,
+      help = "Display mode: text (default) or tui",
+      default_value_t = InfoDisplayMode::Text)]
+    pub display: InfoDisplayMode,
     //#[arg(long, short = 'f', value_enum)]
     //pub format: Option<QueryFormat>,
     #[arg(
@@ -150,6 +173,58 @@ pub struct SearchArgs {
     pub cycle: u16,
 }
 
+#[derive(Args, Debug, Clone)]
+pub struct RssArgs {
+    /// Watch mode: continuously fetch and display updates in a TUI
+    #[arg(long, short)]
+    pub watch: bool,
+
+    /// Refresh interval in seconds (default: 300 = 5 minutes)
+    #[arg(long, short = 'i', default_value = "300")]
+    pub interval: u64,
+
+    /// Number of records to display (default: 20)
+    #[arg(long, short = 'n', default_value = "20")]
+    pub limit: usize,
+
+    /// Pre-defined filing type filter (all, monthly, quarterly, presidential, congressional, pac)
+    #[arg(long, short = 'p', value_enum, default_value = "all")]
+    pub preset: RssPreset,
+
+    /// Filter by form type (e.g., F1, F3, F3P, F3X, F99)
+    #[arg(long, short = 'f')]
+    pub form_type: Option<String>,
+
+    /// Filter by committee ID(s), comma-separated (e.g., C00505412,C00513531)
+    #[arg(long, short = 'c')]
+    pub committee: Option<String>,
+
+    /// Filter by state code (e.g., CA, TX, NY)
+    #[arg(long, short = 's')]
+    pub state: Option<String>,
+
+    /// Filter by party affiliation (DEM, REP, LIB, GRE, CON, REF, OTH)
+    #[arg(long)]
+    pub party: Option<String>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, clap::ValueEnum)]
+pub enum RssPreset {
+    /// All filings
+    #[default]
+    All,
+    /// Monthly report filings
+    Monthly,
+    /// Quarterly report filings
+    Quarterly,
+    /// Presidential campaign filings (F3P)
+    Presidential,
+    /// Congressional campaign filings (F3)
+    Congressional,
+    /// PAC and Party committee filings (F3X)
+    Pac,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CycleArg {
     Single(u16),
@@ -225,8 +300,11 @@ pub enum Commands {
 
     Search(SearchArgs),
 
-    // Export bulk datasets from fec.gov
+    /// Export bulk datasets from fec.gov
     Bulk(BulkArgs),
+
+    /// Watch FEC RSS feed for new filings
+    Rss(RssArgs),
 }
 
 #[derive(Parser)]

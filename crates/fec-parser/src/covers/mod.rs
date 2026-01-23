@@ -1,8 +1,14 @@
+mod form1;
+mod form3;
 mod form3p;
+pub use crate::covers::form1::Form1;
+pub use crate::covers::form3::{Form3, Form3Summary};
 pub use crate::covers::form3p::{Form3P, Form3PSummary};
 use indexmap::IndexMap;
 
 pub enum Cover {
+    Form1(Form1),
+    Form3(Form3),
     Form3P(Form3P),
 }
 
@@ -10,9 +16,15 @@ pub(crate) fn cover_from_form_type(
     cover_record_form_type: &str,
     data: &IndexMap<String, String>,
 ) -> Option<Cover> {
-    // TODO collides with F3PS?
+    if cover_record_form_type.starts_with("F1") && !cover_record_form_type.starts_with("F13") {
+        return Form1::from_data(data).map(Cover::Form1);
+    }
+    // Check F3P first (more specific) before F3
     if cover_record_form_type.starts_with("F3P") {
         return Form3P::from_data(data).map(Cover::Form3P);
+    }
+    if cover_record_form_type.starts_with("F3") {
+        return Form3::from_data(data).map(Cover::Form3);
     }
     None
 }

@@ -162,6 +162,25 @@ pub struct CandidateSearchResult {
     pub principal_campaign_committee: Option<String>,
 }
 
+#[derive(Debug, Clone)]
+pub struct CandidateDetail {
+    pub candidate_id: String,
+    pub name: String,
+    pub party_affiliation: String,
+    pub election_year: u16,
+    pub state: String,
+    pub office: String,
+    pub district: String,
+    pub incumbent_challenger_status: String,
+    pub status: String,
+    pub principal_campaign_committee: Option<String>,
+    pub address_street1: String,
+    pub address_street2: String,
+    pub address_city: String,
+    pub address_state: String,
+    pub address_zip: String,
+}
+
 pub fn search_candidates(
     bulk_db: &mut Connection,
     cycle: u16,
@@ -209,6 +228,73 @@ pub fn search_candidates(
     Ok(results)
 }
 
+
+pub fn get_candidate_detail(
+    bulk_db: &mut Connection,
+    cycle: u16,
+    candidate_id: &str,
+) -> Result<Option<CandidateDetail>> {
+    bulk_db.execute_batch(SCHEMA)?;
+    let mut tx = bulk_db
+        .transaction()
+        .context("Could not start a transaction on the .bulk-data.db database")?;
+    sync_item(&mut tx, cycle, &ITEM)?;
+    tx.commit()?;
+
+    let sql = r#"
+      SELECT
+        candidate_id,
+        name,
+        COALESCE(party_affiliation, ''),
+        election_year,
+        COALESCE(state, ''),
+        COALESCE(office, ''),
+        COALESCE(district, ''),
+        COALESCE(incumbent_challenger_status, ''),
+        COALESCE(status, ''),
+        principal_campaign_committee,
+        COALESCE(address_street1, ''),
+        COALESCE(address_street2, ''),
+        COALESCE(address_city, ''),
+        COALESCE(address_state, ''),
+        COALESCE(address_zip, '')
+      FROM libfec_candidates
+      WHERE cycle = :cycle
+        AND candidate_id = :candidate_id
+      LIMIT 1
+      "#;
+    let params = rusqlite::named_params! {
+      ":cycle": cycle,
+      ":candidate_id": candidate_id,
+    };
+    let mut stmt = bulk_db.prepare(sql)?;
+    let mut results = stmt.query_map(params, |row| {
+        let pcc: Option<String> = row.get(9)?;
+        Ok(CandidateDetail {
+            candidate_id: row.get(0)?,
+            name: row.get(1)?,
+            party_affiliation: row.get(2)?,
+            election_year: row.get(3)?,
+            state: row.get(4)?,
+            office: row.get(5)?,
+            district: row.get(6)?,
+            incumbent_challenger_status: row.get(7)?,
+            status: row.get(8)?,
+            principal_campaign_committee: pcc.filter(|s| !s.is_empty()),
+            address_street1: row.get(10)?,
+            address_street2: row.get(11)?,
+            address_city: row.get(12)?,
+            address_state: row.get(13)?,
+            address_zip: row.get(14)?,
+        })
+    })?;
+
+    match results.next() {
+        Some(Ok(detail)) => Ok(Some(detail)),
+        Some(Err(e)) => Err(e.into()),
+        None => Ok(None),
+    }
+}
 
 pub fn export(tx: &mut Transaction<'_>, year: u16) -> Result<()> {
     sync_item(tx, year, &ITEM)?;

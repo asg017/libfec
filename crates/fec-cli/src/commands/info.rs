@@ -1,11 +1,36 @@
+/**
+ * Info command - Display detailed information about FEC filings and committees
+ *
+ * This module provides functionality to display detailed information about:
+ * - FEC filings (by filing ID)
+ * - Committees (by committee ID starting with 'C')
+ *
+ * For filings, it shows cover sheet information, form details, and optionally
+ * a full breakdown of all rows in the filing.
+ *
+ * For committees, it launches an interactive TUI displaying all available
+ * committee information from the bulk data cache.
+ */
+
 use colored::Colorize;
 use fec_parser::{
-    covers::{Cover, Form3PSummary},
+    covers::{Cover, Form3PSummary, Form3Summary},
     report_code_label, Filing,
 };
 use indicatif::{HumanBytes, ProgressBar};
 use serde_json::Value;
-use std::{collections::HashMap, io::Read, time::Duration};
+use std::{collections::HashMap, io::{self, Read}, time::Duration};
+use crossterm::{
+    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEventKind},
+    execute,
+    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+};
+use ratatui::{backend::CrosstermBackend, Terminal};
+use crate::tui::{
+    candidate_detail::{CandidateDetailState, render_candidate_detail},
+    committee_detail::{CommitteeDetailState, render_committee_detail},
+    filing_detail::{FilingDetail, FilingDetailState, render_filing_detail},
+};
 
 use tabled::{
     builder::Builder as TableBuilder,
@@ -13,7 +38,7 @@ use tabled::{
 };
 
 use crate::{
-    cli::{CmdInfoFormat, InfoArgs},
+    cli::{CmdInfoFormat, InfoArgs, InfoDisplayMode},
     sourcer::FilingSourcer,
 };
 struct FilingFormMetadata {
@@ -123,6 +148,68 @@ fn print_summary(summary: &Form3PSummary) {
     println!("{}", table)
 }
 
+fn print_summary_form3(summary: &Form3Summary) {
+    let mut b = Builder::with_capacity(3, 0);
+    b.push_record(["Summary"]);
+
+    let items = vec![
+        (
+            "6. Total Contributions (Other Than Loans)",
+            summary.line6_total_contributions_no_loans,
+        ),
+        (
+            "7. Total Contribution Refunds",
+            summary.line7_total_contribution_refunds,
+        ),
+        (
+            "8. Net Contributions (Other Than Loans)",
+            summary.line8_net_contributions,
+        ),
+        (
+            "9. Total Operating Expenditures",
+            summary.line9_total_operating_expenditures,
+        ),
+        (
+            "10. Total Offset to Operating Expenditures",
+            summary.line10_total_offset_to_operating_expenditures,
+        ),
+        (
+            "11. Net Operating Expenditures",
+            summary.line11_net_operating_expenditures,
+        ),
+        (
+            "12. Cash on Hand at CLOSE of the Reporting Period",
+            summary.line12_cash_on_hand_close_of_period,
+        ),
+        (
+            "13. Debts and Obligations Owed TO the Committee",
+            summary.line13_debts_owed_to_committee,
+        ),
+        (
+            "14. Debts and Obligations Owed BY the Committee",
+            summary.line14_debts_owed_by_committee,
+        ),
+    ];
+    for (label, value) in items {
+        b.push_record([label.to_string(), format_usd(value)]);
+    }
+
+    let mut table = b.build();
+    table.with(Style::modern());
+    table.modify(
+        tabled::settings::object::Columns::last(),
+        tabled::settings::Alignment::right(),
+    );
+
+    // make 1st row (title) span entire width
+    table
+        .modify((0, 0), tabled::settings::Span::column(2))
+        .modify((0, 0), tabled::settings::Alignment::center());
+    // border correct bc header row does weird stuff
+    table.with(tabled::settings::themes::BorderCorrection::span());
+    println!("{}", table)
+}
+
 fn process_filing<R: Read>(
     filing: &mut Filing<R>,
     format: &CmdInfoFormat,
@@ -161,6 +248,35 @@ fn process_filing<R: Read>(
 
         if let Some(ref cover) = filing.cover.cover_data {
             match cover {
+                Cover::Form1(form) => {
+                    if let Some(date_signed) = form.date_signed {
+                        println!(
+                            "Signed by {} on {}",
+                            form.treasurer.to_string().bold(),
+                            date_signed.to_string().bold()
+                        );
+                    }
+                    if let Some(ref candidate) = form.candidate {
+                        println!(
+                            "Candidate: {} ({}) - {} {}",
+                            candidate.full_name().bold(),
+                            candidate.candidate_id,
+                            candidate.office.as_deref().unwrap_or(""),
+                            candidate.state.as_deref().unwrap_or("")
+                        );
+                    }
+                    if let Some(ref committee_type) = form.committee_type {
+                        println!("Committee Type: {}", committee_type);
+                    }
+                }
+                Cover::Form3(form) => {
+                    println!(
+                        "Signed by {} on {}",
+                        form.treasurer.to_string().bold(),
+                        form.signed.to_string().bold()
+                    );
+                    print_summary_form3(&form.summary);
+                }
                 Cover::Form3P(form) => {
                     println!(
                         "Signed by {} on {}",
@@ -258,10 +374,10 @@ fn process_filing<R: Read>(
 
 enum InfoInput {
     Filing(String),
-    Commitee(String),
-    //Canddate(String),
+    Committee(String),
+    Candidate(String),
 }
-pub fn info(sourcer: FilingSourcer, args: InfoArgs) -> anyhow::Result<()> {
+pub fn info(mut sourcer: FilingSourcer, args: InfoArgs) -> anyhow::Result<()> {
     let spinner = match args.format {
         CmdInfoFormat::Human => {
             let s = ProgressBar::new_spinner();
@@ -272,23 +388,284 @@ pub fn info(sourcer: FilingSourcer, args: InfoArgs) -> anyhow::Result<()> {
     };
     let inputs = args.filings.iter().map(|v| {
         if v.starts_with("C") {
-            InfoInput::Commitee(v.clone())
+            InfoInput::Committee(v.clone())
+        } else if v.starts_with("H") || v.starts_with("P") || v.starts_with("S") {
+            // Check if it looks like a candidate ID (followed by digits)
+            InfoInput::Candidate(v.clone())
         } else {
             InfoInput::Filing(v.clone())
         }
     });
     for input in inputs {
         match input {
-            InfoInput::Filing(filing) => {
-                let mut filing = sourcer.resolve_from_user_argument(&filing)?;
-                process_filing(&mut filing, &args.format, &spinner, args.full);
+            InfoInput::Filing(filing_arg) => {
+                let filing = sourcer.resolve_from_user_argument(&filing_arg)?;
+                match args.display {
+                    InfoDisplayMode::Tui => {
+                        let detail = FilingDetail::from(&filing);
+                        spinner.as_ref().map(|s| s.finish_and_clear());
+                        show_filing_detail_tui(detail)?;
+                    }
+                    InfoDisplayMode::Text => {
+                        let mut filing = filing;
+                        process_filing(&mut filing, &args.format, &spinner, args.full);
+                    }
+                }
             }
-            InfoInput::Commitee(commitee_id) => {
-                // TODO print info about the committee
-                println!("{commitee_id}");
+            InfoInput::Committee(committee_id) => {
+                // Show committee detail TUI page
+                // Default to current cycle (2026) - could be made configurable
+                let cycle = 2026;
+                match sourcer.cache.open_bulk_data_database() {
+                    Ok(mut db) => {
+                        match crate::cache::bulk_committee::get_committee_detail(
+                            &mut db,
+                            cycle,
+                            &committee_id
+                        ) {
+                            Ok(Some(detail)) => {
+                                show_committee_detail_tui(detail)?;
+                            }
+                            Ok(None) => {
+                                println!("Committee {} not found in cycle {}", committee_id, cycle);
+                            }
+                            Err(e) => {
+                                println!("Error fetching committee details: {}", e);
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        println!("Error opening database: {}", e);
+                    }
+                }
+            }
+            InfoInput::Candidate(candidate_id) => {
+                // Show candidate detail TUI page
+                // Default to current cycle (2026) - could be made configurable
+                let cycle = 2026;
+                match sourcer.cache.open_bulk_data_database() {
+                    Ok(mut db) => {
+                        match crate::cache::bulk_candidates::get_candidate_detail(
+                            &mut db,
+                            cycle,
+                            &candidate_id
+                        ) {
+                            Ok(Some(detail)) => {
+                                show_candidate_detail_tui(detail)?;
+                            }
+                            Ok(None) => {
+                                println!("Candidate {} not found in cycle {}", candidate_id, cycle);
+                            }
+                            Err(e) => {
+                                println!("Error fetching candidate details: {}", e);
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        println!("Error opening database: {}", e);
+                    }
+                }
             }
         }
     }
+
+    Ok(())
+}
+
+fn show_committee_detail_tui(detail: crate::cache::bulk_committee::CommitteeDetail) -> anyhow::Result<()> {
+    enable_raw_mode()?;
+    let mut stdout = io::stdout();
+    execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
+    let backend = CrosstermBackend::new(stdout);
+    let mut terminal = Terminal::new(backend)?;
+
+    let mut state = CommitteeDetailState::new();
+
+    loop {
+        terminal.draw(|f| {
+            render_committee_detail(f, f.area(), &detail, &state);
+        })?;
+
+        if let Event::Key(key) = event::read()? {
+            if key.kind != KeyEventKind::Press {
+                continue;
+            }
+
+            match key.code {
+                KeyCode::Esc => {
+                    if state.show_yank_popup {
+                        state.show_yank_popup = false;
+                    } else {
+                        break;
+                    }
+                }
+                KeyCode::Char('y') => {
+                    if !state.show_yank_popup {
+                        state.show_yank_popup = true;
+                    }
+                }
+                KeyCode::Char('j') | KeyCode::Down => {
+                    if state.show_yank_popup {
+                        state.yank_next(&detail);
+                    }
+                }
+                KeyCode::Char('k') | KeyCode::Up => {
+                    if state.show_yank_popup {
+                        state.yank_previous(&detail);
+                    }
+                }
+                KeyCode::Enter => {
+                    if state.show_yank_popup {
+                        state.copy_selected(&detail);
+                        state.show_yank_popup = false;
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+
+    disable_raw_mode()?;
+    execute!(
+        terminal.backend_mut(),
+        LeaveAlternateScreen,
+        DisableMouseCapture
+    )?;
+    terminal.show_cursor()?;
+
+    Ok(())
+}
+
+fn show_candidate_detail_tui(detail: crate::cache::bulk_candidates::CandidateDetail) -> anyhow::Result<()> {
+    enable_raw_mode()?;
+    let mut stdout = io::stdout();
+    execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
+    let backend = CrosstermBackend::new(stdout);
+    let mut terminal = Terminal::new(backend)?;
+
+    let mut state = CandidateDetailState::new();
+
+    loop {
+        terminal.draw(|f| {
+            render_candidate_detail(f, f.area(), &detail, &state);
+        })?;
+
+        if let Event::Key(key) = event::read()? {
+            if key.kind != KeyEventKind::Press {
+                continue;
+            }
+
+            match key.code {
+                KeyCode::Esc => {
+                    if state.show_yank_popup {
+                        state.show_yank_popup = false;
+                    } else {
+                        break;
+                    }
+                }
+                KeyCode::Char('y') => {
+                    if !state.show_yank_popup {
+                        state.show_yank_popup = true;
+                    }
+                }
+                KeyCode::Char('j') | KeyCode::Down => {
+                    if state.show_yank_popup {
+                        state.yank_next(&detail);
+                    }
+                }
+                KeyCode::Char('k') | KeyCode::Up => {
+                    if state.show_yank_popup {
+                        state.yank_previous(&detail);
+                    }
+                }
+                KeyCode::Enter => {
+                    if state.show_yank_popup {
+                        state.copy_selected(&detail);
+                        state.show_yank_popup = false;
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+
+    disable_raw_mode()?;
+    execute!(
+        terminal.backend_mut(),
+        LeaveAlternateScreen,
+        DisableMouseCapture
+    )?;
+    terminal.show_cursor()?;
+
+    Ok(())
+}
+
+fn show_filing_detail_tui(detail: FilingDetail) -> anyhow::Result<()> {
+    enable_raw_mode()?;
+    let mut stdout = io::stdout();
+    execute!(stdout, EnterAlternateScreen/*  EnableMouseCapture*/)?;
+    let backend = CrosstermBackend::new(stdout);
+    let mut terminal = Terminal::new(backend)?;
+
+    let mut state = FilingDetailState::new();
+
+    loop {
+        terminal.draw(|f| {
+            render_filing_detail(f, f.area(), &detail, &state);
+        })?;
+
+        if let Event::Key(key) = event::read()? {
+            if key.kind != KeyEventKind::Press {
+                continue;
+            }
+
+            match key.code {
+                KeyCode::Esc | KeyCode::Char('q') => {
+                    if state.show_yank_popup {
+                        state.show_yank_popup = false;
+                    } else {
+                        break;
+                    }
+                }
+                KeyCode::Char('y') => {
+                    if !state.show_yank_popup {
+                        state.show_yank_popup = true;
+                    }
+                }
+                KeyCode::Char('o') => {
+                    let _ = detail.open_in_browser();
+                }
+                KeyCode::Char('j') | KeyCode::Down => {
+                    if state.show_yank_popup {
+                        state.yank_next(&detail);
+                    } else {
+                        state.scroll_down();
+                    }
+                }
+                KeyCode::Char('k') | KeyCode::Up => {
+                    if state.show_yank_popup {
+                        state.yank_previous(&detail);
+                    } else {
+                        state.scroll_up();
+                    }
+                }
+                KeyCode::Enter => {
+                    if state.show_yank_popup {
+                        state.copy_selected(&detail);
+                        state.show_yank_popup = false;
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+
+    disable_raw_mode()?;
+    execute!(
+        terminal.backend_mut(),
+        LeaveAlternateScreen,
+    )?;
+    terminal.show_cursor()?;
 
     Ok(())
 }
