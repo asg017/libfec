@@ -372,11 +372,33 @@ fn process_filing<R: Read>(
     }
 }
 
-enum InfoInput {
+pub enum InfoInput {
     Filing(String),
     Committee(String),
     Candidate(String),
 }
+
+impl InfoInput {
+    pub fn from_arg(arg: &str) -> anyhow::Result<InfoInput> {
+        if arg.starts_with("C") {
+            Ok(InfoInput::Committee(arg.to_string()))
+        } else if arg.starts_with("H") || arg.starts_with("P") || arg.starts_with("S") {
+            Ok(InfoInput::Candidate(arg.to_string()))
+        } 
+        // if input is FEC-XXXXXX or FECXXXXXXX or XXXXXX (where X is digits)
+        else if let Some(stripped) = arg.strip_prefix("FEC-") {
+            Ok(InfoInput::Filing(stripped.to_string()))
+        }
+        else if let Some(stripped) = arg.strip_prefix("FEC") {
+            Ok(InfoInput::Filing(stripped.to_string()))
+        }
+        else {
+          Err(anyhow::anyhow!("Expected a filling, candidate, or committee ID, got  {}", arg))
+        }
+    }
+}
+
+
 pub fn info(mut sourcer: FilingSourcer, args: InfoArgs) -> anyhow::Result<()> {
     let spinner = match args.format {
         CmdInfoFormat::Human => {
@@ -386,16 +408,9 @@ pub fn info(mut sourcer: FilingSourcer, args: InfoArgs) -> anyhow::Result<()> {
         }
         _ => None,
     };
-    let inputs = args.filings.iter().map(|v| {
-        if v.starts_with("C") {
-            InfoInput::Committee(v.clone())
-        } else if v.starts_with("H") || v.starts_with("P") || v.starts_with("S") {
-            // Check if it looks like a candidate ID (followed by digits)
-            InfoInput::Candidate(v.clone())
-        } else {
-            InfoInput::Filing(v.clone())
-        }
-    });
+    let inputs = args.filings.iter().map(
+        |arg| InfoInput::from_arg(arg)
+    ).collect::<anyhow::Result<Vec<InfoInput>>>()?;
     for input in inputs {
         match input {
             InfoInput::Filing(filing_arg) => {
@@ -492,12 +507,15 @@ fn show_committee_detail_tui(detail: crate::cache::bulk_committee::CommitteeDeta
             }
 
             match key.code {
-                KeyCode::Esc => {
+                KeyCode::Esc | KeyCode::Char('q') => {
                     if state.show_yank_popup {
                         state.show_yank_popup = false;
                     } else {
                         break;
                     }
+                }
+                KeyCode::Char('o') => {
+                    let _ = detail.open_in_browser();
                 }
                 KeyCode::Char('y') => {
                     if !state.show_yank_popup {

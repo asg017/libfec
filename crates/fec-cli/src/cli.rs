@@ -453,8 +453,8 @@ pub struct TopLevelArgs {
   long_version = env!("CARGO_PKG_VERSION"), 
   about = "libfec CLI", 
   version,
-  subcommand_required = false,
-  arg_required_else_help = false,
+  subcommand_required = true,
+  arg_required_else_help = true,
 )]
 pub struct Cli {
     #[command(subcommand)]

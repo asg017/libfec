@@ -1,0 +1,9 @@
+---
+source: crates/fec-cli/src/commands/rss.rs
+expression: terminal.backend()
+snapshot_kind: text
+---
+"────────────────────────────────────────────────────────────────────────────────"
+"⟳ Exporting 2/7  │  Next refresh: 4:59  │  q quit  r refresh  ↑↓/gg/G nav  Enter"
+"                    https://efilingapps.fec.gov/rss/generate                    "
+"                                                                                "

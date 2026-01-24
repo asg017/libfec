@@ -107,40 +107,25 @@ impl Default for CandidateDetailState {
     }
 }
 
-pub fn render_candidate_detail(
-    f: &mut Frame,
-    area: Rect,
-    candidate: &CandidateDetail,
-    state: &CandidateDetailState,
-) {
-    let layout = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Length(3),  // Title
-            Constraint::Min(10),    // Content
-            Constraint::Length(2),  // Help text
-        ])
-        .split(area);
-
-    // Title
+fn render_title(f: &mut Frame, candidate: &CandidateDetail, area: Rect) {
     let title_text = format!("{} ({})", candidate.name, candidate.candidate_id);
     let title = Paragraph::new(title_text)
         .block(Block::default()
             .borders(Borders::ALL)
             .border_style(Style::default().fg(Color::Green)))
         .style(Style::default().add_modifier(Modifier::BOLD));
-    f.render_widget(title, layout[0]);
+    f.render_widget(title, area);
+}
 
-    // Content area
+fn render_content(f: &mut Frame, candidate: &CandidateDetail, area: Rect) {
     let content_block = Block::default()
         .borders(Borders::ALL)
         .title("Candidate Information")
         .border_style(Style::default().fg(Color::Green));
 
-    let inner_area = content_block.inner(layout[1]);
-    f.render_widget(content_block, layout[1]);
+    let inner_area = content_block.inner(area);
+    f.render_widget(content_block, area);
 
-    // Build detailed information lines
     let mut lines = vec![];
 
     // Basic info
@@ -266,22 +251,43 @@ pub fn render_candidate_detail(
     let content = Paragraph::new(lines)
         .wrap(Wrap { trim: false });
     f.render_widget(content, inner_area);
+}
 
-    // Help text
-    let help_text = Line::from(vec![
+fn render_help_text(f: &mut Frame, area: Rect) {
+    let help_line = Line::from(vec![
         Span::styled("Esc", Style::default().fg(Color::White).add_modifier(Modifier::BOLD)),
         Span::styled(" back  ", Style::default().fg(Color::DarkGray)),
         Span::styled("y", Style::default().fg(Color::White).add_modifier(Modifier::BOLD)),
         Span::styled(" copy", Style::default().fg(Color::DarkGray)),
     ]);
-    let help = Paragraph::new(help_text)
+    let help = Paragraph::new(help_line)
         .alignment(ratatui::layout::Alignment::Center)
         .block(Block::default().borders(Borders::TOP).border_style(
             Style::default().fg(Color::DarkGray)
         ));
-    f.render_widget(help, layout[2]);
+    f.render_widget(help, area);
+}
 
-    // Render yank popup if active
+pub fn render_candidate_detail(
+    f: &mut Frame,
+    area: Rect,
+    candidate: &CandidateDetail,
+    state: &CandidateDetailState,
+) {
+    let layout = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(3),  // Title
+            Constraint::Min(10),    // Content
+            Constraint::Length(2),  // Help text
+        ]);
+
+    let [title_area, content_area, help_area] = area.layout(&layout);
+
+    render_title(f, candidate, title_area);
+    render_content(f, candidate, content_area);
+    render_help_text(f, help_area);
+
     if state.show_yank_popup {
         render_yank_popup(f, area, candidate, state);
     }

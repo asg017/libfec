@@ -1,0 +1,8 @@
+---
+source: crates/fec-cli/src/commands/rss.rs
+expression: terminal.backend()
+snapshot_kind: text
+---
+"Filters: Preset: Monthly │ Form: F3X │ Committee: C00401224 │ Party: DEM        "
+"                                                                                "
+"                                                                                "

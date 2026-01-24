@@ -1,0 +1,15 @@
+---
+source: crates/fec-cli/src/commands/rss.rs
+expression: terminal.backend()
+snapshot_kind: text
+---
+"┌Recent Filings (loading...)───────────────────────────────────────────────────────────────────────┐"
+"│Committee                                   Form   Report               Filing ID  Age            │"
+"│                                                                                                  │"
+"│                                                                                                  │"
+"│                                                                                                  │"
+"│                                                                                                  │"
+"│                                                                                                  │"
+"│                                                                                                  │"
+"│                                                                                                  │"
+"└──────────────────────────────────────────────────────────────────────────────────────────────────┘"

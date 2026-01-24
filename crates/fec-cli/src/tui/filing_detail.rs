@@ -216,22 +216,7 @@ impl Default for FilingDetailState {
     }
 }
 
-pub fn render_filing_detail(
-    f: &mut Frame,
-    area: Rect,
-    filing: &FilingDetail,
-    state: &FilingDetailState,
-) {
-    let layout = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Length(1),  // Title
-            Constraint::Min(10),    // Content
-            Constraint::Length(2),  // Help text
-        ])
-        .split(area);
-
-    // Title line - mimic text output: "FEC-{id} {form_type} {report_label} by {filer_name} ({filer_id})"
+fn render_title(f: &mut Frame, filing: &FilingDetail, area: Rect) {
     let report_label = filing
         .report_code
         .as_ref()
@@ -243,9 +228,10 @@ pub fn render_filing_detail(
     );
     let title = Paragraph::new(title_text)
         .style(Style::default().add_modifier(Modifier::BOLD));
-    f.render_widget(title, layout[0]);
+    f.render_widget(title, area);
+}
 
-    // Build detailed information lines
+fn render_content(f: &mut Frame, filing: &FilingDetail, state: &FilingDetailState, area: Rect) {
     let mut lines = vec![];
 
     // Coverage period
@@ -257,17 +243,6 @@ pub fn render_filing_detail(
         ]));
         lines.push(Line::from(""));
     }
-
-    // Form description
-    /* Too long
-    let form_desc = form_name(&filing.form_type);
-    if !form_desc.is_empty() {
-        lines.push(Line::from(vec![
-            Span::styled(form_desc, Style::default().fg(Color::DarkGray)),
-        ]));
-        lines.push(Line::from(""));
-    }
-     */
 
     // Treasurer and signed date (for F3P forms)
     if let (Some(ref treasurer), Some(ref signed)) = (&filing.treasurer, &filing.signed_date) {
@@ -285,9 +260,8 @@ pub fn render_filing_detail(
         // Calculate percentage change
         let pct_change = if summary.cash_on_hand_beginning == 0.0 {
             100.0
-        }else {
-          ((summary.cash_on_hand_end - summary.cash_on_hand_beginning) / summary.cash_on_hand_beginning) * 100.0
-          
+        } else {
+            ((summary.cash_on_hand_end - summary.cash_on_hand_beginning) / summary.cash_on_hand_beginning) * 100.0
         };
         let amount_change = summary.cash_on_hand_end - summary.cash_on_hand_beginning;
         let pct_color = if pct_change >= 0.0 { Color::Green } else { Color::Red };
@@ -301,7 +275,7 @@ pub fn render_filing_detail(
 
         // Receipts
         lines.push(Line::from(vec![
-            Span::styled(format!("{:<24}","Receipts"), Style::default().fg(Color::White)),
+            Span::styled(format!("{:<24}", "Receipts"), Style::default().fg(Color::White)),
             Span::styled(format!("+{:>15}", format_usd(summary.total_receipts)), Style::default().fg(Color::Blue)),
         ]));
 
@@ -363,10 +337,11 @@ pub fn render_filing_detail(
     let content = Paragraph::new(lines)
         .wrap(Wrap { trim: false })
         .scroll((state.scroll_offset, 0));
-    f.render_widget(content, layout[1]);
+    f.render_widget(content, area);
+}
 
-    // Help text
-    let help_text = Line::from(vec![
+fn render_help_text(f: &mut Frame, area: Rect) {
+    let help_line = Line::from(vec![
         Span::styled("Esc", Style::default().fg(Color::White).add_modifier(Modifier::BOLD)),
         Span::styled("/", Style::default().fg(Color::DarkGray)),
         Span::styled("q", Style::default().fg(Color::White).add_modifier(Modifier::BOLD)),
@@ -378,14 +353,34 @@ pub fn render_filing_detail(
         Span::styled("j/k", Style::default().fg(Color::White).add_modifier(Modifier::BOLD)),
         Span::styled(" scroll", Style::default().fg(Color::DarkGray)),
     ]);
-    let help = Paragraph::new(help_text)
+    let help = Paragraph::new(help_line)
         .alignment(ratatui::layout::Alignment::Center)
         .block(Block::default().borders(Borders::TOP).border_style(
             Style::default().fg(Color::DarkGray)
         ));
-    f.render_widget(help, layout[2]);
+    f.render_widget(help, area);
+}
 
-    // Render yank popup if active
+pub fn render_filing_detail(
+    f: &mut Frame,
+    area: Rect,
+    filing: &FilingDetail,
+    state: &FilingDetailState,
+) {
+    let layout = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(1),  // Title
+            Constraint::Min(10),    // Content
+            Constraint::Length(2),  // Help text
+        ]);
+
+    let [title_area, content_area, help_area] = area.layout(&layout);
+
+    render_title(f, filing, title_area);
+    render_content(f, filing, state, content_area);
+    render_help_text(f, help_area);
+
     if state.show_yank_popup {
         render_yank_popup(f, area, filing, state);
     }

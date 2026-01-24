@@ -71,6 +71,16 @@ pub struct CommitteeDetail {
     pub candidate_id: Option<String>,
 }
 
+impl CommitteeDetail {
+    pub fn fec_url(&self) -> String {
+        format!("https://www.fec.gov/data/committee/{}/", self.committee_id)
+    }
+
+    pub fn open_in_browser(&self) -> Result<(), std::io::Error> {
+        open::that(self.fec_url())
+    }
+}
+
 pub fn search_committees(
     bulk_db: &mut Connection,
     cycle: u16,

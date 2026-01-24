@@ -463,20 +463,7 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<Stdout>>, app: &mut App) -> 
     }
 }
 
-fn ui(f: &mut Frame, app: &mut App) {
-    let main_layout = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Length(3),  // Header
-            Constraint::Length(10), // Calendar row (3-4 months)
-            Constraint::Length(1),  // Legend
-            Constraint::Min(1),     // Events list
-            Constraint::Length(5),  // Event details
-            Constraint::Length(2),  // Footer
-        ])
-        .split(f.area());
-
-    // Header
+fn render_header(f: &mut Frame, app: &App, area: Rect) {
     let category_str = app.args.category_display();
 
     let header_text = if let Some(ref error) = app.error {
@@ -508,21 +495,10 @@ fn ui(f: &mut Frame, app: &mut App) {
 
     let header = Paragraph::new(header_text)
         .block(Block::default().borders(Borders::ALL).title("FEC Calendar Dates"));
-    f.render_widget(header, main_layout[0]);
+    f.render_widget(header, area);
+}
 
-    // Render calendar row (3-4 months based on width)
-    render_calendar_row(f, app, main_layout[1]);
-
-    // Render legend
-    render_legend(f, main_layout[2]);
-
-    // Render events list
-    render_events_list(f, app, main_layout[3]);
-
-    // Render event details
-    render_event_detail_panel(f, app, main_layout[4]);
-
-    // Footer with help
+fn render_footer(f: &mut Frame, area: Rect) {
     let shortcut_style = Style::default().bold().fg(Color::White);
     let descrip_style = Style::default().fg(Color::DarkGray);
 
@@ -548,7 +524,30 @@ fn ui(f: &mut Frame, app: &mut App) {
                 .borders(Borders::TOP)
                 .border_style(Style::default().fg(Color::DarkGray)),
         );
-    f.render_widget(footer, main_layout[5]);
+    f.render_widget(footer, area);
+}
+
+fn ui(f: &mut Frame, app: &mut App) {
+    let layout = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(3),  // Header
+            Constraint::Length(10), // Calendar row (3-4 months)
+            Constraint::Length(1),  // Legend
+            Constraint::Min(1),     // Events list
+            Constraint::Length(5),  // Event details
+            Constraint::Length(2),  // Footer
+        ]);
+
+    let [header_area, calendar_area, legend_area, events_area, detail_area, footer_area] =
+        f.area().layout(&layout);
+
+    render_header(f, app, header_area);
+    render_calendar_row(f, app, calendar_area);
+    render_legend(f, legend_area);
+    render_events_list(f, app, events_area);
+    render_event_detail_panel(f, app, detail_area);
+    render_footer(f, footer_area);
 }
 
 fn render_legend(f: &mut Frame, area: Rect) {

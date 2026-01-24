@@ -1,4 +1,4 @@
-/**
+/*!
  * Committee Detail TUI Component
  *
  * This module provides rendering functions for displaying detailed committee information
@@ -107,31 +107,15 @@ impl Default for CommitteeDetailState {
     }
 }
 
-pub fn render_committee_detail(
-    f: &mut Frame,
-    area: Rect,
-    committee: &CommitteeDetail,
-    state: &CommitteeDetailState,
-) {
-    let layout = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Length(1),  // Title
-            Constraint::Min(10),    // Content
-            Constraint::Length(2),  // Help text
-        ])
-        .split(area);
 
-    // Title
+fn render_title(f: &mut Frame, committee: &CommitteeDetail, area: Rect) {
     let title_text = format!("{} ({})", committee.name, committee.committee_id);
     let title = Paragraph::new(title_text)
         .style(Style::default().add_modifier(Modifier::BOLD));
-    f.render_widget(title, layout[0]);
+    f.render_widget(title, area);
+}
 
-
-    
-
-    // Build detailed information lines
+fn render_content(f: &mut Frame, committee: &CommitteeDetail, area: Rect) {
     let mut lines = vec![];
 
     // Basic info
@@ -241,28 +225,26 @@ pub fn render_committee_detail(
 
     let content = Paragraph::new(lines)
         .wrap(Wrap { trim: false });
-    f.render_widget(content, layout[1]);
+    f.render_widget(content, area);
+}
 
-    // Help text
-    let help_text = Line::from(vec![
+fn render_help_text(f: &mut Frame, area: Rect) {
+    let help_line = Line::from(vec![
         Span::styled("Esc", Style::default().fg(Color::White).add_modifier(Modifier::BOLD)),
         Span::styled("/", Style::default().fg(Color::DarkGray)),
         Span::styled("q", Style::default().fg(Color::White).add_modifier(Modifier::BOLD)),
         Span::styled(" back  ", Style::default().fg(Color::DarkGray)),
+        Span::styled("o", Style::default().fg(Color::White).add_modifier(Modifier::BOLD)),
+        Span::styled(" open  ", Style::default().fg(Color::DarkGray)),
         Span::styled("y", Style::default().fg(Color::White).add_modifier(Modifier::BOLD)),
         Span::styled(" copy", Style::default().fg(Color::DarkGray)),
     ]);
-    let help = Paragraph::new(help_text)
+    let help = Paragraph::new(help_line)
         .alignment(ratatui::layout::Alignment::Center)
         .block(Block::default().borders(Borders::TOP).border_style(
             Style::default().fg(Color::DarkGray)
         ));
-    f.render_widget(help, layout[2]);
-
-    // Render yank popup if active
-    if state.show_yank_popup {
-        render_yank_popup(f, area, committee, state);
-    }
+    f.render_widget(help, area);
 }
 
 /// Helper function to create a centered rect using certain percentage of available rect
@@ -332,4 +314,30 @@ fn render_yank_popup(f: &mut Frame, area: Rect, committee: &CommitteeDetail, sta
     let paragraph = Paragraph::new(lines)
         .wrap(Wrap { trim: false });
     f.render_widget(paragraph, inner_area);
+}
+
+
+pub fn render_committee_detail(
+    f: &mut Frame,
+    area: Rect,
+    committee: &CommitteeDetail,
+    state: &CommitteeDetailState,
+) {
+    let layout = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(1),  // Title
+            Constraint::Min(10),    // Content
+            Constraint::Length(2),  // Help text
+        ]);
+
+    let [title_area, content_area, help_area] = area.layout(&layout);
+
+    render_title(f, committee, title_area);
+    render_content(f, committee, content_area);
+    render_help_text(f, help_area);
+
+    if state.show_yank_popup {
+        render_yank_popup(f, area, committee, state);
+    }
 }

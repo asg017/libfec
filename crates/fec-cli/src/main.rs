@@ -12,23 +12,48 @@ mod commands;
 mod rss;
 mod sourcer;
 mod tui;
-use crate::cli::Commands;
+use crate::cli::{Cli,Commands};
 use clap::Parser;
 use std::env;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    let cli = cli::Cli::parse_from(args.clone());
-    let sourcer = sourcer::FilingSourcer::new(cli.top_level.cache_directory.clone());
-    let result = match *cli.command {
-        Commands::Info(args) => commands::info(sourcer, args),
-        Commands::Export(args) => commands::export(sourcer, *args),
-        Commands::Fastfec(args) => commands::fastfec(sourcer, args),
-        Commands::Cache(ref args) => commands::cache(sourcer, args),
-        Commands::Search(ref args) => commands::search(sourcer, args),
-        Commands::Bulk(ref args) => commands::bulk(sourcer, args),
-        Commands::Rss(ref args) => commands::rss(sourcer, args),
-        Commands::Dates(ref args) => commands::dates(sourcer, args),
+    let result = match Cli::try_parse_from(args.clone()) {
+        Ok(cli) => {
+            let sourcer = sourcer::FilingSourcer::new(cli.top_level.cache_directory.clone());
+            match *cli.command {
+                Commands::Info(args) => commands::info(sourcer, args),
+                Commands::Export(args) => commands::export(sourcer, *args),
+                Commands::Fastfec(args) => commands::fastfec(sourcer, args),
+                Commands::Cache(ref args) => commands::cache(sourcer, args),
+                Commands::Search(ref args) => commands::search(sourcer, args),
+                Commands::Bulk(ref args) => commands::bulk(sourcer, args),
+                Commands::Rss(ref args) => commands::rss(sourcer, args),
+                Commands::Dates(ref args) => commands::dates(sourcer, args),
+            }
+        }
+        Err(parse_err) => {
+            // If parsing failed, check if the first argument could be an InfoInput
+            if args.len() > 1 {
+                if let Ok(_) = commands::InfoInput::from_arg(&args[1]) {
+                    // Treat as info command with the argument as a filing/committee/candidate
+                    let sourcer = sourcer::FilingSourcer::new(None);
+                    let info_args = cli::InfoArgs {
+                        filings: args[1..].to_vec(),
+                        input_file: None,
+                        format: cli::CmdInfoFormat::Human,
+                        display: cli::InfoDisplayMode::Text,
+                        full: false,
+                    };
+                    commands::info(sourcer, info_args)
+                } else {
+                    eprintln!("error: unrecognized command '{}'\n", args[1]);
+                    parse_err.exit();
+                }
+            } else {
+                parse_err.exit();
+            }
+        }
     };
 
     match result {
