@@ -18,6 +18,7 @@
  * - Esc: Cancel and close popup
  */
 
+use crossterm::event::{KeyCode, KeyEvent};
 use fec_parser::{covers::Cover, report_code_label};
 use indicatif::HumanBytes;
 use num_format::{Locale, ToFormattedString};
@@ -28,6 +29,17 @@ use ratatui::{
     text::{Line, Span},
     widgets::{Block, Borders, Clear, Paragraph, Wrap},
 };
+
+/// Action returned by handle_key_event indicating what the parent should do
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FilingDetailAction {
+    /// Key was handled internally, no action needed from parent
+    None,
+    /// User wants to exit/go back
+    Exit,
+    /// User pressed 'o' to open in browser
+    OpenBrowser,
+}
 
 /// Holds extracted filing information for TUI display
 pub struct FilingDetail {
@@ -207,6 +219,55 @@ impl FilingDetailState {
 
     pub fn scroll_up(&mut self) {
         self.scroll_offset = self.scroll_offset.saturating_sub(1);
+    }
+
+    /// Handle a key event and return an action for the parent to perform
+    pub fn handle_key_event(
+        &mut self,
+        key: KeyEvent,
+        filing: &FilingDetail,
+    ) -> FilingDetailAction {
+        match key.code {
+            KeyCode::Esc | KeyCode::Char('q') => {
+                if self.show_yank_popup {
+                    self.show_yank_popup = false;
+                    FilingDetailAction::None
+                } else {
+                    FilingDetailAction::Exit
+                }
+            }
+            KeyCode::Char('o') => FilingDetailAction::OpenBrowser,
+            KeyCode::Char('y') => {
+                if !self.show_yank_popup {
+                    self.show_yank_popup = true;
+                }
+                FilingDetailAction::None
+            }
+            KeyCode::Char('j') | KeyCode::Down => {
+                if self.show_yank_popup {
+                    self.yank_next(filing);
+                } else {
+                    self.scroll_down();
+                }
+                FilingDetailAction::None
+            }
+            KeyCode::Char('k') | KeyCode::Up => {
+                if self.show_yank_popup {
+                    self.yank_previous(filing);
+                } else {
+                    self.scroll_up();
+                }
+                FilingDetailAction::None
+            }
+            KeyCode::Enter => {
+                if self.show_yank_popup {
+                    self.copy_selected(filing);
+                    self.show_yank_popup = false;
+                }
+                FilingDetailAction::None
+            }
+            _ => FilingDetailAction::None,
+        }
     }
 }
 

@@ -71,8 +71,8 @@ use crate::{
     cache::bulk_committee::{CommitteeDetail, CommitteeSearchResult},
     cli::SearchArgs,
     sourcer::FilingSourcer,
-    tui::candidate_detail::{render_candidate_detail, CandidateDetailState},
-    tui::committee_detail::{render_committee_detail, CommitteeDetailState},
+    tui::candidate_detail::{render_candidate_detail, CandidateDetailAction, CandidateDetailState},
+    tui::committee_detail::{render_committee_detail, CommitteeDetailAction, CommitteeDetailState},
 };
 use anyhow::Result;
 use crossterm::{
@@ -408,284 +408,187 @@ fn run_app<B: ratatui::backend::Backend>(
                 continue;
             }
 
+            // Handle detail views first - they manage their own keypresses
+            match app.view_state {
+                ViewState::CandidateDetail => {
+                    if let Some(ref candidate) = app.candidate_detail {
+                        match app.candidate_detail_state.handle_key_event(key, candidate) {
+                            CandidateDetailAction::Exit => app.go_back_to_search(),
+                            CandidateDetailAction::None => {}
+                        }
+                    }
+                    continue;
+                }
+                ViewState::CommitteeDetail => {
+                    if let Some(ref committee) = app.committee_detail {
+                        match app.committee_detail_state.handle_key_event(key, committee) {
+                            CommitteeDetailAction::Exit => app.go_back_to_search(),
+                            CommitteeDetailAction::OpenBrowser => {
+                                let _ = committee.open_in_browser();
+                            }
+                            CommitteeDetailAction::None => {}
+                        }
+                    }
+                    continue;
+                }
+                ViewState::Search => {} // Fall through to search view handling
+            }
+
+            // Search view key handling
             match key.code {
-                KeyCode::Esc => match app.view_state {
-                    ViewState::Search => return Ok(()),
-                    ViewState::CandidateDetail => {
-                        if app.candidate_detail_state.show_yank_popup {
-                            app.candidate_detail_state.show_yank_popup = false;
-                        } else {
-                            app.go_back_to_search();
-                        }
-                    }
-                    ViewState::CommitteeDetail => {
-                        if app.committee_detail_state.show_yank_popup {
-                            app.committee_detail_state.show_yank_popup = false;
-                        } else {
-                            app.go_back_to_search();
-                        }
-                    }
-                },
+                KeyCode::Esc => return Ok(()),
                 KeyCode::Tab => {
-                    if app.view_state == ViewState::Search {
-                        if key
-                            .modifiers
-                            .contains(crossterm::event::KeyModifiers::SHIFT)
-                        {
-                            app.focus_previous();
-                        } else {
-                            app.focus_next();
-                        }
+                    if key
+                        .modifiers
+                        .contains(crossterm::event::KeyModifiers::SHIFT)
+                    {
+                        app.focus_previous();
+                    } else {
+                        app.focus_next();
                     }
                 }
                 KeyCode::BackTab => {
-                    if app.view_state == ViewState::Search {
-                        app.focus_previous();
-                    }
+                    app.focus_previous();
                 }
-                KeyCode::Enter => match app.view_state {
-                    ViewState::Search => {
-                        app.select_current(sourcer)?;
-                    }
-                    ViewState::CandidateDetail => {
-                        if app.candidate_detail_state.show_yank_popup {
-                            if let Some(ref candidate) = app.candidate_detail {
-                                app.candidate_detail_state.copy_selected(candidate);
-                                app.candidate_detail_state.show_yank_popup = false;
-                            }
-                        }
-                    }
-                    ViewState::CommitteeDetail => {
-                        if app.committee_detail_state.show_yank_popup {
-                            if let Some(ref committee) = app.committee_detail {
-                                app.committee_detail_state.copy_selected(committee);
-                                app.committee_detail_state.show_yank_popup = false;
-                            }
-                        }
-                    }
-                },
+                KeyCode::Enter => {
+                    app.select_current(sourcer)?;
+                }
                 KeyCode::Up => {
-                    match app.view_state {
-                        ViewState::Search => {
-                            match app.focus {
-                                FocusPanel::Search => {
-                                    // Switch focus to results and navigate
-                                    let has_results = match app.active_tab {
-                                        ResultsTab::Candidates => !app.candidate_results.is_empty(),
-                                        ResultsTab::Committees => !app.committee_results.is_empty(),
-                                    };
-                                    if has_results {
-                                        app.focus = FocusPanel::Results;
-                                        match app.active_tab {
-                                            ResultsTab::Candidates => app.candidate_previous(),
-                                            ResultsTab::Committees => app.committee_previous(),
-                                        }
-                                    }
-                                }
-                                FocusPanel::Cycle => {
-                                    app.cycle_next();
-                                    app.search(sourcer)?;
-                                }
-                                FocusPanel::Results => match app.active_tab {
+                    match app.focus {
+                        FocusPanel::Search => {
+                            // Switch focus to results and navigate
+                            let has_results = match app.active_tab {
+                                ResultsTab::Candidates => !app.candidate_results.is_empty(),
+                                ResultsTab::Committees => !app.committee_results.is_empty(),
+                            };
+                            if has_results {
+                                app.focus = FocusPanel::Results;
+                                match app.active_tab {
                                     ResultsTab::Candidates => app.candidate_previous(),
                                     ResultsTab::Committees => app.committee_previous(),
-                                },
-                            }
-                        }
-                        ViewState::CandidateDetail => {
-                            if app.candidate_detail_state.show_yank_popup {
-                                if let Some(ref candidate) = app.candidate_detail {
-                                    app.candidate_detail_state.yank_previous(candidate);
                                 }
                             }
                         }
-                        ViewState::CommitteeDetail => {
-                            if app.committee_detail_state.show_yank_popup {
-                                if let Some(ref committee) = app.committee_detail {
-                                    app.committee_detail_state.yank_previous(committee);
-                                }
-                            }
+                        FocusPanel::Cycle => {
+                            app.cycle_next();
+                            app.search(sourcer)?;
                         }
+                        FocusPanel::Results => match app.active_tab {
+                            ResultsTab::Candidates => app.candidate_previous(),
+                            ResultsTab::Committees => app.committee_previous(),
+                        },
                     }
                 }
                 KeyCode::Down => {
-                    match app.view_state {
-                        ViewState::Search => {
-                            match app.focus {
-                                FocusPanel::Search => {
-                                    // Switch focus to results and navigate
-                                    let has_results = match app.active_tab {
-                                        ResultsTab::Candidates => !app.candidate_results.is_empty(),
-                                        ResultsTab::Committees => !app.committee_results.is_empty(),
-                                    };
-                                    if has_results {
-                                        app.focus = FocusPanel::Results;
-                                        match app.active_tab {
-                                            ResultsTab::Candidates => app.candidate_next(),
-                                            ResultsTab::Committees => app.committee_next(),
-                                        }
-                                    }
-                                }
-                                FocusPanel::Cycle => {
-                                    app.cycle_previous();
-                                    app.search(sourcer)?;
-                                }
-                                FocusPanel::Results => match app.active_tab {
+                    match app.focus {
+                        FocusPanel::Search => {
+                            // Switch focus to results and navigate
+                            let has_results = match app.active_tab {
+                                ResultsTab::Candidates => !app.candidate_results.is_empty(),
+                                ResultsTab::Committees => !app.committee_results.is_empty(),
+                            };
+                            if has_results {
+                                app.focus = FocusPanel::Results;
+                                match app.active_tab {
                                     ResultsTab::Candidates => app.candidate_next(),
                                     ResultsTab::Committees => app.committee_next(),
-                                },
-                            }
-                        }
-                        ViewState::CandidateDetail => {
-                            if app.candidate_detail_state.show_yank_popup {
-                                if let Some(ref candidate) = app.candidate_detail {
-                                    app.candidate_detail_state.yank_next(candidate);
                                 }
                             }
                         }
-                        ViewState::CommitteeDetail => {
-                            if app.committee_detail_state.show_yank_popup {
-                                if let Some(ref committee) = app.committee_detail {
-                                    app.committee_detail_state.yank_next(committee);
-                                }
-                            }
+                        FocusPanel::Cycle => {
+                            app.cycle_previous();
+                            app.search(sourcer)?;
                         }
+                        FocusPanel::Results => match app.active_tab {
+                            ResultsTab::Candidates => app.candidate_next(),
+                            ResultsTab::Committees => app.committee_next(),
+                        },
                     }
                 }
                 KeyCode::Left => {
-                    if app.view_state == ViewState::Search
-                        && app.focus == FocusPanel::Search
-                        && app.cursor_position > 0
-                    {
+                    if app.focus == FocusPanel::Search && app.cursor_position > 0 {
                         app.cursor_position -= 1;
                     }
                 }
                 KeyCode::Right => {
-                    if app.view_state == ViewState::Search
-                        && app.focus == FocusPanel::Search
-                        && app.cursor_position < app.input.len()
-                    {
+                    if app.focus == FocusPanel::Search && app.cursor_position < app.input.len() {
                         app.cursor_position += 1;
                     }
                 }
                 KeyCode::Home => {
-                    if app.view_state == ViewState::Search && app.focus == FocusPanel::Search {
+                    if app.focus == FocusPanel::Search {
                         app.cursor_position = 0;
                     }
                 }
                 KeyCode::End => {
-                    if app.view_state == ViewState::Search && app.focus == FocusPanel::Search {
+                    if app.focus == FocusPanel::Search {
                         app.cursor_position = app.input.len();
                     }
                 }
                 KeyCode::Backspace => {
-                    if app.view_state == ViewState::Search
-                        && app.focus == FocusPanel::Search
-                        && app.cursor_position > 0
-                    {
+                    if app.focus == FocusPanel::Search && app.cursor_position > 0 {
                         app.input.remove(app.cursor_position - 1);
                         app.cursor_position -= 1;
                         app.search(sourcer)?;
                     }
                 }
                 KeyCode::Delete => {
-                    if app.view_state == ViewState::Search
-                        && app.focus == FocusPanel::Search
-                        && app.cursor_position < app.input.len()
-                    {
+                    if app.focus == FocusPanel::Search && app.cursor_position < app.input.len() {
                         app.input.remove(app.cursor_position);
                         app.search(sourcer)?;
                     }
                 }
                 KeyCode::PageUp => {
-                    if app.view_state == ViewState::Search {
-                        app.cycle_next();
-                        app.search(sourcer)?;
-                    }
+                    app.cycle_next();
+                    app.search(sourcer)?;
                 }
                 KeyCode::PageDown => {
-                    if app.view_state == ViewState::Search {
-                        app.cycle_previous();
-                        app.search(sourcer)?;
-                    }
+                    app.cycle_previous();
+                    app.search(sourcer)?;
                 }
                 KeyCode::Char(c) => {
-                    match app.view_state {
-                        ViewState::Search => {
-                            // Ctrl+A to switch to Candidates tab
-                            if c == 'a'
-                                && key
-                                    .modifiers
-                                    .contains(crossterm::event::KeyModifiers::CONTROL)
-                            {
-                                app.active_tab = ResultsTab::Candidates;
-                                // Ensure candidate has selection if results exist
-                                if !app.candidate_results.is_empty()
-                                    && app.candidate_table_state.selected().is_none()
-                                {
-                                    app.candidate_table_state.select(Some(0));
-                                }
-                            }
-                            // Ctrl+B to switch to Committees tab
-                            else if c == 'b'
-                                && key
-                                    .modifiers
-                                    .contains(crossterm::event::KeyModifiers::CONTROL)
-                            {
-                                app.active_tab = ResultsTab::Committees;
-                                // Ensure committee has selection if results exist
-                                if !app.committee_results.is_empty()
-                                    && app.committee_table_state.selected().is_none()
-                                {
-                                    app.committee_table_state.select(Some(0));
-                                }
-                            }
-                            // Ctrl+C quit
-                            else if c == 'c'
-                                && key
-                                    .modifiers
-                                    .contains(crossterm::event::KeyModifiers::CONTROL)
-                            {
-                                return Ok(());
-                            }
-                            // Allow typing alphanumeric characters to update search from any focus
-                            else if c.is_alphanumeric()
-                                || c.is_whitespace()
-                                || c == '-'
-                                || c == '_'
-                            {
-                                app.input.insert(app.cursor_position, c);
-                                app.cursor_position += 1;
-                                app.search(sourcer)?;
-                                app.focus = FocusPanel::Search;
-                            }
+                    // Ctrl+A to switch to Candidates tab
+                    if c == 'a'
+                        && key
+                            .modifiers
+                            .contains(crossterm::event::KeyModifiers::CONTROL)
+                    {
+                        app.active_tab = ResultsTab::Candidates;
+                        // Ensure candidate has selection if results exist
+                        if !app.candidate_results.is_empty()
+                            && app.candidate_table_state.selected().is_none()
+                        {
+                            app.candidate_table_state.select(Some(0));
                         }
-                        ViewState::CandidateDetail => {
-                            if c == 'y' && !app.candidate_detail_state.show_yank_popup {
-                                app.candidate_detail_state.show_yank_popup = true;
-                            } else if c == 'j' && app.candidate_detail_state.show_yank_popup {
-                                if let Some(ref candidate) = app.candidate_detail {
-                                    app.candidate_detail_state.yank_next(candidate);
-                                }
-                            } else if c == 'k' && app.candidate_detail_state.show_yank_popup {
-                                if let Some(ref candidate) = app.candidate_detail {
-                                    app.candidate_detail_state.yank_previous(candidate);
-                                }
-                            }
+                    }
+                    // Ctrl+B to switch to Committees tab
+                    else if c == 'b'
+                        && key
+                            .modifiers
+                            .contains(crossterm::event::KeyModifiers::CONTROL)
+                    {
+                        app.active_tab = ResultsTab::Committees;
+                        // Ensure committee has selection if results exist
+                        if !app.committee_results.is_empty()
+                            && app.committee_table_state.selected().is_none()
+                        {
+                            app.committee_table_state.select(Some(0));
                         }
-                        ViewState::CommitteeDetail => {
-                            if c == 'y' && !app.committee_detail_state.show_yank_popup {
-                                app.committee_detail_state.show_yank_popup = true;
-                            } else if c == 'j' && app.committee_detail_state.show_yank_popup {
-                                if let Some(ref committee) = app.committee_detail {
-                                    app.committee_detail_state.yank_next(committee);
-                                }
-                            } else if c == 'k' && app.committee_detail_state.show_yank_popup {
-                                if let Some(ref committee) = app.committee_detail {
-                                    app.committee_detail_state.yank_previous(committee);
-                                }
-                            }
-                        }
+                    }
+                    // Ctrl+C quit
+                    else if c == 'c'
+                        && key
+                            .modifiers
+                            .contains(crossterm::event::KeyModifiers::CONTROL)
+                    {
+                        return Ok(());
+                    }
+                    // Allow typing alphanumeric characters to update search from any focus
+                    else if c.is_alphanumeric() || c.is_whitespace() || c == '-' || c == '_' {
+                        app.input.insert(app.cursor_position, c);
+                        app.cursor_position += 1;
+                        app.search(sourcer)?;
+                        app.focus = FocusPanel::Search;
                     }
                 }
                 _ => {}

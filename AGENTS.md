@@ -218,3 +218,97 @@ cargo insta review
 ```
 
 Snapshots are stored in `snapshots/` directory alongside the test file.
+
+## Reusable TUI Components with Self-Contained Keypress Handling
+
+When a TUI component (like a detail view) is used in multiple places with different parent apps, centralize keypress handling in the component itself using an action enum pattern.
+
+### Problem
+
+Detail views like `CommitteeDetailState` may be embedded in:
+- Standalone TUI apps (e.g., `fec info C00401224`)
+- Larger apps with multiple views (e.g., `fec search` → select → detail view)
+
+Duplicating keypress handling in each parent leads to inconsistency and maintenance burden.
+
+### Solution: Action Enum + `handle_key_event()`
+
+1. **Define an action enum** in the component module:
+
+```rust
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CommitteeDetailAction {
+    None,         // Key handled internally, no parent action needed
+    Exit,         // User wants to exit/go back
+    OpenBrowser,  // User pressed 'o' to open in browser
+}
+```
+
+2. **Add `handle_key_event()` to the state struct**:
+
+```rust
+impl CommitteeDetailState {
+    pub fn handle_key_event(
+        &mut self,
+        key: KeyEvent,
+        data: &CommitteeDetail,
+    ) -> CommitteeDetailAction {
+        match key.code {
+            KeyCode::Esc | KeyCode::Char('q') => {
+                if self.show_popup {
+                    self.show_popup = false;
+                    CommitteeDetailAction::None
+                } else {
+                    CommitteeDetailAction::Exit
+                }
+            }
+            KeyCode::Char('o') => CommitteeDetailAction::OpenBrowser,
+            KeyCode::Char('y') => {
+                self.show_popup = true;
+                CommitteeDetailAction::None
+            }
+            // ... other keys
+            _ => CommitteeDetailAction::None,
+        }
+    }
+}
+```
+
+3. **Parent apps handle only the actions they care about**:
+
+```rust
+// Standalone TUI (info command)
+loop {
+    terminal.draw(|f| render_committee_detail(f, area, &detail, &state))?;
+
+    if let Event::Key(key) = event::read()? {
+        match state.handle_key_event(key, &detail) {
+            CommitteeDetailAction::Exit => break,
+            CommitteeDetailAction::OpenBrowser => { detail.open_in_browser(); }
+            CommitteeDetailAction::None => {}
+        }
+    }
+}
+
+// Embedded in larger app (search command)
+match app.view_state {
+    ViewState::CommitteeDetail => {
+        if let Some(ref committee) = app.committee_detail {
+            match app.committee_detail_state.handle_key_event(key, committee) {
+                CommitteeDetailAction::Exit => app.go_back_to_search(),
+                CommitteeDetailAction::OpenBrowser => { committee.open_in_browser(); }
+                CommitteeDetailAction::None => {}
+            }
+        }
+        continue; // Don't fall through to other key handling
+    }
+    ViewState::Search => { /* search key handling */ }
+}
+```
+
+### Benefits
+
+- **Single source of truth**: All component-specific keys defined once
+- **Consistency**: Same behavior everywhere the component is used
+- **Extensibility**: Adding new keys only requires updating the component
+- **Clean separation**: Parent decides what `Exit` means in its context

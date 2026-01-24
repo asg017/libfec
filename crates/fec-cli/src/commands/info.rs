@@ -21,15 +21,15 @@ use indicatif::{HumanBytes, ProgressBar};
 use serde_json::Value;
 use std::{collections::HashMap, io::{self, Read}, time::Duration};
 use crossterm::{
-    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEventKind},
+    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyEventKind},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 use ratatui::{backend::CrosstermBackend, Terminal};
 use crate::tui::{
-    candidate_detail::{CandidateDetailState, render_candidate_detail},
-    committee_detail::{CommitteeDetailState, render_committee_detail},
-    filing_detail::{FilingDetail, FilingDetailState, render_filing_detail},
+    candidate_detail::{CandidateDetailAction, CandidateDetailState, render_candidate_detail},
+    committee_detail::{CommitteeDetailAction, CommitteeDetailState, render_committee_detail},
+    filing_detail::{FilingDetail, FilingDetailAction, FilingDetailState, render_filing_detail},
 };
 
 use tabled::{
@@ -439,6 +439,7 @@ pub fn info(mut sourcer: FilingSourcer, args: InfoArgs) -> anyhow::Result<()> {
                             &committee_id
                         ) {
                             Ok(Some(detail)) => {
+                                spinner.as_ref().map(|s| s.finish_and_clear());
                                 show_committee_detail_tui(detail)?;
                             }
                             Ok(None) => {
@@ -466,6 +467,7 @@ pub fn info(mut sourcer: FilingSourcer, args: InfoArgs) -> anyhow::Result<()> {
                             &candidate_id
                         ) {
                             Ok(Some(detail)) => {
+                              spinner.as_ref().map(|s| s.finish_and_clear());
                                 show_candidate_detail_tui(detail)?;
                             }
                             Ok(None) => {
@@ -506,39 +508,12 @@ fn show_committee_detail_tui(detail: crate::cache::bulk_committee::CommitteeDeta
                 continue;
             }
 
-            match key.code {
-                KeyCode::Esc | KeyCode::Char('q') => {
-                    if state.show_yank_popup {
-                        state.show_yank_popup = false;
-                    } else {
-                        break;
-                    }
-                }
-                KeyCode::Char('o') => {
+            match state.handle_key_event(key, &detail) {
+                CommitteeDetailAction::Exit => break,
+                CommitteeDetailAction::OpenBrowser => {
                     let _ = detail.open_in_browser();
                 }
-                KeyCode::Char('y') => {
-                    if !state.show_yank_popup {
-                        state.show_yank_popup = true;
-                    }
-                }
-                KeyCode::Char('j') | KeyCode::Down => {
-                    if state.show_yank_popup {
-                        state.yank_next(&detail);
-                    }
-                }
-                KeyCode::Char('k') | KeyCode::Up => {
-                    if state.show_yank_popup {
-                        state.yank_previous(&detail);
-                    }
-                }
-                KeyCode::Enter => {
-                    if state.show_yank_popup {
-                        state.copy_selected(&detail);
-                        state.show_yank_popup = false;
-                    }
-                }
-                _ => {}
+                CommitteeDetailAction::None => {}
             }
         }
     }
@@ -573,36 +548,9 @@ fn show_candidate_detail_tui(detail: crate::cache::bulk_candidates::CandidateDet
                 continue;
             }
 
-            match key.code {
-                KeyCode::Esc => {
-                    if state.show_yank_popup {
-                        state.show_yank_popup = false;
-                    } else {
-                        break;
-                    }
-                }
-                KeyCode::Char('y') => {
-                    if !state.show_yank_popup {
-                        state.show_yank_popup = true;
-                    }
-                }
-                KeyCode::Char('j') | KeyCode::Down => {
-                    if state.show_yank_popup {
-                        state.yank_next(&detail);
-                    }
-                }
-                KeyCode::Char('k') | KeyCode::Up => {
-                    if state.show_yank_popup {
-                        state.yank_previous(&detail);
-                    }
-                }
-                KeyCode::Enter => {
-                    if state.show_yank_popup {
-                        state.copy_selected(&detail);
-                        state.show_yank_popup = false;
-                    }
-                }
-                _ => {}
+            match state.handle_key_event(key, &detail) {
+                CandidateDetailAction::Exit => break,
+                CandidateDetailAction::None => {}
             }
         }
     }
@@ -637,43 +585,12 @@ fn show_filing_detail_tui(detail: FilingDetail) -> anyhow::Result<()> {
                 continue;
             }
 
-            match key.code {
-                KeyCode::Esc | KeyCode::Char('q') => {
-                    if state.show_yank_popup {
-                        state.show_yank_popup = false;
-                    } else {
-                        break;
-                    }
-                }
-                KeyCode::Char('y') => {
-                    if !state.show_yank_popup {
-                        state.show_yank_popup = true;
-                    }
-                }
-                KeyCode::Char('o') => {
+            match state.handle_key_event(key, &detail) {
+                FilingDetailAction::Exit => break,
+                FilingDetailAction::OpenBrowser => {
                     let _ = detail.open_in_browser();
                 }
-                KeyCode::Char('j') | KeyCode::Down => {
-                    if state.show_yank_popup {
-                        state.yank_next(&detail);
-                    } else {
-                        state.scroll_down();
-                    }
-                }
-                KeyCode::Char('k') | KeyCode::Up => {
-                    if state.show_yank_popup {
-                        state.yank_previous(&detail);
-                    } else {
-                        state.scroll_up();
-                    }
-                }
-                KeyCode::Enter => {
-                    if state.show_yank_popup {
-                        state.copy_selected(&detail);
-                        state.show_yank_popup = false;
-                    }
-                }
-                _ => {}
+                FilingDetailAction::None => {}
             }
         }
     }

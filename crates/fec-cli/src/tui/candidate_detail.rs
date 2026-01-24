@@ -19,6 +19,7 @@
  */
 
 use crate::cache::bulk_candidates::CandidateDetail;
+use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{
     Frame,
     layout::{Constraint, Direction, Flex, Layout, Rect},
@@ -26,6 +27,15 @@ use ratatui::{
     text::{Line, Span},
     widgets::{Block, Borders, Clear, Paragraph, Wrap},
 };
+
+/// Action returned by handle_key_event indicating what the parent should do
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CandidateDetailAction {
+    /// Key was handled internally, no action needed from parent
+    None,
+    /// User wants to exit/go back
+    Exit,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum YankOption {
@@ -97,6 +107,50 @@ impl CandidateDetailState {
             self.yank_selected -= 1;
         } else {
             self.yank_selected = options_count.saturating_sub(1);
+        }
+    }
+
+    /// Handle a key event and return an action for the parent to perform
+    pub fn handle_key_event(
+        &mut self,
+        key: KeyEvent,
+        candidate: &CandidateDetail,
+    ) -> CandidateDetailAction {
+        match key.code {
+            KeyCode::Esc => {
+                if self.show_yank_popup {
+                    self.show_yank_popup = false;
+                    CandidateDetailAction::None
+                } else {
+                    CandidateDetailAction::Exit
+                }
+            }
+            KeyCode::Char('y') => {
+                if !self.show_yank_popup {
+                    self.show_yank_popup = true;
+                }
+                CandidateDetailAction::None
+            }
+            KeyCode::Char('j') | KeyCode::Down => {
+                if self.show_yank_popup {
+                    self.yank_next(candidate);
+                }
+                CandidateDetailAction::None
+            }
+            KeyCode::Char('k') | KeyCode::Up => {
+                if self.show_yank_popup {
+                    self.yank_previous(candidate);
+                }
+                CandidateDetailAction::None
+            }
+            KeyCode::Enter => {
+                if self.show_yank_popup {
+                    self.copy_selected(candidate);
+                    self.show_yank_popup = false;
+                }
+                CandidateDetailAction::None
+            }
+            _ => CandidateDetailAction::None,
         }
     }
 }
