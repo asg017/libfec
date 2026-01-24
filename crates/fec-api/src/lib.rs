@@ -110,6 +110,18 @@ pub struct ElectionsArgs {
     pub district: Option<u16>,
 }
 
+#[derive(Deserialize, Serialize, Debug, Default)]
+pub struct CalendarDatesArgs {
+    /// Category IDs to filter by (e.g., 21 for Reporting Deadlines, 36 for Elections)
+    pub calendar_category_id: Option<Vec<u32>>,
+    /// Minimum start date (YYYY-MM-DD format)
+    pub min_start_date: Option<String>,
+    /// Maximum start date (YYYY-MM-DD format)
+    pub max_start_date: Option<String>,
+    /// Sort field (default: -start_date for descending)
+    pub sort: Option<String>,
+}
+
 #[derive(Deserialize, Serialize, Debug)]
 pub struct ElectionItem {
     pub candidate_election_year: i64,
@@ -137,6 +149,7 @@ static FEC_API_BASE_URL: LazyLock<Url> = LazyLock::new(|| {
 });
 pub struct FilingsUrl(pub Url);
 pub struct ElectionsUrl(pub Url);
+pub struct CalendarDatesUrl(pub Url);
 
 pub struct EfilingFilingUrl(pub Url);
 
@@ -221,6 +234,36 @@ impl Api {
         }
         drop(qp);
         ElectionsUrl(url)
+    }
+
+    pub fn calendar_dates_url(&self, args: CalendarDatesArgs) -> CalendarDatesUrl {
+        let mut url = self.base_url.clone();
+        url.set_path("/v1/calendar-dates/");
+        let mut qp = url.query_pairs_mut();
+        qp.append_pair("api_key", &self.api_key);
+
+        if let Some(ref categories) = args.calendar_category_id {
+            for cat_id in categories {
+                qp.append_pair("calendar_category_id", &cat_id.to_string());
+            }
+        }
+        if let Some(ref min_date) = args.min_start_date {
+            qp.append_pair("min_start_date", min_date);
+        }
+        if let Some(ref max_date) = args.max_start_date {
+            qp.append_pair("max_start_date", max_date);
+        }
+
+        if let Some(ref sort) = args.sort {
+          qp.append_pair("sort", sort);
+        } else {
+          qp.append_pair("sort", "start_date");
+        }
+        // calendar dates API max per_page is 500, so just max it out
+        qp.append_pair("per_page", "500");
+
+        drop(qp);
+        CalendarDatesUrl(url)
     }
 
     pub fn filings_url(&self, args: FilingArgs) -> FilingsUrl {

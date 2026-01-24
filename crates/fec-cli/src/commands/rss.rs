@@ -19,10 +19,14 @@
  */
 
 use crate::cli::RssArgs;
+use crate::commands::export::sqlite;
 use crate::rss::{self, ActiveFilters, Item, format_countdown, format_duration_ago};
 use crate::sourcer::FilingSourcer;
 use crate::tui::filing_detail::{FilingDetail, FilingDetailState, render_filing_detail};
-use anyhow::Result;
+use anyhow::{Context, Result};
+use rusqlite::Connection;
+use std::collections::HashSet;
+use std::path::PathBuf;
 use crossterm::{
     event::{self, Event, KeyCode, KeyEventKind},
     execute,
@@ -104,13 +108,26 @@ struct App {
     copy_menu_selection: usize,
     /// Status message to show briefly
     status_message: Option<String>,
+    /// SQLite database connection for export (if -x flag is set)
+    export_db: Option<Connection>,
+    /// Set of filing IDs already exported
+    exported_ids: HashSet<String>,
+    /// Whether to export cover only
+    cover_only: bool,
+    /// Count of filings exported this session
+    export_count: usize,
+    /// Queue of filing IDs pending export
+    export_queue: Vec<String>,
+    /// Total filings to export in current batch (for progress display)
+    export_batch_total: usize,
 }
 
 impl App {
-    fn new(args: RssArgs, sourcer: FilingSourcer) -> Self {
+    fn new(args: RssArgs, sourcer: FilingSourcer, export_db: Option<Connection>, exported_ids: HashSet<String>) -> Self {
         let now = Instant::now();
         let interval = args.interval;
         let limit = args.limit;
+        let cover_only = args.cover_only;
         let (feed_url, _) = rss::build_feed_url(&args);
         Self {
             items: Vec::new(),
@@ -131,6 +148,12 @@ impl App {
             copy_menu_open: false,
             copy_menu_selection: 0,
             status_message: None,
+            export_db,
+            exported_ids,
+            cover_only,
+            export_count: 0,
+            export_queue: Vec::new(),
+            export_batch_total: 0,
         }
     }
 
@@ -138,12 +161,26 @@ impl App {
         match rss::fetch_feed_with_args(&self.args) {
             Ok((result, filters)) => {
                 self.feed_title = result.feed.title;
-                self.items = result.feed.items;
                 self.last_modified = result.last_modified;
                 self.last_fetch = Instant::now();
                 self.next_fetch = self.last_fetch + self.interval;
                 self.error = None;
                 self.active_filters = filters;
+
+                // Queue new filings for export if export is enabled
+                if self.export_db.is_some() {
+                    self.export_queue.clear();
+                    for item in result.feed.items.iter().take(self.limit) {
+                        if let Some(ref filing_id) = item.filing_id {
+                            if !self.exported_ids.contains(filing_id) {
+                                self.export_queue.push(filing_id.clone());
+                            }
+                        }
+                    }
+                    self.export_batch_total = self.export_queue.len();
+                }
+
+                self.items = result.feed.items;
 
                 // Select first item if available
                 if !self.items.is_empty() && self.table_state.selected().is_none() {
@@ -266,6 +303,68 @@ impl App {
             self.copy_menu_selection - 1
         };
     }
+
+    /// Returns true if there are pending exports
+    fn has_pending_exports(&self) -> bool {
+        !self.export_queue.is_empty()
+    }
+
+    /// Returns export progress as (completed, total) for current batch
+    fn export_progress(&self) -> (usize, usize) {
+        let completed = self.export_batch_total - self.export_queue.len();
+        (completed, self.export_batch_total)
+    }
+
+    /// Process one pending export from the queue
+    fn process_one_export(&mut self) {
+        if let Some(filing_id) = self.export_queue.pop() {
+            let (completed, total) = self.export_progress();
+            self.status_message = Some(format!("Exporting {}/{}: {}...", completed + 1, total, filing_id));
+
+            if let Some(ref mut db) = self.export_db {
+                match self.sourcer.resolve_from_user_argument(&filing_id) {
+                    Ok(filing) => {
+                        match sqlite::export_single_filing(db, filing, self.cover_only) {
+                            Ok(_) => {
+                                self.exported_ids.insert(filing_id);
+                                self.export_count += 1;
+                            }
+                            Err(e) => {
+                                self.error = Some(format!("Export error: {}", e));
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        self.error = Some(format!("Fetch error for {}: {}", filing_id, e));
+                    }
+                }
+            }
+
+            // Show completion message when done
+            if self.export_queue.is_empty() && self.export_batch_total > 0 {
+                self.status_message = Some(format!("Exported {} filing(s)", self.export_batch_total));
+                self.export_batch_total = 0;
+            }
+        }
+    }
+}
+
+/// Open or create the export SQLite database
+fn open_or_create_export_db(path: &PathBuf) -> Result<Connection> {
+    Connection::open(path)
+        .with_context(|| format!("Could not open or create database at {:?}", path))
+}
+
+/// Export a single filing by ID using the sourcer
+fn export_filing_by_id(
+    sourcer: &FilingSourcer,
+    db: &mut Connection,
+    filing_id: &str,
+    cover_only: bool,
+) -> Result<()> {
+    let filing = sourcer.resolve_from_user_argument(filing_id)?;
+    sqlite::export_single_filing(db, filing, cover_only)?;
+    Ok(())
 }
 
 /// Entry point for the RSS command
@@ -273,15 +372,45 @@ pub fn rss(sourcer: FilingSourcer, args: &RssArgs) -> Result<()> {
     if args.watch {
         run_watch_mode(sourcer, args)
     } else {
-        run_simple_mode(args)
+        run_simple_mode(&sourcer, args)
     }
 }
 
 /// Simple mode: fetch once and display a table, then exit
-fn run_simple_mode(args: &RssArgs) -> Result<()> {
+fn run_simple_mode(sourcer: &FilingSourcer, args: &RssArgs) -> Result<()> {
     let (url, _) = rss::build_feed_url(args);
     let (result, filters) = rss::fetch_feed_with_args(args).map_err(|e| anyhow::anyhow!("{}", e))?;
     let now = Zoned::now();
+
+    // Handle export if -x flag is provided
+    if let Some(ref export_path) = args.export {
+        let mut db = open_or_create_export_db(export_path)?;
+        sqlite::init_schema(&mut db)?;
+        let existing_ids = sqlite::get_existing_filing_ids(&db).unwrap_or_default();
+
+        let mut export_count = 0;
+        for item in result.feed.items.iter().take(args.limit) {
+            if let Some(ref filing_id) = item.filing_id {
+                if !existing_ids.contains(filing_id) {
+                    match export_filing_by_id(sourcer, &mut db, filing_id, args.cover_only) {
+                        Ok(_) => {
+                            export_count += 1;
+                            println!("Exported filing {}", filing_id);
+                        }
+                        Err(e) => {
+                            eprintln!("Error exporting filing {}: {}", filing_id, e);
+                        }
+                    }
+                }
+            }
+        }
+        if export_count > 0 {
+            println!("Exported {} new filing(s) to {}", export_count, export_path.display());
+        } else {
+            println!("No new filings to export");
+        }
+        println!();
+    }
 
     let mut builder = TableBuilder::new();
     builder.push_record(["Committee", "Form", "Report", "Filing ID", "Age"]);
@@ -304,7 +433,7 @@ fn run_simple_mode(args: &RssArgs) -> Result<()> {
     println!("{}", result.feed.title);
     if let Some(last_mod) = result.last_modified {
         let age = now.timestamp().duration_since(last_mod).as_secs();
-        println!("Data freshness: {}", format_duration_ago(age as i64));
+        println!("Data freshness: {}", format_duration_ago(age));
     }
 
     // Display active filters
@@ -323,13 +452,23 @@ fn run_simple_mode(args: &RssArgs) -> Result<()> {
 
 /// Watch mode: interactive TUI with auto-refresh
 fn run_watch_mode(sourcer: FilingSourcer, args: &RssArgs) -> Result<()> {
+    // Set up export database if -x flag is provided
+    let (export_db, exported_ids) = if let Some(ref export_path) = args.export {
+        let mut db = open_or_create_export_db(export_path)?;
+        sqlite::init_schema(&mut db)?;
+        let ids = sqlite::get_existing_filing_ids(&db).unwrap_or_default();
+        (Some(db), ids)
+    } else {
+        (None, HashSet::new())
+    };
+
     enable_raw_mode()?;
     let mut stdout = io::stdout();
     execute!(stdout, EnterAlternateScreen)?;
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
-    let mut app = App::new(args.clone(), sourcer);
+    let mut app = App::new(args.clone(), sourcer, export_db, exported_ids);
 
     let res = run_app(&mut terminal, &mut app);
 
@@ -358,6 +497,11 @@ fn run_app(
             app.fetch()?;
         }
 
+        // Process one pending export (if any)
+        if app.has_pending_exports() {
+            app.process_one_export();
+        }
+
         // Draw UI
         terminal.draw(|f| ui(f, app))?;
 
@@ -365,13 +509,20 @@ fn run_app(
             return Ok(());
         }
 
-        // Clear status message after displaying
-        if app.status_message.is_some() {
+        // Clear status message after displaying (but not during active exports)
+        if app.status_message.is_some() && !app.has_pending_exports() {
             app.status_message = None;
         }
 
-        // Poll for events with 1-second timeout (for countdown updates)
-        if event::poll(Duration::from_secs(1))? {
+        // Use shorter poll timeout when exporting to keep UI responsive
+        let poll_timeout = if app.has_pending_exports() {
+            Duration::from_millis(10)
+        } else {
+            Duration::from_secs(1)
+        };
+
+        // Poll for events
+        if event::poll(poll_timeout)? {
             if let Event::Key(key) = event::read()? {
                 if key.kind != KeyEventKind::Press {
                     continue;
@@ -676,7 +827,19 @@ fn ui(f: &mut Frame, app: &mut App) {
     let shortcut_style = Style::default().bold().fg(Color::White);
     let descrip_style = Style::default().fg(Color::DarkGray);
 
-    let help_line = Line::from(vec![
+    // Build help line - show export progress if exporting
+    let mut help_spans = Vec::new();
+
+    if app.has_pending_exports() {
+        let (completed, total) = app.export_progress();
+        help_spans.push(Span::styled(
+            format!("⟳ Exporting {}/{}", completed, total),
+            Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD),
+        ));
+        help_spans.push(Span::raw("  │  "));
+    }
+
+    help_spans.extend(vec![
         Span::styled(format!("Next refresh: {}", countdown), Style::default().fg(Color::Green)),
         Span::raw("  │  "),
         Span::styled("q", shortcut_style),
@@ -690,6 +853,8 @@ fn ui(f: &mut Frame, app: &mut App) {
         Span::styled("y", shortcut_style),
         Span::styled(" copy", descrip_style),
     ]);
+
+    let help_line = Line::from(help_spans);
 
     let url_line = Line::from(vec![
         Span::styled(&app.feed_url, Style::default().fg(Color::DarkGray)),

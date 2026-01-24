@@ -525,5 +525,42 @@ pub fn cmd_export_sqlite(
     Ok(())
 }
 
+/// Initialize the SQLite database schema for filings
+pub fn init_schema(db: &mut Connection) -> anyhow::Result<()> {
+    let mut tx = db.transaction().context("Error starting SQLite transaction")?;
+    init(&mut tx)?;
+    tx.commit()?;
+    Ok(())
+}
+
+/// Get a set of filing IDs that already exist in the database
+pub fn get_existing_filing_ids(db: &Connection) -> anyhow::Result<std::collections::HashSet<String>> {
+    let mut stmt = db.prepare("SELECT filing_id FROM libfec_filings")?;
+    let ids = stmt
+        .query_map([], |row| row.get::<_, String>(0))?
+        .filter_map(|r| r.ok())
+        .collect();
+    Ok(ids)
+}
+
+/// Export a single filing to the SQLite database
+pub fn export_single_filing<R: Read>(
+    db: &mut Connection,
+    filing: Filing<R>,
+    cover_only: bool,
+) -> anyhow::Result<()> {
+    let mut tx = db.transaction().context("Error starting SQLite transaction")?;
+    init(&mut tx)?;
+
+    insert_filing_metadata(&mut tx, &filing)?;
+
+    if !cover_only {
+        export_itemizations(&mut tx, filing, None)?;
+    }
+
+    tx.commit().context("Error committing SQLite transaction")?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod test;

@@ -5,6 +5,7 @@ mod info;
 mod search;
 mod bulk;
 mod rss;
+mod dates;
 
 pub use cache::cache;
 pub use export::export;
@@ -13,3 +14,4 @@ pub use info::info;
 pub use search::search;
 pub use bulk::bulk;
 pub use rss::rss;
+pub use dates::dates;

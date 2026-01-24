@@ -173,6 +173,122 @@ pub struct SearchArgs {
     pub cycle: u16,
 }
 
+/// Parse a category name to its FEC API category ID(s)
+/// Some categories like "deadlines" map to multiple IDs
+pub fn category_name_to_ids(name: &str) -> Vec<u32> {
+    match name.trim().to_lowercase().as_str() {
+        "elections" => vec![36],
+        "deadlines" => vec![21, 25, 26], // Reporting Deadlines + Quarterly + Monthly
+        "quarterly" => vec![25],
+        "monthly" => vec![26],
+        "pre-post" => vec![27],
+        "meetings" => vec![20],
+        "open-meetings" => vec![32],
+        "executive" => vec![39],
+        "hearings" => vec![40],
+        "conferences" => vec![33],
+        "roundtables" => vec![34],
+        "outreach" => vec![22],
+        "aos-rules" => vec![23],
+        "holidays" => vec![37],
+        "fea" => vec![38],
+        "ec" => vec![28],
+        "ie" => vec![29],
+        "other" => vec![24],
+        _ => vec![],
+    }
+}
+
+/// Get display name for a category ID
+pub fn category_id_to_name(id: u32) -> &'static str {
+    match id {
+        36 => "Elections",
+        21 => "Deadlines",
+        25 => "Quarterly",
+        26 => "Monthly",
+        27 => "Pre/Post-Election",
+        20 => "Meetings",
+        32 => "Open Meetings",
+        39 => "Executive Sessions",
+        40 => "Public Hearings",
+        33 => "Conferences",
+        34 => "Roundtables",
+        22 => "Outreach",
+        23 => "AOs & Rules",
+        37 => "Holidays",
+        38 => "FEA Periods",
+        28 => "EC Periods",
+        29 => "IE Periods",
+        24 => "Other",
+        _ => "Unknown",
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, clap::ValueEnum)]
+pub enum DatesFormat {
+    /// Interactive TUI
+    #[default]
+    Tui,
+    /// JSON output (raw API response)
+    Json,
+}
+
+#[derive(Args, Debug, Clone)]
+pub struct DatesArgs {
+    /// Filter by category (comma-separated). Options: elections, deadlines, quarterly,
+    /// monthly, pre-post, meetings, holidays, ec, ie, fea, other, conferences, roundtables,
+    /// outreach, aos-rules, open-meetings, executive, hearings
+    #[arg(long, short = 'c', default_value = "elections,deadlines")]
+    pub category: String,
+
+    /// Number of days to look ahead
+    #[arg(long, short = 'd', default_value = "365")]
+    pub days: u32,
+
+    /// Maximum number of results
+    #[arg(long, short = 'n', default_value = "500")]
+    pub limit: u32,
+
+    /// Output format
+    #[arg(long, short = 'f', value_enum, default_value = "tui")]
+    pub format: DatesFormat,
+}
+
+impl DatesArgs {
+    /// Parse the category string into a list of category IDs
+    pub fn category_ids(&self) -> Vec<u32> {
+        self.category
+            .split(',')
+            .flat_map(|s| category_name_to_ids(s))
+            .collect()
+    }
+
+    /// Get display string for the selected categories (shows user-friendly names)
+    pub fn category_display(&self) -> String {
+        // Show the category names the user provided, not the expanded IDs
+        let names: Vec<&str> = self.category
+            .split(',')
+            .map(|s| s.trim())
+            .filter(|s| !s.is_empty())
+            .collect();
+        if names.is_empty() {
+            "All Events".to_string()
+        } else {
+            names.iter()
+                .map(|n| {
+                    // Capitalize first letter
+                    let mut c = n.chars();
+                    match c.next() {
+                        None => String::new(),
+                        Some(f) => f.to_uppercase().collect::<String>() + c.as_str(),
+                    }
+                })
+                .collect::<Vec<_>>()
+                .join(", ")
+        }
+    }
+}
+
 #[derive(Args, Debug, Clone)]
 pub struct RssArgs {
     /// Watch mode: continuously fetch and display updates in a TUI
@@ -206,6 +322,14 @@ pub struct RssArgs {
     /// Filter by party affiliation (DEM, REP, LIB, GRE, CON, REF, OTH)
     #[arg(long)]
     pub party: Option<String>,
+
+    /// Export filings to a SQLite database
+    #[arg(long, short = 'x')]
+    pub export: Option<PathBuf>,
+
+    /// Only export cover data, not itemizations (requires --export)
+    #[arg(long)]
+    pub cover_only: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, clap::ValueEnum)]
@@ -294,10 +418,10 @@ pub enum Commands {
     /// Print debug information about a FEC filing, committee, or candidate
     Info(InfoArgs),
 
-    //Feed(FeedArgs),
     /// FastFEC compatible export
     Fastfec(FastFecArgs),
 
+    /// Search candidates and committees
     Search(SearchArgs),
 
     /// Export bulk datasets from fec.gov
@@ -305,6 +429,9 @@ pub enum Commands {
 
     /// Watch FEC RSS feed for new filings
     Rss(RssArgs),
+
+    /// View upcoming FEC calendar dates (elections, deadlines, meetings)
+    Dates(DatesArgs),
 }
 
 #[derive(Parser)]

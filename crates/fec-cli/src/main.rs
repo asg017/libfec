@@ -28,6 +28,7 @@ fn main() {
         Commands::Search(ref args) => commands::search(sourcer, args),
         Commands::Bulk(ref args) => commands::bulk(sourcer, args),
         Commands::Rss(ref args) => commands::rss(sourcer, args),
+        Commands::Dates(ref args) => commands::dates(sourcer, args),
     };
 
     match result {
