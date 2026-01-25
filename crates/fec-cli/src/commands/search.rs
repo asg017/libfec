@@ -71,13 +71,14 @@ use crate::{
     cache::bulk_committee::{CommitteeDetail, CommitteeSearchResult},
     cli::SearchArgs,
     sourcer::FilingSourcer,
+    tui::truncate_string,
     tui::candidate_detail::{render_candidate_detail, CandidateDetailAction, CandidateDetailState},
     tui::committee_detail::{render_committee_detail, CommitteeDetailAction, CommitteeDetailState, CommitteeDetailViewMode},
     tui::filing_detail::{render_filing_detail, FilingDetail, FilingDetailState, FilingDetailAction},
 };
 use anyhow::Result;
 use crossterm::{
-    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEventKind},
+    event::{self, Event, KeyCode, KeyEventKind},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
@@ -727,14 +728,6 @@ fn render_breadcrumb(f: &mut Frame, app: &App, area: Rect) {
     f.render_widget(breadcrumb, area);
 }
 
-fn truncate_string(s: &str, max_len: usize) -> String {
-    if s.len() > max_len {
-        format!("{}...", &s[..max_len - 3])
-    } else {
-        s.to_string()
-    }
-}
-
 fn render_search_bar(f: &mut Frame, app: &mut App, area: Rect) {
     let input_block = Block::default()
         .borders(Borders::ALL)
@@ -811,8 +804,7 @@ fn render_tabs(f: &mut Frame, app: &mut App, area: Rect) {
     f.render_widget(tabs_widget, area);
 }
 
-fn render_help_text(f: &mut Frame, app: &mut App, area: Rect) {
-    //let help_text = "Tab: focus | ctrl + a: Candidates | ctrl + b: Committees | Enter: select | Esc: quit | ↑/↓: navigate";
+fn render_help_text(f: &mut Frame, _app: &mut App, area: Rect) {
     let shortcut_style = Style::default().bold().fg(Color::White);
     let descrip_style = Style::default().fg(Color::DarkGray);
     let help_text = Line::from(vec![
@@ -867,8 +859,6 @@ fn render_candidate_results_table(f: &mut Frame, app: &mut App, area: Rect) {
                     result.state,
                     result.district.parse::<u8>().unwrap_or(0)
                 )
-            } else if result.office == "S" && !result.state.is_empty() {
-                result.state.clone()
             } else if !result.state.is_empty() {
                 result.state.clone()
             } else {
@@ -878,8 +868,7 @@ fn render_candidate_results_table(f: &mut Frame, app: &mut App, area: Rect) {
             let office = result.office.clone();
             let committee = result
                 .principal_campaign_committee
-                .as_ref()
-                .map(|s| s.as_str())
+                .as_deref()
                 .unwrap_or("");
 
             Row::new(vec![
@@ -897,19 +886,17 @@ fn render_candidate_results_table(f: &mut Frame, app: &mut App, area: Rect) {
         "Candidate Results (no matches)".to_string()
     } else if app.candidate_results.is_empty() {
         "Candidate Results (start typing to search)".to_string()
+    } else if let Some(duration) = app.last_query_duration {
+        format!(
+            "Candidate Results ({} matches, {}ms)",
+            app.candidate_results.len(),
+            duration.as_millis()
+        )
     } else {
-        if let Some(duration) = app.last_query_duration {
-            format!(
-                "Candidate Results ({} matches, {}ms)",
-                app.candidate_results.len(),
-                duration.as_millis()
-            )
-        } else {
-            format!(
-                "Candidate Results ({} matches)",
-                app.candidate_results.len()
-            )
-        }
+        format!(
+            "Candidate Results ({} matches)",
+            app.candidate_results.len()
+        )
     };
 
     let candidate_table = Table::new(
@@ -927,14 +914,14 @@ fn render_candidate_results_table(f: &mut Frame, app: &mut App, area: Rect) {
     .block(
         Block::default()
             .borders(Borders::ALL)
-            .title("Results")
+            .title(candidate_title)
             .border_style(if app.focus == FocusPanel::Results {
                 Style::default().fg(Color::Green)
             } else {
                 Style::default()
             }),
     )
-    .highlight_style(
+    .row_highlight_style(
         Style::default()
             .bg(Color::DarkGray)
             .add_modifier(Modifier::BOLD),
@@ -965,8 +952,7 @@ fn render_committee_results_table(f: &mut Frame, app: &mut App, area: Rect) {
         .map(|result| {
             let candidate = result
                 .candidate_id
-                .as_ref()
-                .map(|s| s.as_str())
+                .as_deref()
                 .unwrap_or("");
 
             Row::new(vec![
@@ -985,19 +971,17 @@ fn render_committee_results_table(f: &mut Frame, app: &mut App, area: Rect) {
         "Committee Results (no matches)".to_string()
     } else if app.committee_results.is_empty() {
         "Committee Results (start typing to search)".to_string()
+    } else if let Some(duration) = app.last_query_duration {
+        format!(
+            "Committee Results ({} matches, {}ms)",
+            app.committee_results.len(),
+            duration.as_millis()
+        )
     } else {
-        if let Some(duration) = app.last_query_duration {
-            format!(
-                "Committee Results ({} matches, {}ms)",
-                app.committee_results.len(),
-                duration.as_millis()
-            )
-        } else {
-            format!(
-                "Committee Results ({} matches)",
-                app.committee_results.len()
-            )
-        }
+        format!(
+            "Committee Results ({} matches)",
+            app.committee_results.len()
+        )
     };
 
     let committee_table = Table::new(
@@ -1023,7 +1007,7 @@ fn render_committee_results_table(f: &mut Frame, app: &mut App, area: Rect) {
                 Style::default()
             }),
     )
-    .highlight_style(
+    .row_highlight_style(
         Style::default()
             .bg(Color::DarkGray)
             .add_modifier(Modifier::BOLD),

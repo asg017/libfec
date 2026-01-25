@@ -1,28 +1,26 @@
-/**
- * Candidate Detail TUI Component
- *
- * This module provides rendering functions for displaying detailed candidate information
- * within a ratatui application. It integrates with parent TUI apps (search, info) to
- * provide a seamless navigation experience.
- *
- * The detail view shows all available candidate information including name, party,
- * office, address, campaign committee, and status.
- *
- * Keyboard shortcuts (handled by parent app):
- * - y: Open copy popup to copy candidate ID, committee ID, or name to clipboard
- * - Esc: Return to previous view
- *
- * Copy popup navigation:
- * - ↑/↓ or j/k: Navigate options
- * - Enter: Copy selected value to clipboard
- * - Esc: Cancel and close popup
- */
+//! Candidate Detail TUI Component
+//!
+//! This module provides rendering functions for displaying detailed candidate information
+//! within a ratatui application. It integrates with parent TUI apps (search, info) to
+//! provide a seamless navigation experience.
+//!
+//! The detail view shows all available candidate information including name, party,
+//! office, address, campaign committee, and status.
+//!
+//! Keyboard shortcuts (handled by parent app):
+//! - y: Open copy popup to copy candidate ID, committee ID, or name to clipboard
+//! - Esc: Return to previous view
+//!
+//! Copy popup navigation:
+//! - ↑/↓ or j/k: Navigate options
+//! - Enter: Copy selected value to clipboard
+//! - Esc: Cancel and close popup
 
 use crate::cache::bulk_candidates::CandidateDetail;
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{
     Frame,
-    layout::{Constraint, Direction, Flex, Layout, Rect},
+    layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
     widgets::{Block, Borders, Clear, Paragraph, Wrap},
@@ -180,14 +178,13 @@ fn render_content(f: &mut Frame, candidate: &CandidateDetail, area: Rect) {
     let inner_area = content_block.inner(area);
     f.render_widget(content_block, area);
 
-    let mut lines = vec![];
-
-    // Basic info
-    lines.push(Line::from(vec![
-        Span::styled("Candidate ID: ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
-        Span::raw(&candidate.candidate_id),
-    ]));
-    lines.push(Line::from(""));
+    let mut lines = vec![
+        Line::from(vec![
+            Span::styled("Candidate ID: ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+            Span::raw(&candidate.candidate_id),
+        ]),
+        Line::from(""),
+    ];
 
     lines.push(Line::from(vec![
         Span::styled("Name: ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
@@ -347,17 +344,8 @@ pub fn render_candidate_detail(
     }
 }
 
-/// Helper function to create a centered rect using certain percentage of available rect
-fn popup_area(area: Rect, percent_x: u16, percent_y: u16) -> Rect {
-    let vertical = Layout::vertical([Constraint::Percentage(percent_y)]).flex(Flex::Center);
-    let horizontal = Layout::horizontal([Constraint::Percentage(percent_x)]).flex(Flex::Center);
-    let [area] = vertical.areas(area);
-    let [area] = horizontal.areas(area);
-    area
-}
-
 fn render_yank_popup(f: &mut Frame, area: Rect, candidate: &CandidateDetail, state: &CandidateDetailState) {
-    let popup_area = popup_area(area, 50, 40);
+    let popup_area = super::popup_area(area, 50, 40);
 
     // Clear the background
     f.render_widget(Clear, popup_area);

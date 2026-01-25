@@ -134,6 +134,7 @@ impl ActiveFilters {
         filters
     }
 
+    #[allow(dead_code)]
     pub fn is_empty(&self) -> bool {
         self.to_display_strings().is_empty()
     }
@@ -220,7 +221,7 @@ pub fn fetch_feed_from_url(url: &str) -> Result<FetchResult, Error> {
         .headers()
         .get("Last-Modified")
         .and_then(|h| h.to_str().ok())
-        .and_then(|s| parse_rfc2822(s));
+        .and_then(parse_rfc2822);
 
     let body = response
         .into_body()

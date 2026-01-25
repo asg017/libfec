@@ -1,16 +1,14 @@
-/**
- * Info command - Display detailed information about FEC filings and committees
- *
- * This module provides functionality to display detailed information about:
- * - FEC filings (by filing ID)
- * - Committees (by committee ID starting with 'C')
- *
- * For filings, it shows cover sheet information, form details, and optionally
- * a full breakdown of all rows in the filing.
- *
- * For committees, it launches an interactive TUI displaying all available
- * committee information from the bulk data cache.
- */
+//! Info command - Display detailed information about FEC filings and committees
+//!
+//! This module provides functionality to display detailed information about:
+//! - FEC filings (by filing ID)
+//! - Committees (by committee ID starting with 'C')
+//!
+//! For filings, it shows cover sheet information, form details, and optionally
+//! a full breakdown of all rows in the filing.
+//!
+//! For committees, it launches an interactive TUI displaying all available
+//! committee information from the bulk data cache.
 
 use colored::Colorize;
 use fec_parser::{
@@ -27,6 +25,7 @@ use crossterm::{
 };
 use ratatui::{backend::CrosstermBackend, Frame, Terminal};
 use crate::tui::{
+    truncate_string,
     candidate_detail::{CandidateDetailAction, CandidateDetailState, render_candidate_detail},
     committee_detail::{CommitteeDetailAction, CommitteeDetailState, CommitteeDetailViewMode, render_committee_detail},
     filing_detail::{FilingDetail, FilingDetailAction, FilingDetailState, render_filing_detail},
@@ -418,7 +417,7 @@ pub fn info(mut sourcer: FilingSourcer, args: InfoArgs) -> anyhow::Result<()> {
                 match args.display {
                     InfoDisplayMode::Tui => {
                         let detail = FilingDetail::from(&filing);
-                        spinner.as_ref().map(|s| s.finish_and_clear());
+                        if let Some(s) = spinner.as_ref() { s.finish_and_clear(); }
                         show_filing_detail_tui(detail, "Filing")?;
                     }
                     InfoDisplayMode::Text => {
@@ -439,7 +438,7 @@ pub fn info(mut sourcer: FilingSourcer, args: InfoArgs) -> anyhow::Result<()> {
                             &committee_id
                         ) {
                             Ok(Some(detail)) => {
-                                spinner.as_ref().map(|s| s.finish_and_clear());
+                                if let Some(s) = spinner.as_ref() { s.finish_and_clear(); }
                                 show_committee_detail_tui(detail, &sourcer)?;
                             }
                             Ok(None) => {
@@ -467,7 +466,7 @@ pub fn info(mut sourcer: FilingSourcer, args: InfoArgs) -> anyhow::Result<()> {
                             &candidate_id
                         ) {
                             Ok(Some(detail)) => {
-                              spinner.as_ref().map(|s| s.finish_and_clear());
+                                if let Some(s) = spinner.as_ref() { s.finish_and_clear(); }
                                 show_candidate_detail_tui(detail)?;
                             }
                             Ok(None) => {
@@ -559,14 +558,6 @@ fn render_filing_detail_with_breadcrumb(
 
     // Render filing detail in the content area
     render_filing_detail(f, content_area, detail, state);
-}
-
-fn truncate_string(s: &str, max_len: usize) -> String {
-    if s.len() > max_len {
-        format!("{}...", &s[..max_len - 3])
-    } else {
-        s.to_string()
-    }
 }
 
 fn show_committee_detail_tui(

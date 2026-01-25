@@ -1,22 +1,20 @@
-/**
- * Filing Detail TUI Component
- *
- * This module provides rendering functions for displaying detailed FEC filing information
- * within a ratatui application. It integrates with parent TUI apps (info) to
- * provide a seamless navigation experience.
- *
- * The detail view shows all available filing information including form type, filer,
- * coverage period, summary data, and metadata.
- *
- * Keyboard shortcuts (handled by parent app):
- * - y: Open copy popup to copy filing ID, filer ID, or filer name to clipboard
- * - Esc: Return to previous view
- *
- * Copy popup navigation:
- * - up/down or j/k: Navigate options
- * - Enter: Copy selected value to clipboard
- * - Esc: Cancel and close popup
- */
+//! Filing Detail TUI Component
+//!
+//! This module provides rendering functions for displaying detailed FEC filing information
+//! within a ratatui application. It integrates with parent TUI apps (info) to
+//! provide a seamless navigation experience.
+//!
+//! The detail view shows all available filing information including form type, filer,
+//! coverage period, summary data, and metadata.
+//!
+//! Keyboard shortcuts (handled by parent app):
+//! - y: Open copy popup to copy filing ID, filer ID, or filer name to clipboard
+//! - Esc: Return to previous view
+//!
+//! Copy popup navigation:
+//! - up/down or j/k: Navigate options
+//! - Enter: Copy selected value to clipboard
+//! - Esc: Cancel and close popup
 
 use crossterm::event::{KeyCode, KeyEvent};
 use fec_parser::{covers::Cover, report_code_label};
@@ -24,7 +22,7 @@ use indicatif::HumanBytes;
 use num_format::{Locale, ToFormattedString};
 use ratatui::{
     Frame,
-    layout::{Constraint, Direction, Flex, Layout, Rect},
+    layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
     widgets::{Block, Borders, Clear, Paragraph, Wrap},
@@ -447,17 +445,8 @@ pub fn render_filing_detail(
     }
 }
 
-/// Helper function to create a centered rect using certain percentage of available rect
-fn popup_area(area: Rect, percent_x: u16, percent_y: u16) -> Rect {
-    let vertical = Layout::vertical([Constraint::Percentage(percent_y)]).flex(Flex::Center);
-    let horizontal = Layout::horizontal([Constraint::Percentage(percent_x)]).flex(Flex::Center);
-    let [area] = vertical.areas(area);
-    let [area] = horizontal.areas(area);
-    area
-}
-
 fn render_yank_popup(f: &mut Frame, area: Rect, filing: &FilingDetail, state: &FilingDetailState) {
-    let popup_area = popup_area(area, 50, 40);
+    let popup_area = super::popup_area(area, 50, 40);
 
     // Clear the background
     f.render_widget(Clear, popup_area);

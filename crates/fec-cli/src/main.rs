@@ -1,9 +1,7 @@
-/**
- * libfec CLI - Command-line interface for FEC data
- *
- * Main entry point for the libfec command-line tool, which provides access to
- * Federal Election Commission (FEC) filing data and bulk datasets.
- */
+//! libfec CLI - Command-line interface for FEC data
+//!
+//! Main entry point for the libfec command-line tool, which provides access to
+//! Federal Election Commission (FEC) filing data and bulk datasets.
 
 mod api_flags;
 mod cache;

@@ -1,29 +1,27 @@
-/*!
- * Committee Detail TUI Component
- *
- * This module provides rendering functions for displaying detailed committee information
- * within a ratatui application. It integrates with parent TUI apps (search, info) to
- * provide a seamless navigation experience.
- *
- * The detail view shows all available committee information including name, treasurer,
- * address, type, designation, party affiliation, and related data.
- *
- * Keyboard shortcuts (handled by parent app):
- * - y: Open copy popup to copy committee ID, candidate ID, or name to clipboard
- * - Esc: Return to previous view
- *
- * Copy popup navigation:
- * - ↑/↓ or j/k: Navigate options
- * - Enter: Copy selected value to clipboard
- * - Esc: Cancel and close popup
- */
+//! Committee Detail TUI Component
+//!
+//! This module provides rendering functions for displaying detailed committee information
+//! within a ratatui application. It integrates with parent TUI apps (search, info) to
+//! provide a seamless navigation experience.
+//!
+//! The detail view shows all available committee information including name, treasurer,
+//! address, type, designation, party affiliation, and related data.
+//!
+//! Keyboard shortcuts (handled by parent app):
+//! - y: Open copy popup to copy committee ID, candidate ID, or name to clipboard
+//! - Esc: Return to previous view
+//!
+//! Copy popup navigation:
+//! - ↑/↓ or j/k: Navigate options
+//! - Enter: Copy selected value to clipboard
+//! - Esc: Cancel and close popup
 
 use crate::cache::bulk_committee::CommitteeDetail;
 use crossterm::event::{KeyCode, KeyEvent};
 use fec_api::{Api, FilingArgsBuilder};
 use ratatui::{
     Frame,
-    layout::{Constraint, Direction, Flex, Layout, Rect},
+    layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
     widgets::{Block, Borders, Cell, Clear, Paragraph, Row, Table, TableState, Wrap},
@@ -183,7 +181,7 @@ impl CommitteeDetailState {
                         let filings: Vec<FilingListItem> = response
                             .result_items
                             .iter()
-                            .filter_map(|v| FilingListItem::from_api_value(v))
+                            .filter_map(FilingListItem::from_api_value)
                             .collect();
                         self.set_filings(filings);
                     }
@@ -387,14 +385,13 @@ fn render_title(f: &mut Frame, committee: &CommitteeDetail, area: Rect) {
 }
 
 fn render_content(f: &mut Frame, committee: &CommitteeDetail, area: Rect) {
-    let mut lines = vec![];
-
-    // Basic info
-    lines.push(Line::from(vec![
-        Span::styled("Committee ID: ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
-        Span::raw(&committee.committee_id),
-    ]));
-    lines.push(Line::from(""));
+    let mut lines = vec![
+        Line::from(vec![
+            Span::styled("Committee ID: ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+            Span::raw(&committee.committee_id),
+        ]),
+        Line::from(""),
+    ];
 
     lines.push(Line::from(vec![
         Span::styled("Name: ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
@@ -572,7 +569,7 @@ fn render_filings_table(f: &mut Frame, committee: &CommitteeDetail, state: &mut 
             };
 
             Row::new(vec![
-                Cell::from(format!("{}", filing.filing_id)).style(Style::default().fg(Color::Cyan)),
+                Cell::from(filing.filing_id.clone()).style(Style::default().fg(Color::Cyan)),
                 Cell::from(filing.form_type.clone()).style(Style::default().fg(form_color)),
                 Cell::from(filing.report_type.clone().unwrap_or_else(|| "-".to_string())),
                 Cell::from(coverage),
@@ -613,17 +610,8 @@ fn render_filings_table(f: &mut Frame, committee: &CommitteeDetail, state: &mut 
     f.render_stateful_widget(table, area, &mut state.filings_table_state);
 }
 
-/// Helper function to create a centered rect using certain percentage of available rect
-fn popup_area(area: Rect, percent_x: u16, percent_y: u16) -> Rect {
-    let vertical = Layout::vertical([Constraint::Percentage(percent_y)]).flex(Flex::Center);
-    let horizontal = Layout::horizontal([Constraint::Percentage(percent_x)]).flex(Flex::Center);
-    let [area] = vertical.areas(area);
-    let [area] = horizontal.areas(area);
-    area
-}
-
 fn render_yank_popup(f: &mut Frame, area: Rect, committee: &CommitteeDetail, state: &CommitteeDetailState) {
-    let popup_area = popup_area(area, 50, 40);
+    let popup_area = super::popup_area(area, 50, 40);
 
     // Clear the background
     f.render_widget(Clear, popup_area);
