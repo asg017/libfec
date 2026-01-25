@@ -72,7 +72,8 @@ use crate::{
     cli::SearchArgs,
     sourcer::FilingSourcer,
     tui::candidate_detail::{render_candidate_detail, CandidateDetailAction, CandidateDetailState},
-    tui::committee_detail::{render_committee_detail, CommitteeDetailAction, CommitteeDetailState},
+    tui::committee_detail::{render_committee_detail, CommitteeDetailAction, CommitteeDetailState, CommitteeDetailViewMode},
+    tui::filing_detail::{render_filing_detail, FilingDetail, FilingDetailState, FilingDetailAction},
 };
 use anyhow::Result;
 use crossterm::{
@@ -127,6 +128,7 @@ enum ViewState {
     Search,
     CandidateDetail,
     CommitteeDetail,
+    FilingDetail,
 }
 
 struct App {
@@ -146,6 +148,8 @@ struct App {
     committee_detail: Option<CommitteeDetail>,
     candidate_detail_state: CandidateDetailState,
     committee_detail_state: CommitteeDetailState,
+    filing_detail: Option<FilingDetail>,
+    filing_detail_state: FilingDetailState,
 }
 
 impl App {
@@ -167,6 +171,8 @@ impl App {
             committee_detail: None,
             candidate_detail_state: CandidateDetailState::new(),
             committee_detail_state: CommitteeDetailState::new(),
+            filing_detail: None,
+            filing_detail_state: FilingDetailState::new(),
         }
     }
 
@@ -349,6 +355,14 @@ impl App {
         self.committee_detail = None;
         self.candidate_detail_state = CandidateDetailState::new();
         self.committee_detail_state = CommitteeDetailState::new();
+        self.filing_detail = None;
+        self.filing_detail_state = FilingDetailState::new();
+    }
+
+    fn go_back_to_committee_detail(&mut self) {
+        self.view_state = ViewState::CommitteeDetail;
+        self.filing_detail = None;
+        self.filing_detail_state = FilingDetailState::new();
     }
 
     fn cycle_next(&mut self) {
@@ -360,12 +374,29 @@ impl App {
             self.cycle -= 2;
         }
     }
+
+    fn show_filing_detail(&mut self, sourcer: &mut FilingSourcer, filing_id: &str) {
+        // Try to resolve and show filing detail
+        match sourcer.resolve_from_user_argument(filing_id) {
+            Ok(filing) => {
+                self.filing_detail = Some(FilingDetail::from(&filing));
+                self.filing_detail_state = FilingDetailState::new();
+                self.view_state = ViewState::FilingDetail;
+                self.committee_detail_state.filing_detail_loading = false;
+            }
+            Err(e) => {
+                // Show error in filings table header
+                self.committee_detail_state.filing_detail_loading = false;
+                self.committee_detail_state.set_filings_error(format!("Error loading filing {}: {}", filing_id, e));
+            }
+        }
+    }
 }
 
 pub fn search(mut sourcer: FilingSourcer, args: &SearchArgs) -> anyhow::Result<()> {
     enable_raw_mode()?;
     let mut stdout = io::stdout();
-    execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
+    execute!(stdout, EnterAlternateScreen)?;
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
@@ -379,7 +410,6 @@ pub fn search(mut sourcer: FilingSourcer, args: &SearchArgs) -> anyhow::Result<(
     execute!(
         terminal.backend_mut(),
         LeaveAlternateScreen,
-        DisableMouseCapture
     )?;
     terminal.show_cursor()?;
 
@@ -426,7 +456,30 @@ fn run_app<B: ratatui::backend::Backend>(
                             CommitteeDetailAction::OpenBrowser => {
                                 let _ = committee.open_in_browser();
                             }
+                            CommitteeDetailAction::ShowFilingDetail { filing_id } => {
+                                // Render the loading state before blocking API call
+                                terminal.draw(|f| ui(f, app)).unwrap();
+                                app.show_filing_detail(sourcer, &filing_id);
+                            }
+                            CommitteeDetailAction::FetchFilings => {
+                                let committee_id = committee.committee_id.clone();
+                                // Render the loading state before blocking API call
+                                terminal.draw(|f| ui(f, app)).unwrap();
+                                app.committee_detail_state.fetch_filings_for_committee(&committee_id);
+                            }
                             CommitteeDetailAction::None => {}
+                        }
+                    }
+                    continue;
+                }
+                ViewState::FilingDetail => {
+                    if let Some(ref filing) = app.filing_detail {
+                        match app.filing_detail_state.handle_key_event(key, filing) {
+                            FilingDetailAction::Exit => app.go_back_to_committee_detail(),
+                            FilingDetailAction::OpenBrowser => {
+                                let _ = filing.open_in_browser();
+                            }
+                            FilingDetailAction::None => {}
                         }
                     }
                     continue;
@@ -598,18 +651,87 @@ fn run_app<B: ratatui::backend::Backend>(
 }
 
 fn ui(f: &mut Frame, app: &mut App) {
+    // Layout with breadcrumb at the top
+    let layout = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(1), // Breadcrumb
+            Constraint::Min(1),    // Main content
+        ]);
+
+    let [breadcrumb_area, content_area] = f.area().layout(&layout);
+
+    // Render breadcrumb
+    render_breadcrumb(f, app, breadcrumb_area);
+
+    // Render main content
     match app.view_state {
-        ViewState::Search => render_search_view(f, app),
+        ViewState::Search => render_search_view(f, app, content_area),
         ViewState::CandidateDetail => {
             if let Some(ref candidate) = app.candidate_detail {
-                render_candidate_detail(f, f.area(), candidate, &app.candidate_detail_state);
+                render_candidate_detail(f, content_area, candidate, &app.candidate_detail_state);
             }
         }
         ViewState::CommitteeDetail => {
             if let Some(ref committee) = app.committee_detail {
-                render_committee_detail(f, f.area(), committee, &app.committee_detail_state);
+                render_committee_detail(f, content_area, committee, &mut app.committee_detail_state);
             }
         }
+        ViewState::FilingDetail => {
+            if let Some(ref filing) = app.filing_detail {
+                render_filing_detail(f, content_area, filing, &app.filing_detail_state);
+            }
+        }
+    }
+}
+
+fn render_breadcrumb(f: &mut Frame, app: &App, area: Rect) {
+    let breadcrumb_text = match app.view_state {
+        ViewState::Search => "Search".to_string(),
+        ViewState::CandidateDetail => {
+            if let Some(ref candidate) = app.candidate_detail {
+                let name = truncate_string(&candidate.name, 40);
+                format!("Search / {}", name)
+            } else {
+                "Search / Candidate".to_string()
+            }
+        }
+        ViewState::CommitteeDetail => {
+            if let Some(ref committee) = app.committee_detail {
+                let name = truncate_string(&committee.name, 40);
+                if app.committee_detail_state.view_mode == CommitteeDetailViewMode::Filings {
+                    format!("Search / {} / Filings", name)
+                } else {
+                    format!("Search / {}", name)
+                }
+            } else {
+                "Search / Committee".to_string()
+            }
+        }
+        ViewState::FilingDetail => {
+            if let Some(ref filing) = app.filing_detail {
+                if let Some(ref committee) = app.committee_detail {
+                    let name = truncate_string(&committee.name, 30);
+                    format!("Search / {} / {}", name, filing.filing_id)
+                } else {
+                    format!("Search / {}", filing.filing_id)
+                }
+            } else {
+                "Search / Filing".to_string()
+            }
+        }
+    };
+
+    let breadcrumb = Paragraph::new(breadcrumb_text)
+        .style(Style::default().fg(Color::DarkGray));
+    f.render_widget(breadcrumb, area);
+}
+
+fn truncate_string(s: &str, max_len: usize) -> String {
+    if s.len() > max_len {
+        format!("{}...", &s[..max_len - 3])
+    } else {
+        s.to_string()
     }
 }
 
@@ -911,7 +1033,7 @@ fn render_committee_results_table(f: &mut Frame, app: &mut App, area: Rect) {
     f.render_stateful_widget(committee_table, area, &mut app.committee_table_state);
 }
 
-fn render_search_view(f: &mut Frame, app: &mut App) {
+fn render_search_view(f: &mut Frame, app: &mut App, area: Rect) {
     let layout = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
@@ -920,8 +1042,8 @@ fn render_search_view(f: &mut Frame, app: &mut App) {
             Constraint::Min(1),    // Results table
             Constraint::Length(2), // Help text
         ]);
-    
-    let [top_bar, tabs, results_table, help_text] = f.area().layout(&layout);
+
+    let [top_bar, tabs, results_table, help_text] = area.layout(&layout);
     
     let top_bar_layout = Layout::default()
         .direction(Direction::Horizontal)

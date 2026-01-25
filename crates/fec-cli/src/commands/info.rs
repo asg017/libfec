@@ -25,10 +25,10 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use ratatui::{backend::CrosstermBackend, Terminal};
+use ratatui::{backend::CrosstermBackend, Frame, Terminal};
 use crate::tui::{
     candidate_detail::{CandidateDetailAction, CandidateDetailState, render_candidate_detail},
-    committee_detail::{CommitteeDetailAction, CommitteeDetailState, render_committee_detail},
+    committee_detail::{CommitteeDetailAction, CommitteeDetailState, CommitteeDetailViewMode, render_committee_detail},
     filing_detail::{FilingDetail, FilingDetailAction, FilingDetailState, render_filing_detail},
 };
 
@@ -419,7 +419,7 @@ pub fn info(mut sourcer: FilingSourcer, args: InfoArgs) -> anyhow::Result<()> {
                     InfoDisplayMode::Tui => {
                         let detail = FilingDetail::from(&filing);
                         spinner.as_ref().map(|s| s.finish_and_clear());
-                        show_filing_detail_tui(detail)?;
+                        show_filing_detail_tui(detail, "Filing")?;
                     }
                     InfoDisplayMode::Text => {
                         let mut filing = filing;
@@ -440,7 +440,7 @@ pub fn info(mut sourcer: FilingSourcer, args: InfoArgs) -> anyhow::Result<()> {
                         ) {
                             Ok(Some(detail)) => {
                                 spinner.as_ref().map(|s| s.finish_and_clear());
-                                show_committee_detail_tui(detail)?;
+                                show_committee_detail_tui(detail, &sourcer)?;
                             }
                             Ok(None) => {
                                 println!("Committee {} not found in cycle {}", committee_id, cycle);
@@ -489,7 +489,90 @@ pub fn info(mut sourcer: FilingSourcer, args: InfoArgs) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn show_committee_detail_tui(detail: crate::cache::bulk_committee::CommitteeDetail) -> anyhow::Result<()> {
+fn render_committee_detail_with_breadcrumb(
+    f: &mut Frame,
+    detail: &crate::cache::bulk_committee::CommitteeDetail,
+    state: &mut CommitteeDetailState,
+) {
+    use ratatui::layout::{Constraint, Direction, Layout};
+    use ratatui::style::{Color, Style};
+    use ratatui::widgets::Paragraph;
+
+    // Layout with breadcrumb at the top
+    let layout = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(1), // Breadcrumb
+            Constraint::Min(1),    // Main content
+        ]);
+
+    let [breadcrumb_area, content_area] = f.area().layout(&layout);
+
+    // Build breadcrumb text
+    let breadcrumb_text = if state.view_mode == CommitteeDetailViewMode::Filings {
+        let name = truncate_string(&detail.name, 50);
+        format!("Info / {} / Filings", name)
+    } else {
+        let name = truncate_string(&detail.name, 50);
+        format!("Info / {}", name)
+    };
+
+    let breadcrumb = Paragraph::new(breadcrumb_text)
+        .style(Style::default().fg(Color::DarkGray));
+    f.render_widget(breadcrumb, breadcrumb_area);
+
+    // Render committee detail in the content area
+    render_committee_detail(f, content_area, detail, state);
+}
+
+fn render_filing_detail_with_breadcrumb(
+    f: &mut Frame,
+    detail: &FilingDetail,
+    state: &FilingDetailState,
+    committee_name: &str,
+) {
+    use ratatui::layout::{Constraint, Direction, Layout};
+    use ratatui::style::{Color, Style};
+    use ratatui::widgets::Paragraph;
+
+    // Layout with breadcrumb at the top
+    let layout = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(1), // Breadcrumb
+            Constraint::Min(1),    // Main content
+        ]);
+
+    let [breadcrumb_area, content_area] = f.area().layout(&layout);
+
+    // Build breadcrumb text
+    let breadcrumb_text = if committee_name == "Filing" {
+        format!("Info / {}", detail.filing_id)
+    } else {
+        let name = truncate_string(committee_name, 40);
+        format!("Info / {} / {}", name, detail.filing_id)
+    };
+
+    let breadcrumb = Paragraph::new(breadcrumb_text)
+        .style(Style::default().fg(Color::DarkGray));
+    f.render_widget(breadcrumb, breadcrumb_area);
+
+    // Render filing detail in the content area
+    render_filing_detail(f, content_area, detail, state);
+}
+
+fn truncate_string(s: &str, max_len: usize) -> String {
+    if s.len() > max_len {
+        format!("{}...", &s[..max_len - 3])
+    } else {
+        s.to_string()
+    }
+}
+
+fn show_committee_detail_tui(
+    detail: crate::cache::bulk_committee::CommitteeDetail,
+    sourcer: &FilingSourcer,
+) -> anyhow::Result<()> {
     enable_raw_mode()?;
     let mut stdout = io::stdout();
     execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
@@ -500,7 +583,7 @@ fn show_committee_detail_tui(detail: crate::cache::bulk_committee::CommitteeDeta
 
     loop {
         terminal.draw(|f| {
-            render_committee_detail(f, f.area(), &detail, &state);
+            render_committee_detail_with_breadcrumb(f, &detail, &mut state);
         })?;
 
         if let Event::Key(key) = event::read()? {
@@ -512,6 +595,50 @@ fn show_committee_detail_tui(detail: crate::cache::bulk_committee::CommitteeDeta
                 CommitteeDetailAction::Exit => break,
                 CommitteeDetailAction::OpenBrowser => {
                     let _ = detail.open_in_browser();
+                }
+                CommitteeDetailAction::ShowFilingDetail { filing_id } => {
+                    // Render the loading state before blocking API call
+                    terminal.draw(|f| {
+                        render_committee_detail_with_breadcrumb(f, &detail, &mut state);
+                    }).unwrap();
+
+                    // Try to resolve and show filing detail
+                    match sourcer.resolve_from_user_argument(&filing_id) {
+                        Ok(filing) => {
+                            let filing_detail = FilingDetail::from(&filing);
+                            state.filing_detail_loading = false;
+
+                            // Show filing detail in nested view
+                            disable_raw_mode()?;
+                            execute!(
+                                terminal.backend_mut(),
+                                LeaveAlternateScreen,
+                                DisableMouseCapture
+                            )?;
+
+                            // Show filing detail
+                            show_filing_detail_tui(filing_detail, &detail.name)?;
+
+                            // Restore committee detail view
+                            enable_raw_mode()?;
+                            execute!(
+                                terminal.backend_mut(),
+                                EnterAlternateScreen,
+                                EnableMouseCapture
+                            )?;
+                        }
+                        Err(e) => {
+                            state.filing_detail_loading = false;
+                            state.set_filings_error(format!("Error loading filing {}: {}", filing_id, e));
+                        }
+                    }
+                }
+                CommitteeDetailAction::FetchFilings => {
+                    // Render the loading state before blocking API call
+                    terminal.draw(|f| {
+                        render_committee_detail_with_breadcrumb(f, &detail, &mut state);
+                    }).unwrap();
+                    state.fetch_filings_for_committee(&detail.committee_id);
                 }
                 CommitteeDetailAction::None => {}
             }
@@ -566,7 +693,7 @@ fn show_candidate_detail_tui(detail: crate::cache::bulk_candidates::CandidateDet
     Ok(())
 }
 
-fn show_filing_detail_tui(detail: FilingDetail) -> anyhow::Result<()> {
+fn show_filing_detail_tui(detail: FilingDetail, committee_name: &str) -> anyhow::Result<()> {
     enable_raw_mode()?;
     let mut stdout = io::stdout();
     execute!(stdout, EnterAlternateScreen/*  EnableMouseCapture*/)?;
@@ -574,10 +701,11 @@ fn show_filing_detail_tui(detail: FilingDetail) -> anyhow::Result<()> {
     let mut terminal = Terminal::new(backend)?;
 
     let mut state = FilingDetailState::new();
+    let committee_name = committee_name.to_string();
 
     loop {
         terminal.draw(|f| {
-            render_filing_detail(f, f.area(), &detail, &state);
+            render_filing_detail_with_breadcrumb(f, &detail, &state, &committee_name);
         })?;
 
         if let Event::Key(key) = event::read()? {
