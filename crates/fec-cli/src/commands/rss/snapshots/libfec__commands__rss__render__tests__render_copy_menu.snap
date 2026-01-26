@@ -1,0 +1,20 @@
+---
+source: crates/fec-cli/src/commands/rss/render.rs
+expression: terminal.backend()
+snapshot_kind: text
+---
+"                                                            "
+"                                                            "
+"                                                            "
+"                                                            "
+"               ┌Copy (↑↓/Enter or 1-3)──────┐               "
+"               │▶ 1) Filing ID: 1234567     │               "
+"               │  2) Committee ID: C00401224│               "
+"               │  3) RSS GUID: FEC-12345    │               "
+"               │                            │               "
+"               │                            │               "
+"               └────────────────────────────┘               "
+"                                                            "
+"                                                            "
+"                                                            "
+"                                                            "

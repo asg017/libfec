@@ -1,0 +1,10 @@
+---
+source: crates/fec-cli/src/commands/rss/render.rs
+expression: terminal.backend()
+snapshot_kind: text
+---
+"┌FEC RSS Feed──────────────────────────────────────────────────────────────────┐"
+"│FEC Electronic Filing RSS Feed  Error: Network error: connection refused      │"
+"│                                                                              │"
+"│                                                                              │"
+"└──────────────────────────────────────────────────────────────────────────────┘"

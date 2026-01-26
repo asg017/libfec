@@ -1,0 +1,9 @@
+---
+source: crates/fec-cli/src/commands/rss/render.rs
+expression: terminal.backend()
+snapshot_kind: text
+---
+"────────────────────────────────────────────────────────────────────────────────"
+"    Next refresh: 4:59  │  q quit  r refresh  ↑↓/gg/G nav  Enter open  y copy   "
+"                    https://efilingapps.fec.gov/rss/generate                    "
+"                                                                                "
