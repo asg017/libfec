@@ -312,3 +312,24 @@ match app.view_state {
 - **Consistency**: Same behavior everywhere the component is used
 - **Extensibility**: Adding new keys only requires updating the component
 - **Clean separation**: Parent decides what `Exit` means in its context
+
+## Testing TUI (Quick Reference)
+
+```rust
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use insta::assert_snapshot;
+    use ratatui::{backend::TestBackend, Terminal};
+
+    #[test]
+    fn test_render() {
+        let mut state = MyState::new();
+        let mut terminal = Terminal::new(TestBackend::new(80, 24)).unwrap();
+        terminal.draw(|f| render(f, f.area(), &mut state)).unwrap();
+        assert_snapshot!(terminal.backend());
+    }
+}
+```
+
+Run: `cargo insta test -p fec-cli --accept -- module::tests`

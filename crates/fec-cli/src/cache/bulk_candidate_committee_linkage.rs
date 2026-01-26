@@ -37,3 +37,91 @@ pub fn export(tx: &mut Transaction<'_>, year: u16) -> Result<()> {
     sync_item(tx, year, &ITEM)?;
     Ok(())
 }
+
+/// A committee linkage record for a candidate
+#[derive(Debug, Clone)]
+pub struct CommitteeLinkage {
+    pub committee_id: String,
+    pub committee_type: String,
+    pub committee_designation: String,
+}
+
+impl CommitteeLinkage {
+    /// Return a human-readable description of the committee designation
+    pub fn designation_description(&self) -> &'static str {
+        match self.committee_designation.as_str() {
+            "A" => "Authorized by candidate",
+            "B" => "Lobbyist/Registrant PAC",
+            "D" => "Leadership PAC",
+            "J" => "Joint fundraiser",
+            "P" => "Principal campaign committee",
+            "U" => "Unauthorized",
+            _ => "Unknown",
+        }
+    }
+
+    /// Return a human-readable description of the committee type
+    pub fn type_description(&self) -> &'static str {
+        match self.committee_type.as_str() {
+            "C" => "Communication cost",
+            "D" => "Delegate committee",
+            "E" => "Electioneering communication",
+            "H" => "House",
+            "I" => "Independent expenditor (person or group)",
+            "N" => "PAC - Nonqualified",
+            "O" => "Independent expenditure-only (Super PACs)",
+            "P" => "Presidential",
+            "Q" => "PAC - Qualified",
+            "S" => "Senate",
+            "U" => "Single candidate independent expenditure",
+            "V" => "PAC with non-contribution account - Nonqualified",
+            "W" => "PAC with non-contribution account - Qualified",
+            "X" => "Party - Nonqualified",
+            "Y" => "Party - Qualified",
+            "Z" => "National party nonfederal account",
+            _ => "Unknown",
+        }
+    }
+}
+
+/// Get all committee linkages for a candidate
+pub fn get_candidate_committee_linkages(
+    bulk_db: &mut rusqlite::Connection,
+    cycle: u16,
+    candidate_id: &str,
+) -> Result<Vec<CommitteeLinkage>> {
+    bulk_db.execute_batch(SCHEMA)?;
+    let mut tx = bulk_db
+        .transaction()
+        .context("Could not start a transaction on the .bulk-data.db database")?;
+    sync_item(&mut tx, cycle, &ITEM)?;
+    tx.commit()?;
+
+    let sql = r#"
+      SELECT DISTINCT
+        committee_id,
+        COALESCE(committee_type, ''),
+        COALESCE(committee_designation, '')
+      FROM libfec_candidate_committee_linkages
+      WHERE cycle = :cycle
+        AND candidate_id = :candidate_id
+      ORDER BY committee_designation, committee_id
+      "#;
+    let params = rusqlite::named_params! {
+      ":cycle": cycle,
+      ":candidate_id": candidate_id,
+    };
+    let mut stmt = bulk_db.prepare(sql)?;
+    let results = stmt
+        .query_map(params, |row| {
+            Ok(CommitteeLinkage {
+                committee_id: row.get(0)?,
+                committee_type: row.get(1)?,
+                committee_designation: row.get(2)?,
+            })
+        })?
+        .collect::<std::result::Result<Vec<CommitteeLinkage>, _>>()?;
+    Ok(results)
+}
+
+use anyhow::Context;

@@ -47,6 +47,7 @@ arboard = "3.6.1"
 xmlparser = "0.13"
 open = "5"
 time = "0.3.46"
+indexmap = "2"
 
 [dev-dependencies]
 insta = { version = "1.45.0", features = ["yaml"] }

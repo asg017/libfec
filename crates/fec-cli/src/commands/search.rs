@@ -73,7 +73,7 @@ use crate::{
     sourcer::FilingSourcer,
     tui::truncate_string,
     tui::candidate_detail::{render_candidate_detail, CandidateDetailAction, CandidateDetailState},
-    tui::committee_detail::{render_committee_detail, CommitteeDetailAction, CommitteeDetailState, CommitteeDetailViewMode},
+    tui::committee_detail::{render_committee_detail, CommitteeDetailAction, CommitteeDetailState},
     tui::filing_detail::{render_filing_detail, FilingDetail, FilingDetailState, FilingDetailAction},
 };
 use anyhow::Result;
@@ -151,6 +151,8 @@ struct App {
     committee_detail_state: CommitteeDetailState,
     filing_detail: Option<FilingDetail>,
     filing_detail_state: FilingDetailState,
+    /// Tracks which detail view we came from when showing filing detail
+    filing_detail_from: Option<ViewState>,
 }
 
 impl App {
@@ -174,6 +176,7 @@ impl App {
             committee_detail_state: CommitteeDetailState::new(),
             filing_detail: None,
             filing_detail_state: FilingDetailState::new(),
+            filing_detail_from: None,
         }
     }
 
@@ -318,9 +321,17 @@ impl App {
                                     &candidate.candidate_id,
                                 )
                             {
+                                self.candidate_detail_state = CandidateDetailState::new();
+                                // Load linked committees
+                                if let Ok(linkages) = crate::cache::bulk_candidate_committee_linkage::get_candidate_committee_linkages(
+                                    &mut db,
+                                    self.cycle,
+                                    &candidate.candidate_id,
+                                ) {
+                                    self.candidate_detail_state.set_linked_committees(linkages);
+                                }
                                 self.candidate_detail = Some(detail);
                                 self.view_state = ViewState::CandidateDetail;
-                                self.candidate_detail_state = CandidateDetailState::new();
                             }
                         }
                     }
@@ -364,6 +375,44 @@ impl App {
         self.view_state = ViewState::CommitteeDetail;
         self.filing_detail = None;
         self.filing_detail_state = FilingDetailState::new();
+        self.committee_detail_state.filing_detail_loading = false;
+    }
+
+    fn go_back_to_candidate_detail(&mut self) {
+        self.view_state = ViewState::CandidateDetail;
+        self.filing_detail = None;
+        self.filing_detail_state = FilingDetailState::new();
+        self.candidate_detail_state.filing_detail_loading = false;
+    }
+
+    fn show_committee_detail_by_id(&mut self, sourcer: &mut FilingSourcer, committee_id: &str) {
+        if let Ok(mut db) = sourcer.cache.open_bulk_data_database() {
+            if let Ok(Some(detail)) = crate::cache::bulk_committee::get_committee_detail(
+                &mut db,
+                self.cycle,
+                committee_id,
+            ) {
+                self.committee_detail = Some(detail);
+                self.committee_detail_state = CommitteeDetailState::new();
+                self.view_state = ViewState::CommitteeDetail;
+            }
+        }
+    }
+
+    fn show_filing_detail_from_candidate(&mut self, sourcer: &mut FilingSourcer, filing_id: &str) {
+        match sourcer.resolve_from_user_argument(filing_id) {
+            Ok(filing) => {
+                self.filing_detail = Some(FilingDetail::from(&filing));
+                self.filing_detail_state = FilingDetailState::new();
+                self.filing_detail_from = Some(ViewState::CandidateDetail);
+                self.view_state = ViewState::FilingDetail;
+                self.candidate_detail_state.filing_detail_loading = false;
+            }
+            Err(e) => {
+                self.candidate_detail_state.filing_detail_loading = false;
+                self.candidate_detail_state.set_filings_error(format!("Error loading filing {}: {}", filing_id, e));
+            }
+        }
     }
 
     fn cycle_next(&mut self) {
@@ -382,6 +431,7 @@ impl App {
             Ok(filing) => {
                 self.filing_detail = Some(FilingDetail::from(&filing));
                 self.filing_detail_state = FilingDetailState::new();
+                self.filing_detail_from = Some(ViewState::CommitteeDetail);
                 self.view_state = ViewState::FilingDetail;
                 self.committee_detail_state.filing_detail_loading = false;
             }
@@ -389,6 +439,37 @@ impl App {
                 // Show error in filings table header
                 self.committee_detail_state.filing_detail_loading = false;
                 self.committee_detail_state.set_filings_error(format!("Error loading filing {}: {}", filing_id, e));
+            }
+        }
+    }
+
+    fn show_filer_from_filing(&mut self, sourcer: &mut FilingSourcer, filer_id: &str) {
+        // Determine if it's a committee or candidate based on first letter
+        if filer_id.starts_with('C') {
+            // Committee
+            if let Ok(mut db) = sourcer.cache.open_bulk_data_database() {
+                if let Ok(Some(detail)) = crate::cache::bulk_committee::get_committee_detail(
+                    &mut db,
+                    self.cycle,
+                    filer_id,
+                ) {
+                    self.committee_detail = Some(detail);
+                    self.committee_detail_state = CommitteeDetailState::new();
+                    self.view_state = ViewState::CommitteeDetail;
+                }
+            }
+        } else if filer_id.starts_with('H') || filer_id.starts_with('S') || filer_id.starts_with('P') {
+            // Candidate
+            if let Ok(mut db) = sourcer.cache.open_bulk_data_database() {
+                if let Ok(Some(detail)) = crate::cache::bulk_candidates::get_candidate_detail(
+                    &mut db,
+                    self.cycle,
+                    filer_id,
+                ) {
+                    self.candidate_detail = Some(detail);
+                    self.candidate_detail_state = CandidateDetailState::new();
+                    self.view_state = ViewState::CandidateDetail;
+                }
             }
         }
     }
@@ -439,12 +520,38 @@ fn run_app<B: ratatui::backend::Backend>(
                 continue;
             }
 
+            // Ctrl+C exits immediately from any view
+            if key.code == KeyCode::Char('c')
+                && key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL)
+            {
+                return Ok(());
+            }
+
             // Handle detail views first - they manage their own keypresses
             match app.view_state {
                 ViewState::CandidateDetail => {
                     if let Some(ref candidate) = app.candidate_detail {
                         match app.candidate_detail_state.handle_key_event(key, candidate) {
                             CandidateDetailAction::Exit => app.go_back_to_search(),
+                            CandidateDetailAction::ShowCommitteeDetail { committee_id } => {
+                                app.show_committee_detail_by_id(sourcer, &committee_id);
+                            }
+                            CandidateDetailAction::FetchFilings => {
+                                let candidate_id = candidate.candidate_id.clone();
+                                // Render the loading state before blocking API call
+                                terminal.draw(|f| ui(f, app)).unwrap();
+                                app.candidate_detail_state.fetch_filings_for_candidate(&candidate_id);
+                            }
+                            CandidateDetailAction::ShowFilingDetail { filing_id } => {
+                                // Render the loading state before blocking API call
+                                terminal.draw(|f| ui(f, app)).unwrap();
+                                app.show_filing_detail_from_candidate(sourcer, &filing_id);
+                            }
+                            CandidateDetailAction::FetchF1Affiliations { committee_id } => {
+                                // Render the loading state before blocking API call
+                                terminal.draw(|f| ui(f, app)).unwrap();
+                                app.candidate_detail_state.fetch_f1_affiliations(&committee_id, sourcer);
+                            }
                             CandidateDetailAction::None => {}
                         }
                     }
@@ -476,9 +583,17 @@ fn run_app<B: ratatui::backend::Backend>(
                 ViewState::FilingDetail => {
                     if let Some(ref filing) = app.filing_detail {
                         match app.filing_detail_state.handle_key_event(key, filing) {
-                            FilingDetailAction::Exit => app.go_back_to_committee_detail(),
+                            FilingDetailAction::Exit => {
+                                match app.filing_detail_from {
+                                    Some(ViewState::CandidateDetail) => app.go_back_to_candidate_detail(),
+                                    _ => app.go_back_to_committee_detail(),
+                                }
+                            }
                             FilingDetailAction::OpenBrowser => {
                                 let _ = filing.open_in_browser();
+                            }
+                            FilingDetailAction::ShowFiler { filer_id } => {
+                                app.show_filer_from_filing(sourcer, &filer_id);
                             }
                             FilingDetailAction::None => {}
                         }
@@ -670,7 +785,7 @@ fn ui(f: &mut Frame, app: &mut App) {
         ViewState::Search => render_search_view(f, app, content_area),
         ViewState::CandidateDetail => {
             if let Some(ref candidate) = app.candidate_detail {
-                render_candidate_detail(f, content_area, candidate, &app.candidate_detail_state);
+                render_candidate_detail(f, content_area, candidate, &mut app.candidate_detail_state);
             }
         }
         ViewState::CommitteeDetail => {
@@ -700,11 +815,7 @@ fn render_breadcrumb(f: &mut Frame, app: &App, area: Rect) {
         ViewState::CommitteeDetail => {
             if let Some(ref committee) = app.committee_detail {
                 let name = truncate_string(&committee.name, 40);
-                if app.committee_detail_state.view_mode == CommitteeDetailViewMode::Filings {
-                    format!("Search / {} / Filings", name)
-                } else {
-                    format!("Search / {}", name)
-                }
+                format!("Search / {}", name)
             } else {
                 "Search / Committee".to_string()
             }

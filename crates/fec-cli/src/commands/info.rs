@@ -27,7 +27,7 @@ use ratatui::{backend::CrosstermBackend, Frame, Terminal};
 use crate::tui::{
     truncate_string,
     candidate_detail::{CandidateDetailAction, CandidateDetailState, render_candidate_detail},
-    committee_detail::{CommitteeDetailAction, CommitteeDetailState, CommitteeDetailViewMode, render_committee_detail},
+    committee_detail::{CommitteeDetailAction, CommitteeDetailState, render_committee_detail},
     filing_detail::{FilingDetail, FilingDetailAction, FilingDetailState, render_filing_detail},
 };
 
@@ -466,8 +466,14 @@ pub fn info(mut sourcer: FilingSourcer, args: InfoArgs) -> anyhow::Result<()> {
                             &candidate_id
                         ) {
                             Ok(Some(detail)) => {
+                                // Load linked committees
+                                let linkages = crate::cache::bulk_candidate_committee_linkage::get_candidate_committee_linkages(
+                                    &mut db,
+                                    cycle,
+                                    &candidate_id,
+                                ).unwrap_or_default();
                                 if let Some(s) = spinner.as_ref() { s.finish_and_clear(); }
-                                show_candidate_detail_tui(detail)?;
+                                show_candidate_detail_tui(detail, linkages, &sourcer)?;
                             }
                             Ok(None) => {
                                 println!("Candidate {} not found in cycle {}", candidate_id, cycle);
@@ -508,13 +514,8 @@ fn render_committee_detail_with_breadcrumb(
     let [breadcrumb_area, content_area] = f.area().layout(&layout);
 
     // Build breadcrumb text
-    let breadcrumb_text = if state.view_mode == CommitteeDetailViewMode::Filings {
-        let name = truncate_string(&detail.name, 50);
-        format!("Info / {} / Filings", name)
-    } else {
-        let name = truncate_string(&detail.name, 50);
-        format!("Info / {}", name)
-    };
+    let name = truncate_string(&detail.name, 50);
+    let breadcrumb_text = format!("Info / {}", name);
 
     let breadcrumb = Paragraph::new(breadcrumb_text)
         .style(Style::default().fg(Color::DarkGray));
@@ -582,6 +583,13 @@ fn show_committee_detail_tui(
                 continue;
             }
 
+            // Ctrl+C exits immediately
+            if key.code == crossterm::event::KeyCode::Char('c')
+                && key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL)
+            {
+                break;
+            }
+
             match state.handle_key_event(key, &detail) {
                 CommitteeDetailAction::Exit => break,
                 CommitteeDetailAction::OpenBrowser => {
@@ -647,7 +655,11 @@ fn show_committee_detail_tui(
     Ok(())
 }
 
-fn show_candidate_detail_tui(detail: crate::cache::bulk_candidates::CandidateDetail) -> anyhow::Result<()> {
+fn show_candidate_detail_tui(
+    detail: crate::cache::bulk_candidates::CandidateDetail,
+    linkages: Vec<crate::cache::bulk_candidate_committee_linkage::CommitteeLinkage>,
+    sourcer: &crate::sourcer::FilingSourcer,
+) -> anyhow::Result<()> {
     enable_raw_mode()?;
     let mut stdout = io::stdout();
     execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
@@ -655,10 +667,11 @@ fn show_candidate_detail_tui(detail: crate::cache::bulk_candidates::CandidateDet
     let mut terminal = Terminal::new(backend)?;
 
     let mut state = CandidateDetailState::new();
+    state.set_linked_committees(linkages);
 
     loop {
         terminal.draw(|f| {
-            render_candidate_detail(f, f.area(), &detail, &state);
+            render_candidate_detail(f, f.area(), &detail, &mut state);
         })?;
 
         if let Event::Key(key) = event::read()? {
@@ -666,8 +679,37 @@ fn show_candidate_detail_tui(detail: crate::cache::bulk_candidates::CandidateDet
                 continue;
             }
 
+            // Ctrl+C exits immediately
+            if key.code == crossterm::event::KeyCode::Char('c')
+                && key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL)
+            {
+                break;
+            }
+
             match state.handle_key_event(key, &detail) {
                 CandidateDetailAction::Exit => break,
+                CandidateDetailAction::ShowCommitteeDetail { committee_id: _ } => {
+                    // TODO: Navigate to committee detail view
+                    // For now, just ignore - would need to refactor to support nested views
+                }
+                CandidateDetailAction::FetchFilings => {
+                    // Render the loading state before blocking API call
+                    terminal.draw(|f| {
+                        render_candidate_detail(f, f.area(), &detail, &mut state);
+                    }).unwrap();
+                    state.fetch_filings_for_candidate(&detail.candidate_id);
+                }
+                CandidateDetailAction::FetchF1Affiliations { committee_id } => {
+                    // Render the loading state before blocking API call
+                    terminal.draw(|f| {
+                        render_candidate_detail(f, f.area(), &detail, &mut state);
+                    }).unwrap();
+                    state.fetch_f1_affiliations(&committee_id, sourcer);
+                }
+                CandidateDetailAction::ShowFilingDetail { filing_id: _ } => {
+                    // TODO: Navigate to filing detail view
+                    // For now, just ignore - would need to refactor to support nested views
+                }
                 CandidateDetailAction::None => {}
             }
         }
@@ -704,10 +746,21 @@ fn show_filing_detail_tui(detail: FilingDetail, committee_name: &str) -> anyhow:
                 continue;
             }
 
+            // Ctrl+C exits immediately
+            if key.code == crossterm::event::KeyCode::Char('c')
+                && key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL)
+            {
+                break;
+            }
+
             match state.handle_key_event(key, &detail) {
                 FilingDetailAction::Exit => break,
                 FilingDetailAction::OpenBrowser => {
                     let _ = detail.open_in_browser();
+                }
+                FilingDetailAction::ShowFiler { .. } => {
+                    // In info context, go back to committee detail (if coming from there)
+                    break;
                 }
                 FilingDetailAction::None => {}
             }

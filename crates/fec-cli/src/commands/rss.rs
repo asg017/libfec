@@ -627,6 +627,13 @@ fn show_filing_detail(
                 continue;
             }
 
+            // Ctrl+C exits immediately
+            if key.code == KeyCode::Char('c')
+                && key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL)
+            {
+                break;
+            }
+
             match key.code {
                 KeyCode::Esc | KeyCode::Char('q') => {
                     if state.show_yank_popup {

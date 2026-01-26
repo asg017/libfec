@@ -5,11 +5,16 @@
 //! provide a seamless navigation experience.
 //!
 //! The detail view shows all available committee information including name, treasurer,
-//! address, type, designation, party affiliation, and related data.
+//! address, type, designation, party affiliation, and related data. When filings are loaded,
+//! they appear in a smaller scrollable table below the committee info.
 //!
-//! Keyboard shortcuts (handled by parent app):
+//! Keyboard shortcuts:
+//! - Esc/q: Return to previous view
+//! - o: Open committee in browser
 //! - y: Open copy popup to copy committee ID, candidate ID, or name to clipboard
-//! - Esc: Return to previous view
+//! - f: Fetch and display filings for this committee
+//! - j/k: Navigate filings (when filings are loaded)
+//! - Enter: View selected filing detail (when filings are loaded)
 //!
 //! Copy popup navigation:
 //! - ↑/↓ or j/k: Navigate options
@@ -17,6 +22,7 @@
 //! - Esc: Cancel and close popup
 
 use crate::cache::bulk_committee::CommitteeDetail;
+use crate::tui::{HelpBar, navigation_popup_help_line};
 use crossterm::event::{KeyCode, KeyEvent};
 use fec_api::{Api, FilingArgsBuilder};
 use ratatui::{
@@ -60,19 +66,9 @@ pub enum YankOption {
     CommitteeName,
 }
 
-/// The current view mode within committee detail
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub enum CommitteeDetailViewMode {
-    #[default]
-    Info,
-    Filings,
-}
-
 pub struct CommitteeDetailState {
     pub show_yank_popup: bool,
     pub yank_selected: usize,
-    /// Current view mode
-    pub view_mode: CommitteeDetailViewMode,
     /// Filings list (populated when 'f' is pressed)
     pub filings: Vec<FilingListItem>,
     /// Table state for filings list
@@ -92,7 +88,6 @@ impl CommitteeDetailState {
         Self {
             show_yank_popup: false,
             yank_selected: 0,
-            view_mode: CommitteeDetailViewMode::Info,
             filings: Vec::new(),
             filings_table_state: TableState::default(),
             filings_loading: false,
@@ -107,7 +102,6 @@ impl CommitteeDetailState {
         self.filings = filings;
         self.filings_loading = false;
         self.filings_error = None;
-        // View mode is already set to Filings when 'f' is pressed
         if !self.filings.is_empty() {
             self.filings_table_state.select(Some(0));
         }
@@ -279,47 +273,7 @@ impl CommitteeDetailState {
             };
         }
 
-        // Handle filings view
-        if self.view_mode == CommitteeDetailViewMode::Filings {
-            return match key.code {
-                KeyCode::Esc | KeyCode::Char('q') => {
-                    self.view_mode = CommitteeDetailViewMode::Info;
-                    CommitteeDetailAction::None
-                }
-                KeyCode::Char('j') | KeyCode::Down => {
-                    self.filings_select_next();
-                    CommitteeDetailAction::None
-                }
-                KeyCode::Char('k') | KeyCode::Up => {
-                    self.filings_select_previous();
-                    CommitteeDetailAction::None
-                }
-                KeyCode::Char('g') => {
-                    self.filings_select_first();
-                    CommitteeDetailAction::None
-                }
-                KeyCode::Char('G') => {
-                    self.filings_select_last();
-                    CommitteeDetailAction::None
-                }
-                KeyCode::Enter => {
-                    if let Some(filing_id) = self.get_selected_filing().map(|f| f.filing_id.clone()) {
-                        self.filing_detail_loading = true;
-                        self.filings_error = None; // Clear any previous error
-                        CommitteeDetailAction::ShowFilingDetail { filing_id }
-                    } else {
-                        CommitteeDetailAction::None
-                    }
-                }
-                KeyCode::Char('y') => {
-                    self.show_yank_popup = true;
-                    CommitteeDetailAction::None
-                }
-                _ => CommitteeDetailAction::None,
-            };
-        }
-
-        // Handle info view (default)
+        // Handle keys
         match key.code {
             KeyCode::Esc | KeyCode::Char('q') => CommitteeDetailAction::Exit,
             KeyCode::Char('o') => CommitteeDetailAction::OpenBrowser,
@@ -329,8 +283,32 @@ impl CommitteeDetailState {
             }
             KeyCode::Char('f') => {
                 self.filings_loading = true;
-                self.view_mode = CommitteeDetailViewMode::Filings;
                 CommitteeDetailAction::FetchFilings
+            }
+            KeyCode::Char('j') | KeyCode::Down => {
+                self.filings_select_next();
+                CommitteeDetailAction::None
+            }
+            KeyCode::Char('k') | KeyCode::Up => {
+                self.filings_select_previous();
+                CommitteeDetailAction::None
+            }
+            KeyCode::Char('g') => {
+                self.filings_select_first();
+                CommitteeDetailAction::None
+            }
+            KeyCode::Char('G') => {
+                self.filings_select_last();
+                CommitteeDetailAction::None
+            }
+            KeyCode::Enter => {
+                if let Some(filing_id) = self.get_selected_filing().map(|f| f.filing_id.clone()) {
+                    self.filing_detail_loading = true;
+                    self.filings_error = None; // Clear any previous error
+                    CommitteeDetailAction::ShowFilingDetail { filing_id }
+                } else {
+                    CommitteeDetailAction::None
+                }
             }
             _ => CommitteeDetailAction::None,
         }
@@ -496,46 +474,22 @@ fn render_content(f: &mut Frame, committee: &CommitteeDetail, area: Rect) {
     f.render_widget(content, area);
 }
 
-fn render_help_text(f: &mut Frame, area: Rect) {
-    let help_line = Line::from(vec![
-        Span::styled("Esc", Style::default().fg(Color::White).add_modifier(Modifier::BOLD)),
-        Span::styled("/", Style::default().fg(Color::DarkGray)),
-        Span::styled("q", Style::default().fg(Color::White).add_modifier(Modifier::BOLD)),
-        Span::styled(" back  ", Style::default().fg(Color::DarkGray)),
-        Span::styled("o", Style::default().fg(Color::White).add_modifier(Modifier::BOLD)),
-        Span::styled(" open  ", Style::default().fg(Color::DarkGray)),
-        Span::styled("y", Style::default().fg(Color::White).add_modifier(Modifier::BOLD)),
-        Span::styled(" copy  ", Style::default().fg(Color::DarkGray)),
-        Span::styled("f", Style::default().fg(Color::White).add_modifier(Modifier::BOLD)),
-        Span::styled(" filings", Style::default().fg(Color::DarkGray)),
-    ]);
-    let help = Paragraph::new(help_line)
-        .alignment(ratatui::layout::Alignment::Center)
-        .block(Block::default().borders(Borders::TOP).border_style(
-            Style::default().fg(Color::DarkGray)
-        ));
-    f.render_widget(help, area);
-}
-
-fn render_filings_help_text(f: &mut Frame, area: Rect) {
-    let help_line = Line::from(vec![
-        Span::styled("Esc", Style::default().fg(Color::White).add_modifier(Modifier::BOLD)),
-        Span::styled("/", Style::default().fg(Color::DarkGray)),
-        Span::styled("q", Style::default().fg(Color::White).add_modifier(Modifier::BOLD)),
-        Span::styled(" back  ", Style::default().fg(Color::DarkGray)),
-        Span::styled("j/k", Style::default().fg(Color::White).add_modifier(Modifier::BOLD)),
-        Span::styled(" navigate  ", Style::default().fg(Color::DarkGray)),
-        Span::styled("Enter", Style::default().fg(Color::White).add_modifier(Modifier::BOLD)),
-        Span::styled(" view filing  ", Style::default().fg(Color::DarkGray)),
-        Span::styled("y", Style::default().fg(Color::White).add_modifier(Modifier::BOLD)),
-        Span::styled(" copy", Style::default().fg(Color::DarkGray)),
-    ]);
-    let help = Paragraph::new(help_line)
-        .alignment(ratatui::layout::Alignment::Center)
-        .block(Block::default().borders(Borders::TOP).border_style(
-            Style::default().fg(Color::DarkGray)
-        ));
-    f.render_widget(help, area);
+fn render_help_text(f: &mut Frame, area: Rect, has_filings: bool) {
+    let help = if has_filings {
+        HelpBar::new()
+            .keys(vec!["Esc", "q"], " back")
+            .item("j/k", " navigate")
+            .item("Enter", " view filing")
+            .item("y", " copy")
+            .item("o", " open")
+    } else {
+        HelpBar::new()
+            .keys(vec!["Esc", "q"], " back")
+            .item("o", " open")
+            .item("y", " copy")
+            .item("f", " filings")
+    };
+    help.render(f, area);
 }
 
 fn render_filings_table(f: &mut Frame, committee: &CommitteeDetail, state: &mut CommitteeDetailState, area: Rect) {
@@ -654,16 +608,7 @@ fn render_yank_popup(f: &mut Frame, area: Rect, committee: &CommitteeDetail, sta
     }
 
     lines.push(Line::from(""));
-    lines.push(Line::from(vec![
-        Span::styled("↑/↓", Style::default().fg(Color::DarkGray)),
-        Span::styled(" or ", Style::default().fg(Color::DarkGray)),
-        Span::styled("j/k", Style::default().fg(Color::DarkGray)),
-        Span::styled(" navigate  ", Style::default().fg(Color::DarkGray)),
-        Span::styled("Enter", Style::default().fg(Color::White).add_modifier(Modifier::BOLD)),
-        Span::styled(" copy  ", Style::default().fg(Color::DarkGray)),
-        Span::styled("Esc", Style::default().fg(Color::White).add_modifier(Modifier::BOLD)),
-        Span::styled(" cancel", Style::default().fg(Color::DarkGray)),
-    ]));
+    lines.push(navigation_popup_help_line());
 
     let paragraph = Paragraph::new(lines)
         .wrap(Wrap { trim: false });
@@ -677,60 +622,39 @@ pub fn render_committee_detail(
     committee: &CommitteeDetail,
     state: &mut CommitteeDetailState,
 ) {
-    match state.view_mode {
-        CommitteeDetailViewMode::Info => {
-            render_info_view(f, area, committee, state);
-        }
-        CommitteeDetailViewMode::Filings => {
-            render_filings_view(f, area, committee, state);
-        }
+    let has_filings = !state.filings.is_empty() || state.filings_loading;
+
+    if has_filings {
+        let layout = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Length(1),  // Title
+                Constraint::Min(10),    // Content
+                Constraint::Length(12), // Filings table (smaller, scrollable)
+                Constraint::Length(2),  // Help text
+            ]);
+
+        let [title_area, content_area, filings_area, help_area] = area.layout(&layout);
+
+        render_title(f, committee, title_area);
+        render_content(f, committee, content_area);
+        render_filings_table(f, committee, state, filings_area);
+        render_help_text(f, help_area, has_filings);
+    } else {
+        let layout = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Length(1),  // Title
+                Constraint::Min(10),    // Content
+                Constraint::Length(2),  // Help text
+            ]);
+
+        let [title_area, content_area, help_area] = area.layout(&layout);
+
+        render_title(f, committee, title_area);
+        render_content(f, committee, content_area);
+        render_help_text(f, help_area, has_filings);
     }
-}
-
-fn render_info_view(
-    f: &mut Frame,
-    area: Rect,
-    committee: &CommitteeDetail,
-    state: &CommitteeDetailState,
-) {
-    let layout = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Length(1),  // Title
-            Constraint::Min(10),    // Content
-            Constraint::Length(2),  // Help text
-        ]);
-
-    let [title_area, content_area, help_area] = area.layout(&layout);
-
-    render_title(f, committee, title_area);
-    render_content(f, committee, content_area);
-    render_help_text(f, help_area);
-
-    if state.show_yank_popup {
-        render_yank_popup(f, area, committee, state);
-    }
-}
-
-fn render_filings_view(
-    f: &mut Frame,
-    area: Rect,
-    committee: &CommitteeDetail,
-    state: &mut CommitteeDetailState,
-) {
-    let layout = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Length(1),  // Title
-            Constraint::Min(10),    // Filings table
-            Constraint::Length(2),  // Help text
-        ]);
-
-    let [title_area, table_area, help_area] = area.layout(&layout);
-
-    render_title(f, committee, title_area);
-    render_filings_table(f, committee, state, table_area);
-    render_filings_help_text(f, help_area);
 
     if state.show_yank_popup {
         render_yank_popup(f, area, committee, state);

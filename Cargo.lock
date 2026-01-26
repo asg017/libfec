@@ -888,6 +888,7 @@ dependencies = [
  "etcetera",
  "fec-api",
  "fec-parser",
+ "indexmap",
  "indicatif",
  "insta",
  "jiff",

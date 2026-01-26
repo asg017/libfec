@@ -10,9 +10,10 @@ mod commands;
 mod rss;
 mod sourcer;
 mod tui;
-use crate::cli::{Cli,Commands};
+use crate::cli::{Cli, Commands};
 use clap::Parser;
 use std::env;
+use std::io::IsTerminal;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -48,6 +49,14 @@ fn main() {
                     eprintln!("error: unrecognized command '{}'\n", args[1]);
                     parse_err.exit();
                 }
+            } else if std::io::stdin().is_terminal() {
+                // No arguments and TTY available - start search TUI
+                let sourcer = sourcer::FilingSourcer::new(None);
+                let search_args = cli::SearchArgs {
+                    query: String::new(),
+                    cycle: 2026,
+                };
+                commands::search(sourcer, &search_args)
             } else {
                 parse_err.exit();
             }

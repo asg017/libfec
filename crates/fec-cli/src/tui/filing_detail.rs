@@ -7,15 +7,19 @@
 //! The detail view shows all available filing information including form type, filer,
 //! coverage period, summary data, and metadata.
 //!
-//! Keyboard shortcuts (handled by parent app):
+//! Keyboard shortcuts:
+//! - Esc/q: Return to previous view
+//! - c: View committee or candidate detail page
+//! - o: Open filing in browser
 //! - y: Open copy popup to copy filing ID, filer ID, or filer name to clipboard
-//! - Esc: Return to previous view
+//! - j/k: Scroll up/down
 //!
 //! Copy popup navigation:
 //! - up/down or j/k: Navigate options
 //! - Enter: Copy selected value to clipboard
 //! - Esc: Cancel and close popup
 
+use crate::tui::{HelpBar, navigation_popup_help_line};
 use crossterm::event::{KeyCode, KeyEvent};
 use fec_parser::{covers::Cover, report_code_label};
 use indicatif::HumanBytes;
@@ -29,7 +33,7 @@ use ratatui::{
 };
 
 /// Action returned by handle_key_event indicating what the parent should do
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FilingDetailAction {
     /// Key was handled internally, no action needed from parent
     None,
@@ -37,6 +41,8 @@ pub enum FilingDetailAction {
     Exit,
     /// User pressed 'o' to open in browser
     OpenBrowser,
+    /// User pressed 'c' to view committee/candidate detail
+    ShowFiler { filer_id: String },
 }
 
 /// Holds extracted filing information for TUI display
@@ -235,6 +241,9 @@ impl FilingDetailState {
                 }
             }
             KeyCode::Char('o') => FilingDetailAction::OpenBrowser,
+            KeyCode::Char('c') => FilingDetailAction::ShowFiler {
+                filer_id: filing.filer_id.clone(),
+            },
             KeyCode::Char('y') => {
                 if !self.show_yank_popup {
                     self.show_yank_popup = true;
@@ -400,24 +409,13 @@ fn render_content(f: &mut Frame, filing: &FilingDetail, state: &FilingDetailStat
 }
 
 fn render_help_text(f: &mut Frame, area: Rect) {
-    let help_line = Line::from(vec![
-        Span::styled("Esc", Style::default().fg(Color::White).add_modifier(Modifier::BOLD)),
-        Span::styled("/", Style::default().fg(Color::DarkGray)),
-        Span::styled("q", Style::default().fg(Color::White).add_modifier(Modifier::BOLD)),
-        Span::styled(" back  ", Style::default().fg(Color::DarkGray)),
-        Span::styled("o", Style::default().fg(Color::White).add_modifier(Modifier::BOLD)),
-        Span::styled(" open  ", Style::default().fg(Color::DarkGray)),
-        Span::styled("y", Style::default().fg(Color::White).add_modifier(Modifier::BOLD)),
-        Span::styled(" copy  ", Style::default().fg(Color::DarkGray)),
-        Span::styled("j/k", Style::default().fg(Color::White).add_modifier(Modifier::BOLD)),
-        Span::styled(" scroll", Style::default().fg(Color::DarkGray)),
-    ]);
-    let help = Paragraph::new(help_line)
-        .alignment(ratatui::layout::Alignment::Center)
-        .block(Block::default().borders(Borders::TOP).border_style(
-            Style::default().fg(Color::DarkGray)
-        ));
-    f.render_widget(help, area);
+    HelpBar::new()
+        .keys(vec!["Esc", "q"], " back")
+        .item("c", " filer")
+        .item("o", " open")
+        .item("y", " copy")
+        .item("j/k", " scroll")
+        .render(f, area);
 }
 
 pub fn render_filing_detail(
@@ -489,16 +487,7 @@ fn render_yank_popup(f: &mut Frame, area: Rect, filing: &FilingDetail, state: &F
     }
 
     lines.push(Line::from(""));
-    lines.push(Line::from(vec![
-        Span::styled("up/down", Style::default().fg(Color::DarkGray)),
-        Span::styled(" or ", Style::default().fg(Color::DarkGray)),
-        Span::styled("j/k", Style::default().fg(Color::DarkGray)),
-        Span::styled(" navigate  ", Style::default().fg(Color::DarkGray)),
-        Span::styled("Enter", Style::default().fg(Color::White).add_modifier(Modifier::BOLD)),
-        Span::styled(" copy  ", Style::default().fg(Color::DarkGray)),
-        Span::styled("Esc", Style::default().fg(Color::White).add_modifier(Modifier::BOLD)),
-        Span::styled(" cancel", Style::default().fg(Color::DarkGray)),
-    ]));
+    lines.push(navigation_popup_help_line());
 
     let paragraph = Paragraph::new(lines)
         .wrap(Wrap { trim: false });
