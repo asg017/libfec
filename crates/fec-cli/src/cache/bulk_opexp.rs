@@ -58,3 +58,56 @@ pub fn export(tx: &mut Transaction<'_>, year: u16) -> Result<()> {
     println!("opeexp {year} {result:?}");
     Ok(())
 }
+
+#[derive(Debug, Clone)]
+pub struct OpExpSearchResult {
+    pub committee_id: String,
+    pub name: String,
+    pub city: String,
+    pub state: String,
+    pub transaction_date: String,
+    pub transaction_amount: f64,
+    pub purpose: String,
+    pub filing_id: i64,
+}
+
+/// Search operating expenses by recipient name
+pub fn search_operating_expenses(
+    conn: &mut rusqlite::Connection,
+    cycle: u16,
+    query: &str,
+) -> Result<Vec<OpExpSearchResult>> {
+    // Ensure schema exists and data is synced
+    conn.execute_batch(SCHEMA)?;
+    let mut tx = conn.transaction()?;
+    sync_item(&mut tx, cycle, &ITEM)?;
+    tx.commit()?;
+
+    let search_pattern = format!("%{}%", query);
+
+    let mut stmt = conn.prepare(
+        "SELECT committee_id, name, city, state, transaction_date,
+                transaction_amount, purpose, filing_id
+         FROM operating_expenses
+         WHERE cycle = ?1 AND name LIKE ?2
+         ORDER BY transaction_amount DESC
+         LIMIT 200",
+    )?;
+
+    let results = stmt
+        .query_map([cycle.to_string(), search_pattern], |row| {
+            Ok(OpExpSearchResult {
+                committee_id: row.get(0)?,
+                name: row.get(1)?,
+                city: row.get(2)?,
+                state: row.get(3)?,
+                transaction_date: row.get(4)?,
+                transaction_amount: row.get(5)?,
+                purpose: row.get(6)?,
+                filing_id: row.get(7)?,
+            })
+        })?
+        .collect::<Result<Vec<_>, _>>()?;
+
+    Ok(results)
+}

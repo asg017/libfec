@@ -553,7 +553,43 @@ fn render_content(
             },
             
           ]),
-          _ => todo!(),
+          "S" => Line::from(vec![
+            Span::styled(
+                candidate.state.as_str(),
+                Style::default().fg(Color::Cyan),
+            ),
+            Span::styled(" candidate in ", dim),
+            Span::styled(
+                format!("{} Senate race", candidate.election_year.to_string()),
+                Style::default().fg(Color::Cyan),
+            ),
+            Span::styled(", running as a ", dim),
+
+            match candidate.party_affiliation.as_str() {
+                "DEM" => Span::styled("Democrat", Style::default().fg(Color::Rgb(0, 0, 255))),
+                "REP" => Span::styled("⬤Republican", Style::default().fg(Color::Rgb(255, 0, 0))),
+                other => Span::styled(other, Style::default().fg(Color::Yellow)),
+            },
+          ]),
+          "P" => Line::from(vec![
+            Span::styled(
+                "Presidential candidate",
+                Style::default().fg(Color::Cyan),
+            ),
+            Span::styled(" in ", dim),
+            Span::styled(
+                candidate.election_year.to_string(),
+                Style::default().fg(Color::Cyan),
+            ),
+            Span::styled(", running as a ", dim),
+
+            match candidate.party_affiliation.as_str() {
+                "DEM" => Span::styled("Democrat", Style::default().fg(Color::Rgb(0, 0, 255))),
+                "REP" => Span::styled("⬤Republican", Style::default().fg(Color::Rgb(255, 0, 0))),
+                other => Span::styled(other, Style::default().fg(Color::Yellow)),
+            },
+          ]),
+          _ => Line::from(""),
         };
     lines.push(election_line);
 

@@ -69,6 +69,7 @@
 use crate::{
     cache::bulk_candidates::{CandidateDetail, CandidateSearchResult},
     cache::bulk_committee::{CommitteeDetail, CommitteeSearchResult},
+    cache::bulk_opexp::OpExpSearchResult,
     cli::SearchArgs,
     sourcer::FilingSourcer,
     tui::candidate_detail::{render_candidate_detail, CandidateDetailAction, CandidateDetailState},
@@ -77,6 +78,7 @@ use crate::{
         render_filing_detail, FilingDetail, FilingDetailAction, FilingDetailState,
     },
     tui::truncate_string,
+    tui::HelpBar,
 };
 use anyhow::Result;
 use crossterm::{
@@ -124,6 +126,7 @@ impl FocusPanel {
 enum ResultsTab {
     Candidates,
     Committees,
+    OpExp,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -139,8 +142,10 @@ struct App {
     cycle: u16,
     candidate_results: Vec<CandidateSearchResult>,
     committee_results: Vec<CommitteeSearchResult>,
+    opexp_results: Vec<OpExpSearchResult>,
     candidate_table_state: TableState,
     committee_table_state: TableState,
+    opexp_table_state: TableState,
     cursor_position: usize,
     last_query_duration: Option<Duration>,
     should_exit: bool,
@@ -155,7 +160,13 @@ struct App {
     filing_detail_state: FilingDetailState,
     /// Tracks which detail view we came from when showing filing detail
     filing_detail_from: Option<ViewState>,
+    /// Whether a search is currently in progress
+    searching: bool,
+    /// Spinner frame for loading animation
+    spinner_frame: usize,
 }
+
+const SPINNER_FRAMES: &[&str] = &["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 
 impl App {
     fn new(initial_cycle: u16, initial_query: String) -> Self {
@@ -164,8 +175,10 @@ impl App {
             cycle: initial_cycle,
             candidate_results: Vec::new(),
             committee_results: Vec::new(),
+            opexp_results: Vec::new(),
             candidate_table_state: TableState::default(),
             committee_table_state: TableState::default(),
+            opexp_table_state: TableState::default(),
             cursor_position: 0,
             last_query_duration: None,
             should_exit: false,
@@ -179,7 +192,13 @@ impl App {
             filing_detail: None,
             filing_detail_state: FilingDetailState::new(),
             filing_detail_from: None,
+            searching: false,
+            spinner_frame: 0,
         }
+    }
+
+    fn advance_spinner(&mut self) {
+        self.spinner_frame = (self.spinner_frame + 1) % SPINNER_FRAMES.len();
     }
 
     fn focus_next(&mut self) {
@@ -196,10 +215,12 @@ impl App {
         if self.input.is_empty() {
             self.candidate_results.clear();
             self.committee_results.clear();
+            self.opexp_results.clear();
             self.last_query_duration = None;
         } else {
             match sourcer.cache.open_bulk_data_database() {
                 Ok(mut db) => {
+                    // Always search candidates and committees in parallel
                     let candidate_results = crate::cache::bulk_candidates::search_candidates(
                         &mut db,
                         self.cycle,
@@ -215,25 +236,66 @@ impl App {
 
                     self.candidate_results = candidate_results;
                     self.committee_results = committee_results;
+
+                    // Only search operating expenses when that tab is active
+                    if self.active_tab == ResultsTab::OpExp {
+                        match crate::cache::bulk_opexp::search_operating_expenses(
+                            &mut db,
+                            self.cycle,
+                            &self.input,
+                        ) {
+                            Ok(results) => {
+                                self.opexp_results = results;
+                            }
+                            Err(e) => {
+                                eprintln!("OpExp search error: {:?}", e);
+                                self.opexp_results.clear();
+                            }
+                        }
+                    } else {
+                        self.opexp_results.clear();
+                    }
+
                     self.last_query_duration = Some(start.elapsed());
 
-                    // Select first candidate if available, otherwise first committee
-                    if !self.candidate_results.is_empty() {
-                        self.candidate_table_state.select(Some(0));
-                        self.committee_table_state.select(None);
-                    } else if !self.committee_results.is_empty() {
-                        self.candidate_table_state.select(None);
-                        self.committee_table_state.select(Some(0));
-                    } else {
-                        self.candidate_table_state.select(None);
-                        self.committee_table_state.select(None);
+                    // Select first result in active tab
+                    match self.active_tab {
+                        ResultsTab::Candidates => {
+                            if !self.candidate_results.is_empty() {
+                                self.candidate_table_state.select(Some(0));
+                            } else {
+                                self.candidate_table_state.select(None);
+                            }
+                            self.committee_table_state.select(None);
+                            self.opexp_table_state.select(None);
+                        }
+                        ResultsTab::Committees => {
+                            if !self.committee_results.is_empty() {
+                                self.committee_table_state.select(Some(0));
+                            } else {
+                                self.committee_table_state.select(None);
+                            }
+                            self.candidate_table_state.select(None);
+                            self.opexp_table_state.select(None);
+                        }
+                        ResultsTab::OpExp => {
+                            if !self.opexp_results.is_empty() {
+                                self.opexp_table_state.select(Some(0));
+                            } else {
+                                self.opexp_table_state.select(None);
+                            }
+                            self.candidate_table_state.select(None);
+                            self.committee_table_state.select(None);
+                        }
                     }
                 }
                 Err(_) => {
                     self.candidate_results.clear();
                     self.committee_results.clear();
+                    self.opexp_results.clear();
                     self.candidate_table_state.select(None);
                     self.committee_table_state.select(None);
+                    self.opexp_table_state.select(None);
                     self.last_query_duration = None;
                 }
             }
@@ -309,6 +371,40 @@ impl App {
         self.committee_table_state.select(Some(i));
     }
 
+    fn opexp_next(&mut self) {
+        if self.opexp_results.is_empty() {
+            return;
+        }
+        let i = match self.opexp_table_state.selected() {
+            Some(i) => {
+                if i >= self.opexp_results.len() - 1 {
+                    0
+                } else {
+                    i + 1
+                }
+            }
+            None => 0,
+        };
+        self.opexp_table_state.select(Some(i));
+    }
+
+    fn opexp_previous(&mut self) {
+        if self.opexp_results.is_empty() {
+            return;
+        }
+        let i = match self.opexp_table_state.selected() {
+            Some(i) => {
+                if i == 0 {
+                    self.opexp_results.len() - 1
+                } else {
+                    i - 1
+                }
+            }
+            None => 0,
+        };
+        self.opexp_table_state.select(Some(i));
+    }
+
     fn select_current(&mut self, sourcer: &mut FilingSourcer) -> Result<()> {
         match self.active_tab {
             ResultsTab::Candidates => {
@@ -358,6 +454,10 @@ impl App {
                         }
                     }
                 }
+            }
+            ResultsTab::OpExp => {
+                // OpExp doesn't have a detail view yet
+                // Could potentially navigate to committee detail for the committee_id
             }
         }
         Ok(())
@@ -426,6 +526,46 @@ impl App {
         if self.cycle > 2000 {
             self.cycle -= 2;
         }
+    }
+
+    /// Clear the entire input
+    fn clear_input(&mut self) {
+        self.input.clear();
+        self.cursor_position = 0;
+    }
+
+    /// Delete from cursor to end of input
+    fn delete_to_end(&mut self) {
+        self.input.truncate(self.cursor_position);
+    }
+
+    /// Delete word backward from cursor (Ctrl+W, Ctrl+Backspace)
+    fn delete_word_backward(&mut self) {
+        if self.cursor_position == 0 {
+            return;
+        }
+
+        let before_cursor = &self.input[..self.cursor_position];
+
+        // Find the start of the word to delete
+        // Skip trailing whitespace first
+        let trimmed = before_cursor.trim_end();
+        if trimmed.is_empty() {
+            // Delete all whitespace
+            self.input.drain(..self.cursor_position);
+            self.cursor_position = 0;
+            return;
+        }
+
+        // Find last word boundary (space, hyphen, etc.)
+        let word_start = trimmed
+            .rfind(|c: char| c.is_whitespace() || c == '-' || c == '_')
+            .map(|i| i + 1)
+            .unwrap_or(0);
+
+        // Delete from word start to cursor
+        self.input.drain(word_start..self.cursor_position);
+        self.cursor_position = word_start;
     }
 
     fn show_filing_detail(&mut self, sourcer: &mut FilingSourcer, filing_id: &str) {
@@ -508,6 +648,20 @@ fn run_app<B: ratatui::backend::Backend>(
     app: &mut App,
     sourcer: &mut FilingSourcer,
 ) -> anyhow::Result<()> {
+    // Helper function to perform search with animated spinner
+    let search_with_loading = |app: &mut App, terminal: &mut Terminal<B>, sourcer: &mut FilingSourcer| -> anyhow::Result<()> {
+        // Show initial spinner frame
+        app.searching = true;
+        app.advance_spinner();
+        terminal.draw(|f| ui(f, app)).unwrap();
+
+        // Perform the search (blocking)
+        app.search(sourcer)?;
+
+        app.searching = false;
+        Ok(())
+    };
+
     loop {
         terminal.draw(|f| ui(f, app)).unwrap();
 
@@ -634,22 +788,25 @@ fn run_app<B: ratatui::backend::Backend>(
                             let has_results = match app.active_tab {
                                 ResultsTab::Candidates => !app.candidate_results.is_empty(),
                                 ResultsTab::Committees => !app.committee_results.is_empty(),
+                                ResultsTab::OpExp => !app.opexp_results.is_empty(),
                             };
                             if has_results {
                                 app.focus = FocusPanel::Results;
                                 match app.active_tab {
                                     ResultsTab::Candidates => app.candidate_previous(),
                                     ResultsTab::Committees => app.committee_previous(),
+                                    ResultsTab::OpExp => app.opexp_previous(),
                                 }
                             }
                         }
                         FocusPanel::Cycle => {
                             app.cycle_next();
-                            app.search(sourcer)?;
+                            search_with_loading(app, terminal, sourcer)?;
                         }
                         FocusPanel::Results => match app.active_tab {
                             ResultsTab::Candidates => app.candidate_previous(),
                             ResultsTab::Committees => app.committee_previous(),
+                            ResultsTab::OpExp => app.opexp_previous(),
                         },
                     }
                 }
@@ -660,22 +817,25 @@ fn run_app<B: ratatui::backend::Backend>(
                             let has_results = match app.active_tab {
                                 ResultsTab::Candidates => !app.candidate_results.is_empty(),
                                 ResultsTab::Committees => !app.committee_results.is_empty(),
+                                ResultsTab::OpExp => !app.opexp_results.is_empty(),
                             };
                             if has_results {
                                 app.focus = FocusPanel::Results;
                                 match app.active_tab {
                                     ResultsTab::Candidates => app.candidate_next(),
                                     ResultsTab::Committees => app.committee_next(),
+                                    ResultsTab::OpExp => app.opexp_next(),
                                 }
                             }
                         }
                         FocusPanel::Cycle => {
                             app.cycle_previous();
-                            app.search(sourcer)?;
+                            search_with_loading(app, terminal, sourcer)?;
                         }
                         FocusPanel::Results => match app.active_tab {
                             ResultsTab::Candidates => app.candidate_next(),
                             ResultsTab::Committees => app.committee_next(),
+                            ResultsTab::OpExp => app.opexp_next(),
                         },
                     }
                 }
@@ -700,25 +860,34 @@ fn run_app<B: ratatui::backend::Backend>(
                     }
                 }
                 KeyCode::Backspace => {
-                    if app.focus == FocusPanel::Search && app.cursor_position > 0 {
-                        app.input.remove(app.cursor_position - 1);
-                        app.cursor_position -= 1;
-                        app.search(sourcer)?;
+                    if app.focus == FocusPanel::Search {
+                        // Ctrl+Backspace: delete word backward
+                        if key
+                            .modifiers
+                            .contains(crossterm::event::KeyModifiers::CONTROL)
+                        {
+                            app.delete_word_backward();
+                            search_with_loading(app, terminal, sourcer)?;
+                        } else if app.cursor_position > 0 {
+                            app.input.remove(app.cursor_position - 1);
+                            app.cursor_position -= 1;
+                            search_with_loading(app, terminal, sourcer)?;
+                        }
                     }
                 }
                 KeyCode::Delete => {
                     if app.focus == FocusPanel::Search && app.cursor_position < app.input.len() {
                         app.input.remove(app.cursor_position);
-                        app.search(sourcer)?;
+                        search_with_loading(app, terminal, sourcer)?;
                     }
                 }
                 KeyCode::PageUp => {
                     app.cycle_next();
-                    app.search(sourcer)?;
+                    search_with_loading(app, terminal, sourcer)?;
                 }
                 KeyCode::PageDown => {
                     app.cycle_previous();
-                    app.search(sourcer)?;
+                    search_with_loading(app, terminal, sourcer)?;
                 }
                 KeyCode::Char(c) => {
                     // Ctrl+A to switch to Candidates tab
@@ -749,6 +918,51 @@ fn run_app<B: ratatui::backend::Backend>(
                             app.committee_table_state.select(Some(0));
                         }
                     }
+                    // Ctrl+E to switch to OpExp tab
+                    else if c == 'e'
+                        && key
+                            .modifiers
+                            .contains(crossterm::event::KeyModifiers::CONTROL)
+                    {
+                        app.active_tab = ResultsTab::OpExp;
+                        // Search when switching to OpExp tab if input exists
+                        if !app.input.is_empty() {
+                            search_with_loading(app, terminal, sourcer)?;
+                        }
+                        // Ensure opexp has selection if results exist
+                        if !app.opexp_results.is_empty()
+                            && app.opexp_table_state.selected().is_none()
+                        {
+                            app.opexp_table_state.select(Some(0));
+                        }
+                    }
+                    // Ctrl+U: clear entire input
+                    else if c == 'u'
+                        && key
+                            .modifiers
+                            .contains(crossterm::event::KeyModifiers::CONTROL)
+                    {
+                        app.clear_input();
+                        search_with_loading(app, terminal, sourcer)?;
+                    }
+                    // Ctrl+K: delete to end of line
+                    else if c == 'k'
+                        && key
+                            .modifiers
+                            .contains(crossterm::event::KeyModifiers::CONTROL)
+                    {
+                        app.delete_to_end();
+                        search_with_loading(app, terminal, sourcer)?;
+                    }
+                    // Ctrl+W: delete word backward (alternative to Ctrl+Backspace)
+                    else if c == 'w'
+                        && key
+                            .modifiers
+                            .contains(crossterm::event::KeyModifiers::CONTROL)
+                    {
+                        app.delete_word_backward();
+                        search_with_loading(app, terminal, sourcer)?;
+                    }
                     // Ctrl+C quit
                     else if c == 'c'
                         && key
@@ -761,7 +975,7 @@ fn run_app<B: ratatui::backend::Backend>(
                     else if c.is_alphanumeric() || c.is_whitespace() || c == '-' || c == '_' || c == '.' || c == ',' {
                         app.input.insert(app.cursor_position, c);
                         app.cursor_position += 1;
-                        app.search(sourcer)?;
+                        search_with_loading(app, terminal, sourcer)?;
                         app.focus = FocusPanel::Search;
                     }
                 }
@@ -854,9 +1068,15 @@ fn render_breadcrumb(f: &mut Frame, app: &App, area: Rect) {
 }
 
 fn render_search_bar(f: &mut Frame, app: &mut App, area: Rect) {
+    let title = if app.searching {
+        format!("Search {}", SPINNER_FRAMES[app.spinner_frame])
+    } else {
+        "Search".to_string()
+    };
+
     let input_block = Block::default()
         .borders(Borders::ALL)
-        .title("Search")
+        .title(title)
         .border_style(if app.focus == FocusPanel::Search {
             Style::default().fg(Color::Green)
         } else {
@@ -867,7 +1087,7 @@ fn render_search_bar(f: &mut Frame, app: &mut App, area: Rect) {
     let input_text = Paragraph::new(input_with_prompt).block(input_block);
     f.render_widget(input_text, area);
 
-    if app.focus == FocusPanel::Search {
+    if app.focus == FocusPanel::Search && !app.searching {
         f.set_cursor_position((area.x + app.cursor_position as u16 + 3, area.y + 1));
     }
 }
@@ -889,6 +1109,12 @@ fn render_cycle_selection(f: &mut Frame, app: &mut App, area: Rect) {
 fn render_tabs(f: &mut Frame, app: &mut App, area: Rect) {
     let candidate_tab_text = format!(" Candidates ({}) ", app.candidate_results.len());
     let committee_tab_text = format!(" Committees ({}) ", app.committee_results.len());
+    // Show (?) for OpExp when not active, since we don't search it until the tab is selected
+    let opexp_tab_text = if app.active_tab == ResultsTab::OpExp {
+        format!(" Operating Expenses ({}) ", app.opexp_results.len())
+    } else {
+        " Operating Expenses (?) ".to_string()
+    };
     let tabs = Line::from(vec![
         Span::styled(
             candidate_tab_text,
@@ -923,6 +1149,23 @@ fn render_tabs(f: &mut Frame, app: &mut App, area: Rect) {
         } else {
             Span::raw("   ")
         },
+        Span::raw(" "),
+        Span::styled(
+            opexp_tab_text,
+            if app.active_tab == ResultsTab::OpExp {
+                Style::default()
+                    .fg(Color::Black)
+                    .bg(Color::Green)
+                    .add_modifier(Modifier::BOLD)
+            } else {
+                Style::default().fg(Color::White).bg(Color::DarkGray)
+            },
+        ),
+        if app.active_tab != ResultsTab::OpExp {
+            Span::styled(" ⌃e", Style::default().fg(Color::DarkGray))
+        } else {
+            Span::raw("   ")
+        },
     ]);
 
     let tabs_widget = Paragraph::new(tabs).block(Block::default().borders(Borders::NONE));
@@ -930,31 +1173,15 @@ fn render_tabs(f: &mut Frame, app: &mut App, area: Rect) {
 }
 
 fn render_help_text(f: &mut Frame, _app: &mut App, area: Rect) {
-    let shortcut_style = Style::default().bold().fg(Color::White);
-    let descrip_style = Style::default().fg(Color::DarkGray);
-    let help_text = Line::from(vec![
-        Span::styled("Esc", shortcut_style),
-        Span::styled(" quit  ", descrip_style),
-        Span::styled("Tab", shortcut_style),
-        Span::styled(" focus  ", descrip_style),
-        Span::styled("Enter", shortcut_style),
-        Span::styled(" select  ", descrip_style),
-        Span::styled("↑/↓", shortcut_style),
-        Span::styled(" navigate ", descrip_style),
-        Span::styled("⌃a", shortcut_style),
-        Span::styled(" Candidates  ", descrip_style),
-        Span::styled("⌃b", shortcut_style),
-        Span::styled(" Committees  ", descrip_style),
-    ]);
-    let help = Paragraph::new(help_text)
-        .alignment(Alignment::Center)
-        .style(Style::default().fg(Color::Gray))
-        .block(
-            Block::default()
-                .borders(Borders::TOP)
-                .border_style(Style::default().fg(Color::DarkGray)),
-        );
-    f.render_widget(help, area);
+    HelpBar::new()
+        .item("Esc", " quit")
+        .item("Tab", " focus")
+        .item("Enter", " select")
+        .item("↑/↓", " navigate")
+        .item("⌃a", " Candidates")
+        .item("⌃b", " Committees")
+        .item("⌃e", " Expenses")
+        .render(f, area);
 }
 
 fn render_candidate_results_table(f: &mut Frame, app: &mut App, area: Rect) {
@@ -1136,6 +1363,88 @@ fn render_committee_results_table(f: &mut Frame, app: &mut App, area: Rect) {
     f.render_stateful_widget(committee_table, area, &mut app.committee_table_state);
 }
 
+fn render_opexp_results_table(f: &mut Frame, app: &mut App, area: Rect) {
+    let header_style = Style::default()
+        .fg(Color::Yellow)
+        .add_modifier(Modifier::BOLD);
+    let opexp_header = Row::new(vec![
+        Cell::from("Committee").style(header_style),
+        Cell::from("Recipient").style(header_style),
+        Cell::from("City").style(header_style),
+        Cell::from("State").style(header_style),
+        Cell::from("Date").style(header_style),
+        Cell::from("Amount").style(header_style),
+        Cell::from("Purpose").style(header_style),
+    ])
+    .height(1);
+
+    let opexp_rows: Vec<Row> = app
+        .opexp_results
+        .iter()
+        .map(|result| {
+            let amount = format!("${:.2}", result.transaction_amount);
+            Row::new(vec![
+                Cell::from(result.committee_id.clone()).style(Style::default().fg(Color::Magenta)),
+                Cell::from(result.name.clone()),
+                Cell::from(result.city.clone()),
+                Cell::from(result.state.clone()),
+                Cell::from(result.transaction_date.clone()),
+                Cell::from(amount).style(Style::default().fg(Color::Green)),
+                Cell::from(result.purpose.clone()),
+            ])
+        })
+        .collect();
+
+    let opexp_title = if app.opexp_results.is_empty() && !app.input.is_empty() {
+        "Operating Expenses (no matches)".to_string()
+    } else if app.opexp_results.is_empty() {
+        "Operating Expenses (start typing to search)".to_string()
+    } else if let Some(duration) = app.last_query_duration {
+        format!(
+            "Operating Expenses ({} matches, {}ms)",
+            app.opexp_results.len(),
+            duration.as_millis()
+        )
+    } else {
+        format!(
+            "Operating Expenses ({} matches)",
+            app.opexp_results.len()
+        )
+    };
+
+    let opexp_table = Table::new(
+        opexp_rows,
+        [
+            Constraint::Length(12),  // Committee
+            Constraint::Length(30),  // Recipient
+            Constraint::Length(15),  // City
+            Constraint::Length(5),   // State
+            Constraint::Length(10),  // Date
+            Constraint::Length(12),  // Amount
+            Constraint::Min(20),     // Purpose
+        ],
+    )
+    .header(opexp_header)
+    .block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title(opexp_title)
+            .border_style(if app.focus == FocusPanel::Results {
+                Style::default().fg(Color::Green)
+            } else {
+                Style::default()
+            }),
+    )
+    .row_highlight_style(
+        Style::default()
+            .bg(Color::DarkGray)
+            .add_modifier(Modifier::BOLD),
+    )
+    .highlight_symbol(">> ");
+
+    f.render_stateful_widget(opexp_table, area, &mut app.opexp_table_state);
+}
+
 fn render_search_view(f: &mut Frame, app: &mut App, area: Rect) {
     let layout = Layout::default()
         .direction(Direction::Vertical)
@@ -1161,6 +1470,124 @@ fn render_search_view(f: &mut Frame, app: &mut App, area: Rect) {
     match app.active_tab {
         ResultsTab::Candidates => render_candidate_results_table(f, app, results_table),
         ResultsTab::Committees => render_committee_results_table(f, app, results_table),
+        ResultsTab::OpExp => render_opexp_results_table(f, app, results_table),
     }
     render_help_text(f, app, help_text);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use insta::assert_snapshot;
+    use ratatui::{backend::TestBackend, Terminal};
+
+    fn create_test_app() -> App {
+        let mut app = App::new(2024, "biden".to_string());
+        // Add some sample results
+        app.candidate_results = vec![
+            CandidateSearchResult {
+                candidate_id: "P00003392".to_string(),
+                name: "BIDEN, JOSEPH R JR".to_string(),
+                election_year: 2020,
+                office: "P".to_string(),
+                state: "".to_string(),
+                district: "".to_string(),
+                principal_campaign_committee: Some("C00703975".to_string()),
+            },
+        ];
+        app.committee_results = vec![
+            CommitteeSearchResult {
+                committee_id: "C00703975".to_string(),
+                name: "BIDEN FOR PRESIDENT".to_string(),
+                committee_type: "P".to_string(),
+                designation: "P".to_string(),
+                party_affiliation: "DEM".to_string(),
+                connected_org_name: "".to_string(),
+                candidate_id: Some("P00003392".to_string()),
+            },
+        ];
+        app.candidate_table_state.select(Some(0));
+        app
+    }
+
+    #[test]
+    fn test_render_search_view() {
+        let mut app = create_test_app();
+        let mut terminal = Terminal::new(TestBackend::new(100, 30)).unwrap();
+        terminal
+            .draw(|f| render_search_view(f, &mut app, f.area()))
+            .unwrap();
+        assert_snapshot!(terminal.backend());
+    }
+
+    #[test]
+    fn test_render_search_view_empty() {
+        let mut app = App::new(2024, "".to_string());
+        let mut terminal = Terminal::new(TestBackend::new(100, 30)).unwrap();
+        terminal
+            .draw(|f| render_search_view(f, &mut app, f.area()))
+            .unwrap();
+        assert_snapshot!(terminal.backend());
+    }
+
+    #[test]
+    fn test_render_help_text() {
+        let mut app = App::new(2024, "".to_string());
+        let mut terminal = Terminal::new(TestBackend::new(100, 2)).unwrap();
+        terminal
+            .draw(|f| render_help_text(f, &mut app, f.area()))
+            .unwrap();
+        assert_snapshot!(terminal.backend());
+    }
+
+    #[test]
+    fn test_render_search_view_opexp() {
+        let mut app = App::new(2024, "consulting".to_string());
+        // Set active tab to OpExp
+        app.active_tab = ResultsTab::OpExp;
+        // Add some sample operating expense results
+        app.opexp_results = vec![
+            OpExpSearchResult {
+                committee_id: "C00703975".to_string(),
+                name: "ACME CONSULTING LLC".to_string(),
+                city: "WASHINGTON".to_string(),
+                state: "DC".to_string(),
+                transaction_date: "2024-03-15".to_string(),
+                transaction_amount: 5000.00,
+                purpose: "STRATEGY CONSULTING".to_string(),
+                filing_id: 123456,
+            },
+            OpExpSearchResult {
+                committee_id: "C00703975".to_string(),
+                name: "SMITH CONSULTING GROUP".to_string(),
+                city: "NEW YORK".to_string(),
+                state: "NY".to_string(),
+                transaction_date: "2024-02-28".to_string(),
+                transaction_amount: 3500.50,
+                purpose: "MEDIA CONSULTING".to_string(),
+                filing_id: 123457,
+            },
+        ];
+        app.opexp_table_state.select(Some(0));
+        let mut terminal = Terminal::new(TestBackend::new(120, 30)).unwrap();
+        terminal
+            .draw(|f| render_search_view(f, &mut app, f.area()))
+            .unwrap();
+        assert_snapshot!(terminal.backend());
+    }
+
+    #[test]
+    fn test_render_search_bar_with_spinner() {
+        let mut app = App::new(2024, "biden".to_string());
+        app.searching = true;
+        app.spinner_frame = 2; // Use a specific frame for consistent testing
+        let mut terminal = Terminal::new(TestBackend::new(100, 3)).unwrap();
+        terminal
+            .draw(|f| {
+                let area = f.area();
+                render_search_bar(f, &mut app, area);
+            })
+            .unwrap();
+        assert_snapshot!(terminal.backend());
+    }
 }
