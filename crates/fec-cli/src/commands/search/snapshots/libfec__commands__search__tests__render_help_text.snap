@@ -1,0 +1,7 @@
+---
+source: crates/fec-cli/src/commands/search/tests.rs
+expression: terminal.backend()
+snapshot_kind: text
+---
+"────────────────────────────────────────────────────────────────────────────────────────────────────"
+"     Esc quit  Tab focus  Enter select  ↑/↓ navigate  ⌃a Candidates  ⌃b Committees  ⌃e Expenses     "

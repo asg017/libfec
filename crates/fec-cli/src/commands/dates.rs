@@ -1116,12 +1116,14 @@ mod tests {
         let filtered: Vec<_> = events
             .iter()
             .filter(|e| e.matches_state_filter(Some("CA")))
-            .map(|e| serde_json::json!({
-                "summary": e.summary,
-                "category": e.category,
-                "location": e.location,
-                "start_date": e.start_date.as_ref().map(format_date),
-            }))
+            .map(|e| {
+                serde_json::json!({
+                    "summary": e.summary,
+                    "category": e.category,
+                    "location": e.location,
+                    "start_date": e.start_date.as_ref().map(format_date),
+                })
+            })
             .collect();
 
         assert_yaml_snapshot!(filtered);
@@ -1133,12 +1135,14 @@ mod tests {
         let filtered: Vec<_> = events
             .iter()
             .filter(|e| e.matches_state_filter(Some("TX")))
-            .map(|e| serde_json::json!({
-                "summary": e.summary,
-                "category": e.category,
-                "location": e.location,
-                "start_date": e.start_date.as_ref().map(format_date),
-            }))
+            .map(|e| {
+                serde_json::json!({
+                    "summary": e.summary,
+                    "category": e.category,
+                    "location": e.location,
+                    "start_date": e.start_date.as_ref().map(format_date),
+                })
+            })
             .collect();
 
         assert_yaml_snapshot!(filtered);
@@ -1150,12 +1154,14 @@ mod tests {
         let filtered: Vec<_> = events
             .iter()
             .filter(|e| e.matches_state_filter(None))
-            .map(|e| serde_json::json!({
-                "summary": e.summary,
-                "category": e.category,
-                "location": e.location,
-                "start_date": e.start_date.as_ref().map(format_date),
-            }))
+            .map(|e| {
+                serde_json::json!({
+                    "summary": e.summary,
+                    "category": e.category,
+                    "location": e.location,
+                    "start_date": e.start_date.as_ref().map(format_date),
+                })
+            })
             .collect();
 
         assert_yaml_snapshot!(filtered);

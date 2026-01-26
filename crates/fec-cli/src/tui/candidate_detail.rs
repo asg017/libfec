@@ -525,18 +525,12 @@ fn render_content(
     state: &CandidateDetailState,
     area: Rect,
 ) {
-    let mut lines = vec![
-        
-    ];
+    let mut lines = vec![];
     let dim = Style::default().add_modifier(Modifier::DIM);
     let election_line = match candidate.office.as_str() {
-          "H" => Line::from(vec![
+        "H" => Line::from(vec![
             Span::styled(
-                format!(
-                    "{}{}",
-                    candidate.state,
-                    candidate.district
-                ),
+                format!("{}{}", candidate.state, candidate.district),
                 Style::default().fg(Color::Cyan),
             ),
             Span::styled(" candidate in ", dim),
@@ -545,52 +539,42 @@ fn render_content(
                 Style::default().fg(Color::Cyan),
             ),
             Span::styled(", running as a ", dim),
-
             match candidate.party_affiliation.as_str() {
                 "DEM" => Span::styled("Democrat", Style::default().fg(Color::Rgb(0, 0, 255))),
                 "REP" => Span::styled("⬤Republican", Style::default().fg(Color::Rgb(255, 0, 0))),
                 other => Span::styled(other, Style::default().fg(Color::Yellow)),
             },
-            
-          ]),
-          "S" => Line::from(vec![
-            Span::styled(
-                candidate.state.as_str(),
-                Style::default().fg(Color::Cyan),
-            ),
+        ]),
+        "S" => Line::from(vec![
+            Span::styled(candidate.state.as_str(), Style::default().fg(Color::Cyan)),
             Span::styled(" candidate in ", dim),
             Span::styled(
                 format!("{} Senate race", candidate.election_year.to_string()),
                 Style::default().fg(Color::Cyan),
             ),
             Span::styled(", running as a ", dim),
-
             match candidate.party_affiliation.as_str() {
                 "DEM" => Span::styled("Democrat", Style::default().fg(Color::Rgb(0, 0, 255))),
                 "REP" => Span::styled("⬤Republican", Style::default().fg(Color::Rgb(255, 0, 0))),
                 other => Span::styled(other, Style::default().fg(Color::Yellow)),
             },
-          ]),
-          "P" => Line::from(vec![
-            Span::styled(
-                "Presidential candidate",
-                Style::default().fg(Color::Cyan),
-            ),
+        ]),
+        "P" => Line::from(vec![
+            Span::styled("Presidential candidate", Style::default().fg(Color::Cyan)),
             Span::styled(" in ", dim),
             Span::styled(
                 candidate.election_year.to_string(),
                 Style::default().fg(Color::Cyan),
             ),
             Span::styled(", running as a ", dim),
-
             match candidate.party_affiliation.as_str() {
                 "DEM" => Span::styled("Democrat", Style::default().fg(Color::Rgb(0, 0, 255))),
                 "REP" => Span::styled("⬤Republican", Style::default().fg(Color::Rgb(255, 0, 0))),
                 other => Span::styled(other, Style::default().fg(Color::Yellow)),
             },
-          ]),
-          _ => Line::from(""),
-        };
+        ]),
+        _ => Line::from(""),
+    };
     lines.push(election_line);
 
     // Principal campaign committee
@@ -792,14 +776,12 @@ fn render_filings_table(
 
     let rows: Vec<Row> = if state.filings.is_empty() && !state.filings_loading {
         // Show prompt when there are no filings
-        vec![Row::new(vec![Cell::from(
-            Span::styled(
-                "Press 'f' to fetch filings",
-                Style::default()
-                    .fg(Color::DarkGray)
-                    .add_modifier(Modifier::ITALIC),
-            ),
-        )
+        vec![Row::new(vec![Cell::from(Span::styled(
+            "Press 'f' to fetch filings",
+            Style::default()
+                .fg(Color::DarkGray)
+                .add_modifier(Modifier::ITALIC),
+        ))
         .style(Style::default().fg(Color::DarkGray))])]
     } else {
         state

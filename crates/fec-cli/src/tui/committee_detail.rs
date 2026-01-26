@@ -556,7 +556,10 @@ fn render_help_text(f: &mut Frame, area: Rect, has_filings: bool) {
             .item("y", " copy")
             .item("o", " open");
     } else {
-        bar = bar.item("o", " open").item("y", " copy").item("f", " filings");
+        bar = bar
+            .item("o", " open")
+            .item("y", " copy")
+            .item("f", " filings");
     }
     bar.render(f, area);
 }
@@ -598,14 +601,12 @@ fn render_filings_table(
 
     let rows: Vec<Row> = if state.filings.is_empty() && !state.filings_loading {
         // Show prompt when there are no filings
-        vec![Row::new(vec![Cell::from(
-            Span::styled(
-                "Press 'f' to fetch filings",
-                Style::default()
-                    .fg(Color::DarkGray)
-                    .add_modifier(Modifier::ITALIC),
-            ),
-        )
+        vec![Row::new(vec![Cell::from(Span::styled(
+            "Press 'f' to fetch filings",
+            Style::default()
+                .fg(Color::DarkGray)
+                .add_modifier(Modifier::ITALIC),
+        ))
         .style(Style::default().fg(Color::DarkGray))])]
     } else {
         state
