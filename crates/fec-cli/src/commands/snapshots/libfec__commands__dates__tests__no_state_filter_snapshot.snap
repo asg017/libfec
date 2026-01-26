@@ -1,0 +1,37 @@
+---
+source: crates/fec-cli/src/commands/dates.rs
+expression: filtered
+snapshot_kind: text
+---
+- category: Election Dates
+  location: California
+  start_date: 2026-06-02
+  summary: CA Primary Election
+- category: Election Dates
+  location: Texas
+  start_date: 2026-01-31
+  summary: TX/18 Special General Election Runoff
+- category: Election Dates
+  location: New York
+  start_date: 2026-06-23
+  summary: NY Primary Election
+- category: Monthly
+  location: FEC
+  start_date: 2026-02-20
+  summary: February Monthly Report Due
+- category: Quarterly
+  location: FEC
+  start_date: 2026-04-15
+  summary: April Quarterly Report Due
+- category: Pre and Post-Elections
+  location: California
+  start_date: 2026-05-13
+  summary: CA Pre-Primary Report Due
+- category: IE Periods
+  location: CA
+  start_date: 2026-05-22
+  summary: 24-Hour IE Report Period Begins
+- category: EC Periods
+  location: TX
+  start_date: 2026-02-01
+  summary: EC Period Starts

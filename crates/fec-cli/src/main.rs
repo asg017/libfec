@@ -10,6 +10,7 @@ mod commands;
 mod rss;
 mod sourcer;
 mod tui;
+mod utils;
 use crate::cli::{Cli, Commands};
 use clap::Parser;
 use std::env;

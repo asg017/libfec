@@ -548,21 +548,17 @@ fn render_content(f: &mut Frame, committee: &CommitteeDetail, area: Rect) {
 }
 
 fn render_help_text(f: &mut Frame, area: Rect, has_filings: bool) {
-    let help = if has_filings {
-        HelpBar::new()
-            .keys(vec!["Esc", "q"], " back")
+    let mut bar = HelpBar::new().keys(vec!["Esc", "q"], " back");
+    if has_filings {
+        bar = bar
             .item("j/k", " navigate")
             .item("Enter", " view filing")
             .item("y", " copy")
-            .item("o", " open")
+            .item("o", " open");
     } else {
-        HelpBar::new()
-            .keys(vec!["Esc", "q"], " back")
-            .item("o", " open")
-            .item("y", " copy")
-            .item("f", " filings")
-    };
-    help.render(f, area);
+        bar = bar.item("o", " open").item("y", " copy").item("f", " filings");
+    }
+    bar.render(f, area);
 }
 
 fn render_filings_table(
@@ -600,46 +596,59 @@ fn render_filings_table(
     ])
     .height(1);
 
-    let rows: Vec<Row> = state
-        .filings
-        .iter()
-        .map(|filing| {
-            let coverage = match (&filing.coverage_from, &filing.coverage_through) {
-                (Some(from), Some(through)) => format!("{} - {}", from, through),
-                _ => "-".to_string(),
-            };
+    let rows: Vec<Row> = if state.filings.is_empty() && !state.filings_loading {
+        // Show prompt when there are no filings
+        vec![Row::new(vec![Cell::from(
+            Span::styled(
+                "Press 'f' to fetch filings",
+                Style::default()
+                    .fg(Color::DarkGray)
+                    .add_modifier(Modifier::ITALIC),
+            ),
+        )
+        .style(Style::default().fg(Color::DarkGray))])]
+    } else {
+        state
+            .filings
+            .iter()
+            .map(|filing| {
+                let coverage = match (&filing.coverage_from, &filing.coverage_through) {
+                    (Some(from), Some(through)) => format!("{} - {}", from, through),
+                    _ => "-".to_string(),
+                };
 
-            // Color code by form type
-            let form_color = match filing.form_type.as_str() {
-                f if f.starts_with("F3P") => Color::Magenta,
-                f if f.starts_with("F3X") => Color::Cyan,
-                f if f.starts_with("F3") => Color::Green,
-                f if f.starts_with("F1") => Color::Yellow,
-                f if f.starts_with("F2") => Color::Blue,
-                f if f.starts_with("F99") => Color::Gray,
-                _ => Color::White,
-            };
+                // Color code by form type
+                let form_color = match filing.form_type.as_str() {
+                    f if f.starts_with("F3P") => Color::Magenta,
+                    f if f.starts_with("F3X") => Color::Cyan,
+                    f if f.starts_with("F3") => Color::Green,
+                    f if f.starts_with("F1") => Color::Yellow,
+                    f if f.starts_with("F2") => Color::Blue,
+                    f if f.starts_with("F99") => Color::Gray,
+                    _ => Color::White,
+                };
 
-            Row::new(vec![
-                Cell::from(filing.filing_id.clone()).style(Style::default().fg(Color::Cyan)),
-                Cell::from(filing.form_type.clone()).style(Style::default().fg(form_color)),
-                Cell::from(
-                    filing
-                        .report_type
-                        .clone()
-                        .unwrap_or_else(|| "-".to_string()),
-                ),
-                Cell::from(coverage),
-                Cell::from(
-                    filing
-                        .receipt_date
-                        .clone()
-                        .unwrap_or_else(|| "-".to_string()),
-                )
-                .style(Style::default().fg(Color::DarkGray)),
-            ])
-        })
-        .collect();
+                Row::new(vec![
+                    Cell::from(filing.filing_id.clone()).style(Style::default().fg(Color::Cyan)),
+                    Cell::from(filing.form_type.clone()).style(Style::default().fg(form_color)),
+                    Cell::from(
+                        filing
+                            .report_type
+                            .clone()
+                            .unwrap_or_else(|| "-".to_string()),
+                    ),
+                    Cell::from(coverage),
+                    Cell::from(
+                        filing
+                            .receipt_date
+                            .clone()
+                            .unwrap_or_else(|| "-".to_string()),
+                    )
+                    .style(Style::default().fg(Color::DarkGray)),
+                ])
+            })
+            .collect()
+    };
 
     let table_title = if state.filings_loading {
         format!("Filings for {} (loading...)", committee.committee_id)
@@ -746,37 +755,21 @@ pub fn render_committee_detail(
 ) {
     let has_filings = !state.filings.is_empty() || state.filings_loading;
 
-    if has_filings {
-        let layout = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([
-                Constraint::Length(1),  // Title
-                Constraint::Min(10),    // Content
-                Constraint::Length(12), // Filings table (smaller, scrollable)
-                Constraint::Length(2),  // Help text
-            ]);
+    let layout = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(1),  // Title
+            Constraint::Min(10),    // Content
+            Constraint::Length(12), // Filings table (smaller, scrollable)
+            Constraint::Length(2),  // Help text
+        ]);
 
-        let [title_area, content_area, filings_area, help_area] = area.layout(&layout);
+    let [title_area, content_area, filings_area, help_area] = area.layout(&layout);
 
-        render_title(f, committee, title_area);
-        render_content(f, committee, content_area);
-        render_filings_table(f, committee, state, filings_area);
-        render_help_text(f, help_area, has_filings);
-    } else {
-        let layout = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([
-                Constraint::Length(1), // Title
-                Constraint::Min(10),   // Content
-                Constraint::Length(2), // Help text
-            ]);
-
-        let [title_area, content_area, help_area] = area.layout(&layout);
-
-        render_title(f, committee, title_area);
-        render_content(f, committee, content_area);
-        render_help_text(f, help_area, has_filings);
-    }
+    render_title(f, committee, title_area);
+    render_content(f, committee, content_area);
+    render_filings_table(f, committee, state, filings_area);
+    render_help_text(f, help_area, has_filings);
 
     if state.show_yank_popup {
         render_yank_popup(f, area, committee, state);

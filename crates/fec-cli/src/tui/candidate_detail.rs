@@ -36,6 +36,7 @@ use ratatui::{
     widgets::{Block, Borders, Cell, Clear, Paragraph, Row, Table, TableState, Wrap},
     Frame,
 };
+use sha2::digest::typenum::Mod;
 
 /// Information about affiliated committees and joint fund participants from F1S schedules
 #[derive(Debug, Clone)]
@@ -511,7 +512,7 @@ fn render_title(f: &mut Frame, candidate: &CandidateDetail, area: Rect) {
     let title = Paragraph::new(title_text)
         .block(
             Block::default()
-                .borders(Borders::ALL)
+                .borders(Borders::LEFT)
                 .border_style(Style::default().fg(Color::Green)),
         )
         .style(Style::default().add_modifier(Modifier::BOLD));
@@ -524,130 +525,37 @@ fn render_content(
     state: &CandidateDetailState,
     area: Rect,
 ) {
-    let content_block = Block::default()
-        .borders(Borders::ALL)
-        .title("Candidate Information")
-        .border_style(Style::default().fg(Color::Green));
-
-    let inner_area = content_block.inner(area);
-    f.render_widget(content_block, area);
-
     let mut lines = vec![
-        Line::from(vec![
-            Span::styled(
-                "Candidate ID: ",
-                Style::default()
-                    .fg(Color::Yellow)
-                    .add_modifier(Modifier::BOLD),
-            ),
-            Span::raw(&candidate.candidate_id),
-        ]),
-        Line::from(""),
+        
     ];
+    let dim = Style::default().add_modifier(Modifier::DIM);
+    let election_line = match candidate.office.as_str() {
+          "H" => Line::from(vec![
+            Span::styled(
+                format!(
+                    "{}{}",
+                    candidate.state,
+                    candidate.district
+                ),
+                Style::default().fg(Color::Cyan),
+            ),
+            Span::styled(" candidate in ", dim),
+            Span::styled(
+                candidate.election_year.to_string(),
+                Style::default().fg(Color::Cyan),
+            ),
+            Span::styled(", running as a ", dim),
 
-    lines.push(Line::from(vec![
-        Span::styled(
-            "Name: ",
-            Style::default()
-                .fg(Color::Yellow)
-                .add_modifier(Modifier::BOLD),
-        ),
-        Span::raw(&candidate.name),
-    ]));
-    lines.push(Line::from(""));
-
-    // Office and location
-    if !candidate.office.is_empty() {
-        let office_desc = match candidate.office.as_str() {
-            "H" => {
-                if !candidate.state.is_empty() && !candidate.district.is_empty() {
-                    format!(
-                        "U.S. House ({}-{:02})",
-                        candidate.state,
-                        candidate.district.parse::<u8>().unwrap_or(0)
-                    )
-                } else {
-                    "U.S. House".to_string()
-                }
-            }
-            "S" => {
-                if !candidate.state.is_empty() {
-                    format!("U.S. Senate ({})", candidate.state)
-                } else {
-                    "U.S. Senate".to_string()
-                }
-            }
-            "P" => "President".to_string(),
-            _ => candidate.office.clone(),
+            match candidate.party_affiliation.as_str() {
+                "DEM" => Span::styled("Democrat", Style::default().fg(Color::Rgb(0, 0, 255))),
+                "REP" => Span::styled("⬤Republican", Style::default().fg(Color::Rgb(255, 0, 0))),
+                other => Span::styled(other, Style::default().fg(Color::Yellow)),
+            },
+            
+          ]),
+          _ => todo!(),
         };
-
-        lines.push(Line::from(vec![
-            Span::styled(
-                "Office: ",
-                Style::default()
-                    .fg(Color::Yellow)
-                    .add_modifier(Modifier::BOLD),
-            ),
-            Span::raw(office_desc),
-        ]));
-    }
-
-    if candidate.election_year > 0 {
-        lines.push(Line::from(vec![
-            Span::styled(
-                "Election Year: ",
-                Style::default()
-                    .fg(Color::Yellow)
-                    .add_modifier(Modifier::BOLD),
-            ),
-            Span::raw(candidate.election_year.to_string()),
-        ]));
-    }
-    lines.push(Line::from(""));
-
-    // Party and status
-    if !candidate.party_affiliation.is_empty() {
-        lines.push(Line::from(vec![
-            Span::styled(
-                "Party: ",
-                Style::default()
-                    .fg(Color::Yellow)
-                    .add_modifier(Modifier::BOLD),
-            ),
-            Span::raw(&candidate.party_affiliation),
-        ]));
-    }
-
-    if !candidate.incumbent_challenger_status.is_empty() {
-        let status_desc = match candidate.incumbent_challenger_status.as_str() {
-            "I" => "Incumbent",
-            "C" => "Challenger",
-            "O" => "Open Seat",
-            _ => &candidate.incumbent_challenger_status,
-        };
-        lines.push(Line::from(vec![
-            Span::styled(
-                "Status: ",
-                Style::default()
-                    .fg(Color::Yellow)
-                    .add_modifier(Modifier::BOLD),
-            ),
-            Span::raw(status_desc),
-        ]));
-    }
-
-    if !candidate.status.is_empty() {
-        lines.push(Line::from(vec![
-            Span::styled(
-                "Candidate Status: ",
-                Style::default()
-                    .fg(Color::Yellow)
-                    .add_modifier(Modifier::BOLD),
-            ),
-            Span::raw(&candidate.status),
-        ]));
-    }
-    lines.push(Line::from(""));
+    lines.push(election_line);
 
     // Principal campaign committee
     if let Some(ref pcc) = candidate.principal_campaign_committee {
@@ -747,7 +655,7 @@ fn render_content(
     }
 
     // Linked committees
-    if !state.linked_committees.is_empty() {
+    if state.linked_committees.len() > 1 {
         lines.push(Line::from(vec![Span::styled(
             "Linked Committees:",
             Style::default()
@@ -808,7 +716,7 @@ fn render_content(
     }
 
     let content = Paragraph::new(lines).wrap(Wrap { trim: false });
-    f.render_widget(content, inner_area);
+    f.render_widget(content, area);
 }
 
 fn render_filings_table(
@@ -846,46 +754,59 @@ fn render_filings_table(
     ])
     .height(1);
 
-    let rows: Vec<Row> = state
-        .filings
-        .iter()
-        .map(|filing| {
-            let coverage = match (&filing.coverage_from, &filing.coverage_through) {
-                (Some(from), Some(through)) => format!("{} - {}", from, through),
-                _ => "-".to_string(),
-            };
+    let rows: Vec<Row> = if state.filings.is_empty() && !state.filings_loading {
+        // Show prompt when there are no filings
+        vec![Row::new(vec![Cell::from(
+            Span::styled(
+                "Press 'f' to fetch filings",
+                Style::default()
+                    .fg(Color::DarkGray)
+                    .add_modifier(Modifier::ITALIC),
+            ),
+        )
+        .style(Style::default().fg(Color::DarkGray))])]
+    } else {
+        state
+            .filings
+            .iter()
+            .map(|filing| {
+                let coverage = match (&filing.coverage_from, &filing.coverage_through) {
+                    (Some(from), Some(through)) => format!("{} - {}", from, through),
+                    _ => "-".to_string(),
+                };
 
-            // Color code by form type
-            let form_color = match filing.form_type.as_str() {
-                f if f.starts_with("F3P") => Color::Magenta,
-                f if f.starts_with("F3X") => Color::Cyan,
-                f if f.starts_with("F3") => Color::Green,
-                f if f.starts_with("F1") => Color::Yellow,
-                f if f.starts_with("F2") => Color::Blue,
-                f if f.starts_with("F99") => Color::Gray,
-                _ => Color::White,
-            };
+                // Color code by form type
+                let form_color = match filing.form_type.as_str() {
+                    f if f.starts_with("F3P") => Color::Magenta,
+                    f if f.starts_with("F3X") => Color::Cyan,
+                    f if f.starts_with("F3") => Color::Green,
+                    f if f.starts_with("F1") => Color::Yellow,
+                    f if f.starts_with("F2") => Color::Blue,
+                    f if f.starts_with("F99") => Color::Gray,
+                    _ => Color::White,
+                };
 
-            Row::new(vec![
-                Cell::from(filing.filing_id.clone()).style(Style::default().fg(Color::Cyan)),
-                Cell::from(filing.form_type.clone()).style(Style::default().fg(form_color)),
-                Cell::from(
-                    filing
-                        .report_type
-                        .clone()
-                        .unwrap_or_else(|| "-".to_string()),
-                ),
-                Cell::from(coverage),
-                Cell::from(
-                    filing
-                        .receipt_date
-                        .clone()
-                        .unwrap_or_else(|| "-".to_string()),
-                )
-                .style(Style::default().fg(Color::DarkGray)),
-            ])
-        })
-        .collect();
+                Row::new(vec![
+                    Cell::from(filing.filing_id.clone()).style(Style::default().fg(Color::Cyan)),
+                    Cell::from(filing.form_type.clone()).style(Style::default().fg(form_color)),
+                    Cell::from(
+                        filing
+                            .report_type
+                            .clone()
+                            .unwrap_or_else(|| "-".to_string()),
+                    ),
+                    Cell::from(coverage),
+                    Cell::from(
+                        filing
+                            .receipt_date
+                            .clone()
+                            .unwrap_or_else(|| "-".to_string()),
+                    )
+                    .style(Style::default().fg(Color::DarkGray)),
+                ])
+            })
+            .collect()
+    };
 
     let table_title = if state.filings_loading {
         format!("Filings for {} (loading...)", candidate.candidate_id)
@@ -928,22 +849,19 @@ fn render_filings_table(
 }
 
 fn render_help_text(f: &mut Frame, area: Rect, has_filings: bool, has_pcc: bool) {
-    let help = if has_filings {
-        let mut bar = HelpBar::new().keys(vec!["Esc", "q"], " back");
-        if has_pcc {
-            bar = bar.item("c", " committee").item("a", " F1 affiliations");
-        }
-        bar.item("j/k", " navigate")
+    let mut bar = HelpBar::new().keys(vec!["Esc", "q"], " back");
+    if has_pcc {
+        bar = bar.item("c", " committee").item("a", " F1 affiliations");
+    }
+    if has_filings {
+        bar = bar
+            .item("j/k", " navigate")
             .item("Enter", " view filing")
-            .item("y", " copy")
+            .item("y", " copy");
     } else {
-        let mut bar = HelpBar::new().keys(vec!["Esc", "q"], " back");
-        if has_pcc {
-            bar = bar.item("c", " committee").item("a", " F1 affiliations");
-        }
-        bar.item("y", " copy").item("f", " filings")
-    };
-    help.render(f, area);
+        bar = bar.item("y", " copy").item("f", " filings");
+    }
+    bar.render(f, area);
 }
 
 pub fn render_candidate_detail(
@@ -955,37 +873,21 @@ pub fn render_candidate_detail(
     let has_filings = !state.filings.is_empty() || state.filings_loading;
     let has_pcc = candidate.principal_campaign_committee.is_some();
 
-    if has_filings {
-        let layout = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([
-                Constraint::Length(3),  // Title
-                Constraint::Min(10),    // Content
-                Constraint::Length(12), // Filings table
-                Constraint::Length(2),  // Help text
-            ]);
+    let layout = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(1),  // Title
+            Constraint::Min(10),    // Content
+            Constraint::Length(12), // Filings table
+            Constraint::Length(2),  // Help text
+        ]);
 
-        let [title_area, content_area, filings_area, help_area] = area.layout(&layout);
+    let [title_area, content_area, filings_area, help_area] = area.layout(&layout);
 
-        render_title(f, candidate, title_area);
-        render_content(f, candidate, state, content_area);
-        render_filings_table(f, candidate, state, filings_area);
-        render_help_text(f, help_area, has_filings, has_pcc);
-    } else {
-        let layout = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([
-                Constraint::Length(3), // Title
-                Constraint::Min(10),   // Content
-                Constraint::Length(2), // Help text
-            ]);
-
-        let [title_area, content_area, help_area] = area.layout(&layout);
-
-        render_title(f, candidate, title_area);
-        render_content(f, candidate, state, content_area);
-        render_help_text(f, help_area, has_filings, has_pcc);
-    }
+    render_title(f, candidate, title_area);
+    render_content(f, candidate, state, content_area);
+    render_filings_table(f, candidate, state, filings_area);
+    render_help_text(f, help_area, has_filings, has_pcc);
 
     if state.show_yank_popup {
         render_yank_popup(f, area, candidate, state);

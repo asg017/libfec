@@ -227,7 +227,8 @@ pub enum DatesFormat {
 pub struct DatesArgs {
     /// Filter by category (comma-separated). Options: elections, deadlines, quarterly,
     /// monthly, pre-post, meetings, holidays, ec, ie, fea, other, conferences, roundtables,
-    /// outreach, aos-rules, open-meetings, executive, hearings
+    /// outreach, aos-rules, open-meetings, executive, hearings.
+    /// Note: When --state is provided, ec and ie are automatically added to the default categories.
     #[arg(long, short = 'c', default_value = "elections,deadlines")]
     pub category: String,
 
@@ -239,6 +240,11 @@ pub struct DatesArgs {
     #[arg(long, short = 'n', default_value = "500")]
     pub limit: u32,
 
+    /// Filter by state (2-letter code, e.g., CA, TX, NY). Shows elections for the specified
+    /// state plus all reporting deadlines and reporting periods.
+    #[arg(long, short = 's')]
+    pub state: Option<String>,
+
     /// Output format
     #[arg(long, short = 'f', value_enum, default_value = "tui")]
     pub format: DatesFormat,
@@ -246,38 +252,56 @@ pub struct DatesArgs {
 
 impl DatesArgs {
     /// Parse the category string into a list of category IDs
+    /// When a state filter is provided and categories are default, automatically include EC and IE periods
     pub fn category_ids(&self) -> Vec<u32> {
-        self.category
+        let mut ids: Vec<u32> = self
+            .category
             .split(',')
             .flat_map(category_name_to_ids)
-            .collect()
+            .collect();
+
+        // If state filter is provided and user is using default categories, add EC and IE
+        if self.state.is_some() && self.category == "elections,deadlines" {
+            ids.extend_from_slice(&[28, 29]); // EC and IE periods
+        }
+
+        ids
     }
 
     /// Get display string for the selected categories (shows user-friendly names)
     pub fn category_display(&self) -> String {
         // Show the category names the user provided, not the expanded IDs
-        let names: Vec<&str> = self
+        let mut names: Vec<String> = self
             .category
             .split(',')
             .map(|s| s.trim())
             .filter(|s| !s.is_empty())
+            .map(|n| {
+                // Capitalize first letter
+                let mut c = n.chars();
+                match c.next() {
+                    None => String::new(),
+                    Some(f) => f.to_uppercase().collect::<String>() + c.as_str(),
+                }
+            })
             .collect();
+
+        // If state filter is provided and using default categories, indicate EC/IE are included
+        if self.state.is_some() && self.category == "elections,deadlines" {
+            names.push("Ec".to_string());
+            names.push("Ie".to_string());
+        }
+
         if names.is_empty() {
             "All Events".to_string()
         } else {
-            names
-                .iter()
-                .map(|n| {
-                    // Capitalize first letter
-                    let mut c = n.chars();
-                    match c.next() {
-                        None => String::new(),
-                        Some(f) => f.to_uppercase().collect::<String>() + c.as_str(),
-                    }
-                })
-                .collect::<Vec<_>>()
-                .join(", ")
+            names.join(", ")
         }
+    }
+
+    /// Get normalized state code (uppercase 2-letter code)
+    pub fn state_code(&self) -> Option<String> {
+        self.state.as_ref().map(|s| s.to_uppercase())
     }
 }
 

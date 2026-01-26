@@ -758,7 +758,7 @@ fn run_app<B: ratatui::backend::Backend>(
                         return Ok(());
                     }
                     // Allow typing alphanumeric characters to update search from any focus
-                    else if c.is_alphanumeric() || c.is_whitespace() || c == '-' || c == '_' {
+                    else if c.is_alphanumeric() || c.is_whitespace() || c == '-' || c == '_' || c == '.' || c == ',' {
                         app.input.insert(app.cursor_position, c);
                         app.cursor_position += 1;
                         app.search(sourcer)?;

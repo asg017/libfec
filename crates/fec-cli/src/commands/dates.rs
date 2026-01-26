@@ -125,6 +125,91 @@ impl CalendarEvent {
             _ => "-".to_string(),
         }
     }
+
+    /// Extract state code(s) from event summary or location
+    /// Elections typically have format "XX/## Election Type" or "XX Election Type"
+    /// Returns all applicable state codes for the event
+    fn extract_state_codes(&self) -> Vec<String> {
+        let mut codes = Vec::new();
+
+        // First try to extract from summary
+        if let Some(first_word) = self.summary.split_whitespace().next() {
+            // Check if it's in format "XX/##" (most reliable pattern)
+            if let Some((state_part, _)) = first_word.split_once('/') {
+                if crate::utils::states::is_valid_state_code(state_part) {
+                    codes.push(state_part.to_uppercase());
+                    return codes;
+                }
+            }
+
+            // Check if first word is exactly 2 letters and a valid state code
+            // This avoids false positives like "Primary" -> "PR"
+            if first_word.len() == 2 && crate::utils::states::is_valid_state_code(first_word) {
+                codes.push(first_word.to_uppercase());
+                return codes;
+            }
+        }
+
+        // Try to extract from location field
+        if let Some(ref location) = self.location {
+            // Check if location contains comma-separated state codes (e.g., "AR, NC, TX")
+            if location.contains(',') {
+                for part in location.split(',') {
+                    let trimmed = part.trim();
+                    if crate::utils::states::is_valid_state_code(trimmed) {
+                        codes.push(trimmed.to_uppercase());
+                    }
+                }
+                if !codes.is_empty() {
+                    return codes;
+                }
+            }
+
+            // Check if location is a single state code
+            if crate::utils::states::is_valid_state_code(location) {
+                codes.push(location.to_uppercase());
+                return codes;
+            }
+
+            // Check if location is a state name
+            if let Some(code) = crate::utils::states::state_code_from_name(location) {
+                codes.push(code.to_string());
+                return codes;
+            }
+        }
+
+        codes
+    }
+
+    /// Check if this event should be shown for a given state filter
+    /// - If no state filter, show all events
+    /// - If state filter is set:
+    ///   - Always show reporting deadlines (21, 25, 26) as they apply to all states
+    ///   - Filter reporting periods (27, 28, 29, 38) by state as they're state-specific
+    ///   - Filter elections (36) by state
+    fn matches_state_filter(&self, state_filter: Option<&str>) -> bool {
+        let Some(filter_state) = state_filter else {
+            return true; // No filter, show everything
+        };
+
+        // Always show national reporting deadlines regardless of state filter
+        // These are monthly/quarterly reports that apply to all committees
+        if matches!(self.category_id, 21 | 25 | 26) {
+            return true;
+        }
+
+        // For state-specific events (elections and reporting periods), check if state matches
+        let event_states = self.extract_state_codes();
+        if !event_states.is_empty() {
+            // Check if any of the event's states match the filter
+            event_states
+                .iter()
+                .any(|state| state.eq_ignore_ascii_case(filter_state))
+        } else {
+            // If we can't determine state, include it (might be national event)
+            true
+        }
+    }
 }
 
 fn parse_date(s: &str) -> Option<JiffDate> {
@@ -217,10 +302,13 @@ impl App {
         self.api_url = Some(url.0.to_string());
         match fec_api::api_request(&url.0) {
             Ok(response) => {
+                // Parse and filter events by state if specified
+                let state_filter = self.args.state_code();
                 self.events = response
                     .result_items
                     .iter()
                     .filter_map(CalendarEvent::from_json)
+                    .filter(|event| event.matches_state_filter(state_filter.as_deref()))
                     .collect();
 
                 // Build events by date index
@@ -377,10 +465,31 @@ fn run_json_mode(args: &DatesArgs) -> Result<()> {
     eprintln!("URL: {}", url.0);
 
     let response = fec_api::api_request(&url.0)?;
+
+    // Apply state filtering if specified
+    let state_filter = args.state_code();
+    let filtered_results: Vec<_> = if state_filter.is_some() {
+        response
+            .result_items
+            .iter()
+            .filter(|item| {
+                // Parse as CalendarEvent to use the filtering logic
+                if let Some(event) = CalendarEvent::from_json(item) {
+                    event.matches_state_filter(state_filter.as_deref())
+                } else {
+                    true // Include items we can't parse
+                }
+            })
+            .cloned()
+            .collect()
+    } else {
+        response.result_items.clone()
+    };
+
     let json = serde_json::json!({
         "url": url.0.to_string(),
-        "count": response.result_items.len(),
-        "results": response.result_items,
+        "count": filtered_results.len(),
+        "results": filtered_results,
     });
     println!("{}", serde_json::to_string_pretty(&json)?);
     Ok(())
@@ -776,5 +885,338 @@ fn truncate_str(s: &str, max_len: usize) -> String {
                 .take(max_len.saturating_sub(3))
                 .collect::<String>()
         )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use insta::assert_yaml_snapshot;
+
+    fn create_election_event(summary: &str, location: &str, category_id: i64) -> CalendarEvent {
+        CalendarEvent {
+            event_id: 1,
+            summary: summary.to_string(),
+            description: "Test event".to_string(),
+            start_date: Some("2026-01-01".parse().unwrap()),
+            end_date: None,
+            category: "Test".to_string(),
+            category_id,
+            location: Some(location.to_string()),
+            url: None,
+        }
+    }
+
+    #[test]
+    fn test_extract_state_code_from_summary_with_slash() {
+        let event = create_election_event("TX/18 Special Election", "Texas", 36);
+        assert_eq!(event.extract_state_codes(), vec!["TX".to_string()]);
+    }
+
+    #[test]
+    fn test_extract_state_code_from_summary_simple() {
+        let event = create_election_event("CA Primary Election", "California", 36);
+        assert_eq!(event.extract_state_codes(), vec!["CA".to_string()]);
+    }
+
+    #[test]
+    fn test_extract_state_code_from_location() {
+        let event = create_election_event("Primary Election", "New York", 36);
+        assert_eq!(event.extract_state_codes(), vec!["NY".to_string()]);
+    }
+
+    #[test]
+    fn test_extract_state_code_no_match() {
+        let event = create_election_event("Federal Holiday", "FEC", 37);
+        assert!(event.extract_state_codes().is_empty());
+    }
+
+    #[test]
+    fn test_extract_state_codes_multiple() {
+        let event = create_election_event("EC Period Starts", "AR, NC, TX", 28);
+        assert_eq!(
+            event.extract_state_codes(),
+            vec!["AR".to_string(), "NC".to_string(), "TX".to_string()]
+        );
+    }
+
+    #[test]
+    fn test_extract_state_codes_single_code_in_location() {
+        let event = create_election_event("EC Period Starts", "MS", 28);
+        assert_eq!(event.extract_state_codes(), vec!["MS".to_string()]);
+    }
+
+    #[test]
+    fn test_matches_state_filter_no_filter() {
+        let event = create_election_event("CA Primary", "California", 36);
+        assert!(event.matches_state_filter(None));
+    }
+
+    #[test]
+    fn test_matches_state_filter_election_matches() {
+        let event = create_election_event("CA Primary", "California", 36);
+        assert!(event.matches_state_filter(Some("CA")));
+        assert!(event.matches_state_filter(Some("ca"))); // Case insensitive
+    }
+
+    #[test]
+    fn test_matches_state_filter_election_no_match() {
+        let event = create_election_event("CA Primary", "California", 36);
+        assert!(!event.matches_state_filter(Some("TX")));
+    }
+
+    #[test]
+    fn test_matches_state_filter_reporting_deadline_always_shown() {
+        // Reporting deadlines should show regardless of state filter
+        let quarterly = create_election_event("Q1 Report Due", "FEC", 25);
+        let monthly = create_election_event("Monthly Report Due", "FEC", 26);
+        let reporting = create_election_event("Report Due", "FEC", 21);
+
+        assert!(quarterly.matches_state_filter(Some("CA")));
+        assert!(monthly.matches_state_filter(Some("TX")));
+        assert!(reporting.matches_state_filter(Some("NY")));
+    }
+
+    #[test]
+    fn test_matches_state_filter_reporting_periods_always_shown() {
+        // Reporting periods should show regardless of state filter
+        let pre_post = create_election_event("Pre-Election Period", "FEC", 27);
+        let ec = create_election_event("EC Period", "FEC", 28);
+        let ie = create_election_event("IE Period", "FEC", 29);
+        let fea = create_election_event("FEA Period", "FEC", 38);
+
+        assert!(pre_post.matches_state_filter(Some("CA")));
+        assert!(ec.matches_state_filter(Some("TX")));
+        assert!(ie.matches_state_filter(Some("NY")));
+        assert!(fea.matches_state_filter(Some("FL")));
+    }
+
+    #[test]
+    fn test_matches_state_filter_mixed() {
+        // TX election should match TX filter
+        let tx_event = create_election_event("TX Primary", "Texas", 36);
+        assert!(tx_event.matches_state_filter(Some("TX")));
+        assert!(!tx_event.matches_state_filter(Some("CA")));
+
+        // CA election should match CA filter
+        let ca_event = create_election_event("CA Primary", "California", 36);
+        assert!(ca_event.matches_state_filter(Some("CA")));
+        assert!(!ca_event.matches_state_filter(Some("TX")));
+
+        // Reporting deadlines should match any filter
+        let deadline = create_election_event("Report Due", "FEC", 21);
+        assert!(deadline.matches_state_filter(Some("CA")));
+        assert!(deadline.matches_state_filter(Some("TX")));
+        assert!(deadline.matches_state_filter(Some("NY")));
+
+        // Reporting periods should match any filter
+        let period = create_election_event("IE Period", "FEC", 29);
+        assert!(period.matches_state_filter(Some("CA")));
+        assert!(period.matches_state_filter(Some("TX")));
+        assert!(period.matches_state_filter(Some("NY")));
+    }
+
+    /// Create test events representing a mix of elections, deadlines, and reporting periods
+    fn create_test_events() -> Vec<CalendarEvent> {
+        vec![
+            CalendarEvent {
+                event_id: 1,
+                summary: "CA Primary Election".to_string(),
+                description: "Primary election held in CA".to_string(),
+                start_date: Some("2026-06-02".parse().unwrap()),
+                end_date: None,
+                category: "Election Dates".to_string(),
+                category_id: 36,
+                location: Some("California".to_string()),
+                url: None,
+            },
+            CalendarEvent {
+                event_id: 2,
+                summary: "TX/18 Special General Election Runoff".to_string(),
+                description: "Special general election runoff for Texas's 18th Congressional District".to_string(),
+                start_date: Some("2026-01-31".parse().unwrap()),
+                end_date: None,
+                category: "Election Dates".to_string(),
+                category_id: 36,
+                location: Some("Texas".to_string()),
+                url: None,
+            },
+            CalendarEvent {
+                event_id: 3,
+                summary: "NY Primary Election".to_string(),
+                description: "Primary election held in NY".to_string(),
+                start_date: Some("2026-06-23".parse().unwrap()),
+                end_date: None,
+                category: "Election Dates".to_string(),
+                category_id: 36,
+                location: Some("New York".to_string()),
+                url: None,
+            },
+            CalendarEvent {
+                event_id: 4,
+                summary: "February Monthly Report Due".to_string(),
+                description: "February Monthly Report due today".to_string(),
+                start_date: Some("2026-02-20".parse().unwrap()),
+                end_date: None,
+                category: "Monthly".to_string(),
+                category_id: 26,
+                location: Some("FEC".to_string()),
+                url: Some("https://www.fec.gov/help-candidates-and-committees/dates-and-deadlines/2026-reporting-dates/2026-monthly-filers/".to_string()),
+            },
+            CalendarEvent {
+                event_id: 5,
+                summary: "April Quarterly Report Due".to_string(),
+                description: "April Quarterly Report due today".to_string(),
+                start_date: Some("2026-04-15".parse().unwrap()),
+                end_date: None,
+                category: "Quarterly".to_string(),
+                category_id: 25,
+                location: Some("FEC".to_string()),
+                url: Some("https://www.fec.gov/help-candidates-and-committees/dates-and-deadlines/2026-reporting-dates/2026-quarterly-filers/".to_string()),
+            },
+            CalendarEvent {
+                event_id: 6,
+                summary: "CA Pre-Primary Report Due".to_string(),
+                description: "Pre-primary report due for California primary".to_string(),
+                start_date: Some("2026-05-13".parse().unwrap()),
+                end_date: None,
+                category: "Pre and Post-Elections".to_string(),
+                category_id: 27,
+                location: Some("California".to_string()),
+                url: None,
+            },
+            CalendarEvent {
+                event_id: 7,
+                summary: "24-Hour IE Report Period Begins".to_string(),
+                description: "24-Hour report period for CA primary".to_string(),
+                start_date: Some("2026-05-22".parse().unwrap()),
+                end_date: None,
+                category: "IE Periods".to_string(),
+                category_id: 29,
+                location: Some("CA".to_string()),
+                url: None,
+            },
+            CalendarEvent {
+                event_id: 8,
+                summary: "EC Period Starts".to_string(),
+                description: "EC period for TX primary".to_string(),
+                start_date: Some("2026-02-01".parse().unwrap()),
+                end_date: None,
+                category: "EC Periods".to_string(),
+                category_id: 28,
+                location: Some("TX".to_string()),
+                url: None,
+            },
+        ]
+    }
+
+    #[test]
+    fn test_state_filter_ca_snapshot() {
+        let events = create_test_events();
+        let filtered: Vec<_> = events
+            .iter()
+            .filter(|e| e.matches_state_filter(Some("CA")))
+            .map(|e| serde_json::json!({
+                "summary": e.summary,
+                "category": e.category,
+                "location": e.location,
+                "start_date": e.start_date.as_ref().map(format_date),
+            }))
+            .collect();
+
+        assert_yaml_snapshot!(filtered);
+    }
+
+    #[test]
+    fn test_state_filter_tx_snapshot() {
+        let events = create_test_events();
+        let filtered: Vec<_> = events
+            .iter()
+            .filter(|e| e.matches_state_filter(Some("TX")))
+            .map(|e| serde_json::json!({
+                "summary": e.summary,
+                "category": e.category,
+                "location": e.location,
+                "start_date": e.start_date.as_ref().map(format_date),
+            }))
+            .collect();
+
+        assert_yaml_snapshot!(filtered);
+    }
+
+    #[test]
+    fn test_no_state_filter_snapshot() {
+        let events = create_test_events();
+        let filtered: Vec<_> = events
+            .iter()
+            .filter(|e| e.matches_state_filter(None))
+            .map(|e| serde_json::json!({
+                "summary": e.summary,
+                "category": e.category,
+                "location": e.location,
+                "start_date": e.start_date.as_ref().map(format_date),
+            }))
+            .collect();
+
+        assert_yaml_snapshot!(filtered);
+    }
+
+    #[test]
+    fn test_default_categories_include_ec_ie_with_state() {
+        use crate::cli::DatesArgs;
+        use crate::cli::DatesFormat;
+
+        // With state filter and default categories
+        let args_with_state = DatesArgs {
+            category: "elections,deadlines".to_string(),
+            days: 365,
+            limit: 500,
+            state: Some("CA".to_string()),
+            format: DatesFormat::Tui,
+        };
+
+        let ids = args_with_state.category_ids();
+        assert!(ids.contains(&36)); // Elections
+        assert!(ids.contains(&21)); // Reporting Deadlines
+        assert!(ids.contains(&25)); // Quarterly
+        assert!(ids.contains(&26)); // Monthly
+        assert!(ids.contains(&28)); // EC Periods
+        assert!(ids.contains(&29)); // IE Periods
+
+        // Without state filter, should not include EC/IE
+        let args_without_state = DatesArgs {
+            category: "elections,deadlines".to_string(),
+            days: 365,
+            limit: 500,
+            state: None,
+            format: DatesFormat::Tui,
+        };
+
+        let ids = args_without_state.category_ids();
+        assert!(ids.contains(&36)); // Elections
+        assert!(ids.contains(&21)); // Reporting Deadlines
+        assert!(!ids.contains(&28)); // EC Periods should NOT be included
+        assert!(!ids.contains(&29)); // IE Periods should NOT be included
+    }
+
+    #[test]
+    fn test_explicit_categories_override_default() {
+        use crate::cli::DatesArgs;
+        use crate::cli::DatesFormat;
+
+        // With state filter but explicit categories (not default)
+        let args = DatesArgs {
+            category: "elections".to_string(),
+            days: 365,
+            limit: 500,
+            state: Some("CA".to_string()),
+            format: DatesFormat::Tui,
+        };
+
+        let ids = args.category_ids();
+        assert!(ids.contains(&36)); // Elections
+        assert!(!ids.contains(&21)); // Reporting Deadlines should NOT be included
+        assert!(!ids.contains(&28)); // EC Periods should NOT be included
+        assert!(!ids.contains(&29)); // IE Periods should NOT be included
     }
 }
