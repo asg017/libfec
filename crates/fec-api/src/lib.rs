@@ -79,12 +79,12 @@ pub enum Office {
     President,
 }
 
-impl ToString for Office {
-    fn to_string(&self) -> String {
+impl std::fmt::Display for Office {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Office::House => "house".to_string(),
-            Office::Senate => "senate".to_string(),
-            Office::President => "president".to_string(),
+            Office::House => write!(f, "house"),
+            Office::Senate => write!(f, "senate"),
+            Office::President => write!(f, "president"),
         }
     }
 }
@@ -255,9 +255,9 @@ impl Api {
         }
 
         if let Some(ref sort) = args.sort {
-          qp.append_pair("sort", sort);
+            qp.append_pair("sort", sort);
         } else {
-          qp.append_pair("sort", "start_date");
+            qp.append_pair("sort", "start_date");
         }
         // calendar dates API max per_page is 500, so just max it out
         qp.append_pair("per_page", "500");
@@ -273,32 +273,32 @@ impl Api {
         qp.append_pair("api_key", &self.api_key);
 
         qp.append_pair("per_page", "100");
-        
+
         if !args.include_amendments {
-        qp.append_pair("most_recent", "true");    
-        } 
+            qp.append_pair("most_recent", "true");
+        }
 
         qp.append_pair("filer_type", "e-file");
 
         for committee in &args.committees {
-            qp.append_pair("committee_id", &committee);
+            qp.append_pair("committee_id", committee);
         }
         for candidate in &args.candidates {
-            qp.append_pair("candidate_id", &candidate);
+            qp.append_pair("candidate_id", candidate);
         }
         if let Some(form_types) = &args.form_types {
             for form_type in form_types {
-                qp.append_pair("form_type", &form_type);
+                qp.append_pair("form_type", form_type);
             }
         }
         if let Some(report_types) = &args.report_types {
             for report_type in report_types {
-                qp.append_pair("report_type", &report_type);
+                qp.append_pair("report_type", report_type);
             }
         }
         if let Some(committee_types) = &args.committee_types {
             for committee_type in committee_types {
-                qp.append_pair("committee_type", &committee_type);
+                qp.append_pair("committee_type", committee_type);
             }
         }
         for year in &args.cycle {
@@ -316,11 +316,11 @@ impl Api {
         qp.append_pair("api_key", &self.api_key);
 
         for committee in &args.committees {
-            qp.append_pair("committee_id", &committee);
+            qp.append_pair("committee_id", committee);
         }
         if let Some(form_types) = &args.form_types {
             for form_type in form_types {
-                qp.append_pair("form_type", &form_type);
+                qp.append_pair("form_type", form_type);
             }
         }
 
@@ -328,7 +328,7 @@ impl Api {
 
         drop(qp);
         EfilingFilingUrl(url)
-      }
+    }
 }
 
 pub struct FecApiRateLimit {
@@ -351,19 +351,25 @@ pub fn api_request(url: &Url) -> anyhow::Result<ApiResponse> {
     let mut response = match ureq::get(url.as_str())
         .header("accept", "application/json")
         .header("User-Agent", USER_AGENT)
-        .call() {
+        .call()
+    {
         Ok(resp) => resp,
-          Err(error) => {
-            match error {
-              ureq::Error::StatusCode(429) => {
-                return Err(anyhow::anyhow!("FEC API limit reached for {}", redact_api_key(&url)));
-              }
-              _ => {
-                return Err(anyhow::anyhow!("FEC API request to {} failed: {}", redact_api_key(&url), error));
-              }
+        Err(error) => match error {
+            ureq::Error::StatusCode(429) => {
+                return Err(anyhow::anyhow!(
+                    "FEC API limit reached for {}",
+                    redact_api_key(url)
+                ));
             }
-          }
-        };
+            _ => {
+                return Err(anyhow::anyhow!(
+                    "FEC API request to {} failed: {}",
+                    redact_api_key(url),
+                    error
+                ));
+            }
+        },
+    };
 
     let headers = response.headers();
 
@@ -390,9 +396,7 @@ pub fn api_request(url: &Url) -> anyhow::Result<ApiResponse> {
     let result_items = body["results"]
         .as_array()
         .ok_or_else(|| anyhow::anyhow!("missing results array"))?
-        .iter()
-        .map(|v| v.clone())
-        .collect();
+        .to_vec();
     let next_url = if pagination.page >= pagination.pages {
         None
     } else {
@@ -434,25 +438,31 @@ fn parse_cache_control_max_age(header_value: &str) -> Option<u64> {
 }
 
 /// Make an API request with optional caching support.
-/// 
+///
 /// If a cache is provided, it will:
 /// 1. Check for a valid cached response first
 /// 2. On cache hit, return the cached response (with placeholder rate limits)
 /// 3. On cache miss, make the request and store the response if max-age > 0
-pub fn api_request_cached(url: &Url, cache: Option<&mut dyn ApiCache>) -> anyhow::Result<ApiResponse> {
+pub fn api_request_cached(
+    url: &Url,
+    cache: Option<&mut dyn ApiCache>,
+) -> anyhow::Result<ApiResponse> {
     // Check cache first
     if let Some(ref cache) = cache {
         if let Some(entry) = cache.get(url) {
             // Cache hit - reconstruct ApiResponse from cached body
             let pagination: FecApiPaginationObject = serde_json::from_value(
-                entry.body.get("pagination")
+                entry
+                    .body
+                    .get("pagination")
                     .ok_or_else(|| anyhow::anyhow!("missing pagination field in cached response"))?
                     .clone(),
             )?;
 
             let result_items = entry.body["results"]
                 .as_array()
-                .ok_or_else(|| anyhow::anyhow!("missing results array in cached response"))?.to_vec();
+                .ok_or_else(|| anyhow::anyhow!("missing results array in cached response"))?
+                .to_vec();
 
             let next_url = if pagination.page >= pagination.pages {
                 None
@@ -553,7 +563,8 @@ pub fn api_request_cached(url: &Url, cache: Option<&mut dyn ApiCache>) -> anyhow
 
     let result_items = body["results"]
         .as_array()
-        .ok_or_else(|| anyhow::anyhow!("missing results array"))?.to_vec();
+        .ok_or_else(|| anyhow::anyhow!("missing results array"))?
+        .to_vec();
 
     let next_url = if pagination.page >= pagination.pages {
         None

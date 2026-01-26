@@ -24,17 +24,17 @@
 use crate::cache::bulk_candidate_committee_linkage::CommitteeLinkage;
 use crate::cache::bulk_candidates::CandidateDetail;
 use crate::tui::committee_detail::FilingListItem;
-use crate::tui::{HelpBar, navigation_popup_help_line};
+use crate::tui::{navigation_popup_help_line, HelpBar};
 use crossterm::event::{KeyCode, KeyEvent};
 use fec_api::{Api, FilingArgsBuilder};
 use fec_parser::mappings::column_names_for_field;
 use indexmap::IndexMap;
 use ratatui::{
-    Frame,
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
     widgets::{Block, Borders, Cell, Clear, Paragraph, Row, Table, TableState, Wrap},
+    Frame,
 };
 
 /// Information about affiliated committees and joint fund participants from F1S schedules
@@ -177,7 +177,13 @@ impl CandidateDetailState {
             return;
         }
         let i = match self.filings_table_state.selected() {
-            Some(i) => if i >= count - 1 { 0 } else { i + 1 },
+            Some(i) => {
+                if i >= count - 1 {
+                    0
+                } else {
+                    i + 1
+                }
+            }
             None => 0,
         };
         self.filings_table_state.select(Some(i));
@@ -189,7 +195,13 @@ impl CandidateDetailState {
             return;
         }
         let i = match self.filings_table_state.selected() {
-            Some(i) => if i == 0 { count - 1 } else { i - 1 },
+            Some(i) => {
+                if i == 0 {
+                    count - 1
+                } else {
+                    i - 1
+                }
+            }
             None => 0,
         };
         self.filings_table_state.select(Some(i));
@@ -203,12 +215,15 @@ impl CandidateDetailState {
 
     fn filings_select_last(&mut self) {
         if !self.filings.is_empty() {
-            self.filings_table_state.select(Some(self.filings.len() - 1));
+            self.filings_table_state
+                .select(Some(self.filings.len() - 1));
         }
     }
 
     fn get_selected_filing(&self) -> Option<&FilingListItem> {
-        self.filings_table_state.selected().and_then(|i| self.filings.get(i))
+        self.filings_table_state
+            .selected()
+            .and_then(|i| self.filings.get(i))
     }
 
     /// Fetch filings for a candidate from the FEC API
@@ -339,7 +354,10 @@ impl CandidateDetailState {
         }
     }
 
-    pub fn get_yank_options(&self, candidate: &CandidateDetail) -> Vec<(YankOption, String, Option<String>)> {
+    pub fn get_yank_options(
+        &self,
+        candidate: &CandidateDetail,
+    ) -> Vec<(YankOption, String, Option<String>)> {
         let mut options = vec![];
 
         options.push((
@@ -491,14 +509,21 @@ impl Default for CandidateDetailState {
 fn render_title(f: &mut Frame, candidate: &CandidateDetail, area: Rect) {
     let title_text = format!("{} ({})", candidate.name, candidate.candidate_id);
     let title = Paragraph::new(title_text)
-        .block(Block::default()
-            .borders(Borders::ALL)
-            .border_style(Style::default().fg(Color::Green)))
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .border_style(Style::default().fg(Color::Green)),
+        )
         .style(Style::default().add_modifier(Modifier::BOLD));
     f.render_widget(title, area);
 }
 
-fn render_content(f: &mut Frame, candidate: &CandidateDetail, state: &CandidateDetailState, area: Rect) {
+fn render_content(
+    f: &mut Frame,
+    candidate: &CandidateDetail,
+    state: &CandidateDetailState,
+    area: Rect,
+) {
     let content_block = Block::default()
         .borders(Borders::ALL)
         .title("Candidate Information")
@@ -509,14 +534,24 @@ fn render_content(f: &mut Frame, candidate: &CandidateDetail, state: &CandidateD
 
     let mut lines = vec![
         Line::from(vec![
-            Span::styled("Candidate ID: ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                "Candidate ID: ",
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            ),
             Span::raw(&candidate.candidate_id),
         ]),
         Line::from(""),
     ];
 
     lines.push(Line::from(vec![
-        Span::styled("Name: ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+        Span::styled(
+            "Name: ",
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        ),
         Span::raw(&candidate.name),
     ]));
     lines.push(Line::from(""));
@@ -526,9 +561,11 @@ fn render_content(f: &mut Frame, candidate: &CandidateDetail, state: &CandidateD
         let office_desc = match candidate.office.as_str() {
             "H" => {
                 if !candidate.state.is_empty() && !candidate.district.is_empty() {
-                    format!("U.S. House ({}-{:02})",
+                    format!(
+                        "U.S. House ({}-{:02})",
                         candidate.state,
-                        candidate.district.parse::<u8>().unwrap_or(0))
+                        candidate.district.parse::<u8>().unwrap_or(0)
+                    )
                 } else {
                     "U.S. House".to_string()
                 }
@@ -545,14 +582,24 @@ fn render_content(f: &mut Frame, candidate: &CandidateDetail, state: &CandidateD
         };
 
         lines.push(Line::from(vec![
-            Span::styled("Office: ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                "Office: ",
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            ),
             Span::raw(office_desc),
         ]));
     }
 
     if candidate.election_year > 0 {
         lines.push(Line::from(vec![
-            Span::styled("Election Year: ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                "Election Year: ",
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            ),
             Span::raw(candidate.election_year.to_string()),
         ]));
     }
@@ -561,7 +608,12 @@ fn render_content(f: &mut Frame, candidate: &CandidateDetail, state: &CandidateD
     // Party and status
     if !candidate.party_affiliation.is_empty() {
         lines.push(Line::from(vec![
-            Span::styled("Party: ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                "Party: ",
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            ),
             Span::raw(&candidate.party_affiliation),
         ]));
     }
@@ -574,14 +626,24 @@ fn render_content(f: &mut Frame, candidate: &CandidateDetail, state: &CandidateD
             _ => &candidate.incumbent_challenger_status,
         };
         lines.push(Line::from(vec![
-            Span::styled("Status: ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                "Status: ",
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            ),
             Span::raw(status_desc),
         ]));
     }
 
     if !candidate.status.is_empty() {
         lines.push(Line::from(vec![
-            Span::styled("Candidate Status: ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                "Candidate Status: ",
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            ),
             Span::raw(&candidate.status),
         ]));
     }
@@ -590,7 +652,12 @@ fn render_content(f: &mut Frame, candidate: &CandidateDetail, state: &CandidateD
     // Principal campaign committee
     if let Some(ref pcc) = candidate.principal_campaign_committee {
         lines.push(Line::from(vec![
-            Span::styled("Principal Campaign Committee: ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                "Principal Campaign Committee: ",
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            ),
             Span::styled(pcc, Style::default().fg(Color::Magenta)),
             Span::styled(" (press 'c' to view)", Style::default().fg(Color::DarkGray)),
         ]));
@@ -600,13 +667,23 @@ fn render_content(f: &mut Frame, candidate: &CandidateDetail, state: &CandidateD
     // F1 Affiliations (from most recent F1 filing)
     if state.f1_loading {
         lines.push(Line::from(vec![
-            Span::styled("F1 Affiliations: ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                "F1 Affiliations: ",
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            ),
             Span::styled("Loading...", Style::default().fg(Color::DarkGray)),
         ]));
         lines.push(Line::from(""));
     } else if let Some(ref error) = state.f1_error {
         lines.push(Line::from(vec![
-            Span::styled("F1 Affiliations: ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                "F1 Affiliations: ",
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            ),
             Span::styled(format!("Error: {}", error), Style::default().fg(Color::Red)),
         ]));
         lines.push(Line::from(""));
@@ -616,12 +693,18 @@ fn render_content(f: &mut Frame, candidate: &CandidateDetail, state: &CandidateD
         } else {
             "F1 Affiliations:".to_string()
         };
-        lines.push(Line::from(vec![
-            Span::styled(title, Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
-        ]));
+        lines.push(Line::from(vec![Span::styled(
+            title,
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        )]));
         for affiliation in &state.f1_affiliations {
             // Show joint fund participant if present
-            if let (Some(ref name), Some(ref id)) = (&affiliation.joint_fund_participant_name, &affiliation.joint_fund_participant_id) {
+            if let (Some(ref name), Some(ref id)) = (
+                &affiliation.joint_fund_participant_name,
+                &affiliation.joint_fund_participant_id,
+            ) {
                 lines.push(Line::from(vec![
                     Span::raw("  "),
                     Span::styled("Joint Fund: ", Style::default().fg(Color::Cyan)),
@@ -636,7 +719,10 @@ fn render_content(f: &mut Frame, candidate: &CandidateDetail, state: &CandidateD
                 ]));
             }
             // Show affiliated committee if present
-            if let (Some(ref name), Some(ref id)) = (&affiliation.affiliated_committee_name, &affiliation.affiliated_committee_id) {
+            if let (Some(ref name), Some(ref id)) = (
+                &affiliation.affiliated_committee_name,
+                &affiliation.affiliated_committee_id,
+            ) {
                 lines.push(Line::from(vec![
                     Span::raw("  "),
                     Span::styled("Affiliated: ", Style::default().fg(Color::Magenta)),
@@ -662,9 +748,12 @@ fn render_content(f: &mut Frame, candidate: &CandidateDetail, state: &CandidateD
 
     // Linked committees
     if !state.linked_committees.is_empty() {
-        lines.push(Line::from(vec![
-            Span::styled("Linked Committees:", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
-        ]));
+        lines.push(Line::from(vec![Span::styled(
+            "Linked Committees:",
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        )]));
         for linkage in &state.linked_committees {
             // Skip the principal campaign committee since we already show it
             if candidate.principal_campaign_committee.as_ref() == Some(&linkage.committee_id) {
@@ -674,7 +763,10 @@ fn render_content(f: &mut Frame, candidate: &CandidateDetail, state: &CandidateD
             lines.push(Line::from(vec![
                 Span::raw("  "),
                 Span::styled(&linkage.committee_id, Style::default().fg(Color::Cyan)),
-                Span::styled(format!(" - {}", designation), Style::default().fg(Color::DarkGray)),
+                Span::styled(
+                    format!(" - {}", designation),
+                    Style::default().fg(Color::DarkGray),
+                ),
             ]));
         }
         lines.push(Line::from(""));
@@ -682,9 +774,12 @@ fn render_content(f: &mut Frame, candidate: &CandidateDetail, state: &CandidateD
 
     // Address
     if !candidate.address_street1.is_empty() || !candidate.address_city.is_empty() {
-        lines.push(Line::from(vec![
-            Span::styled("Address:", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
-        ]));
+        lines.push(Line::from(vec![Span::styled(
+            "Address:",
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        )]));
 
         if !candidate.address_street1.is_empty() {
             lines.push(Line::from(format!("  {}", candidate.address_street1)));
@@ -712,18 +807,42 @@ fn render_content(f: &mut Frame, candidate: &CandidateDetail, state: &CandidateD
         }
     }
 
-    let content = Paragraph::new(lines)
-        .wrap(Wrap { trim: false });
+    let content = Paragraph::new(lines).wrap(Wrap { trim: false });
     f.render_widget(content, inner_area);
 }
 
-fn render_filings_table(f: &mut Frame, candidate: &CandidateDetail, state: &mut CandidateDetailState, area: Rect) {
+fn render_filings_table(
+    f: &mut Frame,
+    candidate: &CandidateDetail,
+    state: &mut CandidateDetailState,
+    area: Rect,
+) {
     let header_row = Row::new(vec![
-        Cell::from("Filing ID").style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
-        Cell::from("Form").style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
-        Cell::from("Report").style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
-        Cell::from("Coverage").style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
-        Cell::from("Received").style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+        Cell::from("Filing ID").style(
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        ),
+        Cell::from("Form").style(
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        ),
+        Cell::from("Report").style(
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        ),
+        Cell::from("Coverage").style(
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        ),
+        Cell::from("Received").style(
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        ),
     ])
     .height(1);
 
@@ -750,9 +869,20 @@ fn render_filings_table(f: &mut Frame, candidate: &CandidateDetail, state: &mut 
             Row::new(vec![
                 Cell::from(filing.filing_id.clone()).style(Style::default().fg(Color::Cyan)),
                 Cell::from(filing.form_type.clone()).style(Style::default().fg(form_color)),
-                Cell::from(filing.report_type.clone().unwrap_or_else(|| "-".to_string())),
+                Cell::from(
+                    filing
+                        .report_type
+                        .clone()
+                        .unwrap_or_else(|| "-".to_string()),
+                ),
                 Cell::from(coverage),
-                Cell::from(filing.receipt_date.clone().unwrap_or_else(|| "-".to_string())).style(Style::default().fg(Color::DarkGray)),
+                Cell::from(
+                    filing
+                        .receipt_date
+                        .clone()
+                        .unwrap_or_else(|| "-".to_string()),
+                )
+                .style(Style::default().fg(Color::DarkGray)),
             ])
         })
         .collect();
@@ -760,11 +890,19 @@ fn render_filings_table(f: &mut Frame, candidate: &CandidateDetail, state: &mut 
     let table_title = if state.filings_loading {
         format!("Filings for {} (loading...)", candidate.candidate_id)
     } else if state.filing_detail_loading {
-        format!("Filings for {} - {} (loading filing detail...)", candidate.candidate_id, state.filings_cycle)
+        format!(
+            "Filings for {} - {} (loading filing detail...)",
+            candidate.candidate_id, state.filings_cycle
+        )
     } else if let Some(ref error) = state.filings_error {
         format!("Filings for {} (error: {})", candidate.candidate_id, error)
     } else {
-        format!("Filings for {} - {} ({} filings)", candidate.candidate_id, state.filings_cycle, state.filings.len())
+        format!(
+            "Filings for {} - {} ({} filings)",
+            candidate.candidate_id,
+            state.filings_cycle,
+            state.filings.len()
+        )
     };
 
     let table = Table::new(
@@ -791,24 +929,19 @@ fn render_filings_table(f: &mut Frame, candidate: &CandidateDetail, state: &mut 
 
 fn render_help_text(f: &mut Frame, area: Rect, has_filings: bool, has_pcc: bool) {
     let help = if has_filings {
-        let mut bar = HelpBar::new()
-            .keys(vec!["Esc", "q"], " back");
+        let mut bar = HelpBar::new().keys(vec!["Esc", "q"], " back");
         if has_pcc {
-            bar = bar.item("c", " committee")
-                .item("a", " F1 affiliations");
+            bar = bar.item("c", " committee").item("a", " F1 affiliations");
         }
         bar.item("j/k", " navigate")
             .item("Enter", " view filing")
             .item("y", " copy")
     } else {
-        let mut bar = HelpBar::new()
-            .keys(vec!["Esc", "q"], " back");
+        let mut bar = HelpBar::new().keys(vec!["Esc", "q"], " back");
         if has_pcc {
-            bar = bar.item("c", " committee")
-                .item("a", " F1 affiliations");
+            bar = bar.item("c", " committee").item("a", " F1 affiliations");
         }
-        bar.item("y", " copy")
-            .item("f", " filings")
+        bar.item("y", " copy").item("f", " filings")
     };
     help.render(f, area);
 }
@@ -842,9 +975,9 @@ pub fn render_candidate_detail(
         let layout = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
-                Constraint::Length(3),  // Title
-                Constraint::Min(10),    // Content
-                Constraint::Length(2),  // Help text
+                Constraint::Length(3), // Title
+                Constraint::Min(10),   // Content
+                Constraint::Length(2), // Help text
             ]);
 
         let [title_area, content_area, help_area] = area.layout(&layout);
@@ -859,7 +992,12 @@ pub fn render_candidate_detail(
     }
 }
 
-fn render_yank_popup(f: &mut Frame, area: Rect, candidate: &CandidateDetail, state: &CandidateDetailState) {
+fn render_yank_popup(
+    f: &mut Frame,
+    area: Rect,
+    candidate: &CandidateDetail,
+    state: &CandidateDetailState,
+) {
     let popup_area = super::popup_area(area, 50, 40);
 
     // Clear the background
@@ -879,7 +1017,9 @@ fn render_yank_popup(f: &mut Frame, area: Rect, candidate: &CandidateDetail, sta
 
     lines.push(Line::from(Span::styled(
         "Select what to copy:",
-        Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD),
+        Style::default()
+            .fg(Color::Yellow)
+            .add_modifier(Modifier::BOLD),
     )));
     lines.push(Line::from(""));
 
@@ -905,8 +1045,7 @@ fn render_yank_popup(f: &mut Frame, area: Rect, candidate: &CandidateDetail, sta
     lines.push(Line::from(""));
     lines.push(navigation_popup_help_line());
 
-    let paragraph = Paragraph::new(lines)
-        .wrap(Wrap { trim: false });
+    let paragraph = Paragraph::new(lines).wrap(Wrap { trim: false });
     f.render_widget(paragraph, inner_area);
 }
 

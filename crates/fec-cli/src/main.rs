@@ -34,7 +34,7 @@ fn main() {
         Err(parse_err) => {
             // If parsing failed, check if the first argument could be an InfoInput
             if args.len() > 1 {
-                if let Ok(_) = commands::InfoInput::from_arg(&args[1]) {
+                if commands::InfoInput::from_arg(&args[1]).is_ok() {
                     // Treat as info command with the argument as a filing/committee/candidate
                     let sourcer = sourcer::FilingSourcer::new(None);
                     let info_args = cli::InfoArgs {

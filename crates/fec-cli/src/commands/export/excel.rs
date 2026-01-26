@@ -26,7 +26,7 @@ fn write_schedule_row(
     filing_fec_version: &str,
     row: &FilingRow,
 ) -> anyhow::Result<()> {
-    let state = sheets.entry(schedule.clone()).or_insert_with(|| {
+    let state = sheets.entry(schedule).or_insert_with(|| {
         let mut new_ws = Worksheet::new();
         new_ws
             .set_name(match schedule {
@@ -80,7 +80,7 @@ fn write_schedule_row(
                     )?;
                 }
             }
-            Some(FieldFormat::Date) => match jiff::civil::Date::strptime("%Y%m%d", &v) {
+            Some(FieldFormat::Date) => match jiff::civil::Date::strptime("%Y%m%d", v) {
                 Ok(date) => {
                     let d = ExcelDateTime::from_ymd(
                         date.year().try_into().unwrap(),

@@ -36,25 +36,25 @@ pub struct Treasurer {
     pub prefix: Option<String>,
     pub suffix: Option<String>,
 }
-impl ToString for Treasurer {
-    fn to_string(&self) -> String {
+impl std::fmt::Display for Treasurer {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut name = String::new();
         if let Some(prefix) = &self.prefix {
             name.push_str(prefix.trim());
             name.push(' ');
         }
-        name.push_str(&self.first_name.trim());
+        name.push_str(self.first_name.trim());
         if let Some(middle_name) = &self.middle_name {
             name.push(' ');
             name.push_str(middle_name.trim());
         }
         name.push(' ');
-        name.push_str(&self.last_name.trim());
+        name.push_str(self.last_name.trim());
         if let Some(suffix) = &self.suffix {
             name.push(' ');
             name.push_str(suffix.trim());
         }
-        name.trim().to_string()
+        write!(f, "{}", name.trim())
     }
 }
 impl Treasurer {

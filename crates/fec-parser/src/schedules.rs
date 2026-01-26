@@ -76,17 +76,17 @@ impl ScheduleType {
     }
 }
 
-impl ToString for ScheduleType {
-    fn to_string(&self) -> String {
+impl std::fmt::Display for ScheduleType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ScheduleType::ScheduleA => "SA".to_string(),
-            ScheduleType::ScheduleB => "SB".to_string(),
-            ScheduleType::ScheduleC => "SC".to_string(),
-            ScheduleType::ScheduleC1 => "SC1".to_string(),
-            ScheduleType::ScheduleC2 => "SC2".to_string(),
-            ScheduleType::ScheduleD => "SD".to_string(),
-            ScheduleType::ScheduleE => "SE".to_string(),
-            ScheduleType::ScheduleF => "SF".to_string(),
+            ScheduleType::ScheduleA => write!(f, "SA"),
+            ScheduleType::ScheduleB => write!(f, "SB"),
+            ScheduleType::ScheduleC => write!(f, "SC"),
+            ScheduleType::ScheduleC1 => write!(f, "SC1"),
+            ScheduleType::ScheduleC2 => write!(f, "SC2"),
+            ScheduleType::ScheduleD => write!(f, "SD"),
+            ScheduleType::ScheduleE => write!(f, "SE"),
+            ScheduleType::ScheduleF => write!(f, "SF"),
         }
     }
 }

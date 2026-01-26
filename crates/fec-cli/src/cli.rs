@@ -2,10 +2,7 @@ pub use crate::api_flags::FilingsApiFlags;
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use core::str;
 use fec_parser::schedules::ScheduleType;
-use std::{
-    env,
-    path::PathBuf,
-};
+use std::{env, path::PathBuf};
 
 #[derive(
     Debug,
@@ -24,15 +21,7 @@ pub enum CmdInfoFormat {
     Json,
 }
 
-#[derive(
-    Debug,
-    Default,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    clap::ValueEnum,
-)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, clap::ValueEnum)]
 pub enum InfoDisplayMode {
     #[default]
     Text,
@@ -90,9 +79,9 @@ pub enum ExportTarget {
     ScheduleB,
 }
 
-impl Into<ScheduleType> for ExportTarget {
-    fn into(self) -> ScheduleType {
-        match self {
+impl From<ExportTarget> for ScheduleType {
+    fn from(val: ExportTarget) -> Self {
+        match val {
             ExportTarget::ScheduleA => ScheduleType::ScheduleA,
             ExportTarget::ScheduleB => ScheduleType::ScheduleB,
         }
@@ -156,7 +145,7 @@ pub enum CacheSubcommand {
     /// Show summary information about the cache
     Info,
     /// Download and cache filings from fec.gov
-    Add(CacheAddArgs),
+    Add(Box<CacheAddArgs>),
 }
 
 #[derive(Args, Debug)]
@@ -200,6 +189,7 @@ pub fn category_name_to_ids(name: &str) -> Vec<u32> {
 }
 
 /// Get display name for a category ID
+#[allow(dead_code)]
 pub fn category_id_to_name(id: u32) -> &'static str {
     match id {
         36 => "Elections",
@@ -259,14 +249,15 @@ impl DatesArgs {
     pub fn category_ids(&self) -> Vec<u32> {
         self.category
             .split(',')
-            .flat_map(|s| category_name_to_ids(s))
+            .flat_map(category_name_to_ids)
             .collect()
     }
 
     /// Get display string for the selected categories (shows user-friendly names)
     pub fn category_display(&self) -> String {
         // Show the category names the user provided, not the expanded IDs
-        let names: Vec<&str> = self.category
+        let names: Vec<&str> = self
+            .category
             .split(',')
             .map(|s| s.trim())
             .filter(|s| !s.is_empty())
@@ -274,7 +265,8 @@ impl DatesArgs {
         if names.is_empty() {
             "All Events".to_string()
         } else {
-            names.iter()
+            names
+                .iter()
                 .map(|n| {
                     // Capitalize first letter
                     let mut c = n.chars();
@@ -360,18 +352,27 @@ impl std::str::FromStr for CycleArg {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if let Some((start, end)) = s.split_once('-') {
-            let start_year = start.trim().parse::<u16>()
+            let start_year = start
+                .trim()
+                .parse::<u16>()
                 .map_err(|_| format!("Invalid start year: {}", start))?;
-            let end_year = end.trim().parse::<u16>()
+            let end_year = end
+                .trim()
+                .parse::<u16>()
                 .map_err(|_| format!("Invalid end year: {}", end))?;
-            
+
             if start_year > end_year {
-                return Err(format!("Start year {} cannot be greater than end year {}", start_year, end_year));
+                return Err(format!(
+                    "Start year {} cannot be greater than end year {}",
+                    start_year, end_year
+                ));
             }
-            
+
             Ok(CycleArg::Range(start_year, end_year))
         } else {
-            let year = s.trim().parse::<u16>()
+            let year = s
+                .trim()
+                .parse::<u16>()
                 .map_err(|_| format!("Invalid year: {}", s))?;
             Ok(CycleArg::Single(year))
         }
@@ -389,23 +390,29 @@ impl std::fmt::Display for CycleArg {
 
 #[derive(Args, Debug)]
 pub struct BulkArgs {
-  #[arg(long, short = 'o',  help = "Output file path")]
-  pub output: PathBuf,
-  #[arg(long, help = "Election cycle year (e.g., 2024) or range (e.g., 2024-2026)")]
-  pub cycle: CycleArg,
+    #[arg(long, short = 'o', help = "Output file path")]
+    pub output: PathBuf,
+    #[arg(
+        long,
+        help = "Election cycle year (e.g., 2024) or range (e.g., 2024-2026)"
+    )]
+    pub cycle: CycleArg,
 
-  #[arg(long, value_delimiter = ',', value_enum, help = "Bulk data source(s) to export (comma-separated, e.g., candidates,committees)")]
-  pub source: Vec<BulkSource>,
-
+    #[arg(
+        long,
+        value_delimiter = ',',
+        value_enum,
+        help = "Bulk data source(s) to export (comma-separated, e.g., candidates,committees)"
+    )]
+    pub source: Vec<BulkSource>,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 pub enum BulkSource {
-  Opex,
-  Committees,
-  Candidates,
+    Opex,
+    Committees,
+    Candidates,
 }
-
 
 #[derive(Subcommand, Debug)]
 pub enum Commands {

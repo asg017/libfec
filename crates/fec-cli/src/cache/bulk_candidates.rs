@@ -2,13 +2,13 @@
  * > "The all candidate summary file contains one record including summary financial
  * > information for all candidates who raised or spent money during the period
  * > no matter when they are up for election."
- * 
+ *
  * https://www.fec.gov/campaign-finance-data/candidate-master-file-description/
  *
  * Sample: https://www.fec.gov/files/bulk-downloads/2026/weball26.zip
  *
  */
-use crate::cache::bulk_utils::{BulkDataItem, sync_item};
+use crate::cache::bulk_utils::{sync_item, BulkDataItem};
 use anyhow::{Context, Result};
 use derive_builder::Builder;
 use fec_api::Office;
@@ -61,18 +61,15 @@ pub(crate) fn include(
 ) -> Result<()> {
     tx.execute_batch(SCHEMA)?;
 
-    let bulk_db_str = bulk_db_path
-        .to_str()
-        .ok_or_else(|| anyhow::anyhow!("Bulk database path is not valid UTF-8: {:?}", bulk_db_path))?;
+    let bulk_db_str = bulk_db_path.to_str().ok_or_else(|| {
+        anyhow::anyhow!("Bulk database path is not valid UTF-8: {:?}", bulk_db_path)
+    })?;
 
     if !tx
         .prepare_cached("select 1 from pragma_database_list where name = 'bulk_db'")?
         .exists([])?
     {
-        tx.execute(
-            "ATTACH DATABASE ? AS bulk_db",
-            [bulk_db_str],
-        )?;
+        tx.execute("ATTACH DATABASE ? AS bulk_db", [bulk_db_str])?;
     }
 
     let sql = r#"
@@ -227,7 +224,6 @@ pub fn search_candidates(
         .collect::<Result<Vec<CandidateSearchResult>, _>>()?;
     Ok(results)
 }
-
 
 pub fn get_candidate_detail(
     bulk_db: &mut Connection,

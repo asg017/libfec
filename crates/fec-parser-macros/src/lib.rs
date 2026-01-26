@@ -115,7 +115,7 @@ pub fn gen_column_names(_: TokenStream) -> TokenStream {
             let column_names: Vec<String> = item
                 .as_array()
                 .unwrap()
-                .into_iter()
+                .iter()
                 .map(|value| value.as_str().unwrap().to_owned())
                 .collect();
 

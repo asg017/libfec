@@ -5,13 +5,11 @@ pub mod bulk_committee;
 pub mod bulk_opexp;
 mod bulk_utils;
 
-use crate::{
-    cache::bulk_candidates::ResolveCandidateParams,
-    sourcer::FecFilingId,
-};
+use crate::{cache::bulk_candidates::ResolveCandidateParams, sourcer::FecFilingId};
 use anyhow::{Context, Result};
 use api_cache::SqliteApiCache;
 use etcetera::BaseStrategy;
+use indicatif::ProgressStyle;
 use indicatif::{MultiProgress, ProgressBar};
 use jiff::civil::Date;
 use rusqlite::Connection;
@@ -21,11 +19,13 @@ use std::{
     fs::File,
     io::{BufWriter, Cursor},
     path::PathBuf,
-    sync::{mpsc::{Receiver, Sender}, LazyLock},
+    sync::{
+        mpsc::{Receiver, Sender},
+        LazyLock,
+    },
     thread::spawn,
 };
 use ureq::http::header::{CONTENT_LENGTH, LAST_MODIFIED};
-use indicatif::ProgressStyle;
 
 pub static BAR_FILE_STYLE: LazyLock<ProgressStyle> = LazyLock::new(|| {
     ProgressStyle::with_template(
@@ -33,7 +33,6 @@ pub static BAR_FILE_STYLE: LazyLock<ProgressStyle> = LazyLock::new(|| {
     )
     .expect("valid progress style template")
 });
-
 
 pub(crate) struct CacheAllResult {
     pub(crate) stats: CacheAllStats,
@@ -47,9 +46,8 @@ pub(crate) struct CacheAllStats {
 }
 
 pub(crate) struct CacheBulkDailyZipResultItem {
-  pub(crate) filing_id: FecFilingId,
-  pub(crate) output_path: PathBuf,
-
+    pub(crate) filing_id: FecFilingId,
+    pub(crate) output_path: PathBuf,
 }
 
 pub(crate) struct Cache {
@@ -114,7 +112,7 @@ impl Cache {
         mb: Option<&MultiProgress>,
     ) -> Result<Vec<CacheBulkDailyZipResultItem>> {
         // .daily-zip.YYYY-MM-DD.meta format: Each line is a filing ID that was in the zip for that day.
-        
+
         let mut items = vec![];
 
         let meta_path = self
@@ -133,11 +131,12 @@ impl Cache {
                 for line in contents.lines() {
                     let filing_id = FecFilingId::from_str(line)
                         .with_context(|| format!("Invalid filing ID in meta file: {}", line))?;
-                    let output_path = self.resolve_filing(&filing_id)
+                    let output_path = self
+                        .resolve_filing(&filing_id)
                         .ok_or_else(|| anyhow::anyhow!("Filing {} not found in cache", line))?;
                     items.push(CacheBulkDailyZipResultItem {
                         filing_id,
-                        output_path
+                        output_path,
                     });
                 }
                 return Ok(items);
@@ -146,7 +145,6 @@ impl Cache {
 
         File::create(&meta_part_path).context("Failed to create meta part file")?;
 
-        
         let zip_url = format!(
             "{BASE_URL}/bulk-downloads/electronic/{}.zip",
             date.strftime("%Y%m%d")
@@ -198,7 +196,9 @@ impl Cache {
             std::io::copy(&mut r, &mut buffer)
                 .with_context(|| format!("Failed to read response body for {}", zip_url))?;
         }
-        if let Some(pb) = pb { pb.finish_and_clear() }
+        if let Some(pb) = pb {
+            pb.finish_and_clear()
+        }
 
         let reader = Cursor::new(buffer);
         let mut archive = zip::ZipArchive::new(reader)?;
@@ -221,7 +221,7 @@ impl Cache {
             }
             items.push(CacheBulkDailyZipResultItem {
                 filing_id,
-                output_path
+                output_path,
             });
         }
 
@@ -329,7 +329,9 @@ impl Cache {
                         let _ = tx.send(Ok(result));
                     }
                     Err(e) => {
-                        if let Some(pb) = pb { pb.println(format!("Error processing item: {}", e)); }
+                        if let Some(pb) = pb {
+                            pb.println(format!("Error processing item: {}", e));
+                        }
                         let _ = tx.send(Err(anyhow::anyhow!("Download failed: {}", e)));
                     }
                 }
@@ -338,11 +340,14 @@ impl Cache {
         }
 
         while let Some(filing_id) = queue.pop() {
-            let result = rx.recv().expect("receiver should not be disconnected while workers are active");
+            let result = rx
+                .recv()
+                .expect("receiver should not be disconnected while workers are active");
             match result {
                 Err(e) => {
-                    if let Some(spinner) = spinner
-                        .as_ref() { spinner.println(format!("Error processing item: {}", e)) }
+                    if let Some(spinner) = spinner.as_ref() {
+                        spinner.println(format!("Error processing item: {}", e))
+                    }
                 }
                 Ok(result) => {
                     paths.push(result.output_path.clone());
@@ -351,8 +356,9 @@ impl Cache {
                 }
             }
             active -= 1;
-            if let Some(spinner) = spinner
-                .as_ref() { spinner.set_message(format!("{} filings left…", queue.len())) }
+            if let Some(spinner) = spinner.as_ref() {
+                spinner.set_message(format!("{} filings left…", queue.len()))
+            }
             let pb = mb.map(|mb| {
                 let pb = mb.add(ProgressBar::new(0));
                 pb.set_style(BAR_FILE_STYLE.clone());
@@ -366,7 +372,9 @@ impl Cache {
                         let _ = tx.send(Ok(result));
                     }
                     Err(e) => {
-                        if let Some(pb) = pb { pb.println(format!("Error processing {:?}: {}", filing_id, e)); }
+                        if let Some(pb) = pb {
+                            pb.println(format!("Error processing {:?}: {}", filing_id, e));
+                        }
                         let _ = tx.send(Err(anyhow::anyhow!("Download failed: {}", e)));
                     }
                 },
@@ -375,11 +383,14 @@ impl Cache {
         }
 
         while active > 0 {
-            let result = rx.recv().expect("receiver should not be disconnected while workers are active");
+            let result = rx
+                .recv()
+                .expect("receiver should not be disconnected while workers are active");
             match result {
                 Err(e) => {
-                    if let Some(spinner) = spinner
-                        .as_ref() { spinner.println(format!("Error processing item: {}", e)) }
+                    if let Some(spinner) = spinner.as_ref() {
+                        spinner.println(format!("Error processing item: {}", e))
+                    }
                 }
                 Ok(result) => {
                     paths.push(result.output_path.clone());
@@ -390,15 +401,18 @@ impl Cache {
 
             active -= 1;
 
-            if let Some(spinner) = spinner
-                .as_ref() { spinner.set_message(format!("{} filings left…", queue.len())) }
+            if let Some(spinner) = spinner.as_ref() {
+                spinner.set_message(format!("{} filings left…", queue.len()))
+            }
         }
 
         for handle in handles {
             let _ = handle.join();
         }
 
-        if let Some(spinner) = spinner { spinner.finish_and_clear() }
+        if let Some(spinner) = spinner {
+            spinner.finish_and_clear()
+        }
 
         Ok(CacheAllResult { stats, paths })
     }

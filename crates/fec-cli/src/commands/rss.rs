@@ -20,13 +20,10 @@
 
 use crate::cli::RssArgs;
 use crate::commands::export::sqlite;
-use crate::rss::{self, ActiveFilters, Item, format_countdown, format_duration_ago};
+use crate::rss::{self, format_countdown, format_duration_ago, ActiveFilters, Item};
 use crate::sourcer::FilingSourcer;
-use crate::tui::filing_detail::{FilingDetail, FilingDetailState, render_filing_detail};
+use crate::tui::filing_detail::{render_filing_detail, FilingDetail, FilingDetailState};
 use anyhow::{Context, Result};
-use rusqlite::Connection;
-use std::collections::HashSet;
-use std::path::PathBuf;
 use crossterm::{
     event::{self, Event, KeyCode, KeyEventKind},
     execute,
@@ -34,19 +31,19 @@ use crossterm::{
 };
 use jiff::{Timestamp, Zoned};
 use ratatui::{
-    Frame, Terminal,
     backend::CrosstermBackend,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
     widgets::{Block, Borders, Cell, Clear, Paragraph, Row, Table, TableState},
+    Frame, Terminal,
 };
+use rusqlite::Connection;
+use std::collections::HashSet;
 use std::io::{self, Stdout};
+use std::path::PathBuf;
 use std::time::{Duration, Instant};
-use tabled::{
-    builder::Builder as TableBuilder,
-    settings::Style as TableStyle,
-};
+use tabled::{builder::Builder as TableBuilder, settings::Style as TableStyle};
 
 /// Copy menu options
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -58,7 +55,11 @@ enum CopyOption {
 
 impl CopyOption {
     fn all() -> &'static [CopyOption] {
-        &[CopyOption::FilingId, CopyOption::CommitteeId, CopyOption::RssGuid]
+        &[
+            CopyOption::FilingId,
+            CopyOption::CommitteeId,
+            CopyOption::RssGuid,
+        ]
     }
 
     fn label(&self) -> &'static str {
@@ -123,7 +124,12 @@ struct App {
 }
 
 impl App {
-    fn new(args: RssArgs, sourcer: FilingSourcer, export_db: Option<Connection>, exported_ids: HashSet<String>) -> Self {
+    fn new(
+        args: RssArgs,
+        sourcer: FilingSourcer,
+        export_db: Option<Connection>,
+        exported_ids: HashSet<String>,
+    ) -> Self {
         let now = Instant::now();
         let interval = args.interval;
         let limit = args.limit;
@@ -319,21 +325,24 @@ impl App {
     fn process_one_export(&mut self) {
         if let Some(filing_id) = self.export_queue.pop() {
             let (completed, total) = self.export_progress();
-            self.status_message = Some(format!("Exporting {}/{}: {}...", completed + 1, total, filing_id));
+            self.status_message = Some(format!(
+                "Exporting {}/{}: {}...",
+                completed + 1,
+                total,
+                filing_id
+            ));
 
             if let Some(ref mut db) = self.export_db {
                 match self.sourcer.resolve_from_user_argument(&filing_id) {
-                    Ok(filing) => {
-                        match sqlite::export_single_filing(db, filing, self.cover_only) {
-                            Ok(_) => {
-                                self.exported_ids.insert(filing_id);
-                                self.export_count += 1;
-                            }
-                            Err(e) => {
-                                self.error = Some(format!("Export error: {}", e));
-                            }
+                    Ok(filing) => match sqlite::export_single_filing(db, filing, self.cover_only) {
+                        Ok(_) => {
+                            self.exported_ids.insert(filing_id);
+                            self.export_count += 1;
                         }
-                    }
+                        Err(e) => {
+                            self.error = Some(format!("Export error: {}", e));
+                        }
+                    },
                     Err(e) => {
                         self.error = Some(format!("Fetch error for {}: {}", filing_id, e));
                     }
@@ -342,7 +351,8 @@ impl App {
 
             // Show completion message when done
             if self.export_queue.is_empty() && self.export_batch_total > 0 {
-                self.status_message = Some(format!("Exported {} filing(s)", self.export_batch_total));
+                self.status_message =
+                    Some(format!("Exported {} filing(s)", self.export_batch_total));
                 self.export_batch_total = 0;
             }
         }
@@ -379,7 +389,8 @@ pub fn rss(sourcer: FilingSourcer, args: &RssArgs) -> Result<()> {
 /// Simple mode: fetch once and display a table, then exit
 fn run_simple_mode(sourcer: &FilingSourcer, args: &RssArgs) -> Result<()> {
     let (url, _) = rss::build_feed_url(args);
-    let (result, filters) = rss::fetch_feed_with_args(args).map_err(|e| anyhow::anyhow!("{}", e))?;
+    let (result, filters) =
+        rss::fetch_feed_with_args(args).map_err(|e| anyhow::anyhow!("{}", e))?;
     let now = Zoned::now();
 
     // Handle export if -x flag is provided
@@ -405,7 +416,11 @@ fn run_simple_mode(sourcer: &FilingSourcer, args: &RssArgs) -> Result<()> {
             }
         }
         if export_count > 0 {
-            println!("Exported {} new filing(s) to {}", export_count, export_path.display());
+            println!(
+                "Exported {} new filing(s) to {}",
+                export_count,
+                export_path.display()
+            );
         } else {
             println!("No new filings to export");
         }
@@ -425,10 +440,7 @@ fn run_simple_mode(sourcer: &FilingSourcer, args: &RssArgs) -> Result<()> {
         builder.push_record([committee, form, report, filing_id, &age]);
     }
 
-    let table = builder
-        .build()
-        .with(TableStyle::rounded())
-        .to_string();
+    let table = builder.build().with(TableStyle::rounded()).to_string();
 
     println!("{}", result.feed.title);
     if let Some(last_mod) = result.last_modified {
@@ -445,7 +457,11 @@ fn run_simple_mode(sourcer: &FilingSourcer, args: &RssArgs) -> Result<()> {
     println!("URL: {}", url);
     println!();
     println!("{}", table);
-    println!("\nShowing {} of {} items", args.limit.min(result.feed.items.len()), result.feed.items.len());
+    println!(
+        "\nShowing {} of {} items",
+        args.limit.min(result.feed.items.len()),
+        result.feed.items.len()
+    );
 
     Ok(())
 }
@@ -473,10 +489,7 @@ fn run_watch_mode(sourcer: FilingSourcer, args: &RssArgs) -> Result<()> {
     let res = run_app(&mut terminal, &mut app);
 
     disable_raw_mode()?;
-    execute!(
-        terminal.backend_mut(),
-        LeaveAlternateScreen
-    )?;
+    execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
     terminal.show_cursor()?;
 
     if let Err(err) = res {
@@ -487,10 +500,7 @@ fn run_watch_mode(sourcer: FilingSourcer, args: &RssArgs) -> Result<()> {
     Ok(())
 }
 
-fn run_app(
-    terminal: &mut Terminal<CrosstermBackend<Stdout>>,
-    app: &mut App,
-) -> Result<()> {
+fn run_app(terminal: &mut Terminal<CrosstermBackend<Stdout>>, app: &mut App) -> Result<()> {
     loop {
         // Check if it's time to fetch
         if Instant::now() >= app.next_fetch {
@@ -560,7 +570,11 @@ fn run_app(
                     KeyCode::Char('r') => {
                         app.fetch()?;
                     }
-                    KeyCode::Char('c') if key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL) => {
+                    KeyCode::Char('c')
+                        if key
+                            .modifiers
+                            .contains(crossterm::event::KeyModifiers::CONTROL) =>
+                    {
                         app.should_exit = true;
                     }
                     KeyCode::Up | KeyCode::Char('k') => {
@@ -589,7 +603,8 @@ fn run_app(
                         }
                     }
                     KeyCode::Enter => {
-                        let filing_id = app.get_selected_item()
+                        let filing_id = app
+                            .get_selected_item()
                             .and_then(|item| item.filing_id.clone());
                         if let Some(filing_id) = filing_id {
                             match show_filing_detail(terminal, &mut app.sourcer, &filing_id) {
@@ -629,7 +644,9 @@ fn show_filing_detail(
 
             // Ctrl+C exits immediately
             if key.code == KeyCode::Char('c')
-                && key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL)
+                && key
+                    .modifiers
+                    .contains(crossterm::event::KeyModifiers::CONTROL)
             {
                 break;
             }
@@ -682,18 +699,32 @@ fn render_header(f: &mut Frame, app: &App, area: Rect) {
     let data_age = format_duration_ago(app.data_age_seconds());
     let header_text = if let Some(ref error) = app.error {
         Line::from(vec![
-            Span::styled(&app.feed_title, Style::default().fg(Color::White).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                &app.feed_title,
+                Style::default()
+                    .fg(Color::White)
+                    .add_modifier(Modifier::BOLD),
+            ),
             Span::raw("  "),
             Span::styled(format!("Error: {}", error), Style::default().fg(Color::Red)),
         ])
     } else {
         Line::from(vec![
             Span::styled(
-                if app.feed_title.is_empty() { "FEC RSS Feed" } else { &app.feed_title },
-                Style::default().fg(Color::White).add_modifier(Modifier::BOLD)
+                if app.feed_title.is_empty() {
+                    "FEC RSS Feed"
+                } else {
+                    &app.feed_title
+                },
+                Style::default()
+                    .fg(Color::White)
+                    .add_modifier(Modifier::BOLD),
             ),
             Span::raw("  "),
-            Span::styled(format!("Data: {}", data_age), Style::default().fg(Color::Gray)),
+            Span::styled(
+                format!("Data: {}", data_age),
+                Style::default().fg(Color::Gray),
+            ),
         ])
     };
 
@@ -712,9 +743,7 @@ fn render_filters(f: &mut Frame, app: &App, area: Rect) {
         .iter()
         .enumerate()
         .flat_map(|(i, s)| {
-            let mut spans = vec![
-                Span::styled(s, Style::default().fg(Color::Yellow)),
-            ];
+            let mut spans = vec![Span::styled(s, Style::default().fg(Color::Yellow))];
             if i < filter_strs.len() - 1 {
                 spans.push(Span::styled(" │ ", Style::default().fg(Color::DarkGray)));
             }
@@ -725,7 +754,7 @@ fn render_filters(f: &mut Frame, app: &App, area: Rect) {
     let filter_line = Line::from(
         std::iter::once(Span::styled("Filters: ", Style::default().fg(Color::Gray)))
             .chain(filter_spans)
-            .collect::<Vec<_>>()
+            .collect::<Vec<_>>(),
     );
     let filter_widget = Paragraph::new(filter_line);
     f.render_widget(filter_widget, area);
@@ -735,11 +764,31 @@ fn render_filings_table(f: &mut Frame, app: &mut App, area: Rect) {
     let now = Zoned::now();
 
     let header_row = Row::new(vec![
-        Cell::from("Committee").style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
-        Cell::from("Form").style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
-        Cell::from("Report").style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
-        Cell::from("Filing ID").style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
-        Cell::from("Age").style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+        Cell::from("Committee").style(
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        ),
+        Cell::from("Form").style(
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        ),
+        Cell::from("Report").style(
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        ),
+        Cell::from("Filing ID").style(
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        ),
+        Cell::from("Age").style(
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        ),
     ])
     .height(1);
 
@@ -816,13 +865,18 @@ fn render_footer(f: &mut Frame, app: &App, area: Rect) {
         let (completed, total) = app.export_progress();
         help_spans.push(Span::styled(
             format!("⟳ Exporting {}/{}", completed, total),
-            Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD),
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
         ));
         help_spans.push(Span::raw("  │  "));
     }
 
     help_spans.extend(vec![
-        Span::styled(format!("Next refresh: {}", countdown), Style::default().fg(Color::Green)),
+        Span::styled(
+            format!("Next refresh: {}", countdown),
+            Style::default().fg(Color::Green),
+        ),
         Span::raw("  │  "),
         Span::styled("q", shortcut_style),
         Span::styled(" quit  ", descrip_style),
@@ -837,13 +891,18 @@ fn render_footer(f: &mut Frame, app: &App, area: Rect) {
     ]);
 
     let help_line = Line::from(help_spans);
-    let url_line = Line::from(vec![
-        Span::styled(&app.feed_url, Style::default().fg(Color::DarkGray)),
-    ]);
+    let url_line = Line::from(vec![Span::styled(
+        &app.feed_url,
+        Style::default().fg(Color::DarkGray),
+    )]);
 
     let footer = Paragraph::new(vec![help_line, url_line])
         .alignment(Alignment::Center)
-        .block(Block::default().borders(Borders::TOP).border_style(Style::default().fg(Color::DarkGray)));
+        .block(
+            Block::default()
+                .borders(Borders::TOP)
+                .border_style(Style::default().fg(Color::DarkGray)),
+        );
     f.render_widget(footer, area);
 }
 
@@ -924,15 +983,23 @@ fn render_copy_menu(f: &mut Frame, app: &App) {
         .iter()
         .enumerate()
         .map(|(i, opt)| {
-            let value = selected_item.and_then(|item| match opt {
-                CopyOption::FilingId => item.filing_id.as_deref(),
-                CopyOption::CommitteeId => item.committee_id.as_deref(),
-                CopyOption::RssGuid => Some(item.guid.as_str()),
-            }).unwrap_or("-");
+            let value = selected_item
+                .and_then(|item| match opt {
+                    CopyOption::FilingId => item.filing_id.as_deref(),
+                    CopyOption::CommitteeId => item.committee_id.as_deref(),
+                    CopyOption::RssGuid => Some(item.guid.as_str()),
+                })
+                .unwrap_or("-");
 
-            let prefix = if i == app.copy_menu_selection { "▶ " } else { "  " };
+            let prefix = if i == app.copy_menu_selection {
+                "▶ "
+            } else {
+                "  "
+            };
             let style = if i == app.copy_menu_selection {
-                Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD)
             } else {
                 Style::default().fg(Color::White)
             };
@@ -946,13 +1013,12 @@ fn render_copy_menu(f: &mut Frame, app: &App) {
         })
         .collect();
 
-    let menu = Paragraph::new(options)
-        .block(
-            Block::default()
-                .borders(Borders::ALL)
-                .title("Copy (↑↓/Enter or 1-3)")
-                .border_style(Style::default().fg(Color::Yellow))
-        );
+    let menu = Paragraph::new(options).block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title("Copy (↑↓/Enter or 1-3)")
+            .border_style(Style::default().fg(Color::Yellow)),
+    );
 
     f.render_widget(menu, popup_area);
 }
@@ -1226,9 +1292,7 @@ mod tests {
             .feed_title("FEC Electronic Filing RSS Feed")
             .build();
         let mut terminal = Terminal::new(TestBackend::new(80, 5)).unwrap();
-        terminal
-            .draw(|f| render_header(f, &app, f.area()))
-            .unwrap();
+        terminal.draw(|f| render_header(f, &app, f.area())).unwrap();
         assert_snapshot!(terminal.backend());
     }
 
@@ -1238,9 +1302,7 @@ mod tests {
             .error("Network error: connection refused")
             .build();
         let mut terminal = Terminal::new(TestBackend::new(80, 5)).unwrap();
-        terminal
-            .draw(|f| render_header(f, &app, f.area()))
-            .unwrap();
+        terminal.draw(|f| render_header(f, &app, f.area())).unwrap();
         assert_snapshot!(terminal.backend());
     }
 
@@ -1265,9 +1327,7 @@ mod tests {
     fn test_render_footer_normal() {
         let app = TestAppBuilder::default().build();
         let mut terminal = Terminal::new(TestBackend::new(80, 4)).unwrap();
-        terminal
-            .draw(|f| render_footer(f, &app, f.area()))
-            .unwrap();
+        terminal.draw(|f| render_footer(f, &app, f.area())).unwrap();
         assert_snapshot!(terminal.backend());
     }
 
@@ -1275,9 +1335,7 @@ mod tests {
     fn test_render_footer_with_exports() {
         let app = TestAppBuilder::default().pending_exports(5).build();
         let mut terminal = Terminal::new(TestBackend::new(80, 4)).unwrap();
-        terminal
-            .draw(|f| render_footer(f, &app, f.area()))
-            .unwrap();
+        terminal.draw(|f| render_footer(f, &app, f.area())).unwrap();
         assert_snapshot!(terminal.backend());
     }
 
@@ -1312,9 +1370,7 @@ mod tests {
             .copy_menu_open()
             .build();
         let mut terminal = Terminal::new(TestBackend::new(60, 15)).unwrap();
-        terminal
-            .draw(|f| render_copy_menu(f, &app))
-            .unwrap();
+        terminal.draw(|f| render_copy_menu(f, &app)).unwrap();
         assert_snapshot!(terminal.backend());
     }
 

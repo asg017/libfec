@@ -72,7 +72,10 @@ impl Item {
         } else if hours > 0 {
             format!("{hours} hour{} ago", if hours == 1 { "" } else { "s" })
         } else if minutes > 0 {
-            format!("{minutes} minute{} ago", if minutes == 1 { "" } else { "s" })
+            format!(
+                "{minutes} minute{} ago",
+                if minutes == 1 { "" } else { "s" }
+            )
         } else {
             "just now".to_string()
         })
@@ -385,9 +388,15 @@ pub fn format_duration_ago(seconds: i64) -> String {
     } else if hours > 0 {
         format!("{hours} hour{} ago", if hours == 1 { "" } else { "s" })
     } else if minutes > 0 {
-        format!("{minutes} minute{} ago", if minutes == 1 { "" } else { "s" })
+        format!(
+            "{minutes} minute{} ago",
+            if minutes == 1 { "" } else { "s" }
+        )
     } else {
-        format!("{seconds} second{} ago", if seconds == 1 { "" } else { "s" })
+        format!(
+            "{seconds} second{} ago",
+            if seconds == 1 { "" } else { "s" }
+        )
     }
 }
 

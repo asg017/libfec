@@ -1,6 +1,6 @@
 /**
  * > "The candidate-committee linkage file contains information linking the candidate's information to information about his or her committee. "
- * 
+ *
  * https://www.fec.gov/campaign-finance-data/candidate-committee-linkage-file-description/
  *
  * Sample: https://www.fec.gov/files/bulk-downloads/2026/ccl26.zip
@@ -42,6 +42,7 @@ pub fn export(tx: &mut Transaction<'_>, year: u16) -> Result<()> {
 #[derive(Debug, Clone)]
 pub struct CommitteeLinkage {
     pub committee_id: String,
+    #[allow(dead_code)]
     pub committee_type: String,
     pub committee_designation: String,
 }
@@ -61,6 +62,7 @@ impl CommitteeLinkage {
     }
 
     /// Return a human-readable description of the committee type
+    #[allow(dead_code)]
     pub fn type_description(&self) -> &'static str {
         match self.committee_type.as_str() {
             "C" => "Communication cost",

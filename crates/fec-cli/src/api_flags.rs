@@ -2,7 +2,7 @@ use std::{str::FromStr, sync::LazyLock};
 
 use crate::{
     cache::bulk_candidates::{ResolveCandidateParams, ResolveCandidateParamsBuilder},
-    sourcer::{FecFilingId, FilingSourcer, resolve_from_path},
+    sourcer::{resolve_from_path, FecFilingId, FilingSourcer},
 };
 use anyhow::Context;
 use clap::Parser;
@@ -90,23 +90,26 @@ pub struct FilingsApiFlags {
     pub include_amendments: bool,
 }
 
-fn filing_items(url: &Url, cache: Option<&mut dyn ApiCache>) -> anyhow::Result<(Vec<FilingItem>, ApiResponse)> {
+fn filing_items(
+    url: &Url,
+    cache: Option<&mut dyn ApiCache>,
+) -> anyhow::Result<(Vec<FilingItem>, ApiResponse)> {
     let response = fec_api::api_request_cached(url, cache)?;
     let results = response
         .result_items
         .iter()
         // TODO this filter out RFAI, as they appear in this endpoint yet have no fec_file_id
-        .filter_map(|v| match v.get("fec_file_id").and_then(|id| id.as_str()) {
-            Some(id) => Some(FilingItem {
-                filing_id: id.to_string(),
-                value: v.clone(),
-            }),
-            None => None,
+        .filter_map(|v| {
+            v.get("fec_file_id")
+                .and_then(|id| id.as_str())
+                .map(|id| FilingItem {
+                    filing_id: id.to_string(),
+                    value: v.clone(),
+                })
         })
         .collect::<Vec<FilingItem>>();
     Ok((results, response))
 }
-
 
 impl FilingsApiFlags {
     pub(crate) fn any_provided(&self) -> bool {
@@ -143,9 +146,9 @@ impl FilingsApiFlags {
             )?))
             .build()?;
         trace.resolve_candidate_params.push(params.clone());
-        spinner
-            .as_ref()
-            .map(|sp| sp.set_message(format!("Resolving committees for election {election}…")));
+        if let Some(sp) = spinner.as_ref() {
+            sp.set_message(format!("Resolving committees for election {election}…"))
+        }
         let committees = sourcer
             .cache
             .resolve_candidate_principal_campaign_committees(params)?;
@@ -153,9 +156,9 @@ impl FilingsApiFlags {
             panic!("No committees found for election {}", election);
         }
 
-        spinner
-            .as_ref()
-            .map(|sp| sp.set_message(format!("Found {} candidate committees…", committees.len())));
+        if let Some(sp) = spinner.as_ref() {
+            sp.set_message(format!("Found {} candidate committees…", committees.len()))
+        }
         let mut results = vec![];
         let mut cache_hits = 0usize;
         let mut cache_misses = 0usize;
@@ -174,14 +177,20 @@ impl FilingsApiFlags {
                 })?;
             let mut current = client.filings_url(filing_args);
             loop {
-                let (items, response) = filing_items(&current.0, sourcer.cache.api_cache_mut().map(|c| c as &mut dyn ApiCache))?;
+                let (items, response) = filing_items(
+                    &current.0,
+                    sourcer
+                        .cache
+                        .api_cache_mut()
+                        .map(|c| c as &mut dyn ApiCache),
+                )?;
                 results.extend(items);
                 if response.cache_hit {
                     cache_hits += 1;
                 } else {
                     cache_misses += 1;
                 }
-                spinner.as_ref().map(|sp| {
+                if let Some(sp) = spinner.as_ref() {
                     sp.set_message(format!(
                         "chunk={} {} {}/{} pages — {} cache hits, {} API requests, {} remaining",
                         idx,
@@ -192,7 +201,7 @@ impl FilingsApiFlags {
                         cache_misses,
                         response.rate_limit.remaining
                     ))
-                });
+                }
 
                 if let Some(next_url) = response.next_url {
                     current.0 = next_url;
@@ -201,32 +210,40 @@ impl FilingsApiFlags {
                 }
             }
         }
-        for (idx, chunk) in committees.chunks(50).enumerate() {
-          let efiling_filing_args = fec_api::EfilingFilingArgs {
-              committees: chunk.to_vec(),
-              form_types: self.form_type.clone(),
-          };
-          let mut current = client.efiling_filings_url(efiling_filing_args);
-          loop {
-              // Note: efile/filings has max-age=0 so caching won't help, but we pass the cache anyway
-              let (items, response) = filing_items(&current.0, sourcer.cache.api_cache_mut().map(|c| c as &mut dyn ApiCache))?;
-              if response.cache_hit {
-                  cache_hits += 1;
-              } else {
-                  cache_misses += 1;
-              }
-              for item in items {
-                  if !results.iter().any(|existing| existing.filing_id == item.filing_id) {
-                      results.push(item);
-                  }
-              }
-              if let Some(next_url) = response.next_url {
+        for chunk in committees.chunks(50) {
+            let efiling_filing_args = fec_api::EfilingFilingArgs {
+                committees: chunk.to_vec(),
+                form_types: self.form_type.clone(),
+            };
+            let mut current = client.efiling_filings_url(efiling_filing_args);
+            loop {
+                // Note: efile/filings has max-age=0 so caching won't help, but we pass the cache anyway
+                let (items, response) = filing_items(
+                    &current.0,
+                    sourcer
+                        .cache
+                        .api_cache_mut()
+                        .map(|c| c as &mut dyn ApiCache),
+                )?;
+                if response.cache_hit {
+                    cache_hits += 1;
+                } else {
+                    cache_misses += 1;
+                }
+                for item in items {
+                    if !results
+                        .iter()
+                        .any(|existing| existing.filing_id == item.filing_id)
+                    {
+                        results.push(item);
+                    }
+                }
+                if let Some(next_url) = response.next_url {
                     current.0 = next_url;
                 } else {
                     break;
                 }
-               
-          }
+            }
         }
         Ok(results)
     }
@@ -246,7 +263,7 @@ impl FilingsApiFlags {
             .cycle(self.cycle.clone().unwrap_or_default())
             .include_amendments(self.include_amendments)
             .build()
-            .with_context(|| format!("could not build filing args"))?;
+            .with_context(|| "could not build filing args".to_string())?;
         let filing_url = client.filings_url(args);
 
         let mut results = vec![];
@@ -254,14 +271,20 @@ impl FilingsApiFlags {
         let mut cache_misses = 0usize;
         let mut current = filing_url;
         loop {
-            let (items, response) = filing_items(&current.0, sourcer.cache.api_cache_mut().map(|c| c as &mut dyn ApiCache))?;
+            let (items, response) = filing_items(
+                &current.0,
+                sourcer
+                    .cache
+                    .api_cache_mut()
+                    .map(|c| c as &mut dyn ApiCache),
+            )?;
             results.extend(items);
             if response.cache_hit {
                 cache_hits += 1;
             } else {
                 cache_misses += 1;
             }
-            spinner.as_ref().map(|sp| {
+            if let Some(sp) = spinner.as_ref() {
                 sp.set_message(format!(
                     "{}/{} pages — {} cache hits, {} API requests, {} remaining",
                     response.pagination.page,
@@ -270,7 +293,7 @@ impl FilingsApiFlags {
                     cache_misses,
                     response.rate_limit.remaining
                 ))
-            });
+            }
 
             if let Some(next_url) = response.next_url {
                 current = fec_api::FilingsUrl(next_url);
@@ -280,34 +303,41 @@ impl FilingsApiFlags {
         }
 
         let committees = self.committee.clone().unwrap_or_default();
-        for (idx, chunk) in committees.chunks(50).enumerate() {
-          let efiling_filing_args = fec_api::EfilingFilingArgs {
-              committees: chunk.to_vec(),
-              form_types: self.form_type.clone(),
-          };
-          let mut current = client.efiling_filings_url(efiling_filing_args);
-          loop {
-              // Note: efile/filings has max-age=0 so caching won't help, but we pass the cache anyway
-              let (items, response) = filing_items(&current.0, sourcer.cache.api_cache_mut().map(|c| c as &mut dyn ApiCache))?;
-              if response.cache_hit {
-                  cache_hits += 1;
-              } else {
-                  cache_misses += 1;
-              }
-              for item in items {
-                  if !results.iter().any(|existing| existing.filing_id == item.filing_id) {
-                      results.push(item);
-                  }
-              }
-              if let Some(next_url) = response.next_url {
+        for chunk in committees.chunks(50) {
+            let efiling_filing_args = fec_api::EfilingFilingArgs {
+                committees: chunk.to_vec(),
+                form_types: self.form_type.clone(),
+            };
+            let mut current = client.efiling_filings_url(efiling_filing_args);
+            loop {
+                // Note: efile/filings has max-age=0 so caching won't help, but we pass the cache anyway
+                let (items, response) = filing_items(
+                    &current.0,
+                    sourcer
+                        .cache
+                        .api_cache_mut()
+                        .map(|c| c as &mut dyn ApiCache),
+                )?;
+                if response.cache_hit {
+                    cache_hits += 1;
+                } else {
+                    cache_misses += 1;
+                }
+                for item in items {
+                    if !results
+                        .iter()
+                        .any(|existing| existing.filing_id == item.filing_id)
+                    {
+                        results.push(item);
+                    }
+                }
+                if let Some(next_url) = response.next_url {
                     current.0 = next_url;
                 } else {
                     break;
                 }
-               
-          }
+            }
         }
-
 
         Ok(results)
     }
@@ -342,49 +372,58 @@ impl FilingsApiFlags {
             });
 
             for day in days {
-                let items: Vec<crate::cache::CacheBulkDailyZipResultItem> = sourcer.cache.cache_bulk_daily_zip(day, mb)?;
+                let items: Vec<crate::cache::CacheBulkDailyZipResultItem> =
+                    sourcer.cache.cache_bulk_daily_zip(day, mb)?;
 
-                // if the --form-types filter flag is provided, then we need to manually filter 
+                // if the --form-types filter flag is provided, then we need to manually filter
                 // by parsing the filing header. Not great performance-wise
                 if let Some(form_types) = &self.form_type {
                     for item in items {
-                      let f = resolve_from_path(item.output_path.clone())?;
-                      let filing_form_type = crate::commands::export::sqlite::form_type_parse(&f.cover.form_type).0;
-                      if !form_types.iter().any(|ft| ft == filing_form_type) {
-                          continue;
-                      }
+                        let f = resolve_from_path(item.output_path.clone())?;
+                        let filing_form_type =
+                            crate::commands::export::sqlite::form_type_parse(&f.cover.form_type).0;
+                        if !form_types.iter().any(|ft| ft == filing_form_type) {
+                            continue;
+                        }
 
-                      // also filter by coverage dates, if provided
-                      // TODO does this only work if --form-types is provided?
-                      if let Some(coverage_after) = self.coverage_after {
-                        if let Some(through_date) = f.cover.coverage_through_date {
-                            if through_date < coverage_after {
-                                continue;
+                        // also filter by coverage dates, if provided
+                        // TODO does this only work if --form-types is provided?
+                        if let Some(coverage_after) = self.coverage_after {
+                            if let Some(through_date) = f.cover.coverage_through_date {
+                                if through_date < coverage_after {
+                                    continue;
+                                }
                             }
                         }
-                      }
-                      if let Some(coverage_before) = self.coverage_before {
-                        if let Some(from_date) = f.cover.coverage_from_date {
-                            if from_date > coverage_before {
-                                continue;
+                        if let Some(coverage_before) = self.coverage_before {
+                            if let Some(from_date) = f.cover.coverage_from_date {
+                                if from_date > coverage_before {
+                                    continue;
+                                }
                             }
                         }
-                      }
-                      all_filing_ids.push(item.filing_id);
+                        all_filing_ids.push(item.filing_id);
                     }
                 } else {
-                    all_filing_ids.extend(items.iter().map(|item| item.filing_id.clone()).collect::<Vec<_>>());
+                    all_filing_ids.extend(
+                        items
+                            .iter()
+                            .map(|item| item.filing_id.clone())
+                            .collect::<Vec<_>>(),
+                    );
                 }
-                pb_days.as_ref().map(|sp| sp.inc(1));
+                if let Some(sp) = pb_days.as_ref() {
+                    sp.inc(1)
+                }
             }
-            pb_days.as_ref().map(|sp| {
+            if let Some(sp) = pb_days.as_ref() {
                 sp.finish_with_message(format!(
                     "Resolved {} filings from between {} and {}",
                     all_filing_ids.len(),
                     before,
                     after
                 ))
-            });
+            }
             return Ok(all_filing_ids);
         }
 
@@ -399,7 +438,7 @@ impl FilingsApiFlags {
             if self.office.is_some() || self.state.is_some() {
                 self.resolve_election(&client, sourcer, &spinner, *election, trace)?
             } else {
-                self.cycle = self.election.clone().map(|v| vec![v]);
+                self.cycle = self.election.map(|v| vec![v]);
                 self.resolve_normal(&client, sourcer, &spinner)?
             }
         } else {
@@ -413,9 +452,7 @@ impl FilingsApiFlags {
                     .get("coverage_start_date")
                     .and_then(|date_value| date_value.as_str())
                     .and_then(|date_str| date_str.parse::<Date>().ok())
-                    .map_or(false, |coverage_start_date| {
-                        coverage_start_date <= coverage_before
-                    })
+                    .is_some_and(|coverage_start_date| coverage_start_date <= coverage_before)
             });
         }
         if let Some(coverage_after) = self.coverage_after {
@@ -424,12 +461,12 @@ impl FilingsApiFlags {
                     .get("coverage_end_date")
                     .and_then(|date_value| date_value.as_str())
                     .and_then(|date_str| date_str.parse::<Date>().ok())
-                    .map_or(false, |coverage_end_date| {
-                        coverage_end_date >= coverage_after
-                    })
+                    .is_some_and(|coverage_end_date| coverage_end_date >= coverage_after)
             });
         }
-        spinner.as_ref().map(|sp| sp.finish_and_clear());
+        if let Some(sp) = spinner.as_ref() {
+            sp.finish_and_clear()
+        }
 
         Ok(results
             .iter()

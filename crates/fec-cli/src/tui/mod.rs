@@ -56,13 +56,15 @@ impl<'a> HelpBar<'a> {
 
     /// Add a key binding with a label
     pub fn item(mut self, key: &'a str, label: &'a str) -> Self {
-        self.items.push(HelpBarEntry::Item(HelpItem::new(key, label)));
+        self.items
+            .push(HelpBarEntry::Item(HelpItem::new(key, label)));
         self
     }
 
     /// Add multiple keys that do the same thing (displayed as "key1/key2 label")
     pub fn keys(mut self, keys: Vec<&'a str>, label: &'a str) -> Self {
-        self.items.push(HelpBarEntry::Item(HelpItem::keys(keys, label)));
+        self.items
+            .push(HelpBarEntry::Item(HelpItem::keys(keys, label)));
         self
     }
 

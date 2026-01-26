@@ -45,13 +45,34 @@ impl Form1Candidate {
         Some(Self {
             candidate_id,
             last_name: data.get("candidate_last_name").cloned().unwrap_or_default(),
-            first_name: data.get("candidate_first_name").cloned().unwrap_or_default(),
-            middle_name: data.get("candidate_middle_name").cloned().filter(|s| !s.is_empty()),
-            prefix: data.get("candidate_prefix").cloned().filter(|s| !s.is_empty()),
-            suffix: data.get("candidate_suffix").cloned().filter(|s| !s.is_empty()),
-            office: data.get("candidate_office").cloned().filter(|s| !s.is_empty()),
-            state: data.get("candidate_state").cloned().filter(|s| !s.is_empty()),
-            district: data.get("candidate_district").cloned().filter(|s| !s.is_empty()),
+            first_name: data
+                .get("candidate_first_name")
+                .cloned()
+                .unwrap_or_default(),
+            middle_name: data
+                .get("candidate_middle_name")
+                .cloned()
+                .filter(|s| !s.is_empty()),
+            prefix: data
+                .get("candidate_prefix")
+                .cloned()
+                .filter(|s| !s.is_empty()),
+            suffix: data
+                .get("candidate_suffix")
+                .cloned()
+                .filter(|s| !s.is_empty()),
+            office: data
+                .get("candidate_office")
+                .cloned()
+                .filter(|s| !s.is_empty()),
+            state: data
+                .get("candidate_state")
+                .cloned()
+                .filter(|s| !s.is_empty()),
+            district: data
+                .get("candidate_district")
+                .cloned()
+                .filter(|s| !s.is_empty()),
         })
     }
 
@@ -61,13 +82,13 @@ impl Form1Candidate {
             name.push_str(prefix.trim());
             name.push(' ');
         }
-        name.push_str(&self.first_name.trim());
+        name.push_str(self.first_name.trim());
         if let Some(middle_name) = &self.middle_name {
             name.push(' ');
             name.push_str(middle_name.trim());
         }
         name.push(' ');
-        name.push_str(&self.last_name.trim());
+        name.push_str(self.last_name.trim());
         if let Some(suffix) = &self.suffix {
             name.push(' ');
             name.push_str(suffix.trim());
@@ -87,7 +108,10 @@ impl Form1 {
             city: data.get("city").cloned().unwrap_or_default(),
             state: data.get("state").cloned().unwrap_or_default(),
             zip_code: data.get("zip_code").cloned().unwrap_or_default(),
-            committee_email: data.get("committee_email").cloned().filter(|s| !s.is_empty()),
+            committee_email: data
+                .get("committee_email")
+                .cloned()
+                .filter(|s| !s.is_empty()),
             committee_url: data.get("committee_url").cloned().filter(|s| !s.is_empty()),
             effective_date: data
                 .get("effective_date")
@@ -95,12 +119,21 @@ impl Form1 {
             date_signed: data
                 .get("date_signed")
                 .and_then(|s| Date::strptime("%Y%m%d", s).ok()),
-            committee_type: data.get("committee_type").cloned().filter(|s| !s.is_empty()),
+            committee_type: data
+                .get("committee_type")
+                .cloned()
+                .filter(|s| !s.is_empty()),
             candidate: Form1Candidate::from_data(data),
             party_code: data.get("party_code").cloned().filter(|s| !s.is_empty()),
             party_type: data.get("party_type").cloned().filter(|s| !s.is_empty()),
-            organization_type: data.get("organization_type").cloned().filter(|s| !s.is_empty()),
-            leadership_pac: data.get("leadership_pac").cloned().filter(|s| !s.is_empty()),
+            organization_type: data
+                .get("organization_type")
+                .cloned()
+                .filter(|s| !s.is_empty()),
+            leadership_pac: data
+                .get("leadership_pac")
+                .cloned()
+                .filter(|s| !s.is_empty()),
             treasurer: Treasurer::from_data(data),
         })
     }

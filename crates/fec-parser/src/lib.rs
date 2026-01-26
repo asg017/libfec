@@ -42,7 +42,7 @@ pub enum FilingHeaderError {
 /// > The first record of every electronic file that is submitted to the FEC
 /// > must be an HDR record that precedes the main body of the ASCII CSV
 /// > (comma separated values) data"
-/// Source: FEC_Format_8.4.pdf, page 3
+/// > Source: FEC_Format_8.4.pdf, page 3
 #[derive(Debug)]
 pub struct FilingHeader {
     pub header_record: StringRecord,
@@ -318,11 +318,7 @@ impl<R: Read> Filing<R> {
         let filing_file = std::fs::File::open(filing_path)?;
         let source_length = filing_file.metadata().map(|v| v.len() as usize)?;
 
-        Ok(Filing::from_reader(
-            filing_file,
-            filing_id.to_string(),
-            source_length,
-        )?)
+        Filing::from_reader(filing_file, filing_id.to_string(), source_length)
     }
 
     /// Return the next itemization row in the filing, or None if at end of file.
@@ -411,7 +407,6 @@ pub struct FilingRow {
 
 #[cfg(test)]
 mod tests {
+    #[allow(unused_imports)]
     use crate::*;
-    use mappings::*;
-
 }

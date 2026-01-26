@@ -5,7 +5,7 @@ use std::path::Path;
 
 use crate::{
     cli::{CacheArgs, CacheSubcommand},
-    sourcer::{FilingSourcer, process_inputs},
+    sourcer::{process_inputs, FilingSourcer},
 };
 
 fn get_file_size(path: &Path) -> Option<u64> {
@@ -57,10 +57,7 @@ pub fn cache(mut sourcer: FilingSourcer, args: &CacheArgs) -> anyhow::Result<()>
             let cache_dir = sourcer.cache.cache_directory();
             println!("{}", "Cache Information".bold());
             println!();
-            println!(
-                "  {}",
-                cache_dir.display().to_string().dimmed()
-            );
+            println!("  {}", cache_dir.display().to_string().dimmed());
             println!();
 
             // .fec files
@@ -103,15 +100,15 @@ pub fn cache(mut sourcer: FilingSourcer, args: &CacheArgs) -> anyhow::Result<()>
             }
         }
         CacheSubcommand::Add(add_args) => {
-          let mb = MultiProgress::new();
+            let mb = MultiProgress::new();
             // Resolve filings from API and cache them
-           let result = process_inputs(
+            let _result = process_inputs(
                 &add_args.filings,
                 add_args.api.clone(),
                 &mut sourcer,
                 Some(&mb),
             )?;
-          }
+        }
     }
 
     Ok(())

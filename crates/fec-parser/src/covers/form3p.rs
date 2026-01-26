@@ -248,6 +248,7 @@ impl Form3PDetailedSummaryReceipts {
     }
 }
 
+#[allow(dead_code)]
 pub struct Form3PDetailedSummaryDisbursements {
     pub line_23_operating_expenditures: DetailedSummaryRow,
     pub line_24_transfers_to_other_authorized_committee: DetailedSummaryRow,
@@ -263,6 +264,7 @@ pub struct Form3PDetailedSummaryDisbursements {
     pub line_29_other_disbursements: DetailedSummaryRow,
     pub line_30_total_disbursements: DetailedSummaryRow,
 }
+#[allow(dead_code)]
 impl Form3PDetailedSummaryDisbursements {
     pub fn from_data(_data: &IndexMap<String, String>) -> Self {
         todo!()

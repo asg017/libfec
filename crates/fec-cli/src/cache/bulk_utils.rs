@@ -60,12 +60,7 @@ pub(crate) fn insert_rows(
     for result in csv_reader.records() {
         let record = result?;
         let mut params = vec![ToSqlOutput::from(cycle_year)];
-        params.extend(
-            record
-                .iter()
-                .take(number_of_columns)
-                .map(ToSqlOutput::from),
-        );
+        params.extend(record.iter().take(number_of_columns).map(ToSqlOutput::from));
         stmt.execute(rusqlite::params_from_iter(params))?;
     }
     Ok(())
@@ -124,7 +119,7 @@ pub(crate) fn sync_item(
             },
         )
         .optional()?;
-    
+
     // if there is already data for the given year, and the Last-Modified header
     // is recent (within the last 30 minutes), skip the update
     if let Some(row) = &result {

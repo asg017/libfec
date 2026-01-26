@@ -19,17 +19,17 @@
 //! - Enter: Copy selected value to clipboard
 //! - Esc: Cancel and close popup
 
-use crate::tui::{HelpBar, navigation_popup_help_line};
+use crate::tui::{navigation_popup_help_line, HelpBar};
 use crossterm::event::{KeyCode, KeyEvent};
 use fec_parser::{covers::Cover, report_code_label};
 use indicatif::HumanBytes;
 use num_format::{Locale, ToFormattedString};
 use ratatui::{
-    Frame,
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
     widgets::{Block, Borders, Clear, Paragraph, Wrap},
+    Frame,
 };
 
 /// Action returned by handle_key_event indicating what the parent should do
@@ -170,7 +170,10 @@ impl FilingDetailState {
         }
     }
 
-    pub fn get_yank_options(&self, filing: &FilingDetail) -> Vec<(YankOption, String, Option<String>)> {
+    pub fn get_yank_options(
+        &self,
+        filing: &FilingDetail,
+    ) -> Vec<(YankOption, String, Option<String>)> {
         vec![
             (
                 YankOption::FilingId,
@@ -226,11 +229,7 @@ impl FilingDetailState {
     }
 
     /// Handle a key event and return an action for the parent to perform
-    pub fn handle_key_event(
-        &mut self,
-        key: KeyEvent,
-        filing: &FilingDetail,
-    ) -> FilingDetailAction {
+    pub fn handle_key_event(&mut self, key: KeyEvent, filing: &FilingDetail) -> FilingDetailAction {
         match key.code {
             KeyCode::Esc | KeyCode::Char('q') => {
                 if self.show_yank_popup {
@@ -294,8 +293,7 @@ fn render_title(f: &mut Frame, filing: &FilingDetail, area: Rect) {
         "FEC-{} {} by {} ({})",
         filing.filing_id, report_label, filing.filer_name, filing.filer_id
     );
-    let title = Paragraph::new(title_text)
-        .style(Style::default().add_modifier(Modifier::BOLD));
+    let title = Paragraph::new(title_text).style(Style::default().add_modifier(Modifier::BOLD));
     f.render_widget(title, area);
 }
 
@@ -305,9 +303,19 @@ fn render_content(f: &mut Frame, filing: &FilingDetail, state: &FilingDetailStat
     // Coverage period
     if let (Some(ref from), Some(ref through)) = (&filing.coverage_from, &filing.coverage_through) {
         lines.push(Line::from(vec![
-            Span::styled(from, Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                from,
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            ),
             Span::raw(" through "),
-            Span::styled(through, Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                through,
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            ),
         ]));
         lines.push(Line::from(""));
     }
@@ -315,7 +323,12 @@ fn render_content(f: &mut Frame, filing: &FilingDetail, state: &FilingDetailStat
     // Treasurer and signed date (for F3P forms)
     if let (Some(ref treasurer), Some(ref signed)) = (&filing.treasurer, &filing.signed_date) {
         lines.push(Line::from(vec![
-            Span::styled("Signed by: ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                "Signed by: ",
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            ),
             Span::raw(treasurer),
             Span::raw(" on "),
             Span::raw(signed),
@@ -329,35 +342,74 @@ fn render_content(f: &mut Frame, filing: &FilingDetail, state: &FilingDetailStat
         let pct_change = if summary.cash_on_hand_beginning == 0.0 {
             100.0
         } else {
-            ((summary.cash_on_hand_end - summary.cash_on_hand_beginning) / summary.cash_on_hand_beginning) * 100.0
+            ((summary.cash_on_hand_end - summary.cash_on_hand_beginning)
+                / summary.cash_on_hand_beginning)
+                * 100.0
         };
         let amount_change = summary.cash_on_hand_end - summary.cash_on_hand_beginning;
-        let pct_color = if pct_change >= 0.0 { Color::Green } else { Color::Red };
+        let pct_color = if pct_change >= 0.0 {
+            Color::Green
+        } else {
+            Color::Red
+        };
         let pct_sign = if pct_change >= 0.0 { "+" } else { "" };
 
         // Cash on Hand - Start
         lines.push(Line::from(vec![
-            Span::styled(format!("{:<24}", "Cash on Hand - Start"), Style::default().fg(Color::White)),
-            Span::styled(format!("{:>16}", format_usd(summary.cash_on_hand_beginning)), Style::default().fg(Color::White)),
+            Span::styled(
+                format!("{:<24}", "Cash on Hand - Start"),
+                Style::default().fg(Color::White),
+            ),
+            Span::styled(
+                format!("{:>16}", format_usd(summary.cash_on_hand_beginning)),
+                Style::default().fg(Color::White),
+            ),
         ]));
 
         // Receipts
         lines.push(Line::from(vec![
-            Span::styled(format!("{:<24}", "Receipts"), Style::default().fg(Color::White)),
-            Span::styled(format!("+{:>15}", format_usd(summary.total_receipts)), Style::default().fg(Color::Blue)),
+            Span::styled(
+                format!("{:<24}", "Receipts"),
+                Style::default().fg(Color::White),
+            ),
+            Span::styled(
+                format!("+{:>15}", format_usd(summary.total_receipts)),
+                Style::default().fg(Color::Blue),
+            ),
         ]));
 
         // Expenditures
         lines.push(Line::from(vec![
-            Span::styled(format!("{:<24}", "Expenditures"), Style::default().fg(Color::White)),
-            Span::styled(format!("-{:>15}", format_usd(summary.total_disbursements)), Style::default().fg(Color::Red)),
+            Span::styled(
+                format!("{:<24}", "Expenditures"),
+                Style::default().fg(Color::White),
+            ),
+            Span::styled(
+                format!("-{:>15}", format_usd(summary.total_disbursements)),
+                Style::default().fg(Color::Red),
+            ),
         ]));
 
         // Cash on Hand - End (with percentage change)
         lines.push(Line::from(vec![
-            Span::styled(format!("{:<24}", "Cash on Hand - End"), Style::default().fg(Color::White)),
-            Span::styled(format!("{:>16}", format_usd(summary.cash_on_hand_end)), Style::default().fg(Color::White).bold()),
-            Span::styled(format!(" {}{}, {}{:.0}%", pct_sign, format_usd(amount_change), pct_sign, pct_change), Style::default().fg(pct_color).add_modifier(Modifier::DIM)),
+            Span::styled(
+                format!("{:<24}", "Cash on Hand - End"),
+                Style::default().fg(Color::White),
+            ),
+            Span::styled(
+                format!("{:>16}", format_usd(summary.cash_on_hand_end)),
+                Style::default().fg(Color::White).bold(),
+            ),
+            Span::styled(
+                format!(
+                    " {}{}, {}{:.0}%",
+                    pct_sign,
+                    format_usd(amount_change),
+                    pct_sign,
+                    pct_change
+                ),
+                Style::default().fg(pct_color).add_modifier(Modifier::DIM),
+            ),
         ]));
         lines.push(Line::from(""));
     }
@@ -368,36 +420,78 @@ fn render_content(f: &mut Frame, filing: &FilingDetail, state: &FilingDetailStat
         filing.filer_id, filing.filing_id
     );
     lines.push(Line::from(vec![
-        Span::styled("URL: ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
-        Span::styled(&fec_url, Style::default().fg(Color::Blue).add_modifier(Modifier::UNDERLINED)),
+        Span::styled(
+            "URL: ",
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::styled(
+            &fec_url,
+            Style::default()
+                .fg(Color::Blue)
+                .add_modifier(Modifier::UNDERLINED),
+        ),
     ]));
     lines.push(Line::from(""));
 
     // Metadata line
     lines.push(Line::from(vec![
-        Span::styled("Version: ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+        Span::styled(
+            "Version: ",
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        ),
         Span::raw(format!("v{}", filing.fec_version)),
         Span::raw("  "),
-        Span::styled("Size: ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+        Span::styled(
+            "Size: ",
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        ),
         Span::raw(HumanBytes(filing.source_length as u64).to_string()),
     ]));
 
     lines.push(Line::from(vec![
-        Span::styled("Software: ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
-        Span::raw(format!("{} {}", filing.software_name, filing.software_version)),
+        Span::styled(
+            "Software: ",
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::raw(format!(
+            "{} {}",
+            filing.software_name, filing.software_version
+        )),
     ]));
 
     // Optional metadata
     if let Some(ref report_id) = filing.report_id {
         lines.push(Line::from(vec![
-            Span::styled("Report ID: ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
-            Span::raw(format!("'{}' ({})", report_id, filing.report_number.as_deref().unwrap_or(""))),
+            Span::styled(
+                "Report ID: ",
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(format!(
+                "'{}' ({})",
+                report_id,
+                filing.report_number.as_deref().unwrap_or("")
+            )),
         ]));
     }
 
     if let Some(ref comment) = filing.comment {
         lines.push(Line::from(vec![
-            Span::styled("Comment: ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                "Comment: ",
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            ),
             Span::raw(format!("'{}'", comment)),
         ]));
     }
@@ -427,9 +521,9 @@ pub fn render_filing_detail(
     let layout = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(1),  // Title
-            Constraint::Min(10),    // Content
-            Constraint::Length(2),  // Help text
+            Constraint::Length(1), // Title
+            Constraint::Min(10),   // Content
+            Constraint::Length(2), // Help text
         ]);
 
     let [title_area, content_area, help_area] = area.layout(&layout);
@@ -463,7 +557,9 @@ fn render_yank_popup(f: &mut Frame, area: Rect, filing: &FilingDetail, state: &F
 
     lines.push(Line::from(Span::styled(
         "Select what to copy:",
-        Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD),
+        Style::default()
+            .fg(Color::Yellow)
+            .add_modifier(Modifier::BOLD),
     )));
     lines.push(Line::from(""));
 
@@ -489,7 +585,6 @@ fn render_yank_popup(f: &mut Frame, area: Rect, filing: &FilingDetail, state: &F
     lines.push(Line::from(""));
     lines.push(navigation_popup_help_line());
 
-    let paragraph = Paragraph::new(lines)
-        .wrap(Wrap { trim: false });
+    let paragraph = Paragraph::new(lines).wrap(Wrap { trim: false });
     f.render_widget(paragraph, inner_area);
 }

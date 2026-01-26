@@ -28,8 +28,8 @@ use ratatui::{
     style::{Color, Modifier, Style},
     text::{Line, Span},
     widgets::{
-        Block, Borders, Cell, Paragraph, Row, Table, TableState,
         calendar::{CalendarEventStore, Monthly},
+        Block, Borders, Cell, Paragraph, Row, Table, TableState,
     },
     Frame, Terminal,
 };
@@ -40,6 +40,7 @@ use time::{Date, Month, OffsetDateTime};
 /// A calendar event from the FEC API
 #[derive(Debug, Clone)]
 pub struct CalendarEvent {
+    #[allow(dead_code)]
     pub event_id: i64,
     pub summary: String,
     pub description: String,
@@ -69,21 +70,27 @@ impl CalendarEvent {
             .and_then(|v| v.as_str())
             .unwrap_or("")
             .to_string();
-        let category_id = value.get("calendar_category_id").and_then(|v| v.as_i64()).unwrap_or(0);
+        let category_id = value
+            .get("calendar_category_id")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(0);
         let location = value
             .get("location")
             .and_then(|v| v.as_str())
             .map(|s| s.to_string());
-        let url = value.get("url").and_then(|v| v.as_str()).map(|s| s.to_string());
+        let url = value
+            .get("url")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string());
 
         let start_date = value
             .get("start_date")
             .and_then(|v| v.as_str())
-            .and_then(|s| parse_date(s));
+            .and_then(parse_date);
         let end_date = value
             .get("end_date")
             .and_then(|v| v.as_str())
-            .and_then(|s| parse_date(s));
+            .and_then(parse_date);
 
         Some(CalendarEvent {
             event_id,
@@ -100,11 +107,11 @@ impl CalendarEvent {
 
     fn category_color(&self) -> Color {
         match self.category_id {
-            36 => Color::Cyan,    // Elections
+            36 => Color::Cyan,              // Elections
             21 | 25 | 26 => Color::Magenta, // All deadlines (Reporting, Quarterly, Monthly)
-            20 => Color::Blue,    // Commission Meetings
-            37 => Color::Red,     // Federal Holidays
-            27 => Color::LightCyan, // Pre and Post-Elections
+            20 => Color::Blue,              // Commission Meetings
+            37 => Color::Red,               // Federal Holidays
+            27 => Color::LightCyan,         // Pre and Post-Elections
             _ => Color::White,
         }
     }
@@ -186,7 +193,11 @@ impl App {
 
         let category_ids = self.args.category_ids();
         let args = CalendarDatesArgs {
-            calendar_category_id: if category_ids.is_empty() { None } else { Some(category_ids) },
+            calendar_category_id: if category_ids.is_empty() {
+                None
+            } else {
+                Some(category_ids)
+            },
             min_start_date: Some(format!(
                 "{:04}-{:02}-{:02}",
                 today.year(),
@@ -209,7 +220,7 @@ impl App {
                 self.events = response
                     .result_items
                     .iter()
-                    .filter_map(|item| CalendarEvent::from_json(item))
+                    .filter_map(CalendarEvent::from_json)
                     .collect();
 
                 // Build events by date index
@@ -304,9 +315,11 @@ impl App {
         for event in &self.events {
             if let Some(ref jiff_date) = event.start_date {
                 if let Ok(month) = Month::try_from(jiff_date.month() as u8) {
-                    if let Ok(date) =
-                        Date::from_calendar_date(jiff_date.year() as i32, month, jiff_date.day() as u8)
-                    {
+                    if let Ok(date) = Date::from_calendar_date(
+                        jiff_date.year() as i32,
+                        month,
+                        jiff_date.day() as u8,
+                    ) {
                         store.add(
                             date,
                             Style::default()
@@ -340,7 +353,11 @@ fn run_json_mode(args: &DatesArgs) -> Result<()> {
 
     let category_ids = args.category_ids();
     let api_args = CalendarDatesArgs {
-        calendar_category_id: if category_ids.is_empty() { None } else { Some(category_ids) },
+        calendar_category_id: if category_ids.is_empty() {
+            None
+        } else {
+            Some(category_ids)
+        },
         min_start_date: Some(format!(
             "{:04}-{:02}-{:02}",
             today.year(),
@@ -412,7 +429,9 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<Stdout>>, app: &mut App) -> 
                         app.should_exit = true;
                     }
                     KeyCode::Char('c')
-                        if key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL) =>
+                        if key
+                            .modifiers
+                            .contains(crossterm::event::KeyModifiers::CONTROL) =>
                     {
                         app.should_exit = true;
                     }
@@ -493,8 +512,11 @@ fn render_header(f: &mut Frame, app: &App, area: Rect) {
         ])
     };
 
-    let header = Paragraph::new(header_text)
-        .block(Block::default().borders(Borders::ALL).title("FEC Calendar Dates"));
+    let header = Paragraph::new(header_text).block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title("FEC Calendar Dates"),
+    );
     f.render_widget(header, area);
 }
 
@@ -554,21 +576,30 @@ fn render_legend(f: &mut Frame, area: Rect) {
     let legend = Line::from(vec![
         Span::styled("■", Style::default().fg(Color::Blue)),
         Span::styled(" Today  ", Style::default().fg(Color::DarkGray)),
-        Span::styled("■", Style::default().fg(Color::Magenta).add_modifier(Modifier::BOLD)),
+        Span::styled(
+            "■",
+            Style::default()
+                .fg(Color::Magenta)
+                .add_modifier(Modifier::BOLD),
+        ),
         Span::styled(" Deadline  ", Style::default().fg(Color::DarkGray)),
-        Span::styled("■", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
+        Span::styled(
+            "■",
+            Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
+        ),
         Span::styled(" Election", Style::default().fg(Color::DarkGray)),
     ]);
 
-    let legend_widget = Paragraph::new(legend)
-        .alignment(ratatui::layout::Alignment::Right);
+    let legend_widget = Paragraph::new(legend).alignment(ratatui::layout::Alignment::Right);
     f.render_widget(legend_widget, area);
 }
 
 fn render_calendar_row(f: &mut Frame, app: &App, area: Rect) {
     // Determine number of months to show based on width (each calendar is ~22 chars wide)
     let calendar_width = 22u16;
-    let num_months = (area.width / calendar_width).max(1).min(6) as usize;
+    let num_months = (area.width / calendar_width).clamp(1, 6) as usize;
 
     // Calculate total width used by calendars and padding needed to center
     let total_calendar_width = (num_months as u16) * calendar_width;
@@ -596,20 +627,19 @@ fn render_calendar_row(f: &mut Frame, app: &App, area: Rect) {
 
     let default_style = Style::default();
 
-    let header_style = Style::default()
-        .add_modifier(Modifier::BOLD);
+    let header_style = Style::default().add_modifier(Modifier::BOLD);
 
     // Render each month
     let mut current_month = app.current_month;
     let mut current_year = app.current_year;
 
-    for (_i, cal_area) in calendar_areas.iter().enumerate() {
+    for cal_area in calendar_areas.iter() {
         if let Ok(date) = Date::from_calendar_date(current_year, current_month, 1) {
             let calendar = Monthly::new(date, &calendar_store)
                 .show_month_header(header_style)
                 .show_weekdays_header(Style::default().fg(Color::Gray))
                 .default_style(default_style);
-                //.show_surrounding(Style::default().add_modifier(Modifier::DIM));
+            //.show_surrounding(Style::default().add_modifier(Modifier::DIM));
 
             f.render_widget(calendar, *cal_area);
         }
@@ -740,6 +770,11 @@ fn truncate_str(s: &str, max_len: usize) -> String {
     if s.chars().count() <= max_len {
         s.to_string()
     } else {
-        format!("{}...", s.chars().take(max_len.saturating_sub(3)).collect::<String>())
+        format!(
+            "{}...",
+            s.chars()
+                .take(max_len.saturating_sub(3))
+                .collect::<String>()
+        )
     }
 }

@@ -3,7 +3,9 @@ use std::{collections::HashMap, fs::File, path::PathBuf};
 use fec_parser::schedules::{form_type_schedule_type, ScheduleType};
 
 use crate::{
-    cli::ExportArgs, commands::export::sqlite::form_type_parse, sourcer::{FilingSourcer, ItemizationProgressBar}
+    cli::ExportArgs,
+    commands::export::sqlite::form_type_parse,
+    sourcer::{FilingSourcer, ItemizationProgressBar},
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -21,7 +23,6 @@ pub fn export(
     args: ExportArgs,
     output_directory: PathBuf,
 ) -> anyhow::Result<()> {
-
     let mut cover_writers: std::collections::HashMap<String, ItemizationValue> = HashMap::new();
     let mut itemization_writers: std::collections::HashMap<ItemizationKey, ItemizationValue> =
         HashMap::new();
@@ -35,27 +36,26 @@ pub fn export(
             Ok(f) => f,
             Err(_) => todo!(),
         };
-        
-        {
-          let (form_type, _amendment_indicator) = form_type_parse(&filing.cover.form_type);
-          cover_writers.entry(form_type.to_owned())
-              .or_insert_with(|| {
-                  let path = output_directory.join(format!("cover_{}.csv", form_type));
-                  let f = File::create_new(path).unwrap();
-                  let mut w = csv::WriterBuilder::new()
-                      .flexible(true)
-                      .has_headers(true)
-                      .from_writer(f);
-                  w.write_record(
-                    filing.cover.record_column_names.clone()
-                  ).unwrap();
-                  ItemizationValue { writer: w }
-              })
-              .writer
-              .write_record(&filing.cover.record).unwrap();
-        }
 
-        
+        {
+            let (form_type, _amendment_indicator) = form_type_parse(&filing.cover.form_type);
+            cover_writers
+                .entry(form_type.to_owned())
+                .or_insert_with(|| {
+                    let path = output_directory.join(format!("cover_{}.csv", form_type));
+                    let f = File::create_new(path).unwrap();
+                    let mut w = csv::WriterBuilder::new()
+                        .flexible(true)
+                        .has_headers(true)
+                        .from_writer(f);
+                    w.write_record(filing.cover.record_column_names.clone())
+                        .unwrap();
+                    ItemizationValue { writer: w }
+                })
+                .writer
+                .write_record(&filing.cover.record)
+                .unwrap();
+        }
 
         let pb = ItemizationProgressBar::new(&mb, &filing);
         while let Some(r) = filing.next_row() {

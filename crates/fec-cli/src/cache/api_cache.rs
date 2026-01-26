@@ -20,10 +20,13 @@ fn normalize_url_for_cache(url: &Url) -> (String, Option<String>) {
     let mut api_key_hash: Option<String> = None;
 
     // Find and potentially replace the api_key parameter
-    let pairs: Vec<(String, String)> = url.query_pairs().map(|(k, v)| (k.to_string(), v.to_string())).collect();
-    
+    let pairs: Vec<(String, String)> = url
+        .query_pairs()
+        .map(|(k, v)| (k.to_string(), v.to_string()))
+        .collect();
+
     let has_non_demo_key = pairs.iter().any(|(k, v)| k == "api_key" && v != "DEMO_KEY");
-    
+
     if has_non_demo_key {
         // Rebuild query string with placeholder
         normalized.query_pairs_mut().clear();
@@ -35,7 +38,9 @@ fn normalize_url_for_cache(url: &Url) -> (String, Option<String>) {
                 let hash = format!("{:x}", hasher.finalize());
                 api_key_hash = Some(hash);
                 // Use placeholder in URL
-                normalized.query_pairs_mut().append_pair(key, API_KEY_PLACEHOLDER);
+                normalized
+                    .query_pairs_mut()
+                    .append_pair(key, API_KEY_PLACEHOLDER);
             } else {
                 normalized.query_pairs_mut().append_pair(key, value);
             }
@@ -49,8 +54,12 @@ impl SqliteApiCache {
     /// Create a new SqliteApiCache, opening or creating the database at the given path.
     pub fn new(cache_directory: &Path) -> Result<Self> {
         let db_path = cache_directory.join(".api-cache.db");
-        let conn = Connection::open(&db_path)
-            .with_context(|| format!("Could not open or create API cache database at {:?}", db_path))?;
+        let conn = Connection::open(&db_path).with_context(|| {
+            format!(
+                "Could not open or create API cache database at {:?}",
+                db_path
+            )
+        })?;
 
         // Create table with auto-increment primary key
         // api_key_hash is empty string for DEMO_KEY entries
@@ -135,7 +144,13 @@ impl ApiCache for SqliteApiCache {
         self.conn.execute(
             "INSERT OR REPLACE INTO api_cache (url, api_key_hash, body, max_age_secs, cached_at)
              VALUES (?1, ?2, ?3, ?4, ?5)",
-            rusqlite::params![normalized_url, hash_value, body_str, entry.max_age_secs as i64, now],
+            rusqlite::params![
+                normalized_url,
+                hash_value,
+                body_str,
+                entry.max_age_secs as i64,
+                now
+            ],
         )?;
 
         Ok(())
@@ -148,18 +163,21 @@ mod tests {
 
     #[test]
     fn test_normalize_url_demo_key_unchanged() {
-        let url = Url::parse("https://api.open.fec.gov/v1/filings?api_key=DEMO_KEY&cycle=2026").unwrap();
+        let url =
+            Url::parse("https://api.open.fec.gov/v1/filings?api_key=DEMO_KEY&cycle=2026").unwrap();
         let (normalized, hash) = normalize_url_for_cache(&url);
-        
+
         assert_eq!(normalized, url.as_str());
         assert!(hash.is_none());
     }
 
     #[test]
     fn test_normalize_url_real_key_replaced() {
-        let url = Url::parse("https://api.open.fec.gov/v1/filings?api_key=MY_SECRET_KEY&cycle=2026").unwrap();
+        let url =
+            Url::parse("https://api.open.fec.gov/v1/filings?api_key=MY_SECRET_KEY&cycle=2026")
+                .unwrap();
         let (normalized, hash) = normalize_url_for_cache(&url);
-        
+
         // Note: $ gets URL-encoded to %24
         assert!(normalized.contains("api_key=%24LIBFEC_API_KEY"));
         assert!(!normalized.contains("MY_SECRET_KEY"));
@@ -170,31 +188,38 @@ mod tests {
 
     #[test]
     fn test_normalize_url_same_key_same_hash() {
-        let url1 = Url::parse("https://api.open.fec.gov/v1/filings?api_key=MY_KEY&cycle=2026").unwrap();
-        let url2 = Url::parse("https://api.open.fec.gov/v1/filings?api_key=MY_KEY&cycle=2024").unwrap();
-        
+        let url1 =
+            Url::parse("https://api.open.fec.gov/v1/filings?api_key=MY_KEY&cycle=2026").unwrap();
+        let url2 =
+            Url::parse("https://api.open.fec.gov/v1/filings?api_key=MY_KEY&cycle=2024").unwrap();
+
         let (_, hash1) = normalize_url_for_cache(&url1);
         let (_, hash2) = normalize_url_for_cache(&url2);
-        
+
         assert_eq!(hash1, hash2);
     }
 
     #[test]
     fn test_normalize_url_different_keys_different_hashes() {
-        let url1 = Url::parse("https://api.open.fec.gov/v1/filings?api_key=KEY_A&cycle=2026").unwrap();
-        let url2 = Url::parse("https://api.open.fec.gov/v1/filings?api_key=KEY_B&cycle=2026").unwrap();
-        
+        let url1 =
+            Url::parse("https://api.open.fec.gov/v1/filings?api_key=KEY_A&cycle=2026").unwrap();
+        let url2 =
+            Url::parse("https://api.open.fec.gov/v1/filings?api_key=KEY_B&cycle=2026").unwrap();
+
         let (_, hash1) = normalize_url_for_cache(&url1);
         let (_, hash2) = normalize_url_for_cache(&url2);
-        
+
         assert_ne!(hash1, hash2);
     }
 
     #[test]
     fn test_normalize_url_preserves_other_params() {
-        let url = Url::parse("https://api.open.fec.gov/v1/filings?api_key=SECRET&per_page=100&cycle=2026").unwrap();
+        let url = Url::parse(
+            "https://api.open.fec.gov/v1/filings?api_key=SECRET&per_page=100&cycle=2026",
+        )
+        .unwrap();
         let (normalized, _) = normalize_url_for_cache(&url);
-        
+
         assert!(normalized.contains("per_page=100"));
         assert!(normalized.contains("cycle=2026"));
     }
@@ -203,17 +228,18 @@ mod tests {
     fn test_cache_roundtrip_with_real_key() {
         let dir = tempfile::tempdir().unwrap();
         let mut cache = SqliteApiCache::new(dir.path()).unwrap();
-        
-        let url = Url::parse("https://api.open.fec.gov/v1/filings?api_key=MY_SECRET&cycle=2026").unwrap();
+
+        let url =
+            Url::parse("https://api.open.fec.gov/v1/filings?api_key=MY_SECRET&cycle=2026").unwrap();
         let entry = ApiCacheEntry {
             body: serde_json::json!({"test": "data"}),
             max_age_secs: 3600,
         };
-        
+
         // Set and get should work
         cache.set(&url, &entry).unwrap();
         let result = cache.get(&url);
-        
+
         assert!(result.is_some());
         assert_eq!(result.unwrap().body, entry.body);
     }
@@ -222,10 +248,12 @@ mod tests {
     fn test_cache_different_keys_isolated() {
         let dir = tempfile::tempdir().unwrap();
         let mut cache = SqliteApiCache::new(dir.path()).unwrap();
-        
-        let url1 = Url::parse("https://api.open.fec.gov/v1/filings?api_key=KEY_A&cycle=2026").unwrap();
-        let url2 = Url::parse("https://api.open.fec.gov/v1/filings?api_key=KEY_B&cycle=2026").unwrap();
-        
+
+        let url1 =
+            Url::parse("https://api.open.fec.gov/v1/filings?api_key=KEY_A&cycle=2026").unwrap();
+        let url2 =
+            Url::parse("https://api.open.fec.gov/v1/filings?api_key=KEY_B&cycle=2026").unwrap();
+
         let entry1 = ApiCacheEntry {
             body: serde_json::json!({"user": "A"}),
             max_age_secs: 3600,
@@ -234,14 +262,14 @@ mod tests {
             body: serde_json::json!({"user": "B"}),
             max_age_secs: 3600,
         };
-        
+
         cache.set(&url1, &entry1).unwrap();
         cache.set(&url2, &entry2).unwrap();
-        
+
         // Each key should get its own cached data
         let result1 = cache.get(&url1).unwrap();
         let result2 = cache.get(&url2).unwrap();
-        
+
         assert_eq!(result1.body["user"], "A");
         assert_eq!(result2.body["user"], "B");
     }
@@ -250,15 +278,16 @@ mod tests {
     fn test_cache_demo_key_shared() {
         let dir = tempfile::tempdir().unwrap();
         let mut cache = SqliteApiCache::new(dir.path()).unwrap();
-        
-        let url = Url::parse("https://api.open.fec.gov/v1/filings?api_key=DEMO_KEY&cycle=2026").unwrap();
+
+        let url =
+            Url::parse("https://api.open.fec.gov/v1/filings?api_key=DEMO_KEY&cycle=2026").unwrap();
         let entry = ApiCacheEntry {
             body: serde_json::json!({"shared": true}),
             max_age_secs: 3600,
         };
-        
+
         cache.set(&url, &entry).unwrap();
-        
+
         // Same URL with DEMO_KEY should hit cache
         let result = cache.get(&url);
         assert!(result.is_some());

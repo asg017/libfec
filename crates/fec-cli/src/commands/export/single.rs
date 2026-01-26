@@ -21,9 +21,9 @@ fn target_matches_form_type(target: &ExportTarget, form_type: &str) -> bool {
 }
 
 enum Writer {
-    Csv{
-      writer: csv::Writer<File>,
-      nrecords: usize,
+    Csv {
+        writer: Box<csv::Writer<File>>,
+        nrecords: usize,
     },
     Json {
         file: File,
@@ -49,8 +49,8 @@ pub fn cmd_export_single(
             columns.insert(0, "filing_id".to_owned());
             let nrecords = columns.len();
             writer.write_record(columns).expect("Writing CSV header");
-            Writer::Csv{
-                writer,
+            Writer::Csv {
+                writer: Box::new(writer),
                 nrecords,
             }
         }
@@ -87,11 +87,11 @@ pub fn cmd_export_single(
             if target_matches_form_type(&target, row.row_type.as_str()) {
                 nrows += 1;
                 match &mut output {
-                    Writer::Csv{writer, nrecords} => {
+                    Writer::Csv { writer, nrecords } => {
                         writer.write_field(&filing.filing_id)?;
                         // TODO: check if theres non-empty rows beyond nrecords - 1
                         for field in row.record.iter().take(*nrecords - 1) {
-                        writer.write_field(field)?;
+                            writer.write_field(field)?;
                         }
                         writer.write_record(None::<&[u8]>)?;
                     }

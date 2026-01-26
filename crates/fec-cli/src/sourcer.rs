@@ -68,7 +68,7 @@ fn resolve_from_url(url: &Url) -> Result<ResolvedFiling> {
             return Err(Error::msg(format!(
                 "Failed to fetch URL {}: HTTP status code {}",
                 url.as_str(),
-                error.to_string()
+                error
             )));
         }
     };
@@ -323,10 +323,10 @@ pub(crate) fn process_inputs(
                             .get_or_insert_with(Vec::new)
                             .push(item.to_owned());
                     } else if let Some(contest) = Contest::from_arg(item).unwrap() {
-                        spinner.as_ref().map(|s| {
+                        if let Some(s) = spinner.as_ref() {
                             s.set_message(format!("Resolving {}...", item));
-                        });
-                        let cycle = api_flags.election.clone().unwrap();
+                        }
+                        let cycle = api_flags.election.unwrap();
                         let params = contest.resolve_candidate_params(cycle);
                         trace.resolve_candidate_params.push(params.clone());
                         let committees = sourcer
@@ -378,15 +378,19 @@ pub(crate) fn process_inputs(
 
         if let Some(mb) = mb {
             let downloaded = caching_result.stats.number_downloaded;
-            let skipped = caching_result.stats.number_preexisting + queue.iter().filter(|item| matches!(item, Item::CachedFile(_))).count();
-            
-                let _ = mb.println(format!(
-                    "{} Cached {} filing(s) ({}), skipped {} already cached",
-                    "✓",
-                    downloaded,
-                    HumanBytes(caching_result.stats.downloaded_bytes as u64),
-                    skipped,
-                ));
+            let skipped = caching_result.stats.number_preexisting
+                + queue
+                    .iter()
+                    .filter(|item| matches!(item, Item::CachedFile(_)))
+                    .count();
+
+            let _ = mb.println(format!(
+                "{} Cached {} filing(s) ({}), skipped {} already cached",
+                "✓",
+                downloaded,
+                HumanBytes(caching_result.stats.downloaded_bytes as u64),
+                skipped,
+            ));
         }
 
         // re-add cached files to the queue, now as cached files
@@ -538,14 +542,14 @@ impl Contest {
 // "Committee FEC ID codes consist of the letter C=Committee in the first position,
 // followed by 7 digits, followed by a ‘checkdigit’ in the 9th position."
 fn is_committee_input(input: &str) -> bool {
-    input.len() == 9 && matches!(input.chars().nth(0), Some('C'))
+    input.len() == 9 && matches!(input.chars().next(), Some('C'))
 }
 
 // "House & Senate Candidate FEC ID codes have the following formats: H9ST99999, S9ST99999, and P99999999...
 // (where the 1st Character is H=House, S=Senate, P=Presidential, and the 3rd & 4th characters
 //  of House & Senate codes are the 2letter State Code, and the remaining parts of all codes are numeric).""
 fn is_candidate_input(input: &str) -> bool {
-    input.len() == 9 && matches!(input.chars().nth(0), Some('H') | Some('S') | Some('P'))
+    input.len() == 9 && matches!(input.chars().next(), Some('H') | Some('S') | Some('P'))
 }
 
 impl FilingSourcer {
@@ -569,7 +573,10 @@ impl FilingSourcer {
         } else {
             None
         };
-        Ok((result.trace, IterFilingsX::new(filing_progress, self, result.queue)))
+        Ok((
+            result.trace,
+            IterFilingsX::new(filing_progress, self, result.queue),
+        ))
     }
 
     // Resolve a FEC filing from an "input" source such as:
@@ -656,10 +663,6 @@ impl FilingSourcer {
         } else {
             resolve_from_filing_id(&filing_id.to_bare())?
         };
-        Ok(Filing::from_reader(
-            resolved.reader,
-            resolved.filing_id,
-            resolved.source_length,
-        )?)
+        Filing::from_reader(resolved.reader, resolved.filing_id, resolved.source_length)
     }
 }

@@ -22,15 +22,15 @@
 //! - Esc: Cancel and close popup
 
 use crate::cache::bulk_committee::CommitteeDetail;
-use crate::tui::{HelpBar, navigation_popup_help_line};
+use crate::tui::{navigation_popup_help_line, HelpBar};
 use crossterm::event::{KeyCode, KeyEvent};
 use fec_api::{Api, FilingArgsBuilder};
 use ratatui::{
-    Frame,
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
     widgets::{Block, Borders, Cell, Clear, Paragraph, Row, Table, TableState, Wrap},
+    Frame,
 };
 
 /// A filing item for display in the filings list
@@ -119,7 +119,13 @@ impl CommitteeDetailState {
             return;
         }
         let i = match self.filings_table_state.selected() {
-            Some(i) => if i >= count - 1 { 0 } else { i + 1 },
+            Some(i) => {
+                if i >= count - 1 {
+                    0
+                } else {
+                    i + 1
+                }
+            }
             None => 0,
         };
         self.filings_table_state.select(Some(i));
@@ -131,7 +137,13 @@ impl CommitteeDetailState {
             return;
         }
         let i = match self.filings_table_state.selected() {
-            Some(i) => if i == 0 { count - 1 } else { i - 1 },
+            Some(i) => {
+                if i == 0 {
+                    count - 1
+                } else {
+                    i - 1
+                }
+            }
             None => 0,
         };
         self.filings_table_state.select(Some(i));
@@ -145,12 +157,15 @@ impl CommitteeDetailState {
 
     fn filings_select_last(&mut self) {
         if !self.filings.is_empty() {
-            self.filings_table_state.select(Some(self.filings.len() - 1));
+            self.filings_table_state
+                .select(Some(self.filings.len() - 1));
         }
     }
 
     fn get_selected_filing(&self) -> Option<&FilingListItem> {
-        self.filings_table_state.selected().and_then(|i| self.filings.get(i))
+        self.filings_table_state
+            .selected()
+            .and_then(|i| self.filings.get(i))
     }
 
     /// Fetch filings for a committee from the FEC API
@@ -190,7 +205,10 @@ impl CommitteeDetailState {
         }
     }
 
-    pub fn get_yank_options(&self, committee: &CommitteeDetail) -> Vec<(YankOption, String, Option<String>)> {
+    pub fn get_yank_options(
+        &self,
+        committee: &CommitteeDetail,
+    ) -> Vec<(YankOption, String, Option<String>)> {
         let mut options = vec![];
 
         options.push((
@@ -325,21 +343,26 @@ impl FilingListItem {
     /// Create a FilingListItem from an API response JSON value
     pub fn from_api_value(value: &serde_json::Value) -> Option<Self> {
         let filing_id = value.get("fec_file_id")?.as_str()?.to_string();
-        let form_type = value.get("form_type")
+        let form_type = value
+            .get("form_type")
             .and_then(|v| v.as_str())
             .unwrap_or("")
             .to_string();
-        let report_type = value.get("report_type_full")
+        let report_type = value
+            .get("report_type_full")
             .or_else(|| value.get("report_type"))
             .and_then(|v| v.as_str())
             .map(|s| s.to_string());
-        let coverage_from = value.get("coverage_start_date")
+        let coverage_from = value
+            .get("coverage_start_date")
             .and_then(|v| v.as_str())
             .map(|s| s.to_string());
-        let coverage_through = value.get("coverage_end_date")
+        let coverage_through = value
+            .get("coverage_end_date")
             .and_then(|v| v.as_str())
             .map(|s| s.to_string());
-        let receipt_date = value.get("receipt_date")
+        let receipt_date = value
+            .get("receipt_date")
             .and_then(|v| v.as_str())
             .map(|s| s.to_string());
 
@@ -354,32 +377,45 @@ impl FilingListItem {
     }
 }
 
-
 fn render_title(f: &mut Frame, committee: &CommitteeDetail, area: Rect) {
     let title_text = format!("{} ({})", committee.name, committee.committee_id);
-    let title = Paragraph::new(title_text)
-        .style(Style::default().add_modifier(Modifier::BOLD));
+    let title = Paragraph::new(title_text).style(Style::default().add_modifier(Modifier::BOLD));
     f.render_widget(title, area);
 }
 
 fn render_content(f: &mut Frame, committee: &CommitteeDetail, area: Rect) {
     let mut lines = vec![
         Line::from(vec![
-            Span::styled("Committee ID: ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                "Committee ID: ",
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            ),
             Span::raw(&committee.committee_id),
         ]),
         Line::from(""),
     ];
 
     lines.push(Line::from(vec![
-        Span::styled("Name: ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+        Span::styled(
+            "Name: ",
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        ),
         Span::raw(&committee.name),
     ]));
     lines.push(Line::from(""));
 
     if !committee.treasurer_name.is_empty() {
         lines.push(Line::from(vec![
-            Span::styled("Treasurer: ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                "Treasurer: ",
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            ),
             Span::raw(&committee.treasurer_name),
         ]));
         lines.push(Line::from(""));
@@ -387,9 +423,12 @@ fn render_content(f: &mut Frame, committee: &CommitteeDetail, area: Rect) {
 
     // Address
     if !committee.address_street1.is_empty() || !committee.address_city.is_empty() {
-        lines.push(Line::from(vec![
-            Span::styled("Address:", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
-        ]));
+        lines.push(Line::from(vec![Span::styled(
+            "Address:",
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        )]));
 
         if !committee.address_street1.is_empty() {
             lines.push(Line::from(format!("  {}", committee.address_street1)));
@@ -421,42 +460,72 @@ fn render_content(f: &mut Frame, committee: &CommitteeDetail, area: Rect) {
     // Committee details
     if !committee.committee_type.is_empty() {
         lines.push(Line::from(vec![
-            Span::styled("Committee Type: ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                "Committee Type: ",
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            ),
             Span::raw(&committee.committee_type),
         ]));
     }
 
     if !committee.designation.is_empty() {
         lines.push(Line::from(vec![
-            Span::styled("Designation: ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                "Designation: ",
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            ),
             Span::raw(&committee.designation),
         ]));
     }
 
     if !committee.party_affiliation.is_empty() {
         lines.push(Line::from(vec![
-            Span::styled("Party Affiliation: ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                "Party Affiliation: ",
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            ),
             Span::raw(&committee.party_affiliation),
         ]));
     }
 
     if !committee.filing_frequency.is_empty() {
         lines.push(Line::from(vec![
-            Span::styled("Filing Frequency: ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                "Filing Frequency: ",
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            ),
             Span::raw(&committee.filing_frequency),
         ]));
     }
 
     if !committee.interest_group_category.is_empty() {
         lines.push(Line::from(vec![
-            Span::styled("Interest Group Category: ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                "Interest Group Category: ",
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            ),
             Span::raw(&committee.interest_group_category),
         ]));
     }
 
     if !committee.connected_org_name.is_empty() {
         lines.push(Line::from(vec![
-            Span::styled("Connected Organization: ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                "Connected Organization: ",
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            ),
             Span::raw(&committee.connected_org_name),
         ]));
     }
@@ -464,13 +533,17 @@ fn render_content(f: &mut Frame, committee: &CommitteeDetail, area: Rect) {
     if let Some(ref candidate_id) = committee.candidate_id {
         lines.push(Line::from(""));
         lines.push(Line::from(vec![
-            Span::styled("Candidate ID: ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                "Candidate ID: ",
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            ),
             Span::styled(candidate_id, Style::default().fg(Color::Cyan)),
         ]));
     }
 
-    let content = Paragraph::new(lines)
-        .wrap(Wrap { trim: false });
+    let content = Paragraph::new(lines).wrap(Wrap { trim: false });
     f.render_widget(content, area);
 }
 
@@ -492,13 +565,38 @@ fn render_help_text(f: &mut Frame, area: Rect, has_filings: bool) {
     help.render(f, area);
 }
 
-fn render_filings_table(f: &mut Frame, committee: &CommitteeDetail, state: &mut CommitteeDetailState, area: Rect) {
+fn render_filings_table(
+    f: &mut Frame,
+    committee: &CommitteeDetail,
+    state: &mut CommitteeDetailState,
+    area: Rect,
+) {
     let header_row = Row::new(vec![
-        Cell::from("Filing ID").style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
-        Cell::from("Form").style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
-        Cell::from("Report").style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
-        Cell::from("Coverage").style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
-        Cell::from("Received").style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+        Cell::from("Filing ID").style(
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        ),
+        Cell::from("Form").style(
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        ),
+        Cell::from("Report").style(
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        ),
+        Cell::from("Coverage").style(
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        ),
+        Cell::from("Received").style(
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        ),
     ])
     .height(1);
 
@@ -525,9 +623,20 @@ fn render_filings_table(f: &mut Frame, committee: &CommitteeDetail, state: &mut 
             Row::new(vec![
                 Cell::from(filing.filing_id.clone()).style(Style::default().fg(Color::Cyan)),
                 Cell::from(filing.form_type.clone()).style(Style::default().fg(form_color)),
-                Cell::from(filing.report_type.clone().unwrap_or_else(|| "-".to_string())),
+                Cell::from(
+                    filing
+                        .report_type
+                        .clone()
+                        .unwrap_or_else(|| "-".to_string()),
+                ),
                 Cell::from(coverage),
-                Cell::from(filing.receipt_date.clone().unwrap_or_else(|| "-".to_string())).style(Style::default().fg(Color::DarkGray)),
+                Cell::from(
+                    filing
+                        .receipt_date
+                        .clone()
+                        .unwrap_or_else(|| "-".to_string()),
+                )
+                .style(Style::default().fg(Color::DarkGray)),
             ])
         })
         .collect();
@@ -535,11 +644,19 @@ fn render_filings_table(f: &mut Frame, committee: &CommitteeDetail, state: &mut 
     let table_title = if state.filings_loading {
         format!("Filings for {} (loading...)", committee.committee_id)
     } else if state.filing_detail_loading {
-        format!("Filings for {} - {} (loading filing detail...)", committee.committee_id, state.filings_cycle)
+        format!(
+            "Filings for {} - {} (loading filing detail...)",
+            committee.committee_id, state.filings_cycle
+        )
     } else if let Some(ref error) = state.filings_error {
         format!("Filings for {} (error: {})", committee.committee_id, error)
     } else {
-        format!("Filings for {} - {} ({} filings)", committee.committee_id, state.filings_cycle, state.filings.len())
+        format!(
+            "Filings for {} - {} ({} filings)",
+            committee.committee_id,
+            state.filings_cycle,
+            state.filings.len()
+        )
     };
 
     let table = Table::new(
@@ -564,7 +681,12 @@ fn render_filings_table(f: &mut Frame, committee: &CommitteeDetail, state: &mut 
     f.render_stateful_widget(table, area, &mut state.filings_table_state);
 }
 
-fn render_yank_popup(f: &mut Frame, area: Rect, committee: &CommitteeDetail, state: &CommitteeDetailState) {
+fn render_yank_popup(
+    f: &mut Frame,
+    area: Rect,
+    committee: &CommitteeDetail,
+    state: &CommitteeDetailState,
+) {
     let popup_area = super::popup_area(area, 50, 40);
 
     // Clear the background
@@ -584,7 +706,9 @@ fn render_yank_popup(f: &mut Frame, area: Rect, committee: &CommitteeDetail, sta
 
     lines.push(Line::from(Span::styled(
         "Select what to copy:",
-        Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD),
+        Style::default()
+            .fg(Color::Yellow)
+            .add_modifier(Modifier::BOLD),
     )));
     lines.push(Line::from(""));
 
@@ -610,11 +734,9 @@ fn render_yank_popup(f: &mut Frame, area: Rect, committee: &CommitteeDetail, sta
     lines.push(Line::from(""));
     lines.push(navigation_popup_help_line());
 
-    let paragraph = Paragraph::new(lines)
-        .wrap(Wrap { trim: false });
+    let paragraph = Paragraph::new(lines).wrap(Wrap { trim: false });
     f.render_widget(paragraph, inner_area);
 }
-
 
 pub fn render_committee_detail(
     f: &mut Frame,
@@ -644,9 +766,9 @@ pub fn render_committee_detail(
         let layout = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
-                Constraint::Length(1),  // Title
-                Constraint::Min(10),    // Content
-                Constraint::Length(2),  // Help text
+                Constraint::Length(1), // Title
+                Constraint::Min(10),   // Content
+                Constraint::Length(2), // Help text
             ]);
 
         let [title_area, content_area, help_area] = area.layout(&layout);
