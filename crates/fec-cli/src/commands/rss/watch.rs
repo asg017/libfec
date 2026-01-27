@@ -8,6 +8,7 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
+use jiff::Timestamp;
 use ratatui::{backend::CrosstermBackend, Terminal};
 use std::collections::HashSet;
 use std::io::{self, Stdout};
@@ -18,7 +19,11 @@ use super::export::open_or_create_export_db;
 use super::render::ui;
 
 /// Watch mode: interactive TUI with auto-refresh
-pub fn run_watch_mode(sourcer: FilingSourcer, args: &RssArgs) -> Result<()> {
+pub fn run_watch_mode(
+    sourcer: FilingSourcer,
+    args: &RssArgs,
+    since_ts: Option<Timestamp>,
+) -> Result<()> {
     // Set up export database if -x flag is provided
     let (export_db, exported_ids) = if let Some(ref export_path) = args.export {
         let mut db = open_or_create_export_db(export_path)?;
@@ -35,7 +40,7 @@ pub fn run_watch_mode(sourcer: FilingSourcer, args: &RssArgs) -> Result<()> {
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
-    let mut app = App::new(args.clone(), sourcer, export_db, exported_ids);
+    let mut app = App::new(args.clone(), sourcer, export_db, exported_ids, since_ts);
 
     let res = run_app(&mut terminal, &mut app);
 

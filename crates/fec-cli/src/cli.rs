@@ -346,6 +346,10 @@ pub struct RssArgs {
     /// Only export cover data, not itemizations (requires --export)
     #[arg(long)]
     pub cover_only: bool,
+
+    /// Only show/export filings since this time (e.g., "2026-01-20T00:00:00Z", "1 day ago", "2 hours ago")
+    #[arg(long)]
+    pub since: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, clap::ValueEnum)]

@@ -2,17 +2,37 @@ use crate::cli::RssArgs;
 use crate::rss::{self, format_duration_ago};
 use crate::sourcer::FilingSourcer;
 use anyhow::Result;
-use jiff::Zoned;
+use jiff::{Timestamp, Zoned};
 use tabled::{builder::Builder as TableBuilder, settings::Style as TableStyle};
 
 use super::export::{export_filing_by_id, open_or_create_export_db};
 
 /// Simple mode: fetch once and display a table, then exit
-pub fn run_simple_mode(sourcer: &FilingSourcer, args: &RssArgs) -> Result<()> {
+pub fn run_simple_mode(
+    sourcer: &FilingSourcer,
+    args: &RssArgs,
+    since_ts: Option<Timestamp>,
+) -> Result<()> {
     let (url, _) = rss::build_feed_url(args);
     let (result, filters) =
         rss::fetch_feed_with_args(args).map_err(|e| anyhow::anyhow!("{}", e))?;
     let now = Zoned::now();
+
+    // Filter items by --since if provided
+    let filtered_items: Vec<_> = if let Some(since) = since_ts {
+        result
+            .feed
+            .items
+            .into_iter()
+            .filter(|item| {
+                item.pub_date
+                    .map(|pub_date| pub_date >= since)
+                    .unwrap_or(false)
+            })
+            .collect()
+    } else {
+        result.feed.items
+    };
 
     // Handle export if -x flag is provided
     if let Some(ref export_path) = args.export {
@@ -21,8 +41,9 @@ pub fn run_simple_mode(sourcer: &FilingSourcer, args: &RssArgs) -> Result<()> {
         let existing_ids =
             crate::commands::export::sqlite::get_existing_filing_ids(&db).unwrap_or_default();
 
+        // Export ALL filtered items from feed, not just the displayed limit
         let mut export_count = 0;
-        for item in result.feed.items.iter().take(args.limit) {
+        for item in filtered_items.iter() {
             if let Some(ref filing_id) = item.filing_id {
                 if !existing_ids.contains(filing_id) {
                     match export_filing_by_id(sourcer, &mut db, filing_id, args.cover_only) {
@@ -52,7 +73,7 @@ pub fn run_simple_mode(sourcer: &FilingSourcer, args: &RssArgs) -> Result<()> {
     let mut builder = TableBuilder::new();
     builder.push_record(["Committee", "Form", "Report", "Filing ID", "Age"]);
 
-    for item in result.feed.items.iter().take(args.limit) {
+    for item in filtered_items.iter().take(args.limit) {
         let committee = item.extract_committee_name();
         let form = item.form_type.as_deref().unwrap_or("-");
         let report = item.report_type.as_deref().unwrap_or("-");
@@ -79,10 +100,16 @@ pub fn run_simple_mode(sourcer: &FilingSourcer, args: &RssArgs) -> Result<()> {
     println!("URL: {}", url);
     println!();
     println!("{}", table);
+
+    if let Some(since) = since_ts {
+        let since_zoned = Zoned::new(since, jiff::tz::TimeZone::UTC);
+        println!("Since: {}", since_zoned);
+    }
+
     println!(
         "\nShowing {} of {} items",
-        args.limit.min(result.feed.items.len()),
-        result.feed.items.len()
+        args.limit.min(filtered_items.len()),
+        filtered_items.len()
     );
 
     Ok(())

@@ -22,6 +22,7 @@ mod app;
 mod export;
 mod render;
 mod simple;
+mod since;
 mod watch;
 
 use crate::cli::RssArgs;
@@ -30,9 +31,16 @@ use anyhow::Result;
 
 /// Entry point for the RSS command
 pub fn rss(sourcer: FilingSourcer, args: &RssArgs) -> Result<()> {
-    if args.watch {
-        watch::run_watch_mode(sourcer, args)
+    // Parse and validate --since if provided
+    let since_ts = if let Some(ref since_str) = args.since {
+        Some(since::parse_since(since_str)?)
     } else {
-        simple::run_simple_mode(&sourcer, args)
+        None
+    };
+
+    if args.watch {
+        watch::run_watch_mode(sourcer, args, since_ts)
+    } else {
+        simple::run_simple_mode(&sourcer, args, since_ts)
     }
 }

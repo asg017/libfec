@@ -85,6 +85,8 @@ pub struct App {
     pub export_queue: Vec<String>,
     /// Total filings to export in current batch (for progress display)
     pub export_batch_total: usize,
+    /// Only show/export items since this timestamp
+    pub since_ts: Option<Timestamp>,
 }
 
 impl App {
@@ -93,6 +95,7 @@ impl App {
         sourcer: FilingSourcer,
         export_db: Option<Connection>,
         exported_ids: HashSet<String>,
+        since_ts: Option<Timestamp>,
     ) -> Self {
         let now = Instant::now();
         let interval = args.interval;
@@ -124,6 +127,7 @@ impl App {
             export_count: 0,
             export_queue: Vec::new(),
             export_batch_total: 0,
+            since_ts,
         }
     }
 
@@ -137,10 +141,35 @@ impl App {
                 self.error = None;
                 self.active_filters = filters;
 
+                // Refresh exported_ids from database before queuing new exports
+                // This ensures we don't re-export filings that were just exported
+                if let Some(ref db) = self.export_db {
+                    if let Ok(ids) = sqlite::get_existing_filing_ids(db) {
+                        self.exported_ids = ids;
+                    }
+                }
+
+                // Filter items by --since if provided
+                let filtered_items: Vec<Item> = if let Some(since) = self.since_ts {
+                    result
+                        .feed
+                        .items
+                        .into_iter()
+                        .filter(|item| {
+                            item.pub_date
+                                .map(|pub_date| pub_date >= since)
+                                .unwrap_or(false)
+                        })
+                        .collect()
+                } else {
+                    result.feed.items
+                };
+
                 // Queue new filings for export if export is enabled
+                // Export ALL filtered items from feed, not just the displayed limit
                 if self.export_db.is_some() {
                     self.export_queue.clear();
-                    for item in result.feed.items.iter().take(self.limit) {
+                    for item in filtered_items.iter() {
                         if let Some(ref filing_id) = item.filing_id {
                             if !self.exported_ids.contains(filing_id) {
                                 self.export_queue.push(filing_id.clone());
@@ -150,7 +179,7 @@ impl App {
                     self.export_batch_total = self.export_queue.len();
                 }
 
-                self.items = result.feed.items;
+                self.items = filtered_items;
 
                 // Select first item if available
                 if !self.items.is_empty() && self.table_state.selected().is_none() {

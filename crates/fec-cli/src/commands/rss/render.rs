@@ -66,7 +66,7 @@ pub fn render_header(f: &mut Frame, app: &App, area: Rect) {
             Span::styled(format!("Error: {}", error), Style::default().fg(Color::Red)),
         ])
     } else {
-        Line::from(vec![
+        let mut spans = vec![
             Span::styled(
                 if app.feed_title.is_empty() {
                     "FEC RSS Feed"
@@ -82,7 +82,19 @@ pub fn render_header(f: &mut Frame, app: &App, area: Rect) {
                 format!("Data: {}", data_age),
                 Style::default().fg(Color::Gray),
             ),
-        ])
+        ];
+
+        // Add since filter to header if active
+        if let Some(since) = app.since_ts {
+            let since_zoned = jiff::Zoned::new(since, jiff::tz::TimeZone::UTC);
+            spans.push(Span::raw("  "));
+            spans.push(Span::styled(
+                format!("Since: {}", since_zoned),
+                Style::default().fg(Color::Yellow),
+            ));
+        }
+
+        Line::from(spans)
     };
 
     let header = Paragraph::new(header_text)
@@ -149,9 +161,11 @@ pub fn render_filings_table(f: &mut Frame, app: &mut App, area: Rect) {
     ])
     .height(1);
 
+    // Only display up to the limit, but app.items contains all items for export
     let rows: Vec<Row> = app
         .items
         .iter()
+        .take(app.limit)
         .map(|item| {
             let committee = item.extract_committee_name();
             let form = item.form_type.as_deref().unwrap_or("-");
@@ -504,6 +518,7 @@ mod tests {
                     party: None,
                     export: None,
                     cover_only: false,
+                    since: None,
                 },
                 active_filters: self.active_filters,
                 feed_url: self.feed_url,
@@ -518,6 +533,7 @@ mod tests {
                 export_count: 0,
                 export_queue: self.export_queue,
                 export_batch_total: self.export_batch_total,
+                since_ts: None,
             };
             if let Some(idx) = self.selected_index {
                 app.table_state.select(Some(idx));
