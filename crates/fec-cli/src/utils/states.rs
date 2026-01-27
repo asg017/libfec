@@ -83,6 +83,7 @@ pub fn is_valid_state_code(code: &str) -> bool {
 }
 
 /// Get state name from code (case-insensitive)
+#[allow(dead_code)]
 pub fn state_name_from_code(code: &str) -> Option<&'static str> {
     STATE_CODE_TO_NAME
         .get(code.to_uppercase().as_str())

@@ -168,7 +168,9 @@ pub struct CandidateDetail {
     pub state: String,
     pub office: String,
     pub district: String,
+    #[allow(dead_code)]
     pub incumbent_challenger_status: String,
+    #[allow(dead_code)]
     pub status: String,
     pub principal_campaign_committee: Option<String>,
     pub address_street1: String,

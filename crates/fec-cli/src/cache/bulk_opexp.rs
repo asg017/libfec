@@ -68,6 +68,7 @@ pub struct OpExpSearchResult {
     pub transaction_date: String,
     pub transaction_amount: f64,
     pub purpose: String,
+    #[allow(dead_code)]
     pub filing_id: i64,
 }
 

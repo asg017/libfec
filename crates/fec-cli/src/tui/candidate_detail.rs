@@ -36,7 +36,6 @@ use ratatui::{
     widgets::{Block, Borders, Cell, Clear, Paragraph, Row, Table, TableState, Wrap},
     Frame,
 };
-use sha2::digest::typenum::Mod;
 
 /// Information about affiliated committees and joint fund participants from F1S schedules
 #[derive(Debug, Clone)]
@@ -549,7 +548,7 @@ fn render_content(
             Span::styled(candidate.state.as_str(), Style::default().fg(Color::Cyan)),
             Span::styled(" candidate in ", dim),
             Span::styled(
-                format!("{} Senate race", candidate.election_year.to_string()),
+                format!("{} Senate race", candidate.election_year),
                 Style::default().fg(Color::Cyan),
             ),
             Span::styled(", running as a ", dim),
