@@ -519,6 +519,7 @@ mod tests {
                     export: None,
                     cover_only: false,
                     since: None,
+                    rpc: false,
                 },
                 active_filters: self.active_filters,
                 feed_url: self.feed_url,

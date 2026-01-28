@@ -898,6 +898,7 @@ dependencies = [
  "ratatui",
  "rusqlite",
  "rust_xlsxwriter",
+ "serde",
  "serde_json",
  "sha2",
  "tabled",
@@ -906,6 +907,7 @@ dependencies = [
  "time",
  "ureq",
  "url",
+ "uuid",
  "xmlparser",
  "zip",
 ]

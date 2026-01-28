@@ -350,6 +350,10 @@ pub struct RssArgs {
     /// Only show/export filings since this time (e.g., "2026-01-20T00:00:00Z", "1 day ago", "2 hours ago")
     #[arg(long)]
     pub since: Option<String>,
+
+    /// Enable RPC mode for programmatic control via JSONL stdio protocol
+    #[arg(long)]
+    pub rpc: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, clap::ValueEnum)]

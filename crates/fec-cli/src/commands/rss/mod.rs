@@ -21,6 +21,7 @@
 mod app;
 mod export;
 mod render;
+mod rpc;
 mod simple;
 mod since;
 mod watch;
@@ -38,7 +39,9 @@ pub fn rss(sourcer: FilingSourcer, args: &RssArgs) -> Result<()> {
         None
     };
 
-    if args.watch {
+    if args.rpc {
+        rpc::run_rpc_mode(sourcer, args, since_ts)
+    } else if args.watch {
         watch::run_watch_mode(sourcer, args, since_ts)
     } else {
         simple::run_simple_mode(&sourcer, args, since_ts)
