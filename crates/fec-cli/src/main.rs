@@ -56,6 +56,7 @@ fn main() {
                 let search_args = cli::SearchArgs {
                     query: String::new(),
                     cycle: 2026,
+                    rpc: false,
                 };
                 commands::search(sourcer, &search_args)
             } else {

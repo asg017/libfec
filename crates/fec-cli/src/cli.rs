@@ -111,6 +111,14 @@ pub struct ExportArgs {
     #[arg(long, action, help = "Only export cover records, not itemizations")]
     pub cover_only: bool,
 
+    /// Enable RPC mode for programmatic control via JSONL stdio protocol
+    #[arg(long)]
+    pub rpc: bool,
+
+    /// Write export metadata to the database (export ID, input mappings, filing list)
+    #[arg(long)]
+    pub write_metadata: bool,
+
     //#[arg(long, short = 'f', help = "Format to export to")]
     //pub format: Option<ExportFormat>,
     #[command(flatten)]
@@ -160,6 +168,9 @@ pub struct SearchArgs {
     pub query: String,
     #[arg(long, default_value_t = 2026, help = "Election cycle year to search")]
     pub cycle: u16,
+    /// Enable RPC mode for programmatic control via JSONL stdio protocol
+    #[arg(long)]
+    pub rpc: bool,
 }
 
 /// Parse a category name to its FEC API category ID(s)

@@ -248,9 +248,47 @@ pub enum Item {
     FilingId(FecFilingId),
 }
 
+/// Classification of an input for metadata tracking (mirrors UserArgument but without heavy data)
+#[derive(Debug, Clone)]
+pub enum InputType {
+    /// A direct filing ID or .fec file
+    Filing,
+    /// A committee ID (e.g., C00401224)
+    Committee,
+    /// A candidate ID (e.g., P00009423)
+    Candidate,
+    /// A contest specification (e.g., P, S-CA, H-CA12)
+    Contest {
+        cycle: u16,
+        office: Option<String>,
+        state: Option<String>,
+        district: Option<String>,
+    },
+    /// A URL to a .fec file
+    Url,
+    /// An input file containing other inputs
+    InputFile,
+}
+
+/// Tracks an input and what filings it directly resolved to
+#[derive(Debug, Clone)]
+pub struct InputMapping {
+    /// The raw input string as provided by the user
+    pub raw_input: String,
+    /// The classified type of this input
+    pub input_type: InputType,
+    /// Filing IDs that this input directly resolved to.
+    /// For Filing/Url types: contains the single resolved filing.
+    /// For Committee/Candidate/Contest types: empty (resolved via API in bulk).
+    /// For InputFile: empty (contents are tracked separately).
+    pub direct_filings: Vec<String>,
+}
+
 pub(crate) struct ProcessedInputs {
-    trace: Trace,
-    queue: Vec<Item>,
+    pub trace: Trace,
+    pub queue: Vec<Item>,
+    /// Mappings from inputs to their classifications and resolved filings
+    pub input_mappings: Vec<InputMapping>,
 }
 pub(crate) fn process_inputs(
     input: &Vec<String>,
@@ -262,15 +300,42 @@ pub(crate) fn process_inputs(
     let mut trace = Trace {
         resolve_candidate_params: vec![],
     };
+    let mut input_mappings = vec![];
 
     // process positional user arguments, which should resolve to a UserArgument
     for item in input {
         match sourcer.resolve_user_argument(item) {
             Err(error) => todo!("{}", error),
-            Ok(UserArgument::Filing(item)) => {
-                queue.push(item);
+            Ok(UserArgument::Filing(resolved_item)) => {
+                let filing_id = match &resolved_item {
+                    Item::FilingId(id) => id.to_bare(),
+                    Item::CachedFile(p) | Item::File(p) => p
+                        .file_stem()
+                        .map(|s| s.to_string_lossy().to_string())
+                        .unwrap_or_default(),
+                    Item::CustomUrl(url) => url
+                        .path_segments()
+                        .and_then(|s| s.last())
+                        .map(|s| s.trim_end_matches(".fec").to_string())
+                        .unwrap_or_default(),
+                };
+                input_mappings.push(InputMapping {
+                    raw_input: item.clone(),
+                    input_type: if item.starts_with("http://") || item.starts_with("https://") {
+                        InputType::Url
+                    } else {
+                        InputType::Filing
+                    },
+                    direct_filings: vec![filing_id],
+                });
+                queue.push(resolved_item);
             }
             Ok(UserArgument::Committee(committee)) => {
+                input_mappings.push(InputMapping {
+                    raw_input: item.clone(),
+                    input_type: InputType::Committee,
+                    direct_filings: vec![], // resolved via API
+                });
                 // chuck committee ids into api_flags under --committee
                 api_flags
                     .committee
@@ -279,6 +344,11 @@ pub(crate) fn process_inputs(
             }
 
             Ok(UserArgument::Candidate(candidate)) => {
+                input_mappings.push(InputMapping {
+                    raw_input: item.clone(),
+                    input_type: InputType::Candidate,
+                    direct_filings: vec![], // resolved via API
+                });
                 // chuck candidate ids into api_flags under --candidate
                 api_flags
                     .candidate
@@ -288,6 +358,16 @@ pub(crate) fn process_inputs(
             Ok(UserArgument::Contest(contest)) => {
                 let cycle = api_flags.election.unwrap();
                 let params = contest.resolve_candidate_params(cycle);
+                input_mappings.push(InputMapping {
+                    raw_input: item.clone(),
+                    input_type: InputType::Contest {
+                        cycle,
+                        office: params.office.as_ref().map(|o| format!("{:?}", o)),
+                        state: params.state.clone(),
+                        district: params.district.clone(),
+                    },
+                    direct_filings: vec![], // resolved via API
+                });
                 trace.resolve_candidate_params.push(params.clone());
                 let committees = sourcer
                     .cache
@@ -299,6 +379,11 @@ pub(crate) fn process_inputs(
                     .extend(committees);
             }
             Ok(UserArgument::InputFile(path)) => {
+                input_mappings.push(InputMapping {
+                    raw_input: item.clone(),
+                    input_type: InputType::InputFile,
+                    direct_filings: vec![], // contents tracked separately
+                });
                 let contents = std::fs::read_to_string(&path)
                     .context(format!("Could not read input file `{}`", path.display()))?;
                 let spinner = mb.as_ref().map(|mb| mb.add(ProgressBar::new_spinner()));
@@ -307,27 +392,62 @@ pub(crate) fn process_inputs(
                     if line.trim().is_empty() || line.trim_start().starts_with('#') {
                         continue;
                     }
-                    let item = line.trim();
-                    if let Ok(id) = FecFilingId::from_str(item) {
+                    let line_item = line.trim();
+                    if let Ok(id) = FecFilingId::from_str(line_item) {
+                        input_mappings.push(InputMapping {
+                            raw_input: line_item.to_string(),
+                            input_type: InputType::Filing,
+                            direct_filings: vec![id.to_bare()],
+                        });
                         queue.push(Item::FilingId(id));
-                    } else if let Ok(url) = Url::parse(item) {
+                    } else if let Ok(url) = Url::parse(line_item) {
+                        let filing_id = url
+                            .path_segments()
+                            .and_then(|s| s.last())
+                            .map(|s| s.trim_end_matches(".fec").to_string())
+                            .unwrap_or_default();
+                        input_mappings.push(InputMapping {
+                            raw_input: line_item.to_string(),
+                            input_type: InputType::Url,
+                            direct_filings: vec![filing_id],
+                        });
                         queue.push(Item::CustomUrl(url));
-                    } else if is_committee_input(item) {
+                    } else if is_committee_input(line_item) {
+                        input_mappings.push(InputMapping {
+                            raw_input: line_item.to_string(),
+                            input_type: InputType::Committee,
+                            direct_filings: vec![],
+                        });
                         api_flags
                             .committee
                             .get_or_insert_with(Vec::new)
-                            .push(item.to_owned());
-                    } else if is_candidate_input(item) {
+                            .push(line_item.to_owned());
+                    } else if is_candidate_input(line_item) {
+                        input_mappings.push(InputMapping {
+                            raw_input: line_item.to_string(),
+                            input_type: InputType::Candidate,
+                            direct_filings: vec![],
+                        });
                         api_flags
                             .candidate
                             .get_or_insert_with(Vec::new)
-                            .push(item.to_owned());
-                    } else if let Some(contest) = Contest::from_arg(item).unwrap() {
+                            .push(line_item.to_owned());
+                    } else if let Some(contest) = Contest::from_arg(line_item).unwrap() {
                         if let Some(s) = spinner.as_ref() {
-                            s.set_message(format!("Resolving {}...", item));
+                            s.set_message(format!("Resolving {}...", line_item));
                         }
                         let cycle = api_flags.election.unwrap();
                         let params = contest.resolve_candidate_params(cycle);
+                        input_mappings.push(InputMapping {
+                            raw_input: line_item.to_string(),
+                            input_type: InputType::Contest {
+                                cycle,
+                                office: params.office.as_ref().map(|o| format!("{:?}", o)),
+                                state: params.state.clone(),
+                                district: params.district.clone(),
+                            },
+                            direct_filings: vec![],
+                        });
                         trace.resolve_candidate_params.push(params.clone());
                         let committees = sourcer
                             .cache
@@ -342,7 +462,7 @@ pub(crate) fn process_inputs(
                             "Could not resolve input on line {} of file {}: {}",
                             idx + 1,
                             path.display(),
-                            item
+                            line_item
                         ));
                     }
                 }
@@ -397,7 +517,7 @@ pub(crate) fn process_inputs(
         queue.extend(caching_result.paths.into_iter().map(Item::CachedFile));
     }
 
-    Ok(ProcessedInputs { trace, queue })
+    Ok(ProcessedInputs { trace, queue, input_mappings })
 }
 
 pub struct IterFilingsX<'a> {
@@ -564,7 +684,7 @@ impl FilingSourcer {
         input: Vec<String>,
         api_flags: FilingsApiFlags,
         mb: Option<&MultiProgress>,
-    ) -> anyhow::Result<(Trace, IterFilingsX<'_>)> {
+    ) -> anyhow::Result<(Trace, Vec<InputMapping>, IterFilingsX<'_>)> {
         let result = process_inputs(&input, api_flags, self, mb)?;
         let filing_progress = if let Some(mb) = mb {
             let pb = mb.add(ProgressBar::new(result.queue.len() as u64));
@@ -575,6 +695,7 @@ impl FilingSourcer {
         };
         Ok((
             result.trace,
+            result.input_mappings,
             IterFilingsX::new(filing_progress, self, result.queue),
         ))
     }

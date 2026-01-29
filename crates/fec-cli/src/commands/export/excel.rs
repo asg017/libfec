@@ -217,9 +217,8 @@ pub fn cmd_export_excel(
     args: ExportArgs,
 ) -> anyhow::Result<()> {
     let mb = indicatif::MultiProgress::new();
-    let mut iter = sourcer
-        .resolve_iterator_from_flags(args.filings, args.api, Some(&mb))?
-        .1;
+    let (_trace, _input_mappings, mut iter) = sourcer
+        .resolve_iterator_from_flags(args.filings, args.api, Some(&mb))?;
     let mut filing = iter.next().unwrap().unwrap();
     if iter.next().is_some() {
         return Err(anyhow::anyhow!(

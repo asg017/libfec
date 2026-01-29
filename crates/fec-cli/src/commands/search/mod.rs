@@ -72,6 +72,7 @@ mod candidates_table;
 mod committees_table;
 mod events;
 mod opexp_table;
+mod rpc;
 mod ui;
 
 #[cfg(test)]
@@ -88,6 +89,12 @@ use std::io;
 
 /// Entry point for the search command
 pub fn search(mut sourcer: FilingSourcer, args: &SearchArgs) -> Result<()> {
+    // RPC mode: JSON-RPC server over stdio
+    if args.rpc {
+        return rpc::run_rpc_mode(sourcer, args);
+    }
+
+    // TUI mode: interactive terminal interface
     enable_raw_mode()?;
     let mut stdout = io::stdout();
     execute!(stdout, EnterAlternateScreen)?;

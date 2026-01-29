@@ -48,10 +48,10 @@ CREATE TABLE IF NOT EXISTS libfec_candidates(
 
 #[derive(Debug, Clone, Builder, Default)]
 pub struct ResolveCandidateParams {
-    cycle: u16,
-    office: Option<Office>,
-    state: Option<String>,
-    district: Option<String>,
+    pub cycle: u16,
+    pub office: Option<Office>,
+    pub state: Option<String>,
+    pub district: Option<String>,
 }
 
 pub(crate) fn include(

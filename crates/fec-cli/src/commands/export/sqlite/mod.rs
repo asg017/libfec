@@ -462,8 +462,33 @@ pub fn cmd_export_sqlite(
     init(&mut tx)?;
 
     let p = sourcer.cache.bulk_data_database_path();
-    let (trace, iter) =
+    let (trace, input_mappings, iter) =
         sourcer.resolve_iterator_from_flags(args.filings, args.api.clone(), Some(&mb))?;
+
+    // Initialize metadata tracking if enabled
+    let metadata_export_id = if args.write_metadata {
+        // Need to commit the transaction to use metadata functions that require &Connection
+        tx.commit().context("Error committing initial transaction")?;
+
+        init_metadata_schema(&db)?;
+        let export_uuid = format!("export-{}", uuid::Uuid::new_v4());
+        let metadata = create_export(&db, &export_uuid, args.cover_only)?;
+
+        // Record input mappings
+        for mapping in &input_mappings {
+            if let Ok(input_id) = record_export_input(&db, metadata.export_id, &mapping.input_type, &mapping.raw_input) {
+                for filing_id in &mapping.direct_filings {
+                    let _ = link_input_to_filing(&db, input_id, filing_id);
+                }
+            }
+        }
+
+        // Start a new transaction for the actual export
+        tx = db.transaction().context("Error starting export transaction")?;
+        Some(metadata.export_id)
+    } else {
+        None
+    };
 
     for params in trace.resolve_candidate_params {
         bulk_candidates::include(&mut tx, p.clone(), &params).unwrap();
@@ -493,14 +518,29 @@ pub fn cmd_export_sqlite(
                 }
             }
         };
+        let filing_id_str = filing.filing_id.clone();
         nfilings += 1;
         match insert_filing_metadata(&mut tx, &filing) {
-            Ok(_) => {}
+            Ok(_) => {
+                // Record successful filing in metadata if enabled
+                if let Some(export_id) = metadata_export_id {
+                    // Commit current work and record filing
+                    tx.commit().context("Error committing transaction for metadata")?;
+                    let _ = record_export_filing(&db, export_id, &filing_id_str, true, None);
+                    tx = db.transaction().context("Error restarting transaction")?;
+                }
+            }
             Err(e) => {
                 let _ = mb.println(format!(
                     "Error inserting filing metadata for FEC-{}: {:?}",
                     filing.filing_id, e
                 ));
+                // Record failed filing in metadata if enabled
+                if let Some(export_id) = metadata_export_id {
+                    tx.commit().context("Error committing transaction for metadata")?;
+                    let _ = record_export_filing(&db, export_id, &filing_id_str, false, Some(&e.to_string()));
+                    tx = db.transaction().context("Error restarting transaction")?;
+                }
                 continue;
             }
         }
@@ -514,6 +554,15 @@ pub fn cmd_export_sqlite(
     }
 
     tx.commit().context("Error committing SQLite transaction")?;
+
+    // Finalize metadata if enabled
+    if let Some(export_id) = metadata_export_id {
+        finalize_export(&db, export_id, "complete", nfilings, None)?;
+        println!(
+            "Export metadata recorded with export_id: {}",
+            export_id
+        );
+    }
 
     let elapsed = Instant::now() - t0;
     println!(
@@ -565,6 +614,230 @@ pub fn export_single_filing<R: Read>(
     }
 
     tx.commit().context("Error committing SQLite transaction")?;
+    Ok(())
+}
+
+// ============================================================================
+// Export Metadata Tracking
+// ============================================================================
+
+const CREATE_EXPORTS_SQL: &str = r#"
+  CREATE TABLE IF NOT EXISTS libfec_exports(
+    --- Auto-incrementing unique identifier for this export operation
+    export_id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    --- UUID string identifier (for RPC mode compatibility)
+    export_uuid TEXT NOT NULL,
+
+    --- Timestamp when the export was created (ISO 8601)
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+
+    --- Number of filings exported
+    filings_count INTEGER NOT NULL DEFAULT 0,
+
+    --- Whether only cover records were exported (not itemizations)
+    cover_only INTEGER NOT NULL DEFAULT 0,
+
+    --- Status of the export: 'started', 'complete', 'error', 'canceled'
+    status TEXT NOT NULL DEFAULT 'started',
+
+    --- Error message if status is 'error'
+    error_message TEXT
+  )
+"#;
+
+const CREATE_EXPORT_FILINGS_SQL: &str = r#"
+  CREATE TABLE IF NOT EXISTS libfec_export_filings(
+    --- Reference to the export operation
+    export_id INTEGER NOT NULL REFERENCES libfec_exports(export_id),
+
+    --- The filing ID that was exported
+    filing_id TEXT NOT NULL,
+
+    --- Whether this filing was successfully exported
+    success INTEGER NOT NULL DEFAULT 1,
+
+    --- Warning or error message for this filing
+    message TEXT,
+
+    PRIMARY KEY (export_id, filing_id)
+  )
+"#;
+
+const CREATE_EXPORT_INPUTS_SQL: &str = r#"
+  CREATE TABLE IF NOT EXISTS libfec_export_inputs(
+    --- Auto-incrementing unique identifier
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    --- Reference to the export operation
+    export_id INTEGER NOT NULL REFERENCES libfec_exports(export_id),
+
+    --- Type of input: 'filing', 'committee', 'candidate', 'contest', 'file', 'url'
+    input_type TEXT NOT NULL,
+
+    --- The raw input value as provided by the user
+    input_value TEXT NOT NULL,
+
+    --- For contests: the election cycle
+    cycle INTEGER,
+
+    --- For contests: the office (president, senate, house)
+    office TEXT,
+
+    --- For contests: the state code
+    state TEXT,
+
+    --- For contests: the district number
+    district TEXT
+  )
+"#;
+
+const CREATE_EXPORT_INPUT_FILINGS_SQL: &str = r#"
+  CREATE TABLE IF NOT EXISTS libfec_export_input_filings(
+    --- Reference to the export input
+    input_id INTEGER NOT NULL REFERENCES libfec_export_inputs(id),
+
+    --- The filing ID that this input resolved to
+    filing_id TEXT NOT NULL,
+
+    PRIMARY KEY (input_id, filing_id)
+  )
+"#;
+
+/// Initialize the export metadata schema
+pub fn init_metadata_schema(db: &Connection) -> anyhow::Result<()> {
+    db.execute(CREATE_EXPORTS_SQL, [])
+        .context("Error creating libfec_exports table")?;
+    db.execute(CREATE_EXPORT_FILINGS_SQL, [])
+        .context("Error creating libfec_export_filings table")?;
+    db.execute(CREATE_EXPORT_INPUTS_SQL, [])
+        .context("Error creating libfec_export_inputs table")?;
+    db.execute(CREATE_EXPORT_INPUT_FILINGS_SQL, [])
+        .context("Error creating libfec_export_input_filings table")?;
+    Ok(())
+}
+
+/// Metadata for an export operation
+#[derive(Debug, Clone)]
+pub struct ExportMetadata {
+    /// Auto-incrementing database ID
+    pub export_id: i64,
+    /// UUID string (for RPC compatibility)
+    pub export_uuid: String,
+}
+
+// Re-export InputType from sourcer for use in metadata recording
+pub use crate::sourcer::InputType;
+
+impl InputType {
+    /// Get the type name for database storage
+    pub fn type_name(&self) -> &'static str {
+        match self {
+            InputType::Filing => "filing",
+            InputType::Committee => "committee",
+            InputType::Candidate => "candidate",
+            InputType::Contest { .. } => "contest",
+            InputType::InputFile => "file",
+            InputType::Url => "url",
+        }
+    }
+}
+
+/// Create a new export record and return its metadata
+pub fn create_export(
+    db: &Connection,
+    export_uuid: &str,
+    cover_only: bool,
+) -> anyhow::Result<ExportMetadata> {
+    db.execute(
+        "INSERT INTO libfec_exports (export_uuid, cover_only, status) VALUES (?, ?, 'started')",
+        rusqlite::params![export_uuid, cover_only as i32],
+    )
+    .context("Error creating export record")?;
+
+    let export_id = db.last_insert_rowid();
+
+    Ok(ExportMetadata {
+        export_id,
+        export_uuid: export_uuid.to_string(),
+    })
+}
+
+/// Record that a filing was exported as part of an export operation
+pub fn record_export_filing(
+    db: &Connection,
+    export_id: i64,
+    filing_id: &str,
+    success: bool,
+    message: Option<&str>,
+) -> anyhow::Result<()> {
+    db.execute(
+        "INSERT OR REPLACE INTO libfec_export_filings (export_id, filing_id, success, message) VALUES (?, ?, ?, ?)",
+        rusqlite::params![export_id, filing_id, success as i32, message],
+    )
+    .context("Error recording export filing")?;
+    Ok(())
+}
+
+/// Record an input that was used in the export
+/// Returns the input ID for linking to filings
+pub fn record_export_input(
+    db: &Connection,
+    export_id: i64,
+    input_type: &InputType,
+    input_value: &str,
+) -> anyhow::Result<i64> {
+    match input_type {
+        InputType::Contest {
+            cycle,
+            office,
+            state,
+            district,
+        } => {
+            db.execute(
+                "INSERT INTO libfec_export_inputs (export_id, input_type, input_value, cycle, office, state, district) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                rusqlite::params![
+                    export_id,
+                    input_type.type_name(),
+                    input_value,
+                    cycle,
+                    office,
+                    state,
+                    district
+                ],
+            )?;
+        }
+        _ => {
+            db.execute(
+                "INSERT INTO libfec_export_inputs (export_id, input_type, input_value) VALUES (?, ?, ?)",
+                rusqlite::params![export_id, input_type.type_name(), input_value],
+            )?;
+        }
+    }
+    Ok(db.last_insert_rowid())
+}
+
+/// Link a filing ID to an input
+pub fn link_input_to_filing(db: &Connection, input_id: i64, filing_id: &str) -> anyhow::Result<()> {
+    db.execute(
+        "INSERT OR IGNORE INTO libfec_export_input_filings (input_id, filing_id) VALUES (?, ?)",
+        rusqlite::params![input_id, filing_id],
+    )?;
+    Ok(())
+}
+
+/// Update the export status and filings count
+pub fn finalize_export(
+    db: &Connection,
+    export_id: i64,
+    status: &str,
+    filings_count: usize,
+    error_message: Option<&str>,
+) -> anyhow::Result<()> {
+    db.execute(
+        "UPDATE libfec_exports SET status = ?, filings_count = ?, error_message = ? WHERE export_id = ?",
+        rusqlite::params![status, filings_count as i64, error_message, export_id],
+    )?;
     Ok(())
 }
 

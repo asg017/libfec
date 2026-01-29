@@ -1,5 +1,6 @@
 mod dir_csv;
 mod excel;
+mod rpc;
 mod single;
 pub mod sqlite;
 use anyhow::anyhow;
@@ -12,6 +13,19 @@ use crate::{
 };
 
 pub fn export(sourcer: FilingSourcer, args: ExportArgs) -> anyhow::Result<()> {
+    // RPC mode dispatch
+    if args.rpc {
+        // Validate: RPC only supports SQLite
+        let output = args
+            .output
+            .as_ref()
+            .ok_or_else(|| anyhow!("--rpc requires --output with .db extension"))?;
+        if output.extension().and_then(|s| s.to_str()) != Some("db") {
+            return Err(anyhow!("--rpc only supports SQLite exports (.db)"));
+        }
+        return rpc::run_rpc_mode(sourcer, args);
+    }
+
     let result = match (args.output.clone(), args.output_directory.clone()) {
       (None, None) => {
           Err(anyhow!("Must specify either --output (output to a file) or --output-directory (output multiple files to a directory)"))
