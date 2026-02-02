@@ -365,6 +365,10 @@ pub struct RssArgs {
     /// Enable RPC mode for programmatic control via JSONL stdio protocol
     #[arg(long)]
     pub rpc: bool,
+
+    /// Write metadata about RSS sync operations to the database (requires --export)
+    #[arg(long)]
+    pub write_metadata: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, clap::ValueEnum)]

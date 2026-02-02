@@ -87,6 +87,8 @@ struct SyncStartParams {
     state: Option<String>,
     #[serde(default)]
     party: Option<String>,
+    #[serde(default)]
+    write_metadata: bool,
 }
 
 /// RPC phase tracking
@@ -117,6 +119,11 @@ struct RpcSyncState {
     latest_filing_id: Option<String>,
     latest_pub_date: Option<Timestamp>,
     error_message: Option<String>,
+    // Metadata tracking
+    write_metadata: bool,
+    metadata_sync_id: Option<i64>,
+    /// Map from filing_id to RSS item data for metadata recording
+    rss_item_data: std::collections::HashMap<String, Item>,
 }
 
 impl RpcSyncState {
@@ -124,13 +131,53 @@ impl RpcSyncState {
     fn process_one_export(&mut self, sourcer: &FilingSourcer) -> Result<()> {
         if let Some(filing_id) = self.export_queue.pop() {
             if let Some(ref mut db) = self.export_db {
-                match sourcer.resolve_from_user_argument(&filing_id) {
+                let (success, message) = match sourcer.resolve_from_user_argument(&filing_id) {
                     Ok(filing) => {
-                        sqlite::export_single_filing(db, filing, self.cover_only)?;
-                        self.exported_ids.insert(filing_id);
+                        match sqlite::export_single_filing(db, filing, self.cover_only) {
+                            Ok(_) => {
+                                self.exported_ids.insert(filing_id.clone());
+                                (true, None)
+                            }
+                            Err(e) => (false, Some(e.to_string())),
+                        }
                     }
                     Err(e) => {
-                        return Err(anyhow::anyhow!("Failed to fetch filing {}: {}", filing_id, e));
+                        (false, Some(format!("Failed to fetch filing: {}", e)))
+                    }
+                };
+
+                // Record metadata if enabled
+                if self.write_metadata {
+                    if let Some(metadata_sync_id) = self.metadata_sync_id {
+                        let rss_params = if let Some(item) = self.rss_item_data.get(&filing_id) {
+                            sqlite::RssFilingParams {
+                                rss_pub_date: item.pub_date.map(|ts| ts.to_string()),
+                                rss_guid: Some(item.guid.clone()),
+                                rss_title: Some(item.title.clone()),
+                                committee_id: item.committee_id.clone(),
+                                form_type: item.form_type.clone(),
+                                coverage_from: item.coverage_from.clone(),
+                                coverage_through: item.coverage_through.clone(),
+                                report_type: item.report_type.clone(),
+                            }
+                        } else {
+                            sqlite::RssFilingParams::default()
+                        };
+
+                        let _ = sqlite::record_rss_filing(
+                            db,
+                            metadata_sync_id,
+                            &filing_id,
+                            &rss_params,
+                            success,
+                            message.as_deref(),
+                        );
+                    }
+                }
+
+                if !success {
+                    if let Some(msg) = message {
+                        return Err(anyhow::anyhow!("{}", msg));
                     }
                 }
             }
@@ -231,6 +278,8 @@ pub fn run_rpc_mode(
                         Err(e) => {
                             sync_state.phase = RpcPhase::Error;
                             sync_state.error_message = Some(e.to_string());
+                            // Finalize metadata on error
+                            finalize_sync_metadata(sync_state);
                             send_progress_notification(&mut stdout_lock, sync_state)?;
                             break;
                         }
@@ -240,6 +289,8 @@ pub fn run_rpc_mode(
                 // Check if we're done
                 if sync_state.export_queue.is_empty() && processed > 0 {
                     sync_state.phase = RpcPhase::Complete;
+                    // Finalize metadata on completion
+                    finalize_sync_metadata(sync_state);
                     send_progress_notification(&mut stdout_lock, sync_state)?;
                 }
             }
@@ -400,34 +451,74 @@ fn handle_sync_start(
             }
         };
     }
-    fetch_args.form_type = sync_params.form_type;
-    fetch_args.committee = sync_params.committee;
-    fetch_args.state = sync_params.state;
-    fetch_args.party = sync_params.party;
+    fetch_args.form_type = sync_params.form_type.clone();
+    fetch_args.committee = sync_params.committee.clone();
+    fetch_args.state = sync_params.state.clone();
+    fetch_args.party = sync_params.party.clone();
 
     // Generate sync ID
     let sync_id = format!("sync-{}", uuid::Uuid::new_v4());
 
     // Initialize database
-    let export_db = match super::export::open_or_create_export_db(&sync_params.export_path) {
-        Ok(mut db) => {
-            if let Err(e) = sqlite::init_schema(&mut db) {
+    let (export_db, metadata_sync_id) =
+        match super::export::open_or_create_export_db(&sync_params.export_path) {
+            Ok(mut db) => {
+                if let Err(e) = sqlite::init_schema(&mut db) {
+                    return Err(JsonRpcError {
+                        code: -32002,
+                        message: "Failed to initialize database".to_string(),
+                        data: Some(json!({ "details": e.to_string() })),
+                    });
+                }
+
+                // Initialize metadata schema and create sync record if enabled
+                let metadata_id = if sync_params.write_metadata {
+                    if let Err(e) = sqlite::init_rss_metadata_schema(&db) {
+                        return Err(JsonRpcError {
+                            code: -32002,
+                            message: "Failed to initialize RSS metadata schema".to_string(),
+                            data: Some(json!({ "details": e.to_string() })),
+                        });
+                    }
+
+                    let preset_str = sync_params.preset.as_ref().map(|s| s.as_str());
+                    let metadata_params = sqlite::RssSyncParams {
+                        feed_url: None, // Will be set after fetch
+                        feed_last_modified: None,
+                        feed_title: None,
+                        since_filter: sync_params.since.clone(),
+                        preset_filter: preset_str.map(|s| s.to_string()),
+                        form_type_filter: sync_params.form_type.clone(),
+                        committee_filter: sync_params.committee.clone(),
+                        state_filter: sync_params.state.clone(),
+                        party_filter: sync_params.party.clone(),
+                        cover_only: sync_params.cover_only,
+                    };
+
+                    match sqlite::create_rss_sync(&db, &sync_id, &metadata_params) {
+                        Ok(metadata) => Some(metadata.sync_id),
+                        Err(e) => {
+                            return Err(JsonRpcError {
+                                code: -32002,
+                                message: "Failed to create RSS sync metadata".to_string(),
+                                data: Some(json!({ "details": e.to_string() })),
+                            });
+                        }
+                    }
+                } else {
+                    None
+                };
+
+                (Some(db), metadata_id)
+            }
+            Err(e) => {
                 return Err(JsonRpcError {
                     code: -32002,
-                    message: "Failed to initialize database".to_string(),
+                    message: "Failed to open database".to_string(),
                     data: Some(json!({ "details": e.to_string() })),
                 });
             }
-            Some(db)
-        }
-        Err(e) => {
-            return Err(JsonRpcError {
-                code: -32002,
-                message: "Failed to open database".to_string(),
-                data: Some(json!({ "details": e.to_string() })),
-            });
-        }
-    };
+        };
 
     // Create initial state in fetching phase
     let mut new_state = RpcSyncState {
@@ -445,6 +536,9 @@ fn handle_sync_start(
         latest_filing_id: None,
         latest_pub_date: None,
         error_message: None,
+        write_metadata: sync_params.write_metadata,
+        metadata_sync_id,
+        rss_item_data: std::collections::HashMap::new(),
     };
 
     // Fetch feed
@@ -479,11 +573,17 @@ fn handle_sync_start(
                 }
             }
 
-            // Queue filings for export
+            // Queue filings for export and store RSS item data for metadata
             for item in filtered_items.iter() {
                 if let Some(ref filing_id) = item.filing_id {
                     if !new_state.exported_ids.contains(filing_id) {
                         new_state.export_queue.push(filing_id.clone());
+                        // Store item data for metadata recording
+                        if new_state.write_metadata {
+                            new_state
+                                .rss_item_data
+                                .insert(filing_id.clone(), item.clone());
+                        }
                     }
                 }
             }
@@ -541,6 +641,8 @@ fn handle_sync_cancel(
         let sync_id = sync_state.sync_id.clone();
         sync_state.phase = RpcPhase::Canceled;
         sync_state.export_queue.clear();
+        // Finalize metadata on cancellation
+        finalize_sync_metadata(sync_state);
         Ok(json!({
             "canceled": true,
             "sync_id": sync_id
@@ -601,6 +703,42 @@ fn send_progress_notification(stdout: &mut dyn Write, state: &RpcSyncState) -> R
     };
 
     send_notification(stdout, "sync/progress", params)
+}
+
+/// Finalize metadata for a completed/canceled/errored sync
+fn finalize_sync_metadata(state: &mut RpcSyncState) {
+    if !state.write_metadata {
+        return;
+    }
+
+    let Some(metadata_sync_id) = state.metadata_sync_id else {
+        return;
+    };
+
+    let Some(ref db) = state.export_db else {
+        return;
+    };
+
+    let (status, error_message) = match state.phase {
+        RpcPhase::Complete => ("complete", None),
+        RpcPhase::Canceled => ("canceled", None),
+        RpcPhase::Error => ("error", state.error_message.as_deref()),
+        _ => return, // Not in a terminal state
+    };
+
+    let exported_count = state.exported_ids.len();
+    let new_filings_count = state.export_batch_total;
+
+    let _ = sqlite::finalize_rss_sync(
+        db,
+        metadata_sync_id,
+        status,
+        Some(state.total_items),
+        Some(state.filtered_items),
+        new_filings_count,
+        exported_count,
+        error_message,
+    );
 }
 
 #[cfg(test)]

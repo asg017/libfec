@@ -1,5 +1,6 @@
 use crate::cli::RssArgs;
-use crate::rss::{self, format_duration_ago};
+use crate::commands::export::sqlite;
+use crate::rss::{self, format_duration_ago, Item};
 use crate::sourcer::FilingSourcer;
 use anyhow::Result;
 use jiff::{Timestamp, Zoned};
@@ -17,6 +18,11 @@ pub fn run_simple_mode(
     let (result, filters) =
         rss::fetch_feed_with_args(args).map_err(|e| anyhow::anyhow!("{}", e))?;
     let now = Zoned::now();
+
+    // Capture feed metadata before moving items
+    let total_feed_items = result.feed.items.len();
+    let feed_title = result.feed.title.clone();
+    let feed_last_modified = result.last_modified;
 
     // Filter items by --since if provided
     let filtered_items: Vec<_> = if let Some(since) = since_ts {
@@ -37,27 +43,102 @@ pub fn run_simple_mode(
     // Handle export if -x flag is provided
     if let Some(ref export_path) = args.export {
         let mut db = open_or_create_export_db(export_path)?;
-        crate::commands::export::sqlite::init_schema(&mut db)?;
-        let existing_ids =
-            crate::commands::export::sqlite::get_existing_filing_ids(&db).unwrap_or_default();
+        sqlite::init_schema(&mut db)?;
+        let existing_ids = sqlite::get_existing_filing_ids(&db).unwrap_or_default();
+
+        // Initialize metadata if enabled
+        let metadata_sync_id = if args.write_metadata {
+            sqlite::init_rss_metadata_schema(&db)?;
+            let sync_uuid = format!("sync-{}", uuid::Uuid::new_v4());
+            let preset_name = format!("{:?}", args.preset);
+            let metadata_params = sqlite::RssSyncParams {
+                feed_url: Some(url.clone()),
+                feed_last_modified: feed_last_modified.map(|ts| ts.to_string()),
+                feed_title: Some(feed_title.clone()),
+                since_filter: args.since.clone(),
+                preset_filter: Some(preset_name),
+                form_type_filter: args.form_type.clone(),
+                committee_filter: args.committee.clone(),
+                state_filter: args.state.clone(),
+                party_filter: args.party.clone(),
+                cover_only: args.cover_only,
+            };
+            let metadata = sqlite::create_rss_sync(&db, &sync_uuid, &metadata_params)?;
+            Some(metadata.sync_id)
+        } else {
+            None
+        };
+
+        // Build a map from filing_id to item for metadata recording
+        let item_map: std::collections::HashMap<&str, &Item> = filtered_items
+            .iter()
+            .filter_map(|item| item.filing_id.as_deref().map(|id| (id, item)))
+            .collect();
 
         // Export ALL filtered items from feed, not just the displayed limit
         let mut export_count = 0;
+        let mut new_filings_count = 0;
         for item in filtered_items.iter() {
             if let Some(ref filing_id) = item.filing_id {
                 if !existing_ids.contains(filing_id) {
-                    match export_filing_by_id(sourcer, &mut db, filing_id, args.cover_only) {
-                        Ok(_) => {
-                            export_count += 1;
-                            println!("Exported filing {}", filing_id);
-                        }
-                        Err(e) => {
-                            eprintln!("Error exporting filing {}: {}", filing_id, e);
-                        }
+                    new_filings_count += 1;
+                    let (success, message) =
+                        match export_filing_by_id(sourcer, &mut db, filing_id, args.cover_only) {
+                            Ok(_) => {
+                                export_count += 1;
+                                println!("Exported filing {}", filing_id);
+                                (true, None)
+                            }
+                            Err(e) => {
+                                let msg = e.to_string();
+                                eprintln!("Error exporting filing {}: {}", filing_id, msg);
+                                (false, Some(msg))
+                            }
+                        };
+
+                    // Record metadata if enabled
+                    if let Some(sync_id) = metadata_sync_id {
+                        let rss_params = if let Some(rss_item) = item_map.get(filing_id.as_str()) {
+                            sqlite::RssFilingParams {
+                                rss_pub_date: rss_item.pub_date.map(|ts| ts.to_string()),
+                                rss_guid: Some(rss_item.guid.clone()),
+                                rss_title: Some(rss_item.title.clone()),
+                                committee_id: rss_item.committee_id.clone(),
+                                form_type: rss_item.form_type.clone(),
+                                coverage_from: rss_item.coverage_from.clone(),
+                                coverage_through: rss_item.coverage_through.clone(),
+                                report_type: rss_item.report_type.clone(),
+                            }
+                        } else {
+                            sqlite::RssFilingParams::default()
+                        };
+                        let _ = sqlite::record_rss_filing(
+                            &db,
+                            sync_id,
+                            filing_id,
+                            &rss_params,
+                            success,
+                            message.as_deref(),
+                        );
                     }
                 }
             }
         }
+
+        // Finalize metadata
+        if let Some(sync_id) = metadata_sync_id {
+            let _ = sqlite::finalize_rss_sync(
+                &db,
+                sync_id,
+                "complete",
+                Some(total_feed_items),
+                Some(filtered_items.len()),
+                new_filings_count,
+                export_count,
+                None,
+            );
+        }
+
         if export_count > 0 {
             println!(
                 "Exported {} new filing(s) to {}",
@@ -85,8 +166,8 @@ pub fn run_simple_mode(
 
     let table = builder.build().with(TableStyle::rounded()).to_string();
 
-    println!("{}", result.feed.title);
-    if let Some(last_mod) = result.last_modified {
+    println!("{}", feed_title);
+    if let Some(last_mod) = feed_last_modified {
         let age = now.timestamp().duration_since(last_mod).as_secs();
         println!("Data freshness: {}", format_duration_ago(age));
     }

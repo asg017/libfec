@@ -54,6 +54,7 @@ Start a new RSS sync operation with the specified parameters.
 - `committee` (string, optional): Committee ID filter
 - `state` (string, optional): State code filter (e.g., "CA")
 - `party` (string, optional): Party filter (e.g., "DEM", "REP")
+- `write_metadata` (bool, optional): Write sync metadata to database (default: false)
 
 **Example Request:**
 ```json
@@ -65,7 +66,8 @@ Start a new RSS sync operation with the specified parameters.
     "export_path": "/tmp/filings.db",
     "cover_only": true,
     "since": "1 day ago",
-    "preset": "presidential"
+    "preset": "presidential",
+    "write_metadata": true
   }
 }
 ```
@@ -353,6 +355,82 @@ Application-specific error codes:
 - `-32000`: No sync in progress (for cancel)
 - `-32001`: Sync already in progress
 - `-32002`: Failed to initialize database or invalid export_path
+
+## Metadata Tracking
+
+When `write_metadata: true` is passed to `sync/start`, the server creates additional tables to track sync operations and per-filing RSS metadata.
+
+### Metadata Tables
+
+**`libfec_rss_syncs`** - Tracks each RSS sync operation:
+| Column | Type | Description |
+|--------|------|-------------|
+| `sync_id` | INTEGER | Auto-incrementing primary key |
+| `sync_uuid` | TEXT | UUID string matching the RPC sync_id |
+| `created_at` | TEXT | ISO 8601 timestamp when sync started |
+| `completed_at` | TEXT | ISO 8601 timestamp when sync completed |
+| `feed_url` | TEXT | RSS feed URL used |
+| `feed_title` | TEXT | RSS feed title |
+| `feed_last_modified` | TEXT | HTTP Last-Modified header |
+| `since_filter` | TEXT | --since filter value if used |
+| `preset_filter` | TEXT | Preset filter (all, monthly, etc.) |
+| `form_type_filter` | TEXT | Form type filter if used |
+| `committee_filter` | TEXT | Committee filter if used |
+| `state_filter` | TEXT | State filter if used |
+| `party_filter` | TEXT | Party filter if used |
+| `total_feed_items` | INTEGER | Total items in RSS feed |
+| `filtered_items` | INTEGER | Items after --since filter |
+| `new_filings_count` | INTEGER | Filings not already in DB |
+| `exported_count` | INTEGER | Successfully exported count |
+| `cover_only` | INTEGER | 1 if cover-only mode |
+| `status` | TEXT | started, complete, error, canceled |
+| `error_message` | TEXT | Error message if failed |
+
+**`libfec_rss_filings`** - Tracks each filing with RSS-specific metadata:
+| Column | Type | Description |
+|--------|------|-------------|
+| `sync_id` | INTEGER | Foreign key to libfec_rss_syncs |
+| `filing_id` | TEXT | FEC filing ID |
+| `rss_pub_date` | TEXT | Publication date from RSS feed |
+| `ingested_at` | TEXT | When we processed this item |
+| `rss_guid` | TEXT | RSS item GUID |
+| `rss_title` | TEXT | RSS item title |
+| `committee_id` | TEXT | Committee ID from RSS |
+| `form_type` | TEXT | Form type from RSS |
+| `coverage_from` | TEXT | Coverage start date |
+| `coverage_through` | TEXT | Coverage end date |
+| `report_type` | TEXT | Report type from RSS |
+| `export_success` | INTEGER | 1 if export succeeded |
+| `export_message` | TEXT | Error message if failed |
+
+### Example Metadata Queries
+
+```sql
+-- Was this filing imported from RSS? When?
+SELECT rss_pub_date, ingested_at, form_type, committee_id
+FROM libfec_rss_filings
+WHERE filing_id = '1234567';
+
+-- What's the lag between FEC publish time and ingestion?
+SELECT filing_id,
+       rss_pub_date,
+       ingested_at,
+       (julianday(ingested_at) - julianday(rss_pub_date)) * 24 * 60 AS lag_minutes
+FROM libfec_rss_filings
+WHERE sync_id = 1;
+
+-- Summary of a sync operation
+SELECT sync_uuid, status, total_feed_items, filtered_items,
+       new_filings_count, exported_count, completed_at
+FROM libfec_rss_syncs
+WHERE sync_uuid = 'sync-550e8400-...';
+
+-- All filings from a specific sync with timing data
+SELECT f.filing_id, f.rss_pub_date, f.ingested_at, f.form_type, s.preset_filter
+FROM libfec_rss_filings f
+JOIN libfec_rss_syncs s ON f.sync_id = s.sync_id
+WHERE s.sync_uuid = 'sync-550e8400-...';
+```
 
 ## Implementation Details
 

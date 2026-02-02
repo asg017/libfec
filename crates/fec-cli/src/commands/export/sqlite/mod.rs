@@ -841,5 +841,247 @@ pub fn finalize_export(
     Ok(())
 }
 
+// ============================================================================
+// RSS Sync Metadata Tracking
+// ============================================================================
+
+const CREATE_RSS_SYNCS_SQL: &str = r#"
+  CREATE TABLE IF NOT EXISTS libfec_rss_syncs(
+    --- Auto-incrementing unique identifier for this RSS sync operation
+    sync_id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    --- UUID string identifier (for RPC mode compatibility)
+    sync_uuid TEXT NOT NULL,
+
+    --- Timestamp when the sync was started (ISO 8601)
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+
+    --- Timestamp when the sync completed (ISO 8601)
+    completed_at TEXT,
+
+    --- The RSS feed URL used for this sync
+    feed_url TEXT,
+
+    --- HTTP Last-Modified header value from the feed
+    feed_last_modified TEXT,
+
+    --- Title of the RSS feed
+    feed_title TEXT,
+
+    --- Filters used for this sync
+    since_filter TEXT,
+    preset_filter TEXT,
+    form_type_filter TEXT,
+    committee_filter TEXT,
+    state_filter TEXT,
+    party_filter TEXT,
+
+    --- Counts
+    total_feed_items INTEGER,
+    filtered_items INTEGER,
+    new_filings_count INTEGER NOT NULL DEFAULT 0,
+    exported_count INTEGER NOT NULL DEFAULT 0,
+
+    --- Whether only cover records were exported
+    cover_only INTEGER NOT NULL DEFAULT 0,
+
+    --- Status of the sync: 'started', 'complete', 'error', 'canceled'
+    status TEXT NOT NULL DEFAULT 'started',
+
+    --- Error message if status is 'error'
+    error_message TEXT
+  )
+"#;
+
+const CREATE_RSS_FILINGS_SQL: &str = r#"
+  CREATE TABLE IF NOT EXISTS libfec_rss_filings(
+    --- Reference to the RSS sync operation
+    sync_id INTEGER NOT NULL REFERENCES libfec_rss_syncs(sync_id),
+
+    --- The filing ID that was exported
+    filing_id TEXT NOT NULL,
+
+    --- Publication date from RSS feed (ISO 8601)
+    rss_pub_date TEXT,
+
+    --- Timestamp when we ingested/processed this item (ISO 8601)
+    ingested_at TEXT NOT NULL DEFAULT (datetime('now')),
+
+    --- RSS item metadata
+    rss_guid TEXT,
+    rss_title TEXT,
+    committee_id TEXT,
+    form_type TEXT,
+    coverage_from TEXT,
+    coverage_through TEXT,
+    report_type TEXT,
+
+    --- Whether this filing was successfully exported
+    export_success INTEGER NOT NULL DEFAULT 1,
+
+    --- Warning or error message for this filing
+    export_message TEXT,
+
+    PRIMARY KEY (sync_id, filing_id)
+  )
+"#;
+
+const CREATE_RSS_FILINGS_INDEX_SQL: &str = r#"
+  CREATE INDEX IF NOT EXISTS idx_rss_filings_filing_id
+  ON libfec_rss_filings(filing_id)
+"#;
+
+/// Initialize the RSS sync metadata schema
+pub fn init_rss_metadata_schema(db: &Connection) -> anyhow::Result<()> {
+    db.execute(CREATE_RSS_SYNCS_SQL, [])
+        .context("Error creating libfec_rss_syncs table")?;
+    db.execute(CREATE_RSS_FILINGS_SQL, [])
+        .context("Error creating libfec_rss_filings table")?;
+    db.execute(CREATE_RSS_FILINGS_INDEX_SQL, [])
+        .context("Error creating libfec_rss_filings index")?;
+    Ok(())
+}
+
+/// Metadata for an RSS sync operation
+#[derive(Debug, Clone)]
+pub struct RssSyncMetadata {
+    /// Auto-incrementing database ID
+    pub sync_id: i64,
+    /// UUID string (for RPC compatibility)
+    pub sync_uuid: String,
+}
+
+/// Parameters for creating an RSS sync record
+#[derive(Debug, Default)]
+pub struct RssSyncParams {
+    pub feed_url: Option<String>,
+    pub feed_last_modified: Option<String>,
+    pub feed_title: Option<String>,
+    pub since_filter: Option<String>,
+    pub preset_filter: Option<String>,
+    pub form_type_filter: Option<String>,
+    pub committee_filter: Option<String>,
+    pub state_filter: Option<String>,
+    pub party_filter: Option<String>,
+    pub cover_only: bool,
+}
+
+/// Create a new RSS sync record and return its metadata
+pub fn create_rss_sync(
+    db: &Connection,
+    sync_uuid: &str,
+    params: &RssSyncParams,
+) -> anyhow::Result<RssSyncMetadata> {
+    db.execute(
+        r#"INSERT INTO libfec_rss_syncs (
+            sync_uuid, feed_url, feed_last_modified, feed_title,
+            since_filter, preset_filter, form_type_filter, committee_filter,
+            state_filter, party_filter, cover_only, status
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'started')"#,
+        rusqlite::params![
+            sync_uuid,
+            params.feed_url,
+            params.feed_last_modified,
+            params.feed_title,
+            params.since_filter,
+            params.preset_filter,
+            params.form_type_filter,
+            params.committee_filter,
+            params.state_filter,
+            params.party_filter,
+            params.cover_only as i32,
+        ],
+    )
+    .context("Error creating RSS sync record")?;
+
+    let sync_id = db.last_insert_rowid();
+
+    Ok(RssSyncMetadata {
+        sync_id,
+        sync_uuid: sync_uuid.to_string(),
+    })
+}
+
+/// Parameters for recording an RSS filing
+#[derive(Debug, Default)]
+pub struct RssFilingParams {
+    pub rss_pub_date: Option<String>,
+    pub rss_guid: Option<String>,
+    pub rss_title: Option<String>,
+    pub committee_id: Option<String>,
+    pub form_type: Option<String>,
+    pub coverage_from: Option<String>,
+    pub coverage_through: Option<String>,
+    pub report_type: Option<String>,
+}
+
+/// Record that a filing was exported as part of an RSS sync operation
+pub fn record_rss_filing(
+    db: &Connection,
+    sync_id: i64,
+    filing_id: &str,
+    params: &RssFilingParams,
+    success: bool,
+    message: Option<&str>,
+) -> anyhow::Result<()> {
+    db.execute(
+        r#"INSERT OR REPLACE INTO libfec_rss_filings (
+            sync_id, filing_id, rss_pub_date, rss_guid, rss_title,
+            committee_id, form_type, coverage_from, coverage_through,
+            report_type, export_success, export_message
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"#,
+        rusqlite::params![
+            sync_id,
+            filing_id,
+            params.rss_pub_date,
+            params.rss_guid,
+            params.rss_title,
+            params.committee_id,
+            params.form_type,
+            params.coverage_from,
+            params.coverage_through,
+            params.report_type,
+            success as i32,
+            message,
+        ],
+    )
+    .context("Error recording RSS filing")?;
+    Ok(())
+}
+
+/// Update the RSS sync status and counts
+pub fn finalize_rss_sync(
+    db: &Connection,
+    sync_id: i64,
+    status: &str,
+    total_feed_items: Option<usize>,
+    filtered_items: Option<usize>,
+    new_filings_count: usize,
+    exported_count: usize,
+    error_message: Option<&str>,
+) -> anyhow::Result<()> {
+    db.execute(
+        r#"UPDATE libfec_rss_syncs SET
+            status = ?,
+            completed_at = datetime('now'),
+            total_feed_items = ?,
+            filtered_items = ?,
+            new_filings_count = ?,
+            exported_count = ?,
+            error_message = ?
+        WHERE sync_id = ?"#,
+        rusqlite::params![
+            status,
+            total_feed_items.map(|n| n as i64),
+            filtered_items.map(|n| n as i64),
+            new_filings_count as i64,
+            exported_count as i64,
+            error_message,
+            sync_id,
+        ],
+    )?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod test;

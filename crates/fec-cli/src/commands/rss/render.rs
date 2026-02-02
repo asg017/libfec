@@ -520,6 +520,7 @@ mod tests {
                     cover_only: false,
                     since: None,
                     rpc: false,
+                    write_metadata: false,
                 },
                 active_filters: self.active_filters,
                 feed_url: self.feed_url,
