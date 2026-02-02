@@ -144,13 +144,25 @@ impl App {
         } else {
             match sourcer.cache.open_bulk_data_database() {
                 Ok(mut db) => {
-                    // Always search candidates and committees in parallel
-                    let candidate_results = crate::cache::bulk_candidates::search_candidates(
-                        &mut db,
-                        self.cycle,
-                        &self.input,
-                    )
-                    .unwrap_or_default();
+                    // Check if input is a district query (e.g., "CA41", "IL09")
+                    let candidate_results = if let Some((state, district)) =
+                        crate::cache::bulk_candidates::parse_district_query(&self.input)
+                    {
+                        crate::cache::bulk_candidates::filter_candidates_by_district(
+                            &mut db,
+                            self.cycle,
+                            &state,
+                            &district,
+                        )
+                        .unwrap_or_default()
+                    } else {
+                        crate::cache::bulk_candidates::search_candidates(
+                            &mut db,
+                            self.cycle,
+                            &self.input,
+                        )
+                        .unwrap_or_default()
+                    };
                     let committee_results = crate::cache::bulk_committee::search_committees(
                         &mut db,
                         self.cycle,
