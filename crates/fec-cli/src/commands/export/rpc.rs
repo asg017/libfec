@@ -100,6 +100,9 @@ struct ExportStartParams {
     /// Write export metadata to the database
     #[serde(default)]
     write_metadata: Option<bool>,
+    /// Include all bulk data (candidates, committees, linkages) for the specified cycle
+    #[serde(default)]
+    include_all_bulk: Option<bool>,
 }
 
 /// Bulk data type for download tracking
@@ -515,23 +518,56 @@ fn handle_export_start(
         }
     }
 
-    // Build bulk tasks from trace
-    for params in &processed.trace.resolve_candidate_params {
-        new_state.bulk_tasks.push(BulkTask {
-            cycle: params.cycle,
-            data_type: BulkDataType::Candidates,
-            completed: false,
-        });
-        new_state.bulk_tasks.push(BulkTask {
-            cycle: params.cycle,
-            data_type: BulkDataType::Committees,
-            completed: false,
-        });
-        new_state.bulk_tasks.push(BulkTask {
-            cycle: params.cycle,
-            data_type: BulkDataType::Linkages,
-            completed: false,
-        });
+    // Determine if we should include all bulk data
+    let include_all_bulk = export_params
+        .include_all_bulk
+        .unwrap_or(base_args.include_all_bulk);
+
+    // Build bulk tasks
+    if include_all_bulk {
+        // Include all bulk data for the specified cycle(s)
+        let cycles: Vec<u16> = if let Some(cycle) = export_params.cycle {
+            vec![cycle]
+        } else {
+            api_flags.cycle.clone().unwrap_or_default()
+        };
+
+        for cycle in cycles {
+            new_state.bulk_tasks.push(BulkTask {
+                cycle,
+                data_type: BulkDataType::Candidates,
+                completed: false,
+            });
+            new_state.bulk_tasks.push(BulkTask {
+                cycle,
+                data_type: BulkDataType::Committees,
+                completed: false,
+            });
+            new_state.bulk_tasks.push(BulkTask {
+                cycle,
+                data_type: BulkDataType::Linkages,
+                completed: false,
+            });
+        }
+    } else {
+        // Build bulk tasks from trace (only for resolved candidates)
+        for params in &processed.trace.resolve_candidate_params {
+            new_state.bulk_tasks.push(BulkTask {
+                cycle: params.cycle,
+                data_type: BulkDataType::Candidates,
+                completed: false,
+            });
+            new_state.bulk_tasks.push(BulkTask {
+                cycle: params.cycle,
+                data_type: BulkDataType::Committees,
+                completed: false,
+            });
+            new_state.bulk_tasks.push(BulkTask {
+                cycle: params.cycle,
+                data_type: BulkDataType::Linkages,
+                completed: false,
+            });
+        }
     }
 
     // Filter out already-exported IDs and prepare export queue
@@ -910,6 +946,15 @@ mod tests {
         assert!(params.filings.is_none());
         assert!(params.cover_only.is_none());
         assert!(params.cycle.is_none());
+        assert!(params.include_all_bulk.is_none());
+    }
+
+    #[test]
+    fn test_parse_export_start_params_with_include_all_bulk() {
+        let json = r#"{"cycle":2024,"include_all_bulk":true}"#;
+        let params: ExportStartParams = serde_json::from_str(json).unwrap();
+        assert_eq!(params.cycle, Some(2024));
+        assert_eq!(params.include_all_bulk, Some(true));
     }
 
     #[test]
