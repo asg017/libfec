@@ -1,5 +1,5 @@
 use crate::{
-    cache::bulk_candidates,
+    cache::{bulk_candidates, bulk_committee},
     cli::ExportArgs,
     sourcer::{FilingSourcer, ItemizationProgressBar},
 };
@@ -490,8 +490,25 @@ pub fn cmd_export_sqlite(
         None
     };
 
-    for params in trace.resolve_candidate_params {
-        bulk_candidates::include(&mut tx, p.clone(), &params).unwrap();
+    if args.include_all_bulk {
+        // Include ALL bulk data for the specified cycle(s)
+        let cycles = args.api.cycle.clone().unwrap_or_default();
+        for cycle in cycles {
+            let params = bulk_candidates::ResolveCandidateParams {
+                cycle,
+                office: None,
+                state: None,
+                district: None,
+            };
+            bulk_candidates::include(&mut tx, p.clone(), &params)
+                .with_context(|| format!("Error including candidates for cycle {}", cycle))?;
+            bulk_committee::include(&mut tx, p.clone(), cycle)
+                .with_context(|| format!("Error including committees for cycle {}", cycle))?;
+        }
+    } else {
+        for params in trace.resolve_candidate_params {
+            bulk_candidates::include(&mut tx, p.clone(), &params).unwrap();
+        }
     }
 
     let mut nfilings = 0;
