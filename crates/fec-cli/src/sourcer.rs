@@ -590,7 +590,7 @@ pub enum Contest {
     // ex "S-CA" or "senate-CA"
     Senate { state: String },
     // ex "H-CA12" or "house-CA12"
-    House { state: String, district: u8 },
+    House { state: String, district: String },
 }
 
 impl Contest {
@@ -612,10 +612,10 @@ impl Contest {
             if parts.len() == 2 {
                 let state = &parts[1][0..2].to_uppercase();
                 let district = &parts[1][2..];
-                if let Ok(district_num) = district.parse::<u8>() {
+                if district.parse::<u8>().is_ok() {
                     return Ok(Some(Contest::House {
                         state: state.to_string(),
-                        district: district_num,
+                        district: district.to_string(),
                     }));
                 }
             }
@@ -630,7 +630,7 @@ impl Contest {
             {
                 return Ok(Some(Contest::House {
                     state: input[0..2].to_uppercase(),
-                    district: input[2..4].parse::<u8>()?,
+                    district: input[2..4].to_string(),
                 }));
             }
         }
@@ -651,7 +651,7 @@ impl Contest {
             Contest::House { state, district } => {
                 b.office(Some(Office::House))
                     .state(Some(state.to_string()))
-                    .district(Some(district.to_string()));
+                    .district(Some(district.clone()));
             }
         }
 
