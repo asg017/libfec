@@ -147,6 +147,8 @@ pub struct FilingItem {
 static FEC_API_BASE_URL: LazyLock<Url> = LazyLock::new(|| {
     Url::parse("https://api.open.fec.gov").expect("Failed to parse FEC API base URL")
 });
+
+#[derive(Debug, Clone)]
 pub struct FilingsUrl(pub Url);
 pub struct ElectionsUrl(pub Url);
 pub struct CalendarDatesUrl(pub Url);

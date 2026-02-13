@@ -33,6 +33,12 @@ fn main() {
             }
         }
         Err(parse_err) => {
+            // Let clap handle --help and --version directly
+            if parse_err.kind() == clap::error::ErrorKind::DisplayHelp
+                || parse_err.kind() == clap::error::ErrorKind::DisplayVersion
+            {
+                parse_err.exit();
+            }
             // If parsing failed, check if the first argument could be an InfoInput
             if args.len() > 1 {
                 if commands::InfoInput::from_arg(&args[1]).is_ok() {

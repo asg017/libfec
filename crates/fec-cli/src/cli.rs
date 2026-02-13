@@ -512,7 +512,6 @@ pub struct TopLevelArgs {
   about = "libfec CLI", 
   version,
   subcommand_required = true,
-  arg_required_else_help = true,
 )]
 pub struct Cli {
     #[command(subcommand)]
