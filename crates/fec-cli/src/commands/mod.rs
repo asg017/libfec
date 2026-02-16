@@ -1,3 +1,4 @@
+mod api;
 mod bulk;
 mod cache;
 mod dates;
@@ -7,6 +8,7 @@ mod info;
 mod rss;
 mod search;
 
+pub use api::api;
 pub use bulk::bulk;
 pub use cache::cache;
 pub use dates::dates;

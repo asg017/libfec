@@ -30,6 +30,7 @@ fn main() {
                 Commands::Bulk(ref args) => commands::bulk(sourcer, args),
                 Commands::Rss(ref args) => commands::rss(sourcer, args),
                 Commands::Dates(ref args) => commands::dates(sourcer, args),
+                Commands::Api(ref args) => commands::api(sourcer, args),
             }
         }
         Err(parse_err) => {
@@ -75,7 +76,8 @@ fn main() {
         Ok(()) => {
             std::process::exit(0);
         }
-        Err(_) => {
+        Err(e) => {
+            eprintln!("error: {e}");
             std::process::exit(1);
         }
     }

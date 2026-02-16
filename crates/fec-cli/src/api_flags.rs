@@ -342,14 +342,66 @@ impl FilingsApiFlags {
         Ok(results)
     }
 
+    /// Resolve API flags into full FilingItem objects (with JSON values).
+    /// Only works for the API path (not bulk-daily-between).
+    pub(crate) fn resolve_items(
+        &mut self,
+        sourcer: &mut FilingSourcer,
+        mb: Option<&MultiProgress>,
+        trace: &mut Trace,
+    ) -> anyhow::Result<Vec<FilingItem>> {
+        let client = Api::new(self.api_key.as_deref().unwrap_or("DEMO_KEY"));
+
+        let spinner = mb.as_ref().map(|mb| {
+            let sp = mb.add(indicatif::ProgressBar::new_spinner());
+            sp.enable_steady_tick(std::time::Duration::from_millis(16));
+            sp.set_message("Resolving filings from API…");
+            sp
+        });
+
+        let mut results = if let Some(election) = &self.election {
+            if self.office.is_some() || self.state.is_some() {
+                self.resolve_election(&client, sourcer, &spinner, *election, trace)?
+            } else {
+                self.cycle = self.election.map(|v| vec![v]);
+                self.resolve_normal(&client, sourcer, &spinner)?
+            }
+        } else {
+            self.resolve_normal(&client, sourcer, &spinner)?
+        };
+
+        // post-filter coverage dates, if provided
+        if let Some(coverage_before) = self.coverage_before {
+            results.retain(|item| {
+                item.value
+                    .get("coverage_start_date")
+                    .and_then(|date_value| date_value.as_str())
+                    .and_then(|date_str| date_str.parse::<Date>().ok())
+                    .is_some_and(|coverage_start_date| coverage_start_date <= coverage_before)
+            });
+        }
+        if let Some(coverage_after) = self.coverage_after {
+            results.retain(|item| {
+                item.value
+                    .get("coverage_end_date")
+                    .and_then(|date_value| date_value.as_str())
+                    .and_then(|date_str| date_str.parse::<Date>().ok())
+                    .is_some_and(|coverage_end_date| coverage_end_date >= coverage_after)
+            });
+        }
+        if let Some(sp) = spinner.as_ref() {
+            sp.finish_and_clear()
+        }
+
+        Ok(results)
+    }
+
     pub(crate) fn resolve_ids(
         &mut self,
         sourcer: &mut FilingSourcer,
         mb: Option<&MultiProgress>,
         trace: &mut Trace,
     ) -> anyhow::Result<Vec<FecFilingId>> {
-        let client = Api::new(self.api_key.as_deref().unwrap_or("DEMO_KEY"));
-
         if let Some(bulk_daily_between) = &self.bulk_daily_between {
             if bulk_daily_between.len() != 2 {
                 return Err(anyhow::anyhow!(
@@ -427,48 +479,8 @@ impl FilingsApiFlags {
             return Ok(all_filing_ids);
         }
 
-        let spinner = mb.as_ref().map(|mb| {
-            let sp = mb.add(indicatif::ProgressBar::new_spinner());
-            sp.enable_steady_tick(std::time::Duration::from_millis(16));
-            sp.set_message("Resolving filings from API…");
-            sp
-        });
-
-        let mut results = if let Some(election) = &self.election {
-            if self.office.is_some() || self.state.is_some() {
-                self.resolve_election(&client, sourcer, &spinner, *election, trace)?
-            } else {
-                self.cycle = self.election.map(|v| vec![v]);
-                self.resolve_normal(&client, sourcer, &spinner)?
-            }
-        } else {
-            self.resolve_normal(&client, sourcer, &spinner)?
-        };
-
-        // post-filter coverage dates, if provided
-        if let Some(coverage_before) = self.coverage_before {
-            results.retain(|item| {
-                item.value
-                    .get("coverage_start_date")
-                    .and_then(|date_value| date_value.as_str())
-                    .and_then(|date_str| date_str.parse::<Date>().ok())
-                    .is_some_and(|coverage_start_date| coverage_start_date <= coverage_before)
-            });
-        }
-        if let Some(coverage_after) = self.coverage_after {
-            results.retain(|item| {
-                item.value
-                    .get("coverage_end_date")
-                    .and_then(|date_value| date_value.as_str())
-                    .and_then(|date_str| date_str.parse::<Date>().ok())
-                    .is_some_and(|coverage_end_date| coverage_end_date >= coverage_after)
-            });
-        }
-        if let Some(sp) = spinner.as_ref() {
-            sp.finish_and_clear()
-        }
-
-        Ok(results
+        let items = self.resolve_items(sourcer, mb, trace)?;
+        Ok(items
             .iter()
             .map(|item| FecFilingId::from_str(&item.filing_id).unwrap())
             .collect())

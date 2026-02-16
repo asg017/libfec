@@ -636,7 +636,7 @@ impl Contest {
         }
         Ok(None)
     }
-    fn resolve_candidate_params(&self, cycle: u16) -> ResolveCandidateParams {
+    pub fn resolve_candidate_params(&self, cycle: u16) -> ResolveCandidateParams {
         let mut b = ResolveCandidateParamsBuilder::default();
         b.cycle(cycle);
         match self {

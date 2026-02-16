@@ -465,6 +465,34 @@ pub enum BulkSource {
     Candidates,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, clap::ValueEnum)]
+pub enum ApiFormat {
+    /// JSON array (default, loads all results into memory)
+    #[default]
+    Json,
+    /// Newline-delimited JSON (one object per line, streamed)
+    #[value(alias = "ndjson")]
+    Jsonl,
+}
+
+#[derive(Args, Debug)]
+pub struct ApiArgs {
+    /// Committee IDs, candidate IDs, or contest shorthand (e.g. C00257337, H8VA07024, H-VA07)
+    #[arg(required = false)]
+    pub inputs: Vec<String>,
+
+    /// Only output filing IDs, one per line
+    #[arg(long)]
+    pub filing_ids_only: bool,
+
+    /// Output format
+    #[arg(long, short = 'f', value_enum, default_value = "json")]
+    pub format: ApiFormat,
+
+    #[command(flatten)]
+    pub api: FilingsApiFlags,
+}
+
 #[derive(Subcommand, Debug)]
 pub enum Commands {
     /// Export FEC filings into SQLite, Excel, CSV, or JSON
@@ -490,6 +518,9 @@ pub enum Commands {
 
     /// View upcoming FEC calendar dates (elections, deadlines, meetings)
     Dates(DatesArgs),
+
+    /// Query the FEC API and print raw JSON responses
+    Api(ApiArgs),
 }
 
 #[derive(Parser)]
