@@ -21,8 +21,8 @@
 //! - Enter: Copy selected value to clipboard
 //! - Esc: Cancel and close popup
 
-use crate::cache::bulk_candidate_committee_linkage::CommitteeLinkage;
-use crate::cache::bulk_candidates::CandidateDetail;
+use crate::cache::bulk::candidate_committee_linkage::CommitteeLinkage;
+use crate::cache::bulk::candidates::CandidateDetail;
 use crate::tui::committee_detail::FilingListItem;
 use crate::tui::{navigation_popup_help_line, HelpBar};
 use crossterm::event::{KeyCode, KeyEvent};
@@ -971,7 +971,7 @@ fn render_yank_popup(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::cache::bulk_candidates::CandidateDetail;
+    use crate::cache::bulk::candidates::CandidateDetail;
     use insta::assert_snapshot;
     use ratatui::{backend::TestBackend, Terminal};
 

@@ -18,7 +18,7 @@
  * - `shutdown`: Gracefully shutdown RPC server
  */
 
-use crate::cache::{bulk_candidate_committee_linkage, bulk_candidates, bulk_committee};
+use crate::cache::bulk::{candidate_committee_linkage, candidates, committee};
 use crate::cli::ExportArgs;
 use crate::sourcer::{process_inputs, FilingSourcer, Item};
 use anyhow::{Context, Result};
@@ -661,13 +661,13 @@ fn process_bulk_download(state: &mut ExportState, sourcer: &mut FilingSourcer) -
 
         match task.data_type {
             BulkDataType::Candidates => {
-                bulk_candidates::export(&mut bulk_tx, task.cycle)?;
+                candidates::export(&mut bulk_tx, task.cycle)?;
             }
             BulkDataType::Committees => {
-                bulk_committee::export(&mut bulk_tx, task.cycle)?;
+                committee::export(&mut bulk_tx, task.cycle)?;
             }
             BulkDataType::Linkages => {
-                bulk_candidate_committee_linkage::export(&mut bulk_tx, task.cycle)?;
+                candidate_committee_linkage::export(&mut bulk_tx, task.cycle)?;
             }
         }
 

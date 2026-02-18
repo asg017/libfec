@@ -440,7 +440,7 @@ pub fn info(mut sourcer: FilingSourcer, args: InfoArgs) -> anyhow::Result<()> {
                 let cycle = 2026;
                 match sourcer.cache.open_bulk_data_database() {
                     Ok(mut db) => {
-                        match crate::cache::bulk_committee::get_committee_detail(
+                        match crate::cache::bulk::committee::get_committee_detail(
                             &mut db,
                             cycle,
                             &committee_id,
@@ -470,14 +470,14 @@ pub fn info(mut sourcer: FilingSourcer, args: InfoArgs) -> anyhow::Result<()> {
                 let cycle = 2026;
                 match sourcer.cache.open_bulk_data_database() {
                     Ok(mut db) => {
-                        match crate::cache::bulk_candidates::get_candidate_detail(
+                        match crate::cache::bulk::candidates::get_candidate_detail(
                             &mut db,
                             cycle,
                             &candidate_id,
                         ) {
                             Ok(Some(detail)) => {
                                 // Load linked committees
-                                let linkages = crate::cache::bulk_candidate_committee_linkage::get_candidate_committee_linkages(
+                                let linkages = crate::cache::bulk::candidate_committee_linkage::get_candidate_committee_linkages(
                                     &mut db,
                                     cycle,
                                     &candidate_id,
@@ -508,7 +508,7 @@ pub fn info(mut sourcer: FilingSourcer, args: InfoArgs) -> anyhow::Result<()> {
 
 fn render_committee_detail_with_breadcrumb(
     f: &mut Frame,
-    detail: &crate::cache::bulk_committee::CommitteeDetail,
+    detail: &crate::cache::bulk::committee::CommitteeDetail,
     state: &mut CommitteeDetailState,
 ) {
     use ratatui::layout::{Constraint, Direction, Layout};
@@ -572,7 +572,7 @@ fn render_filing_detail_with_breadcrumb(
 }
 
 fn show_committee_detail_tui(
-    detail: crate::cache::bulk_committee::CommitteeDetail,
+    detail: crate::cache::bulk::committee::CommitteeDetail,
     sourcer: &FilingSourcer,
 ) -> anyhow::Result<()> {
     enable_raw_mode()?;
@@ -675,8 +675,8 @@ fn show_committee_detail_tui(
 }
 
 fn show_candidate_detail_tui(
-    detail: crate::cache::bulk_candidates::CandidateDetail,
-    linkages: Vec<crate::cache::bulk_candidate_committee_linkage::CommitteeLinkage>,
+    detail: crate::cache::bulk::candidates::CandidateDetail,
+    linkages: Vec<crate::cache::bulk::candidate_committee_linkage::CommitteeLinkage>,
     sourcer: &crate::sourcer::FilingSourcer,
 ) -> anyhow::Result<()> {
     enable_raw_mode()?;

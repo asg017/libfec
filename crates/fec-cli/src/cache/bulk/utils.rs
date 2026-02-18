@@ -103,9 +103,9 @@ pub(crate) fn sync_item(
             &format!(
                 r#"
               SELECT
-                modified_at, 
-                last_checked_at 
-              FROM {}_cycles 
+                modified_at,
+                last_checked_at
+              FROM {}_cycles
               WHERE year = ?
             "#,
                 item.table_name
@@ -155,8 +155,8 @@ pub(crate) fn sync_item(
             tx.execute(
                 &format!(
                     r#"
-            UPDATE {}_cycles 
-            SET last_checked_at = datetime('now') 
+            UPDATE {}_cycles
+            SET last_checked_at = datetime('now')
             WHERE year = ?
           "#,
                     item.table_name
@@ -228,7 +228,7 @@ pub(crate) fn sync_item(
     tx.execute(
         &format!(
             r#"
-          INSERT OR REPLACE INTO {}_cycles (year, modified_at, last_checked_at) 
+          INSERT OR REPLACE INTO {}_cycles (year, modified_at, last_checked_at)
             VALUES (?, ?, datetime('now'))
           "#,
             item.table_name

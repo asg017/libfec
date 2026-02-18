@@ -17,7 +17,7 @@
  * - `shutdown`: Gracefully shutdown RPC server
  */
 
-use crate::cache::{bulk_candidates, bulk_committee};
+use crate::cache::bulk::{candidates, committee};
 use crate::cli::SearchArgs;
 use crate::sourcer::FilingSourcer;
 use anyhow::{Context, Result};
@@ -109,8 +109,8 @@ struct CandidateResult {
     principal_campaign_committee: Option<String>,
 }
 
-impl From<bulk_candidates::CandidateSearchResult> for CandidateResult {
-    fn from(c: bulk_candidates::CandidateSearchResult) -> Self {
+impl From<candidates::CandidateSearchResult> for CandidateResult {
+    fn from(c: candidates::CandidateSearchResult) -> Self {
         CandidateResult {
             candidate_id: c.candidate_id,
             name: c.name,
@@ -147,8 +147,8 @@ struct AddressResult {
     zip: String,
 }
 
-impl From<bulk_candidates::CandidateDetail> for CandidateDetailResult {
-    fn from(c: bulk_candidates::CandidateDetail) -> Self {
+impl From<candidates::CandidateDetail> for CandidateDetailResult {
+    fn from(c: candidates::CandidateDetail) -> Self {
         CandidateDetailResult {
             candidate_id: c.candidate_id,
             name: c.name,
@@ -181,8 +181,8 @@ struct CommitteeResult {
     candidate_id: Option<String>,
 }
 
-impl From<bulk_committee::CommitteeSearchResult> for CommitteeResult {
-    fn from(c: bulk_committee::CommitteeSearchResult) -> Self {
+impl From<committee::CommitteeSearchResult> for CommitteeResult {
+    fn from(c: committee::CommitteeSearchResult) -> Self {
         CommitteeResult {
             committee_id: c.committee_id,
             name: c.name,
@@ -212,8 +212,8 @@ struct CommitteeDetailResult {
     fec_url: String,
 }
 
-impl From<bulk_committee::CommitteeDetail> for CommitteeDetailResult {
-    fn from(c: bulk_committee::CommitteeDetail) -> Self {
+impl From<committee::CommitteeDetail> for CommitteeDetailResult {
+    fn from(c: committee::CommitteeDetail) -> Self {
         let fec_url = c.fec_url();
         CommitteeDetailResult {
             committee_id: c.committee_id,
@@ -387,7 +387,7 @@ fn handle_search_query(
 
     // Search candidates
     let candidate_results =
-        bulk_candidates::search_candidates(&mut db, cycle, &search_params.query).map_err(|e| {
+        candidates::search_candidates(&mut db, cycle, &search_params.query).map_err(|e| {
             JsonRpcError {
                 code: -32000,
                 message: "Candidate search error".to_string(),
@@ -397,7 +397,7 @@ fn handle_search_query(
 
     // Search committees
     let committee_results =
-        bulk_committee::search_committees(&mut db, cycle, &search_params.query).map_err(|e| {
+        committee::search_committees(&mut db, cycle, &search_params.query).map_err(|e| {
             JsonRpcError {
                 code: -32000,
                 message: "Committee search error".to_string(),
@@ -453,7 +453,7 @@ fn handle_candidate_detail(
 
     // Get candidate detail
     let detail =
-        bulk_candidates::get_candidate_detail(&mut db, cycle, &detail_params.candidate_id)
+        candidates::get_candidate_detail(&mut db, cycle, &detail_params.candidate_id)
             .map_err(|e| JsonRpcError {
                 code: -32000,
                 message: "Candidate lookup error".to_string(),
@@ -502,7 +502,7 @@ fn handle_committee_detail(
 
     // Get committee detail
     let detail =
-        bulk_committee::get_committee_detail(&mut db, cycle, &detail_params.committee_id).map_err(
+        committee::get_committee_detail(&mut db, cycle, &detail_params.committee_id).map_err(
             |e| JsonRpcError {
                 code: -32000,
                 message: "Committee lookup error".to_string(),

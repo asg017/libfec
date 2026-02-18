@@ -1,12 +1,7 @@
 pub mod api_cache;
-pub mod bulk_candidate_committee_linkage;
-pub mod bulk_candidates;
-pub mod bulk_committee;
-pub mod bulk_opexp;
-pub mod bulk_pas2;
-mod bulk_utils;
+pub mod bulk;
 
-use crate::{cache::bulk_candidates::ResolveCandidateParams, sourcer::FecFilingId};
+use crate::{cache::bulk::candidates::ResolveCandidateParams, sourcer::FecFilingId};
 use anyhow::{Context, Result};
 use api_cache::SqliteApiCache;
 use etcetera::BaseStrategy;
@@ -240,7 +235,7 @@ impl Cache {
         &mut self,
         params: ResolveCandidateParams,
     ) -> Result<Vec<String>> {
-        bulk_candidates::resolve_candidate_principal_campaign_committees(
+        bulk::candidates::resolve_candidate_principal_campaign_committees(
             self.open_bulk_data_database()?,
             params,
         )

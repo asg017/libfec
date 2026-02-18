@@ -4,9 +4,9 @@
 //! It defines the App struct and all operations that modify application state.
 
 use crate::{
-    cache::bulk_candidates::{CandidateDetail, CandidateSearchResult},
-    cache::bulk_committee::{CommitteeDetail, CommitteeSearchResult},
-    cache::bulk_opexp::OpExpSearchResult,
+    cache::bulk::candidates::{CandidateDetail, CandidateSearchResult},
+    cache::bulk::committee::{CommitteeDetail, CommitteeSearchResult},
+    cache::bulk::opexp::OpExpSearchResult,
     sourcer::FilingSourcer,
     tui::candidate_detail::CandidateDetailState,
     tui::committee_detail::CommitteeDetailState,
@@ -146,9 +146,9 @@ impl App {
                 Ok(mut db) => {
                     // Check if input is a district query (e.g., "CA41", "IL09")
                     let candidate_results = if let Some((state, district)) =
-                        crate::cache::bulk_candidates::parse_district_query(&self.input)
+                        crate::cache::bulk::candidates::parse_district_query(&self.input)
                     {
-                        crate::cache::bulk_candidates::filter_candidates_by_district(
+                        crate::cache::bulk::candidates::filter_candidates_by_district(
                             &mut db,
                             self.cycle,
                             &state,
@@ -156,14 +156,14 @@ impl App {
                         )
                         .unwrap_or_default()
                     } else {
-                        crate::cache::bulk_candidates::search_candidates(
+                        crate::cache::bulk::candidates::search_candidates(
                             &mut db,
                             self.cycle,
                             &self.input,
                         )
                         .unwrap_or_default()
                     };
-                    let committee_results = crate::cache::bulk_committee::search_committees(
+                    let committee_results = crate::cache::bulk::committee::search_committees(
                         &mut db,
                         self.cycle,
                         &self.input,
@@ -175,7 +175,7 @@ impl App {
 
                     // Only search operating expenses when that tab is active
                     if self.active_tab == ResultsTab::OpExp {
-                        match crate::cache::bulk_opexp::search_operating_expenses(
+                        match crate::cache::bulk::opexp::search_operating_expenses(
                             &mut db,
                             self.cycle,
                             &self.input,
@@ -349,7 +349,7 @@ impl App {
                         // Load full candidate detail
                         if let Ok(mut db) = sourcer.cache.open_bulk_data_database() {
                             if let Ok(Some(detail)) =
-                                crate::cache::bulk_candidates::get_candidate_detail(
+                                crate::cache::bulk::candidates::get_candidate_detail(
                                     &mut db,
                                     self.cycle,
                                     &candidate.candidate_id,
@@ -357,7 +357,7 @@ impl App {
                             {
                                 self.candidate_detail_state = CandidateDetailState::new();
                                 // Load linked committees
-                                if let Ok(linkages) = crate::cache::bulk_candidate_committee_linkage::get_candidate_committee_linkages(
+                                if let Ok(linkages) = crate::cache::bulk::candidate_committee_linkage::get_candidate_committee_linkages(
                                     &mut db,
                                     self.cycle,
                                     &candidate.candidate_id,
@@ -377,7 +377,7 @@ impl App {
                         // Load full committee detail
                         if let Ok(mut db) = sourcer.cache.open_bulk_data_database() {
                             if let Ok(Some(detail)) =
-                                crate::cache::bulk_committee::get_committee_detail(
+                                crate::cache::bulk::committee::get_committee_detail(
                                     &mut db,
                                     self.cycle,
                                     &committee.committee_id,
@@ -429,7 +429,7 @@ impl App {
         committee_id: &str,
     ) {
         if let Ok(mut db) = sourcer.cache.open_bulk_data_database() {
-            if let Ok(Some(detail)) = crate::cache::bulk_committee::get_committee_detail(
+            if let Ok(Some(detail)) = crate::cache::bulk::committee::get_committee_detail(
                 &mut db,
                 self.cycle,
                 committee_id,
@@ -536,7 +536,7 @@ impl App {
         if filer_id.starts_with('C') {
             // Committee
             if let Ok(mut db) = sourcer.cache.open_bulk_data_database() {
-                if let Ok(Some(detail)) = crate::cache::bulk_committee::get_committee_detail(
+                if let Ok(Some(detail)) = crate::cache::bulk::committee::get_committee_detail(
                     &mut db, self.cycle, filer_id,
                 ) {
                     self.committee_detail = Some(detail);
@@ -550,7 +550,7 @@ impl App {
         {
             // Candidate
             if let Ok(mut db) = sourcer.cache.open_bulk_data_database() {
-                if let Ok(Some(detail)) = crate::cache::bulk_candidates::get_candidate_detail(
+                if let Ok(Some(detail)) = crate::cache::bulk::candidates::get_candidate_detail(
                     &mut db, self.cycle, filer_id,
                 ) {
                     self.candidate_detail = Some(detail);

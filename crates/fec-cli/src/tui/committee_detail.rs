@@ -21,7 +21,7 @@
 //! - Enter: Copy selected value to clipboard
 //! - Esc: Cancel and close popup
 
-use crate::cache::bulk_committee::CommitteeDetail;
+use crate::cache::bulk::committee::CommitteeDetail;
 use crate::tui::{navigation_popup_help_line, HelpBar};
 use crossterm::event::{KeyCode, KeyEvent};
 use fec_api::{Api, FilingArgsBuilder};

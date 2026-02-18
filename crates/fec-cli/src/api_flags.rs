@@ -1,7 +1,7 @@
 use std::{str::FromStr, sync::LazyLock};
 
 use crate::{
-    cache::bulk_candidates::{ResolveCandidateParams, ResolveCandidateParamsBuilder},
+    cache::bulk::candidates::{ResolveCandidateParams, ResolveCandidateParamsBuilder},
     sourcer::{resolve_from_path, FecFilingId, FilingSourcer},
 };
 use anyhow::Context;

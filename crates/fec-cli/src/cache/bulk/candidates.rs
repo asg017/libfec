@@ -8,7 +8,7 @@
  * Sample: https://www.fec.gov/files/bulk-downloads/2026/weball26.zip
  *
  */
-use crate::cache::bulk_utils::{sync_item, BulkDataItem};
+use super::utils::{sync_item, BulkDataItem};
 use anyhow::{Context, Result};
 use derive_builder::Builder;
 use fec_api::Office;
@@ -75,7 +75,7 @@ pub(crate) fn include(
     let sql = r#"
       INSERT OR REPLACE INTO libfec_candidates
         SELECT *
-        FROM bulk_db.libfec_candidates 
+        FROM bulk_db.libfec_candidates
         WHERE cycle = :cycle
           AND election_year = cast(:cycle as text)
           AND principal_campaign_committee != ''
@@ -105,9 +105,9 @@ fn query_candidate_principal_campaign_committees(
     params: ResolveCandidateParams,
 ) -> Result<Vec<String>> {
     let sql = r#"
-      SELECT 
-        principal_campaign_committee 
-      FROM libfec_candidates 
+      SELECT
+        principal_campaign_committee
+      FROM libfec_candidates
       WHERE cycle = :cycle
         AND election_year = cast(:cycle as text)
         AND principal_campaign_committee != ''

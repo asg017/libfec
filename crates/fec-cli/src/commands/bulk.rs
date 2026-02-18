@@ -1,7 +1,5 @@
 use crate::{
-    cache::{
-        bulk_candidate_committee_linkage, bulk_candidates, bulk_committee, bulk_opexp, bulk_pas2,
-    },
+    cache::bulk::{candidate_committee_linkage, candidates, committee, opexp, pas2},
     cli::{BulkArgs, BulkSource, CycleArg},
     sourcer::FilingSourcer,
 };
@@ -39,10 +37,10 @@ pub fn bulk(_sourcer: FilingSourcer, args: &BulkArgs) -> anyhow::Result<()> {
         for source in &args.source {
             pb.set_message(format!("{} - {:?}", year, source));
             let result = match source {
-                BulkSource::Opex => bulk_opexp::export(&mut tx, year),
-                BulkSource::Committees => bulk_committee::export(&mut tx, year),
-                BulkSource::Candidates => bulk_candidates::export(&mut tx, year),
-                BulkSource::ContributionsToCandidates => bulk_pas2::export(&mut tx, year),
+                BulkSource::Opex => opexp::export(&mut tx, year),
+                BulkSource::Committees => committee::export(&mut tx, year),
+                BulkSource::Candidates => candidates::export(&mut tx, year),
+                BulkSource::ContributionsToCandidates => pas2::export(&mut tx, year),
             };
             result.unwrap();
             pb.inc(1);
@@ -51,7 +49,7 @@ pub fn bulk(_sourcer: FilingSourcer, args: &BulkArgs) -> anyhow::Result<()> {
             && args.source.contains(&BulkSource::Committees)
         {
             pb.set_message(format!("{} - Candidate-Committee Linkage", year));
-            bulk_candidate_committee_linkage::export(&mut tx, year)?;
+            candidate_committee_linkage::export(&mut tx, year)?;
             pb.inc(1);
         }
     }

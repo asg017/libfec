@@ -7,7 +7,7 @@
  * Sample: https://www.fec.gov/files/bulk-downloads/2026/oppexp26.zip
  *
  */
-use crate::cache::bulk_utils::{sync_item, BulkDataItem};
+use super::utils::{sync_item, BulkDataItem};
 use anyhow::Result;
 use rusqlite::Transaction;
 use std::sync::LazyLock;

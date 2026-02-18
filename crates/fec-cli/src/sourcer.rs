@@ -14,7 +14,7 @@ use url::Url;
 use crate::{
     api_flags::Trace,
     cache::{
-        bulk_candidates::{ResolveCandidateParams, ResolveCandidateParamsBuilder},
+        bulk::candidates::{ResolveCandidateParams, ResolveCandidateParamsBuilder},
         Cache,
     },
     cli::FilingsApiFlags,

@@ -6,8 +6,8 @@
  * Sample: https://www.fec.gov/files/bulk-downloads/2026/ccl26.zip
  *
  */
-use crate::cache::bulk_utils::{sync_item, BulkDataItem};
-use anyhow::Result;
+use super::utils::{sync_item, BulkDataItem};
+use anyhow::{Context, Result};
 use rusqlite::Transaction;
 use std::sync::LazyLock;
 
@@ -125,5 +125,3 @@ pub fn get_candidate_committee_linkages(
         .collect::<std::result::Result<Vec<CommitteeLinkage>, _>>()?;
     Ok(results)
 }
-
-use anyhow::Context;
