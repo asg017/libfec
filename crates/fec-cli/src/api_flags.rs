@@ -111,6 +111,104 @@ fn filing_items(
     Ok((results, response))
 }
 
+#[derive(Default)]
+struct FetchStats {
+    cache_hits: usize,
+    cache_misses: usize,
+}
+
+impl FetchStats {
+    fn record(&mut self, response: &ApiResponse) {
+        if response.cache_hit {
+            self.cache_hits += 1;
+        } else {
+            self.cache_misses += 1;
+        }
+    }
+}
+
+fn fetch_all_pages(
+    initial_url: Url,
+    sourcer: &mut FilingSourcer,
+    stats: &mut FetchStats,
+    spinner: &Option<ProgressBar>,
+    message_prefix: &str,
+) -> anyhow::Result<Vec<FilingItem>> {
+    let mut results = vec![];
+    let mut current = initial_url;
+    loop {
+        let (items, response) = filing_items(
+            &current,
+            sourcer
+                .cache
+                .api_cache_mut()
+                .map(|c| c as &mut dyn ApiCache),
+        )?;
+        results.extend(items);
+        stats.record(&response);
+        if let Some(sp) = spinner.as_ref() {
+            sp.set_message(format!(
+                "{}{}/{} pages — {} cache hits, {} API requests, {} remaining",
+                message_prefix,
+                response.pagination.page,
+                response.pagination.pages,
+                stats.cache_hits,
+                stats.cache_misses,
+                response.rate_limit.remaining
+            ))
+        }
+
+        if let Some(next_url) = response.next_url {
+            current = next_url;
+        } else {
+            break;
+        }
+    }
+    Ok(results)
+}
+
+fn fetch_efiling_dedup(
+    client: &Api,
+    committees: &[String],
+    form_types: &Option<Vec<String>>,
+    sourcer: &mut FilingSourcer,
+    results: &mut Vec<FilingItem>,
+    stats: &mut FetchStats,
+) -> anyhow::Result<()> {
+    for chunk in committees.chunks(50) {
+        let efiling_filing_args = fec_api::EfilingFilingArgs {
+            committees: chunk.to_vec(),
+            form_types: form_types.clone(),
+        };
+        let mut current = client.efiling_filings_url(efiling_filing_args).0;
+        loop {
+            // Note: efile/filings has max-age=0 so caching won't help, but we pass the cache anyway
+            let (items, response) = filing_items(
+                &current,
+                sourcer
+                    .cache
+                    .api_cache_mut()
+                    .map(|c| c as &mut dyn ApiCache),
+            )?;
+            stats.record(&response);
+            for item in items {
+                if !results
+                    .iter()
+                    .any(|existing| existing.filing_id == item.filing_id)
+                {
+                    results.push(item);
+                }
+            }
+            if let Some(next_url) = response.next_url {
+                current = next_url;
+            } else {
+                break;
+            }
+        }
+    }
+    Ok(())
+}
+
 impl FilingsApiFlags {
     pub(crate) fn any_provided(&self) -> bool {
         self.candidate.is_some()
@@ -160,8 +258,7 @@ impl FilingsApiFlags {
             sp.set_message(format!("Found {} candidate committees…", committees.len()))
         }
         let mut results = vec![];
-        let mut cache_hits = 0usize;
-        let mut cache_misses = 0usize;
+        let mut stats = FetchStats::default();
         for (idx, chunk) in committees.chunks(50).enumerate() {
             let filing_args = FilingArgsBuilder::default()
                 .committees(chunk)
@@ -175,76 +272,19 @@ impl FilingsApiFlags {
                 .with_context(|| {
                     format!("could not build filing args for election {}", election)
                 })?;
-            let mut current = client.filings_url(filing_args);
-            loop {
-                let (items, response) = filing_items(
-                    &current.0,
-                    sourcer
-                        .cache
-                        .api_cache_mut()
-                        .map(|c| c as &mut dyn ApiCache),
-                )?;
-                results.extend(items);
-                if response.cache_hit {
-                    cache_hits += 1;
-                } else {
-                    cache_misses += 1;
-                }
-                if let Some(sp) = spinner.as_ref() {
-                    sp.set_message(format!(
-                        "chunk={} {} {}/{} pages — {} cache hits, {} API requests, {} remaining",
-                        idx,
-                        committees.len(),
-                        response.pagination.page,
-                        response.pagination.pages,
-                        cache_hits,
-                        cache_misses,
-                        response.rate_limit.remaining
-                    ))
-                }
-
-                if let Some(next_url) = response.next_url {
-                    current.0 = next_url;
-                } else {
-                    break;
-                }
-            }
+            let url = client.filings_url(filing_args).0;
+            let prefix = format!("chunk={idx} {} ", committees.len());
+            let items = fetch_all_pages(url, sourcer, &mut stats, spinner, &prefix)?;
+            results.extend(items);
         }
-        for chunk in committees.chunks(50) {
-            let efiling_filing_args = fec_api::EfilingFilingArgs {
-                committees: chunk.to_vec(),
-                form_types: self.form_type.clone(),
-            };
-            let mut current = client.efiling_filings_url(efiling_filing_args);
-            loop {
-                // Note: efile/filings has max-age=0 so caching won't help, but we pass the cache anyway
-                let (items, response) = filing_items(
-                    &current.0,
-                    sourcer
-                        .cache
-                        .api_cache_mut()
-                        .map(|c| c as &mut dyn ApiCache),
-                )?;
-                if response.cache_hit {
-                    cache_hits += 1;
-                } else {
-                    cache_misses += 1;
-                }
-                for item in items {
-                    if !results
-                        .iter()
-                        .any(|existing| existing.filing_id == item.filing_id)
-                    {
-                        results.push(item);
-                    }
-                }
-                if let Some(next_url) = response.next_url {
-                    current.0 = next_url;
-                } else {
-                    break;
-                }
-            }
-        }
+        fetch_efiling_dedup(
+            client,
+            &committees,
+            &self.form_type,
+            sourcer,
+            &mut results,
+            &mut stats,
+        )?;
         Ok(results)
     }
 
@@ -264,80 +304,20 @@ impl FilingsApiFlags {
             .include_amendments(self.include_amendments)
             .build()
             .with_context(|| "could not build filing args".to_string())?;
-        let filing_url = client.filings_url(args);
+        let url = client.filings_url(args).0;
 
-        let mut results = vec![];
-        let mut cache_hits = 0usize;
-        let mut cache_misses = 0usize;
-        let mut current = filing_url;
-        loop {
-            let (items, response) = filing_items(
-                &current.0,
-                sourcer
-                    .cache
-                    .api_cache_mut()
-                    .map(|c| c as &mut dyn ApiCache),
-            )?;
-            results.extend(items);
-            if response.cache_hit {
-                cache_hits += 1;
-            } else {
-                cache_misses += 1;
-            }
-            if let Some(sp) = spinner.as_ref() {
-                sp.set_message(format!(
-                    "{}/{} pages — {} cache hits, {} API requests, {} remaining",
-                    response.pagination.page,
-                    response.pagination.pages,
-                    cache_hits,
-                    cache_misses,
-                    response.rate_limit.remaining
-                ))
-            }
-
-            if let Some(next_url) = response.next_url {
-                current = fec_api::FilingsUrl(next_url);
-            } else {
-                break;
-            }
-        }
+        let mut stats = FetchStats::default();
+        let mut results = fetch_all_pages(url, sourcer, &mut stats, spinner, "")?;
 
         let committees = self.committee.clone().unwrap_or_default();
-        for chunk in committees.chunks(50) {
-            let efiling_filing_args = fec_api::EfilingFilingArgs {
-                committees: chunk.to_vec(),
-                form_types: self.form_type.clone(),
-            };
-            let mut current = client.efiling_filings_url(efiling_filing_args);
-            loop {
-                // Note: efile/filings has max-age=0 so caching won't help, but we pass the cache anyway
-                let (items, response) = filing_items(
-                    &current.0,
-                    sourcer
-                        .cache
-                        .api_cache_mut()
-                        .map(|c| c as &mut dyn ApiCache),
-                )?;
-                if response.cache_hit {
-                    cache_hits += 1;
-                } else {
-                    cache_misses += 1;
-                }
-                for item in items {
-                    if !results
-                        .iter()
-                        .any(|existing| existing.filing_id == item.filing_id)
-                    {
-                        results.push(item);
-                    }
-                }
-                if let Some(next_url) = response.next_url {
-                    current.0 = next_url;
-                } else {
-                    break;
-                }
-            }
-        }
+        fetch_efiling_dedup(
+            client,
+            &committees,
+            &self.form_type,
+            sourcer,
+            &mut results,
+            &mut stats,
+        )?;
 
         Ok(results)
     }
