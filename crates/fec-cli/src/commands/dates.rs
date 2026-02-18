@@ -392,14 +392,50 @@ impl App {
         self.table_state.selected().and_then(|i| self.events.get(i))
     }
 
-    fn build_calendar_events(&self) -> CalendarEventStore {
+    fn build_calendar_events(
+        &self,
+        start_month: Month,
+        start_year: i32,
+        num_months: usize,
+    ) -> CalendarEventStore {
         let mut store = CalendarEventStore::today(
             Style::default()
+                .fg(Color::Black)
                 .add_modifier(Modifier::BOLD)
                 .bg(Color::Blue),
         );
 
-        // Add event dates with their category colors
+        let now = Zoned::now();
+        let today_jiff = now.date();
+
+        // Dim all past days in displayed months
+        let mut month = start_month;
+        let mut year = start_year;
+        for _ in 0..num_months {
+            if Date::from_calendar_date(year, month, 1).is_ok() {
+                let days_in_month = month.length(year);
+                for day in 1..=days_in_month {
+                    if let Ok(date) = Date::from_calendar_date(year, month, day) {
+                        if let Ok(jiff_date) =
+                            JiffDate::new(year as i16, month as i8, day as i8)
+                        {
+                            if jiff_date < today_jiff {
+                                store.add(
+                                    date,
+                                    Style::default().add_modifier(Modifier::DIM),
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+            month = month.next();
+            if month == Month::January {
+                year += 1;
+            }
+        }
+
+        // Add event dates with their category colors (overrides dim for event days)
         for event in &self.events {
             if let Some(ref jiff_date) = event.start_date {
                 if let Ok(month) = Month::try_from(jiff_date.month() as u8) {
@@ -408,11 +444,18 @@ impl App {
                         month,
                         jiff_date.day() as u8,
                     ) {
+                        let is_past = *jiff_date < today_jiff;
                         store.add(
                             date,
-                            Style::default()
-                                .fg(event.category_color())
-                                .add_modifier(Modifier::BOLD),
+                            if is_past {
+                                Style::default()
+                                    .fg(event.category_color())
+                                    .add_modifier(Modifier::DIM)
+                            } else {
+                                Style::default()
+                                    .fg(event.category_color())
+                                    .add_modifier(Modifier::BOLD)
+                            },
                         );
                     }
                 }
@@ -732,7 +775,8 @@ fn render_calendar_row(f: &mut Frame, app: &App, area: Rect) {
         .constraints(constraints)
         .split(centered_area);
 
-    let calendar_store = app.build_calendar_events();
+    let calendar_store =
+        app.build_calendar_events(app.current_month, app.current_year, num_months);
 
     let default_style = Style::default();
 
@@ -781,6 +825,8 @@ fn render_events_list(f: &mut Frame, app: &mut App, area: Rect) {
     ])
     .height(1);
 
+    let today = Zoned::now().date();
+
     let rows: Vec<Row> = app
         .events
         .iter()
@@ -793,11 +839,28 @@ fn render_events_list(f: &mut Frame, app: &mut App, area: Rect) {
                 &event.summary
             };
 
-            Row::new(vec![
-                Cell::from(date),
-                Cell::from(category.as_str()).style(Style::default().fg(event.category_color())),
-                Cell::from(truncate_str(desc, 60)),
-            ])
+            let is_past = event
+                .end_date
+                .as_ref()
+                .or(event.start_date.as_ref())
+                .is_some_and(|d| *d < today);
+
+            if is_past {
+                let dim = Style::default().add_modifier(Modifier::DIM);
+                Row::new(vec![
+                    Cell::from(date).style(dim),
+                    Cell::from(category.as_str())
+                        .style(Style::default().fg(event.category_color()).add_modifier(Modifier::DIM)),
+                    Cell::from(truncate_str(desc, 60)).style(dim),
+                ])
+            } else {
+                Row::new(vec![
+                    Cell::from(date),
+                    Cell::from(category.as_str())
+                        .style(Style::default().fg(event.category_color())),
+                    Cell::from(truncate_str(desc, 60)),
+                ])
+            }
         })
         .collect();
 
