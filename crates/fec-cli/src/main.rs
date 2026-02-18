@@ -58,14 +58,8 @@ fn main() {
                     parse_err.exit();
                 }
             } else if std::io::stdin().is_terminal() {
-                // No arguments and TTY available - start search TUI
-                let sourcer = sourcer::FilingSourcer::new(None);
-                let search_args = cli::SearchArgs {
-                    query: String::new(),
-                    cycle: 2026,
-                    rpc: false,
-                };
-                commands::search(sourcer, &search_args)
+                // No arguments and TTY available - start landing page
+                commands::landing(None)
             } else {
                 parse_err.exit();
             }

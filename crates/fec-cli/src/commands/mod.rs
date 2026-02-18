@@ -5,6 +5,7 @@ mod dates;
 pub mod export;
 mod fastfec;
 mod info;
+mod landing;
 mod rss;
 mod search;
 
@@ -15,5 +16,6 @@ pub use dates::dates;
 pub use export::export;
 pub use fastfec::fastfec;
 pub use info::{info, InfoInput};
+pub use landing::landing;
 pub use rss::rss;
 pub use search::search;
