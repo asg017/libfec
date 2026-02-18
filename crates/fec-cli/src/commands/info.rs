@@ -789,6 +789,9 @@ fn show_filing_detail_tui(detail: FilingDetail, committee_name: &str) -> anyhow:
                     // In info context, go back to committee detail (if coming from there)
                     break;
                 }
+                FilingDetailAction::OpenWebsite { url } => {
+                    let _ = open::that(&url);
+                }
                 FilingDetailAction::None => {}
             }
         }

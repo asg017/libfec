@@ -126,6 +126,9 @@ pub(crate) fn run_app<B: ratatui::backend::Backend>(
                             FilingDetailAction::ShowFiler { filer_id } => {
                                 app.show_filer_from_filing(sourcer, &filer_id);
                             }
+                            FilingDetailAction::OpenWebsite { url } => {
+                                let _ = open::that(&url);
+                            }
                             FilingDetailAction::None => {}
                         }
                     }

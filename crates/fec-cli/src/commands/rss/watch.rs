@@ -1,7 +1,9 @@
 use crate::cli::RssArgs;
 use crate::commands::export::sqlite;
 use crate::sourcer::FilingSourcer;
-use crate::tui::filing_detail::{render_filing_detail, FilingDetail, FilingDetailState};
+use crate::tui::filing_detail::{
+    render_filing_detail, FilingDetail, FilingDetailAction, FilingDetailState,
+};
 use anyhow::Result;
 use crossterm::{
     event::{self, Event, KeyCode, KeyEventKind},
@@ -223,43 +225,15 @@ fn show_filing_detail(
                 break;
             }
 
-            match key.code {
-                KeyCode::Esc | KeyCode::Char('q') => {
-                    if state.show_yank_popup {
-                        state.show_yank_popup = false;
-                    } else {
-                        break;
-                    }
-                }
-                KeyCode::Char('y') => {
-                    if !state.show_yank_popup {
-                        state.show_yank_popup = true;
-                    }
-                }
-                KeyCode::Char('o') => {
+            match state.handle_key_event(key, &detail) {
+                FilingDetailAction::Exit => break,
+                FilingDetailAction::OpenBrowser => {
                     let _ = detail.open_in_browser();
                 }
-                KeyCode::Char('j') | KeyCode::Down => {
-                    if state.show_yank_popup {
-                        state.yank_next(&detail);
-                    } else {
-                        state.scroll_down();
-                    }
+                FilingDetailAction::OpenWebsite { url } => {
+                    let _ = open::that(&url);
                 }
-                KeyCode::Char('k') | KeyCode::Up => {
-                    if state.show_yank_popup {
-                        state.yank_previous(&detail);
-                    } else {
-                        state.scroll_up();
-                    }
-                }
-                KeyCode::Enter => {
-                    if state.show_yank_popup {
-                        state.copy_selected(&detail);
-                        state.show_yank_popup = false;
-                    }
-                }
-                _ => {}
+                FilingDetailAction::ShowFiler { .. } | FilingDetailAction::None => {}
             }
         }
     }

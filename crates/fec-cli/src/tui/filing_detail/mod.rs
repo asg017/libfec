@@ -1,26 +1,26 @@
 //! Filing Detail TUI Component
 //!
 //! This module provides rendering functions for displaying detailed FEC filing information
-//! within a ratatui application. It integrates with parent TUI apps (info) to
-//! provide a seamless navigation experience.
-//!
-//! The detail view shows all available filing information including form type, filer,
-//! coverage period, summary data, and metadata.
+//! within a ratatui application. It supports form-specific cover UIs for F1, F3, and F3P
+//! while sharing common chrome (title, URL, metadata, help bar, yank popup, key handling).
 //!
 //! Keyboard shortcuts:
 //! - Esc/q: Return to previous view
 //! - c: View committee or candidate detail page
 //! - o: Open filing in browser
+//! - w: Open committee website (F1 forms only)
 //! - y: Open copy popup to copy filing ID, filer ID, or filer name to clipboard
 //! - j/k: Scroll up/down
-//!
-//! Copy popup navigation:
-//! - up/down or j/k: Navigate options
-//! - Enter: Copy selected value to clipboard
-//! - Esc: Cancel and close popup
+
+pub mod f1;
+pub mod f3;
+pub mod f3p;
 
 use crate::tui::{navigation_popup_help_line, HelpBar};
 use crossterm::event::{KeyCode, KeyEvent};
+use f1::FilingDetailF1;
+use f3::FilingDetailF3;
+use f3p::FilingDetailF3P;
 use fec_parser::{covers::Cover, report_code_label};
 use indicatif::HumanBytes;
 use num_format::{Locale, ToFormattedString};
@@ -43,11 +43,21 @@ pub enum FilingDetailAction {
     OpenBrowser,
     /// User pressed 'c' to view committee/candidate detail
     ShowFiler { filer_id: String },
+    /// User pressed 'w' to open committee website (F1)
+    OpenWebsite { url: String },
+}
+
+pub enum FilingCoverContent {
+    Form1(Box<FilingDetailF1>),
+    Form3(FilingDetailF3),
+    Form3P(FilingDetailF3P),
+    Unknown,
 }
 
 /// Holds extracted filing information for TUI display
 pub struct FilingDetail {
     pub filing_id: String,
+    pub form_type: String,
     pub report_code: Option<String>,
     pub filer_name: String,
     pub filer_id: String,
@@ -62,15 +72,7 @@ pub struct FilingDetail {
     pub comment: Option<String>,
     pub treasurer: Option<String>,
     pub signed_date: Option<String>,
-    pub summary: Option<FilingSummary>,
-}
-
-/// Summary data for cover forms
-pub struct FilingSummary {
-    pub cash_on_hand_beginning: f64,
-    pub total_receipts: f64,
-    pub total_disbursements: f64,
-    pub cash_on_hand_end: f64,
+    pub cover_content: FilingCoverContent,
 }
 
 impl FilingDetail {
@@ -88,40 +90,32 @@ impl FilingDetail {
 
 impl<R: std::io::Read> From<&fec_parser::Filing<R>> for FilingDetail {
     fn from(filing: &fec_parser::Filing<R>) -> Self {
-        let (treasurer, signed_date, summary) = if let Some(ref cover) = filing.cover.cover_data {
-            match cover {
-                Cover::Form1(form) => (
-                    Some(form.treasurer.to_string()),
-                    form.date_signed.map(|d| d.to_string()),
-                    None, // F1 is a registration form, no financial summary
-                ),
-                Cover::Form3(form) => (
-                    Some(form.treasurer.to_string()),
-                    Some(form.signed.to_string()),
-                    Some(FilingSummary {
-                        cash_on_hand_beginning: form.detailed_summary.cash_on_hand_beginning,
-                        total_receipts: form.detailed_summary.total_receipts_period,
-                        total_disbursements: form.detailed_summary.total_disbursements_period,
-                        cash_on_hand_end: form.summary.line12_cash_on_hand_close_of_period,
-                    }),
-                ),
-                Cover::Form3P(form) => (
-                    Some(form.treasurer.to_string()),
-                    Some(form.signed.to_string()),
-                    Some(FilingSummary {
-                        cash_on_hand_beginning: form.summary.line6_cash_on_hand_beginning_period,
-                        total_receipts: form.summary.line7_total_receipts,
-                        total_disbursements: form.summary.line9_total_disbursements,
-                        cash_on_hand_end: form.summary.line10_cash_on_hand_end_period,
-                    }),
-                ),
-            }
-        } else {
-            (None, None, None)
-        };
+        let (treasurer, signed_date, cover_content) =
+            if let Some(ref cover) = filing.cover.cover_data {
+                match cover {
+                    Cover::Form1(form) => (
+                        Some(form.treasurer.to_string()),
+                        form.date_signed.map(|d| d.to_string()),
+                        FilingCoverContent::Form1(Box::new(FilingDetailF1::from(form))),
+                    ),
+                    Cover::Form3(form) => (
+                        Some(form.treasurer.to_string()),
+                        Some(form.signed.to_string()),
+                        FilingCoverContent::Form3(FilingDetailF3::from(form)),
+                    ),
+                    Cover::Form3P(form) => (
+                        Some(form.treasurer.to_string()),
+                        Some(form.signed.to_string()),
+                        FilingCoverContent::Form3P(FilingDetailF3P::from(form)),
+                    ),
+                }
+            } else {
+                (None, None, FilingCoverContent::Unknown)
+            };
 
         FilingDetail {
             filing_id: filing.filing_id.clone(),
+            form_type: filing.cover.form_type.clone(),
             report_code: filing.cover.report_code.clone(),
             filer_name: filing.cover.filer_name.clone(),
             filer_id: filing.cover.filer_id.clone(),
@@ -136,12 +130,12 @@ impl<R: std::io::Read> From<&fec_parser::Filing<R>> for FilingDetail {
             comment: filing.header.comment.clone(),
             treasurer,
             signed_date,
-            summary,
+            cover_content,
         }
     }
 }
 
-fn format_usd(amount: f64) -> String {
+pub(crate) fn format_usd(amount: f64) -> String {
     let rounded = (amount * 100.0).round() as i64;
     let dollars = rounded / 100;
     let cents = (rounded % 100).abs();
@@ -243,6 +237,16 @@ impl FilingDetailState {
             KeyCode::Char('c') => FilingDetailAction::ShowFiler {
                 filer_id: filing.filer_id.clone(),
             },
+            KeyCode::Char('w') => {
+                if let FilingCoverContent::Form1(ref data) = filing.cover_content {
+                    if let Some(ref url) = data.committee_url {
+                        if !url.is_empty() {
+                            return FilingDetailAction::OpenWebsite { url: url.clone() };
+                        }
+                    }
+                }
+                FilingDetailAction::None
+            }
             KeyCode::Char('y') => {
                 if !self.show_yank_popup {
                     self.show_yank_popup = true;
@@ -290,28 +294,28 @@ fn render_title(f: &mut Frame, filing: &FilingDetail, area: Rect) {
         .map(|rc| report_code_label(rc.as_str()))
         .unwrap_or("");
     let title_text = format!(
-        "FEC-{} {} by {} ({})",
-        filing.filing_id, report_label, filing.filer_name, filing.filer_id
+        "FEC-{} {} {} by {} ({})",
+        filing.filing_id, filing.form_type, report_label, filing.filer_name, filing.filer_id
     );
     let title = Paragraph::new(title_text).style(Style::default().add_modifier(Modifier::BOLD));
     f.render_widget(title, area);
 }
 
 fn render_content(f: &mut Frame, filing: &FilingDetail, state: &FilingDetailState, area: Rect) {
-    let mut lines = vec![];
+    let mut lines: Vec<Line<'static>> = vec![];
 
     // Coverage period
     if let (Some(ref from), Some(ref through)) = (&filing.coverage_from, &filing.coverage_through) {
         lines.push(Line::from(vec![
             Span::styled(
-                from,
+                from.clone(),
                 Style::default()
                     .fg(Color::Yellow)
                     .add_modifier(Modifier::BOLD),
             ),
             Span::raw(" through "),
             Span::styled(
-                through,
+                through.clone(),
                 Style::default()
                     .fg(Color::Yellow)
                     .add_modifier(Modifier::BOLD),
@@ -320,98 +324,28 @@ fn render_content(f: &mut Frame, filing: &FilingDetail, state: &FilingDetailStat
         lines.push(Line::from(""));
     }
 
-    // Treasurer and signed date (for F3P forms)
+    // Treasurer and signed date
     if let (Some(ref treasurer), Some(ref signed)) = (&filing.treasurer, &filing.signed_date) {
         lines.push(Line::from(vec![
             Span::styled(
-                "Signed by: ",
+                "Signed by: ".to_string(),
                 Style::default()
                     .fg(Color::Yellow)
                     .add_modifier(Modifier::BOLD),
             ),
-            Span::raw(treasurer),
+            Span::raw(treasurer.clone()),
             Span::raw(" on "),
-            Span::raw(signed),
+            Span::raw(signed.clone()),
         ]));
         lines.push(Line::from(""));
     }
 
-    // Summary section (for F3P forms) - simple table format
-    if let Some(ref summary) = filing.summary {
-        // Calculate percentage change
-        let pct_change = if summary.cash_on_hand_beginning == 0.0 {
-            100.0
-        } else {
-            ((summary.cash_on_hand_end - summary.cash_on_hand_beginning)
-                / summary.cash_on_hand_beginning)
-                * 100.0
-        };
-        let amount_change = summary.cash_on_hand_end - summary.cash_on_hand_beginning;
-        let pct_color = if pct_change >= 0.0 {
-            Color::Green
-        } else {
-            Color::Red
-        };
-        let pct_sign = if pct_change >= 0.0 { "+" } else { "" };
-
-        // Cash on Hand - Start
-        lines.push(Line::from(vec![
-            Span::styled(
-                format!("{:<24}", "Cash on Hand - Start"),
-                Style::default().fg(Color::White),
-            ),
-            Span::styled(
-                format!("{:>16}", format_usd(summary.cash_on_hand_beginning)),
-                Style::default().fg(Color::White),
-            ),
-        ]));
-
-        // Receipts
-        lines.push(Line::from(vec![
-            Span::styled(
-                format!("{:<24}", "Receipts"),
-                Style::default().fg(Color::White),
-            ),
-            Span::styled(
-                format!("+{:>15}", format_usd(summary.total_receipts)),
-                Style::default().fg(Color::Blue),
-            ),
-        ]));
-
-        // Expenditures
-        lines.push(Line::from(vec![
-            Span::styled(
-                format!("{:<24}", "Expenditures"),
-                Style::default().fg(Color::White),
-            ),
-            Span::styled(
-                format!("-{:>15}", format_usd(summary.total_disbursements)),
-                Style::default().fg(Color::Red),
-            ),
-        ]));
-
-        // Cash on Hand - End (with percentage change)
-        lines.push(Line::from(vec![
-            Span::styled(
-                format!("{:<24}", "Cash on Hand - End"),
-                Style::default().fg(Color::White),
-            ),
-            Span::styled(
-                format!("{:>16}", format_usd(summary.cash_on_hand_end)),
-                Style::default().fg(Color::White).bold(),
-            ),
-            Span::styled(
-                format!(
-                    " {}{}, {}{:.0}%",
-                    pct_sign,
-                    format_usd(amount_change),
-                    pct_sign,
-                    pct_change
-                ),
-                Style::default().fg(pct_color).add_modifier(Modifier::DIM),
-            ),
-        ]));
-        lines.push(Line::from(""));
+    // Form-specific content
+    match &filing.cover_content {
+        FilingCoverContent::Form1(data) => f1::append_f1_content_lines(&mut lines, data),
+        FilingCoverContent::Form3(data) => f3::append_f3_content_lines(&mut lines, data),
+        FilingCoverContent::Form3P(data) => f3p::append_f3p_content_lines(&mut lines, data),
+        FilingCoverContent::Unknown => {}
     }
 
     // FEC URL
@@ -421,13 +355,13 @@ fn render_content(f: &mut Frame, filing: &FilingDetail, state: &FilingDetailStat
     );
     lines.push(Line::from(vec![
         Span::styled(
-            "URL: ",
+            "URL: ".to_string(),
             Style::default()
                 .fg(Color::Yellow)
                 .add_modifier(Modifier::BOLD),
         ),
         Span::styled(
-            &fec_url,
+            fec_url,
             Style::default()
                 .fg(Color::Blue)
                 .add_modifier(Modifier::UNDERLINED),
@@ -438,7 +372,7 @@ fn render_content(f: &mut Frame, filing: &FilingDetail, state: &FilingDetailStat
     // Metadata line
     lines.push(Line::from(vec![
         Span::styled(
-            "Version: ",
+            "Version: ".to_string(),
             Style::default()
                 .fg(Color::Yellow)
                 .add_modifier(Modifier::BOLD),
@@ -446,7 +380,7 @@ fn render_content(f: &mut Frame, filing: &FilingDetail, state: &FilingDetailStat
         Span::raw(format!("v{}", filing.fec_version)),
         Span::raw("  "),
         Span::styled(
-            "Size: ",
+            "Size: ".to_string(),
             Style::default()
                 .fg(Color::Yellow)
                 .add_modifier(Modifier::BOLD),
@@ -456,7 +390,7 @@ fn render_content(f: &mut Frame, filing: &FilingDetail, state: &FilingDetailStat
 
     lines.push(Line::from(vec![
         Span::styled(
-            "Software: ",
+            "Software: ".to_string(),
             Style::default()
                 .fg(Color::Yellow)
                 .add_modifier(Modifier::BOLD),
@@ -471,7 +405,7 @@ fn render_content(f: &mut Frame, filing: &FilingDetail, state: &FilingDetailStat
     if let Some(ref report_id) = filing.report_id {
         lines.push(Line::from(vec![
             Span::styled(
-                "Report ID: ",
+                "Report ID: ".to_string(),
                 Style::default()
                     .fg(Color::Yellow)
                     .add_modifier(Modifier::BOLD),
@@ -487,7 +421,7 @@ fn render_content(f: &mut Frame, filing: &FilingDetail, state: &FilingDetailStat
     if let Some(ref comment) = filing.comment {
         lines.push(Line::from(vec![
             Span::styled(
-                "Comment: ",
+                "Comment: ".to_string(),
                 Style::default()
                     .fg(Color::Yellow)
                     .add_modifier(Modifier::BOLD),
@@ -502,14 +436,20 @@ fn render_content(f: &mut Frame, filing: &FilingDetail, state: &FilingDetailStat
     f.render_widget(content, area);
 }
 
-fn render_help_text(f: &mut Frame, area: Rect) {
-    HelpBar::new()
+fn render_help_text(f: &mut Frame, filing: &FilingDetail, area: Rect) {
+    let mut help = HelpBar::new()
         .keys(vec!["Esc", "q"], " back")
         .item("c", " filer")
-        .item("o", " open")
-        .item("y", " copy")
-        .item("j/k", " scroll")
-        .render(f, area);
+        .item("o", " open");
+
+    // Show 'w' key for F1 forms with a committee URL
+    if let FilingCoverContent::Form1(ref data) = filing.cover_content {
+        if data.committee_url.as_ref().is_some_and(|u| !u.is_empty()) {
+            help = help.item("w", " website");
+        }
+    }
+
+    help.item("y", " copy").item("j/k", " scroll").render(f, area);
 }
 
 pub fn render_filing_detail(
@@ -530,7 +470,7 @@ pub fn render_filing_detail(
 
     render_title(f, filing, title_area);
     render_content(f, filing, state, content_area);
-    render_help_text(f, help_area);
+    render_help_text(f, filing, help_area);
 
     if state.show_yank_popup {
         render_yank_popup(f, area, filing, state);
