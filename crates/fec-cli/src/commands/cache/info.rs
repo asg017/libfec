@@ -1,7 +1,10 @@
 use colored::Colorize;
 use indicatif::HumanBytes;
+use jiff::Timestamp;
 use num_format::{Locale, ToFormattedString};
+use rusqlite::Connection;
 use std::path::Path;
+use std::str::FromStr;
 
 use crate::sourcer::FilingSourcer;
 
@@ -43,6 +46,157 @@ fn get_daily_zip_meta_count(cache_dir: &Path) -> usize {
     }
 
     count
+}
+
+struct BulkDataSource {
+    display_name: &'static str,
+    table_name: &'static str,
+}
+
+const BULK_DATA_SOURCES: &[BulkDataSource] = &[
+    BulkDataSource {
+        display_name: "Candidates",
+        table_name: "libfec_candidates",
+    },
+    BulkDataSource {
+        display_name: "Committees",
+        table_name: "libfec_committees",
+    },
+    BulkDataSource {
+        display_name: "Candidate-Committee Linkages",
+        table_name: "libfec_candidate_committee_linkages",
+    },
+    BulkDataSource {
+        display_name: "Operating Expenditures",
+        table_name: "operating_expenses",
+    },
+    BulkDataSource {
+        display_name: "Contributions to Candidates",
+        table_name: "committee_contributions_to_candidates",
+    },
+];
+
+struct CycleInfo {
+    year: u16,
+    modified_at: String,
+    last_checked_at: String,
+}
+
+fn human_duration_since_rfc2822(rfc2822: &str) -> String {
+    let ts = match jiff::fmt::rfc2822::parse(rfc2822) {
+        Ok(zdt) => zdt.timestamp(),
+        Err(_) => return "unknown".to_string(),
+    };
+    human_duration_since(ts)
+}
+
+/// Parse SQLite datetime('now') format: "YYYY-MM-DD HH:MM:SS" (UTC)
+fn human_duration_since_sqlite(datetime_str: &str) -> String {
+    let dt = match jiff::civil::DateTime::from_str(datetime_str) {
+        Ok(dt) => dt,
+        Err(_) => return "unknown".to_string(),
+    };
+    let ts = match dt.in_tz("UTC") {
+        Ok(zdt) => zdt.timestamp(),
+        Err(_) => return "unknown".to_string(),
+    };
+    human_duration_since(ts)
+}
+
+fn human_duration_since(ts: Timestamp) -> String {
+    let now = Timestamp::now();
+    let span = match now.since(ts) {
+        Ok(span) => span,
+        Err(_) => return "unknown".to_string(),
+    };
+
+    let total_seconds = span.total(jiff::Unit::Second).unwrap_or(0.0) as i64;
+    if total_seconds < 60 {
+        return "just now".to_string();
+    }
+
+    let total_minutes = total_seconds / 60;
+    if total_minutes < 60 {
+        return format!(
+            "{} minute{} ago",
+            total_minutes,
+            if total_minutes == 1 { "" } else { "s" }
+        );
+    }
+
+    let total_hours = total_minutes / 60;
+    if total_hours < 24 {
+        return format!(
+            "{} hour{} ago",
+            total_hours,
+            if total_hours == 1 { "" } else { "s" }
+        );
+    }
+
+    let total_days = total_hours / 24;
+    format!(
+        "{} day{} ago",
+        total_days,
+        if total_days == 1 { "" } else { "s" }
+    )
+}
+
+fn query_bulk_cycles(conn: &Connection, table_name: &str) -> Vec<CycleInfo> {
+    let cycles_table = format!("{}_cycles", table_name);
+    let sql = format!(
+        "SELECT year, modified_at, last_checked_at FROM {} ORDER BY year",
+        cycles_table
+    );
+    let mut stmt = match conn.prepare(&sql) {
+        Ok(stmt) => stmt,
+        Err(_) => return Vec::new(), // table doesn't exist
+    };
+    let rows = stmt
+        .query_map([], |row| {
+            Ok(CycleInfo {
+                year: row.get::<_, u16>(0)?,
+                modified_at: row.get::<_, String>(1)?,
+                last_checked_at: row.get::<_, String>(2)?,
+            })
+        })
+        .ok();
+    match rows {
+        Some(rows) => rows.flatten().collect(),
+        None => Vec::new(),
+    }
+}
+
+fn print_bulk_data_info(conn: &Connection) {
+    let mut any_found = false;
+
+    for source in BULK_DATA_SOURCES {
+        let cycles = query_bulk_cycles(conn, source.table_name);
+        if cycles.is_empty() {
+            continue;
+        }
+        any_found = true;
+
+        let years: Vec<String> = cycles.iter().map(|c| c.year.to_string()).collect();
+        println!(
+            "    {} ({})",
+            source.display_name.bold(),
+            years.join(", ")
+        );
+
+        for cycle in &cycles {
+            let modified = human_duration_since_rfc2822(&cycle.modified_at);
+            let checked = human_duration_since_sqlite(&cycle.last_checked_at);
+            println!(
+                "      {} — {}",
+                cycle.year.to_string().bold(),
+                format!("modified {}, checked {}", modified, checked).dimmed()
+            );
+        }
+    }
+
+    if !any_found {
+        println!("    {}", "(no bulk data synced)".dimmed());
+    }
 }
 
 pub fn cache_info(sourcer: &FilingSourcer) {
@@ -89,5 +243,12 @@ pub fn cache_info(sourcer: &FilingSourcer) {
         );
     } else {
         println!("  API cache database:    {}", "(not found)".dimmed());
+    }
+
+    // Bulk data details
+    if let Ok(conn) = Connection::open(&bulk_db_path) {
+        println!();
+        println!("  {}", "Bulk Data".bold());
+        print_bulk_data_info(&conn);
     }
 }
