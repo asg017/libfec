@@ -3,6 +3,7 @@ pub mod bulk_candidate_committee_linkage;
 pub mod bulk_candidates;
 pub mod bulk_committee;
 pub mod bulk_opexp;
+pub mod bulk_pas2;
 mod bulk_utils;
 
 use crate::{cache::bulk_candidates::ResolveCandidateParams, sourcer::FecFilingId};

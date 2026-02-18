@@ -463,6 +463,8 @@ pub enum BulkSource {
     Opex,
     Committees,
     Candidates,
+    /// Contributions from committees to candidates (PAS2)
+    ContributionsToCandidates,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, clap::ValueEnum)]
