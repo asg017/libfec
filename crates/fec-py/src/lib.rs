@@ -1,3 +1,5 @@
+#![allow(clippy::useless_conversion)]
+
 mod parser;
 mod foo;
 mod fecfile;

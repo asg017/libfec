@@ -58,6 +58,7 @@ pub fn export(tx: &mut Transaction<'_>, year: u16) -> Result<()> {
     Ok(())
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct Pas2SearchResult {
     pub committee_id: String,
@@ -73,6 +74,7 @@ pub struct Pas2SearchResult {
 }
 
 /// Search contributions from committees to candidates by contributor name
+#[allow(dead_code)]
 pub fn search_contributions_to_candidates(
     conn: &mut rusqlite::Connection,
     cycle: u16,

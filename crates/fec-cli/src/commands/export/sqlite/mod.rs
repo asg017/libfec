@@ -740,6 +740,7 @@ pub struct ExportMetadata {
     /// Auto-incrementing database ID
     pub export_id: i64,
     /// UUID string (for RPC compatibility)
+    #[allow(dead_code)]
     pub export_uuid: String,
 }
 
@@ -965,6 +966,7 @@ pub struct RssSyncMetadata {
     /// Auto-incrementing database ID
     pub sync_id: i64,
     /// UUID string (for RPC compatibility)
+    #[allow(dead_code)]
     pub sync_uuid: String,
 }
 
@@ -1067,6 +1069,7 @@ pub fn record_rss_filing(
 }
 
 /// Update the RSS sync status and counts
+#[allow(clippy::too_many_arguments)]
 pub fn finalize_rss_sync(
     db: &Connection,
     sync_id: i64,

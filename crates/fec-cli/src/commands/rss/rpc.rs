@@ -34,6 +34,7 @@ use std::path::PathBuf;
 /// JSON-RPC 2.0 request
 #[derive(Debug, Deserialize)]
 struct JsonRpcRequest {
+    #[allow(dead_code)]
     jsonrpc: String,
     id: Option<serde_json::Value>,
     method: String,
@@ -95,6 +96,7 @@ struct SyncStartParams {
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "lowercase")]
 enum RpcPhase {
+    #[allow(dead_code)]
     Idle,
     Fetching,
     Exporting,
@@ -481,7 +483,7 @@ fn handle_sync_start(
                         });
                     }
 
-                    let preset_str = sync_params.preset.as_ref().map(|s| s.as_str());
+                    let preset_str = sync_params.preset.as_deref();
                     let metadata_params = sqlite::RssSyncParams {
                         feed_url: None, // Will be set after fetch
                         feed_last_modified: None,

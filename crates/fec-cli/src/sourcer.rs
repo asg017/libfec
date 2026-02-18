@@ -315,7 +315,7 @@ pub(crate) fn process_inputs(
                         .unwrap_or_default(),
                     Item::CustomUrl(url) => url
                         .path_segments()
-                        .and_then(|s| s.last())
+                        .and_then(|mut s| s.next_back())
                         .map(|s| s.trim_end_matches(".fec").to_string())
                         .unwrap_or_default(),
                 };
@@ -403,7 +403,7 @@ pub(crate) fn process_inputs(
                     } else if let Ok(url) = Url::parse(line_item) {
                         let filing_id = url
                             .path_segments()
-                            .and_then(|s| s.last())
+                            .and_then(|mut s| s.next_back())
                             .map(|s| s.trim_end_matches(".fec").to_string())
                             .unwrap_or_default();
                         input_mappings.push(InputMapping {

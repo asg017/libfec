@@ -1,6 +1,5 @@
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList};
-use fec_parser;
 use std::io::Cursor;
 use std::collections::HashMap;
 
@@ -138,7 +137,7 @@ pub fn loads<'py>(py: Python<'py>, input: &Bound<'_, PyAny>, options: Option<&Bo
         
         // Add to appropriate schedule list
         itemizations.entry(schedule_key)
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(row_dict);
     }
     
@@ -323,7 +322,7 @@ pub fn from_file<'py>(
     let bytes = std::fs::read(&file_path)
         .map_err(|e| pyo3::exceptions::PyIOError::new_err(format!("Failed to read file: {}", e)))?;
     
-    loads(py, &bytes.into_py(py).bind(py), options)
+    loads(py, bytes.into_py(py).bind(py), options)
 }
 
 /// Print example output showing first itemization of each type

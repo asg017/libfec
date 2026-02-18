@@ -834,7 +834,7 @@ fn item_to_filing_id(item: &Item) -> String {
             .unwrap_or_default(),
         Item::CustomUrl(url) => url
             .path_segments()
-            .and_then(|s| s.last())
+            .and_then(|mut s| s.next_back())
             .map(|s| s.trim_end_matches(".fec").to_string())
             .unwrap_or_default(),
         Item::FilingId(id) => id.to_bare(),
