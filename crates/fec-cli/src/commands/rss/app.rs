@@ -9,6 +9,17 @@ use rusqlite::Connection;
 use std::collections::HashSet;
 use std::time::{Duration, Instant};
 
+/// Search mode for filtering filings by committee name
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SearchMode {
+    /// No search active
+    Off,
+    /// Actively typing a search query
+    Typing,
+    /// Search filter locked in, back to normal navigation
+    Locked,
+}
+
 /// Copy menu options
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CopyOption {
@@ -49,8 +60,6 @@ pub struct App {
     pub next_fetch: Instant,
     /// Refresh interval
     pub interval: Duration,
-    /// Max items to display
-    pub limit: usize,
     /// Table selection state
     pub table_state: TableState,
     /// Whether to exit
@@ -87,6 +96,12 @@ pub struct App {
     pub export_batch_total: usize,
     /// Only show/export items since this timestamp
     pub since_ts: Option<Timestamp>,
+    /// Committee name search query
+    pub search_query: String,
+    /// Current search mode
+    pub search_mode: SearchMode,
+    /// Indices into `items` that match the current search query
+    pub filtered_indices: Vec<usize>,
 }
 
 impl App {
@@ -99,7 +114,6 @@ impl App {
     ) -> Self {
         let now = Instant::now();
         let interval = args.interval;
-        let limit = args.limit;
         let cover_only = args.cover_only;
         let (feed_url, _) = rss::build_feed_url(&args);
         Self {
@@ -109,7 +123,6 @@ impl App {
             last_fetch: now,
             next_fetch: now, // Fetch immediately
             interval: Duration::from_secs(interval),
-            limit,
             table_state: TableState::default(),
             should_exit: false,
             error: None,
@@ -128,6 +141,9 @@ impl App {
             export_queue: Vec::new(),
             export_batch_total: 0,
             since_ts,
+            search_query: String::new(),
+            search_mode: SearchMode::Off,
+            filtered_indices: Vec::new(),
         }
     }
 
@@ -180,11 +196,7 @@ impl App {
                 }
 
                 self.items = filtered_items;
-
-                // Select first item if available
-                if !self.items.is_empty() && self.table_state.selected().is_none() {
-                    self.table_state.select(Some(0));
-                }
+                self.update_filter();
             }
             Err(e) => {
                 self.error = Some(e.to_string());
@@ -215,13 +227,13 @@ impl App {
     }
 
     pub fn select_next(&mut self) {
-        let item_count = self.items.len();
-        if item_count == 0 {
+        let count = self.filtered_indices.len();
+        if count == 0 {
             return;
         }
         let i = match self.table_state.selected() {
             Some(i) => {
-                if i >= item_count - 1 {
+                if i >= count - 1 {
                     0
                 } else {
                     i + 1
@@ -233,14 +245,14 @@ impl App {
     }
 
     pub fn select_previous(&mut self) {
-        let item_count = self.items.len();
-        if item_count == 0 {
+        let count = self.filtered_indices.len();
+        if count == 0 {
             return;
         }
         let i = match self.table_state.selected() {
             Some(i) => {
                 if i == 0 {
-                    item_count - 1
+                    count - 1
                 } else {
                     i - 1
                 }
@@ -251,19 +263,21 @@ impl App {
     }
 
     pub fn select_first(&mut self) {
-        if !self.items.is_empty() {
+        if !self.filtered_indices.is_empty() {
             self.table_state.select(Some(0));
         }
     }
 
     pub fn select_last(&mut self) {
-        if !self.items.is_empty() {
-            self.table_state.select(Some(self.items.len() - 1));
+        if !self.filtered_indices.is_empty() {
+            self.table_state.select(Some(self.filtered_indices.len() - 1));
         }
     }
 
     pub fn get_selected_item(&self) -> Option<&Item> {
-        self.table_state.selected().and_then(|i| self.items.get(i))
+        let selected = self.table_state.selected()?;
+        let &item_idx = self.filtered_indices.get(selected)?;
+        self.items.get(item_idx)
     }
 
     pub fn copy_selected(&mut self, option: CopyOption) {
@@ -353,5 +367,64 @@ impl App {
 
     pub fn data_age_display(&self) -> String {
         format_duration_ago(self.data_age_seconds())
+    }
+
+    /// Recompute filtered_indices based on the current search query
+    pub fn update_filter(&mut self) {
+        if self.search_query.is_empty() {
+            self.filtered_indices = (0..self.items.len()).collect();
+        } else {
+            let query = self.search_query.to_lowercase();
+            self.filtered_indices = self
+                .items
+                .iter()
+                .enumerate()
+                .filter(|(_, item)| {
+                    item.extract_committee_name()
+                        .to_lowercase()
+                        .contains(&query)
+                })
+                .map(|(i, _)| i)
+                .collect();
+        }
+        // Keep selection in bounds
+        if self.filtered_indices.is_empty() {
+            self.table_state.select(None);
+        } else {
+            let current = self.table_state.selected().unwrap_or(0);
+            if current >= self.filtered_indices.len() {
+                self.table_state.select(Some(0));
+            }
+        }
+    }
+
+    pub fn start_search(&mut self) {
+        self.search_mode = SearchMode::Typing;
+        self.search_query.clear();
+        self.update_filter();
+    }
+
+    pub fn search_push_char(&mut self, c: char) {
+        self.search_query.push(c);
+        self.update_filter();
+    }
+
+    pub fn search_pop_char(&mut self) {
+        self.search_query.pop();
+        self.update_filter();
+    }
+
+    pub fn lock_search(&mut self) {
+        if self.search_query.is_empty() {
+            self.cancel_search();
+        } else {
+            self.search_mode = SearchMode::Locked;
+        }
+    }
+
+    pub fn cancel_search(&mut self) {
+        self.search_mode = SearchMode::Off;
+        self.search_query.clear();
+        self.update_filter();
     }
 }

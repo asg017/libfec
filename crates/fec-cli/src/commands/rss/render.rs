@@ -8,42 +8,45 @@ use ratatui::{
     Frame,
 };
 
-use super::app::{App, CopyOption};
+use super::app::{App, CopyOption, SearchMode};
 
 pub fn ui(f: &mut Frame, app: &mut App) {
     let has_filters = !app.active_filters.to_display_strings().is_empty();
+    let has_search = app.search_mode != SearchMode::Off;
+
+    let mut constraints = vec![Constraint::Length(3)]; // Header
+    if has_filters {
+        constraints.push(Constraint::Length(1)); // Filters
+    }
+    if has_search {
+        constraints.push(Constraint::Length(1)); // Search bar
+    }
+    constraints.push(Constraint::Min(1)); // Table
+    constraints.push(Constraint::Length(3)); // Footer
+
+    let areas = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints(constraints)
+        .split(f.area());
+
+    let mut idx = 0;
+    let header_area = areas[idx];
+    idx += 1;
+
+    render_header(f, app, header_area);
 
     if has_filters {
-        let layout = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([
-                Constraint::Length(3), // Header
-                Constraint::Length(1), // Filters
-                Constraint::Min(1),    // Table
-                Constraint::Length(3), // Footer
-            ]);
-
-        let [header_area, filters_area, table_area, footer_area] = f.area().layout(&layout);
-
-        render_header(f, app, header_area);
-        render_filters(f, app, filters_area);
-        render_filings_table(f, app, table_area);
-        render_footer(f, app, footer_area);
-    } else {
-        let layout = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([
-                Constraint::Length(3), // Header
-                Constraint::Min(1),    // Table
-                Constraint::Length(3), // Footer
-            ]);
-
-        let [header_area, table_area, footer_area] = f.area().layout(&layout);
-
-        render_header(f, app, header_area);
-        render_filings_table(f, app, table_area);
-        render_footer(f, app, footer_area);
+        render_filters(f, app, areas[idx]);
+        idx += 1;
     }
+    if has_search {
+        render_search_bar(f, app, areas[idx]);
+        idx += 1;
+    }
+
+    render_filings_table(f, app, areas[idx]);
+    idx += 1;
+    render_footer(f, app, areas[idx]);
 
     render_status_message(f, app, f.area());
 
@@ -129,6 +132,37 @@ pub fn render_filters(f: &mut Frame, app: &App, area: Rect) {
     f.render_widget(filter_widget, area);
 }
 
+pub fn render_search_bar(f: &mut Frame, app: &App, area: Rect) {
+    let mut spans = vec![Span::styled(
+        "/",
+        Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD),
+    )];
+
+    match app.search_mode {
+        SearchMode::Typing => {
+            spans.push(Span::styled(
+                &app.search_query,
+                Style::default().fg(Color::White),
+            ));
+            spans.push(Span::styled("█", Style::default().fg(Color::Yellow)));
+        }
+        SearchMode::Locked => {
+            spans.push(Span::styled(
+                &app.search_query,
+                Style::default().fg(Color::Yellow),
+            ));
+            spans.push(Span::styled(
+                " (filtered)",
+                Style::default().fg(Color::DarkGray),
+            ));
+        }
+        SearchMode::Off => {}
+    }
+
+    let search = Paragraph::new(Line::from(spans));
+    f.render_widget(search, area);
+}
+
 pub fn render_filings_table(f: &mut Frame, app: &mut App, area: Rect) {
     let now = Zoned::now();
 
@@ -161,11 +195,10 @@ pub fn render_filings_table(f: &mut Frame, app: &mut App, area: Rect) {
     ])
     .height(1);
 
-    // Only display up to the limit, but app.items contains all items for export
     let rows: Vec<Row> = app
-        .items
+        .filtered_indices
         .iter()
-        .take(app.limit)
+        .filter_map(|&i| app.items.get(i))
         .map(|item| {
             let committee = item.extract_committee_name();
             let form = item.form_type.as_deref().unwrap_or("-");
@@ -186,13 +219,18 @@ pub fn render_filings_table(f: &mut Frame, app: &mut App, area: Rect) {
         })
         .collect();
 
-    let item_count = app.items.len();
     let table_title = if app.error.is_some() {
         "Recent Filings (error fetching)".to_string()
     } else if app.items.is_empty() {
         "Recent Filings (loading...)".to_string()
+    } else if app.search_mode != SearchMode::Off && !app.search_query.is_empty() {
+        format!(
+            "Recent Filings ({} of {})",
+            app.filtered_indices.len(),
+            app.items.len()
+        )
     } else {
-        format!("Recent Filings ({})", item_count)
+        format!("Recent Filings ({})", app.items.len())
     };
 
     let table = Table::new(
@@ -262,7 +300,9 @@ pub fn render_footer(f: &mut Frame, app: &App, area: Rect) {
         Span::styled("Enter", shortcut_style),
         Span::styled(" open  ", descrip_style),
         Span::styled("y", shortcut_style),
-        Span::styled(" copy", descrip_style),
+        Span::styled(" copy  ", descrip_style),
+        Span::styled("/", shortcut_style),
+        Span::styled(" search", descrip_style),
     ]);
 
     let help_line = Line::from(help_spans);
@@ -432,6 +472,8 @@ mod tests {
         export_queue: Vec<String>,
         export_batch_total: usize,
         selected_index: Option<usize>,
+        search_query: String,
+        search_mode: SearchMode,
     }
 
     impl Default for TestAppBuilder {
@@ -448,6 +490,8 @@ mod tests {
                 export_queue: Vec::new(),
                 export_batch_total: 0,
                 selected_index: None,
+                search_query: String::new(),
+                search_mode: SearchMode::Off,
             }
         }
     }
@@ -494,6 +538,12 @@ mod tests {
             self
         }
 
+        fn search(mut self, query: &str, mode: SearchMode) -> Self {
+            self.search_query = query.to_string();
+            self.search_mode = mode;
+            self
+        }
+
         fn build(self) -> App {
             let now = Instant::now();
             let mut app = App {
@@ -503,7 +553,6 @@ mod tests {
                 last_fetch: now,
                 next_fetch: now + Duration::from_secs(300),
                 interval: Duration::from_secs(300),
-                limit: 20,
                 table_state: ratatui::widgets::TableState::default(),
                 should_exit: false,
                 error: self.error,
@@ -536,7 +585,11 @@ mod tests {
                 export_queue: self.export_queue,
                 export_batch_total: self.export_batch_total,
                 since_ts: None,
+                search_query: self.search_query.clone(),
+                search_mode: self.search_mode,
+                filtered_indices: Vec::new(),
             };
+            app.update_filter();
             if let Some(idx) = self.selected_index {
                 app.table_state.select(Some(idx));
             }
@@ -734,6 +787,41 @@ mod tests {
             .selected(0)
             .build();
         let mut terminal = Terminal::new(TestBackend::new(60, 20)).unwrap();
+        terminal.draw(|f| ui(f, &mut app)).unwrap();
+        assert_snapshot!(terminal.backend());
+    }
+
+    #[test]
+    fn test_ui_search_typing() {
+        let mut app = TestAppBuilder::default()
+            .items(create_test_items())
+            .search("act", SearchMode::Typing)
+            .selected(0)
+            .build();
+        let mut terminal = Terminal::new(TestBackend::new(80, 24)).unwrap();
+        terminal.draw(|f| ui(f, &mut app)).unwrap();
+        assert_snapshot!(terminal.backend());
+    }
+
+    #[test]
+    fn test_ui_search_locked() {
+        let mut app = TestAppBuilder::default()
+            .items(create_test_items())
+            .search("actblue", SearchMode::Locked)
+            .selected(0)
+            .build();
+        let mut terminal = Terminal::new(TestBackend::new(80, 24)).unwrap();
+        terminal.draw(|f| ui(f, &mut app)).unwrap();
+        assert_snapshot!(terminal.backend());
+    }
+
+    #[test]
+    fn test_ui_search_no_results() {
+        let mut app = TestAppBuilder::default()
+            .items(create_test_items())
+            .search("zzzzz", SearchMode::Typing)
+            .build();
+        let mut terminal = Terminal::new(TestBackend::new(80, 24)).unwrap();
         terminal.draw(|f| ui(f, &mut app)).unwrap();
         assert_snapshot!(terminal.backend());
     }

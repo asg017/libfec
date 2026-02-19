@@ -16,7 +16,7 @@ use std::collections::HashSet;
 use std::io::{self, Stdout};
 use std::time::{Duration, Instant};
 
-use super::app::{App, CopyOption};
+use super::app::{App, CopyOption, SearchMode};
 use super::export::open_or_create_export_db;
 use super::render::ui;
 
@@ -113,6 +113,13 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<Stdout>>, app: &mut App) -> 
                     continue;
                 }
 
+                // Handle search typing mode
+                if app.search_mode == SearchMode::Typing {
+                    handle_search_input(app, key.code);
+                    app.last_key = None;
+                    continue;
+                }
+
                 handle_main_input(terminal, app, key.code)?;
                 app.last_key = Some(key.code);
             }
@@ -142,14 +149,36 @@ fn handle_copy_menu_input(app: &mut App, key: KeyCode) {
     }
 }
 
+fn handle_search_input(app: &mut App, key: KeyCode) {
+    match key {
+        KeyCode::Esc => app.cancel_search(),
+        KeyCode::Enter => app.lock_search(),
+        KeyCode::Backspace => app.search_pop_char(),
+        KeyCode::Up => app.select_previous(),
+        KeyCode::Down => app.select_next(),
+        KeyCode::Char(c) => app.search_push_char(c),
+        _ => {}
+    }
+}
+
 fn handle_main_input(
     terminal: &mut Terminal<CrosstermBackend<Stdout>>,
     app: &mut App,
     key: KeyCode,
 ) -> Result<()> {
     match key {
-        KeyCode::Char('q') | KeyCode::Esc => {
+        KeyCode::Char('q') => {
             app.should_exit = true;
+        }
+        KeyCode::Esc => {
+            if app.search_mode == SearchMode::Locked {
+                app.cancel_search();
+            } else {
+                app.should_exit = true;
+            }
+        }
+        KeyCode::Char('/') => {
+            app.start_search();
         }
         KeyCode::Char('r') => {
             app.fetch()?;
