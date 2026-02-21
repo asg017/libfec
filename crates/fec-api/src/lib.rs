@@ -53,6 +53,9 @@ pub struct FilingArgs {
 
     #[builder(default = "false")]
     pub include_amendments: bool,
+
+    pub min_receipt_date: Option<String>,
+    pub max_receipt_date: Option<String>,
     // TODO:
     // candidates: Vec<String>,
 
@@ -305,6 +308,12 @@ impl Api {
         }
         for year in &args.cycle {
             qp.append_pair("cycle", &year.to_string());
+        }
+        if let Some(min_receipt_date) = &args.min_receipt_date {
+            qp.append_pair("min_receipt_date", min_receipt_date);
+        }
+        if let Some(max_receipt_date) = &args.max_receipt_date {
+            qp.append_pair("max_receipt_date", max_receipt_date);
         }
         qp.append_pair("sort", "committee_id");
         drop(qp);

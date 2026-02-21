@@ -65,6 +65,12 @@ pub struct FilingsApiFlags {
     )]
     pub coverage_between: Vec<Date>,
 
+    #[arg(long, help = "Only filings received after this date (YYYY-MM-DD)")]
+    pub received_after: Option<Date>,
+
+    #[arg(long, help = "Only filings received before this date (YYYY-MM-DD)")]
+    pub received_before: Option<Date>,
+
     #[arg(long)]
     pub election: Option<u16>,
     #[arg(long)]
@@ -268,6 +274,8 @@ impl FilingsApiFlags {
                 .committee_types(self.committee_type.clone())
                 .cycle(vec![election])
                 .include_amendments(self.include_amendments)
+                .min_receipt_date(self.received_after.map(|d| d.to_string()))
+                .max_receipt_date(self.received_before.map(|d| d.to_string()))
                 .build()
                 .with_context(|| {
                     format!("could not build filing args for election {}", election)
@@ -302,6 +310,8 @@ impl FilingsApiFlags {
             .committee_types(self.committee_type.clone())
             .cycle(self.cycle.clone().unwrap_or_default())
             .include_amendments(self.include_amendments)
+            .min_receipt_date(self.received_after.map(|d| d.to_string()))
+            .max_receipt_date(self.received_before.map(|d| d.to_string()))
             .build()
             .with_context(|| "could not build filing args".to_string())?;
         let url = client.filings_url(args).0;
