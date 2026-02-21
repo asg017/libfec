@@ -1,0 +1,23 @@
+version = 1
+revision = 3
+requires-python = ">=3.13"
+
+[[package]]
+name = "ie-24hr"
+version = "0.1.0"
+source = { virtual = "." }
+dependencies = [
+    { name = "solite-codegen-python-sqlite3" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "solite-codegen-python-sqlite3", specifier = ">=0.0.1a4" }]
+
+[[package]]
+name = "solite-codegen-python-sqlite3"
+version = "0.0.1a4"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/07/28/d07271e51489edd94b89708ef3d45161e3ed984c4cc3e19d53a05029f963/solite_codegen_python_sqlite3-0.0.1a4.tar.gz", hash = "sha256:72be16f099e5daa7f1a9aec14d1c5aebdb73f7ee250c9261ba13adf651b16008", size = 3259, upload-time = "2025-08-09T05:10:17.47Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e0/be/73b4d6d324f5ab22fbaef25322905aa4ce7d9db99eb44f06d3e9e6fba857/solite_codegen_python_sqlite3-0.0.1a4-py3-none-any.whl", hash = "sha256:1779af7dddfa38f72f2f1ccc49e407e3dc4703692bb6af1e7ece9bcdca1a8841", size = 3913, upload-time = "2025-08-09T05:10:16.811Z" },
+]

@@ -1,0 +1,422 @@
+{
+  "setup": [],
+  "exports": [
+    {
+      "name": "claim_job",
+      "result_type": "Rows",
+      "sql": "with\n  enqueued as (\n    select id\n    from queue\n    where status in ('pending', 'leased')\n      and available_at <= unixepoch('subsec')\n      and (lease_until is null\n        or lease_until < unixepoch('subsec'))\n      and attempts < max_attempts\n    order by priority desc, created_at\n    limit 1\n  )\nupdate queue\nset\n  status = 'leased',\n  leased_by = :worker_id,\n  lease_until = unixepoch('subsec') + ifnull(:lease_seconds, 3),\n  attempts = attempts + 1\nwhere id = (select id from enqueued)\nreturning *;",
+      "parameters": [
+        {
+          "full_name": ":worker_id",
+          "name": "worker_id",
+          "annotated_type": null
+        },
+        {
+          "full_name": ":lease_seconds",
+          "name": "lease_seconds",
+          "annotated_type": null
+        }
+      ],
+      "columns": [
+        {
+          "name": "id",
+          "origin_database": "main",
+          "origin_table": "queue",
+          "origin_column": "id",
+          "decltype": "INTEGER"
+        },
+        {
+          "name": "item_id",
+          "origin_database": "main",
+          "origin_table": "queue",
+          "origin_column": "item_id",
+          "decltype": "TEXT"
+        },
+        {
+          "name": "status",
+          "origin_database": "main",
+          "origin_table": "queue",
+          "origin_column": "status",
+          "decltype": "TEXT"
+        },
+        {
+          "name": "priority",
+          "origin_database": "main",
+          "origin_table": "queue",
+          "origin_column": "priority",
+          "decltype": "INTEGER"
+        },
+        {
+          "name": "attempts",
+          "origin_database": "main",
+          "origin_table": "queue",
+          "origin_column": "attempts",
+          "decltype": "INTEGER"
+        },
+        {
+          "name": "max_attempts",
+          "origin_database": "main",
+          "origin_table": "queue",
+          "origin_column": "max_attempts",
+          "decltype": "INTEGER"
+        },
+        {
+          "name": "lease_until",
+          "origin_database": "main",
+          "origin_table": "queue",
+          "origin_column": "lease_until",
+          "decltype": "INTEGER"
+        },
+        {
+          "name": "leased_by",
+          "origin_database": "main",
+          "origin_table": "queue",
+          "origin_column": "leased_by",
+          "decltype": "TEXT"
+        },
+        {
+          "name": "created_at",
+          "origin_database": "main",
+          "origin_table": "queue",
+          "origin_column": "created_at",
+          "decltype": "INTEGER"
+        },
+        {
+          "name": "available_at",
+          "origin_database": "main",
+          "origin_table": "queue",
+          "origin_column": "available_at",
+          "decltype": "INTEGER"
+        },
+        {
+          "name": "completed_at",
+          "origin_database": "main",
+          "origin_table": "queue",
+          "origin_column": "completed_at",
+          "decltype": "INTEGER"
+        },
+        {
+          "name": "failed_at",
+          "origin_database": "main",
+          "origin_table": "queue",
+          "origin_column": "failed_at",
+          "decltype": "INTEGER"
+        },
+        {
+          "name": "last_error",
+          "origin_database": "main",
+          "origin_table": "queue",
+          "origin_column": "last_error",
+          "decltype": "TEXT"
+        }
+      ]
+    },
+    {
+      "name": "complete_job",
+      "result_type": "Rows",
+      "sql": "update queue\nset\n  status = 'completed',\n  completed_at = unixepoch('subsec')\nwhere id = :job_id\n  and leased_by = :worker_id\nreturning *;",
+      "parameters": [
+        {
+          "full_name": ":job_id",
+          "name": "job_id",
+          "annotated_type": null
+        },
+        {
+          "full_name": ":worker_id",
+          "name": "worker_id",
+          "annotated_type": null
+        }
+      ],
+      "columns": [
+        {
+          "name": "id",
+          "origin_database": "main",
+          "origin_table": "queue",
+          "origin_column": "id",
+          "decltype": "INTEGER"
+        },
+        {
+          "name": "item_id",
+          "origin_database": "main",
+          "origin_table": "queue",
+          "origin_column": "item_id",
+          "decltype": "TEXT"
+        },
+        {
+          "name": "status",
+          "origin_database": "main",
+          "origin_table": "queue",
+          "origin_column": "status",
+          "decltype": "TEXT"
+        },
+        {
+          "name": "priority",
+          "origin_database": "main",
+          "origin_table": "queue",
+          "origin_column": "priority",
+          "decltype": "INTEGER"
+        },
+        {
+          "name": "attempts",
+          "origin_database": "main",
+          "origin_table": "queue",
+          "origin_column": "attempts",
+          "decltype": "INTEGER"
+        },
+        {
+          "name": "max_attempts",
+          "origin_database": "main",
+          "origin_table": "queue",
+          "origin_column": "max_attempts",
+          "decltype": "INTEGER"
+        },
+        {
+          "name": "lease_until",
+          "origin_database": "main",
+          "origin_table": "queue",
+          "origin_column": "lease_until",
+          "decltype": "INTEGER"
+        },
+        {
+          "name": "leased_by",
+          "origin_database": "main",
+          "origin_table": "queue",
+          "origin_column": "leased_by",
+          "decltype": "TEXT"
+        },
+        {
+          "name": "created_at",
+          "origin_database": "main",
+          "origin_table": "queue",
+          "origin_column": "created_at",
+          "decltype": "INTEGER"
+        },
+        {
+          "name": "available_at",
+          "origin_database": "main",
+          "origin_table": "queue",
+          "origin_column": "available_at",
+          "decltype": "INTEGER"
+        },
+        {
+          "name": "completed_at",
+          "origin_database": "main",
+          "origin_table": "queue",
+          "origin_column": "completed_at",
+          "decltype": "INTEGER"
+        },
+        {
+          "name": "failed_at",
+          "origin_database": "main",
+          "origin_table": "queue",
+          "origin_column": "failed_at",
+          "decltype": "INTEGER"
+        },
+        {
+          "name": "last_error",
+          "origin_database": "main",
+          "origin_table": "queue",
+          "origin_column": "last_error",
+          "decltype": "TEXT"
+        }
+      ]
+    },
+    {
+      "name": "fail_job",
+      "result_type": "Rows",
+      "sql": "update queue\nset\n  status = 'pending',\n  lease_until = null,\n  leased_by = null,\n  available_at = unixepoch('subsec') + :retry_delay,\n  last_error = :error\nwhere id = :job_id\n  and leased_by = :worker_id\nreturning *;",
+      "parameters": [
+        {
+          "full_name": ":retry_delay",
+          "name": "retry_delay",
+          "annotated_type": null
+        },
+        {
+          "full_name": ":error",
+          "name": "error",
+          "annotated_type": null
+        },
+        {
+          "full_name": ":job_id",
+          "name": "job_id",
+          "annotated_type": null
+        },
+        {
+          "full_name": ":worker_id",
+          "name": "worker_id",
+          "annotated_type": null
+        }
+      ],
+      "columns": [
+        {
+          "name": "id",
+          "origin_database": "main",
+          "origin_table": "queue",
+          "origin_column": "id",
+          "decltype": "INTEGER"
+        },
+        {
+          "name": "item_id",
+          "origin_database": "main",
+          "origin_table": "queue",
+          "origin_column": "item_id",
+          "decltype": "TEXT"
+        },
+        {
+          "name": "status",
+          "origin_database": "main",
+          "origin_table": "queue",
+          "origin_column": "status",
+          "decltype": "TEXT"
+        },
+        {
+          "name": "priority",
+          "origin_database": "main",
+          "origin_table": "queue",
+          "origin_column": "priority",
+          "decltype": "INTEGER"
+        },
+        {
+          "name": "attempts",
+          "origin_database": "main",
+          "origin_table": "queue",
+          "origin_column": "attempts",
+          "decltype": "INTEGER"
+        },
+        {
+          "name": "max_attempts",
+          "origin_database": "main",
+          "origin_table": "queue",
+          "origin_column": "max_attempts",
+          "decltype": "INTEGER"
+        },
+        {
+          "name": "lease_until",
+          "origin_database": "main",
+          "origin_table": "queue",
+          "origin_column": "lease_until",
+          "decltype": "INTEGER"
+        },
+        {
+          "name": "leased_by",
+          "origin_database": "main",
+          "origin_table": "queue",
+          "origin_column": "leased_by",
+          "decltype": "TEXT"
+        },
+        {
+          "name": "created_at",
+          "origin_database": "main",
+          "origin_table": "queue",
+          "origin_column": "created_at",
+          "decltype": "INTEGER"
+        },
+        {
+          "name": "available_at",
+          "origin_database": "main",
+          "origin_table": "queue",
+          "origin_column": "available_at",
+          "decltype": "INTEGER"
+        },
+        {
+          "name": "completed_at",
+          "origin_database": "main",
+          "origin_table": "queue",
+          "origin_column": "completed_at",
+          "decltype": "INTEGER"
+        },
+        {
+          "name": "failed_at",
+          "origin_database": "main",
+          "origin_table": "queue",
+          "origin_column": "failed_at",
+          "decltype": "INTEGER"
+        },
+        {
+          "name": "last_error",
+          "origin_database": "main",
+          "origin_table": "queue",
+          "origin_column": "last_error",
+          "decltype": "TEXT"
+        }
+      ]
+    },
+    {
+      "name": "filing_spent_per_candidate",
+      "result_type": "Rows",
+      "sql": "select\n  f.filer_name,\n  e.support_oppose_code,\n  e.candidate_first_name,\n  e.candidate_last_name,\n  e.candidate_office,\n  e.candidate_state,\n  e.candidate_district,\n  e.candidate_id_number,\n  sum(e.expenditure_amount) as total_spent\nfrom libfec_schedule_e as e\njoin libfec_filings as f on e.filing_id = f.filing_id\nwhere e.filing_id = $filing_id\ngroup by e.candidate_id_number, e.support_oppose_code;",
+      "parameters": [
+        {
+          "full_name": "$filing_id",
+          "name": "filing_id",
+          "annotated_type": null
+        }
+      ],
+      "columns": [
+        {
+          "name": "filer_name",
+          "origin_database": "main",
+          "origin_table": "libfec_filings",
+          "origin_column": "filer_name",
+          "decltype": "TEXT"
+        },
+        {
+          "name": "support_oppose_code",
+          "origin_database": "main",
+          "origin_table": "libfec_schedule_e",
+          "origin_column": "support_oppose_code",
+          "decltype": "TEXT"
+        },
+        {
+          "name": "candidate_first_name",
+          "origin_database": "main",
+          "origin_table": "libfec_schedule_e",
+          "origin_column": "candidate_first_name",
+          "decltype": "TEXT"
+        },
+        {
+          "name": "candidate_last_name",
+          "origin_database": "main",
+          "origin_table": "libfec_schedule_e",
+          "origin_column": "candidate_last_name",
+          "decltype": "TEXT"
+        },
+        {
+          "name": "candidate_office",
+          "origin_database": "main",
+          "origin_table": "libfec_schedule_e",
+          "origin_column": "candidate_office",
+          "decltype": "TEXT"
+        },
+        {
+          "name": "candidate_state",
+          "origin_database": "main",
+          "origin_table": "libfec_schedule_e",
+          "origin_column": "candidate_state",
+          "decltype": "TEXT"
+        },
+        {
+          "name": "candidate_district",
+          "origin_database": "main",
+          "origin_table": "libfec_schedule_e",
+          "origin_column": "candidate_district",
+          "decltype": "TEXT"
+        },
+        {
+          "name": "candidate_id_number",
+          "origin_database": "main",
+          "origin_table": "libfec_schedule_e",
+          "origin_column": "candidate_id_number",
+          "decltype": "TEXT"
+        },
+        {
+          "name": "total_spent",
+          "origin_database": null,
+          "origin_table": null,
+          "origin_column": null,
+          "decltype": null
+        }
+      ]
+    }
+  ]
+}

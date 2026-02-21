@@ -1,0 +1,9 @@
+[project]
+name = "ie-24hr"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "solite-codegen-python-sqlite3>=0.0.1a4",
+]
