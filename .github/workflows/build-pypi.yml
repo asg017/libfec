@@ -48,6 +48,17 @@ jobs:
         with:
           name: wheels_libfec-linux-x86_64
           path: crates/fec-cli/dist
+  windows-x86_64:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: astral-sh/setup-uv@v6
+      - run: uvx maturin build -b bin --release --locked --out dist/
+        working-directory: crates/fec-cli
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: wheels_libfec-windows-x86_64
+          path: crates/fec-cli/dist
   linux-armv7:
     runs-on: ubuntu-latest
     steps:
