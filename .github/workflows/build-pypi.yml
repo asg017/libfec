@@ -48,3 +48,16 @@ jobs:
         with:
           name: wheels_libfec-linux-x86_64
           path: crates/fec-cli/dist
+  linux-armv7:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: PyO3/maturin-action@b1bd829e37fef14c63f19162034228a2f3dc1021 # v1
+        with:
+          target: armv7-unknown-linux-gnueabihf
+          manylinux: 2_17
+          args: --release --locked --out crates/fec-cli/dist -b bin -m crates/fec-cli/Cargo.toml
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: wheels_libfec-linux-armv7
+          path: crates/fec-cli/dist
