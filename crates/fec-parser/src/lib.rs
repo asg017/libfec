@@ -62,10 +62,10 @@ impl FilingHeader {
         let ef_type = header_get_field!(hdr, 1, "ef_type");
         let fec_version = header_get_field!(hdr, 2, "fec_version").trim().to_owned();
         match fec_version.as_str() {
-            "8.1" | "8.2" | "8.3" | "8.4" | "8.5" => (),
+            "8.0" | "8.1" | "8.2" | "8.3" | "8.4" | "8.5" => (),
             _ => {
                 return Err(FilingHeaderError::UnsupportedVersion(format!(
-                    "Unsupported version '{fec_version}', only 8.5 is currently supported."
+                    "Unsupported version '{fec_version}', only 8.0-8.5 are currently supported."
                 )));
             }
         }
