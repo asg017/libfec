@@ -263,6 +263,10 @@ pub struct DatesArgs {
     /// Output format
     #[arg(long, short = 'f', value_enum, default_value = "tui")]
     pub format: DatesFormat,
+
+    /// Override today's date (YYYY-MM-DD). Useful for testing and debugging.
+    #[arg(long)]
+    pub as_of: Option<String>,
 }
 
 impl DatesArgs {

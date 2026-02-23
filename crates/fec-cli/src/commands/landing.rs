@@ -127,6 +127,7 @@ pub fn landing(cache_directory: Option<PathBuf>) -> Result<()> {
                             limit: 500,
                             state: None,
                             format: DatesFormat::Tui,
+                            as_of: None,
                         };
                         crate::commands::dates(sourcer, &args)?;
                     }

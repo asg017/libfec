@@ -35,7 +35,7 @@ use ratatui::{
 };
 use std::collections::HashMap;
 use std::io::{self, Stdout};
-use time::{Date, Month, OffsetDateTime};
+use time::{Date, Month};
 
 /// A calendar event from the FEC API
 #[derive(Debug, Clone)]
@@ -235,6 +235,17 @@ fn format_date(date: &JiffDate) -> String {
     )
 }
 
+/// Parse `--as-of` into a JiffDate, falling back to real today
+fn parse_as_of_date(as_of: &Option<String>) -> JiffDate {
+    if let Some(ref date_str) = as_of {
+        date_str
+            .parse::<JiffDate>()
+            .expect("Invalid --as-of date format, expected YYYY-MM-DD")
+    } else {
+        Zoned::now().date()
+    }
+}
+
 /// Application state for the calendar TUI
 struct App {
     events: Vec<CalendarEvent>,
@@ -249,22 +260,27 @@ struct App {
     events_by_date: HashMap<(i32, u8, u8), Vec<usize>>,
     /// The API URL used for the last fetch
     api_url: Option<String>,
+    /// The date to treat as "today" (from --as-of or real today)
+    today: JiffDate,
 }
 
 impl App {
     fn new(args: DatesArgs) -> Self {
-        let now = OffsetDateTime::now_local().unwrap_or_else(|_| OffsetDateTime::now_utc());
+        let today = parse_as_of_date(&args.as_of);
+        let current_month = time::Month::try_from(today.month() as u8).unwrap_or(time::Month::January);
+        let current_year = today.year() as i32;
         Self {
             events: Vec::new(),
             table_state: TableState::default(),
             should_exit: false,
             error: None,
             args,
-            current_month: now.month(),
-            current_year: now.year(),
+            current_month,
+            current_year,
             last_key: None,
             events_by_date: HashMap::new(),
             api_url: None,
+            today,
         }
     }
 
@@ -272,8 +288,7 @@ impl App {
         let api_key = std::env::var("LIBFEC_API_KEY").unwrap_or_else(|_| "DEMO_KEY".to_string());
         let api = Api::new(api_key.as_str());
 
-        let now = Zoned::now();
-        let today = now.date();
+        let today = self.today;
         let future = today.checked_add(jiff::Span::new().days(self.args.days as i64))?;
 
         let category_ids = self.args.category_ids();
@@ -398,15 +413,25 @@ impl App {
         start_year: i32,
         num_months: usize,
     ) -> CalendarEventStore {
-        let mut store = CalendarEventStore::today(
-            Style::default()
-                .fg(Color::Black)
-                .add_modifier(Modifier::BOLD)
-                .bg(Color::Blue),
-        );
+        let mut store = CalendarEventStore::default();
+        let today_jiff = self.today;
 
-        let now = Zoned::now();
-        let today_jiff = now.date();
+        // Highlight "today" in the calendar
+        if let Ok(today_month) = Month::try_from(today_jiff.month() as u8) {
+            if let Ok(today_time) = Date::from_calendar_date(
+                today_jiff.year() as i32,
+                today_month,
+                today_jiff.day() as u8,
+            ) {
+                store.add(
+                    today_time,
+                    Style::default()
+                        .fg(Color::Black)
+                        .add_modifier(Modifier::BOLD)
+                        .bg(Color::Blue),
+                );
+            }
+        }
 
         // Dim all past days in displayed months
         let mut month = start_month;
@@ -478,8 +503,7 @@ fn run_json_mode(args: &DatesArgs) -> Result<()> {
     let api_key = std::env::var("LIBFEC_API_KEY").unwrap_or_else(|_| "DEMO_KEY".to_string());
     let api = Api::new(api_key.as_str());
 
-    let now = Zoned::now();
-    let today = now.date();
+    let today = parse_as_of_date(&args.as_of);
     let future = today.checked_add(jiff::Span::new().days(args.days as i64))?;
 
     let category_ids = args.category_ids();
@@ -825,7 +849,7 @@ fn render_events_list(f: &mut Frame, app: &mut App, area: Rect) {
     ])
     .height(1);
 
-    let today = Zoned::now().date();
+    let today = app.today;
 
     let rows: Vec<Row> = app
         .events
@@ -1242,6 +1266,7 @@ mod tests {
             limit: 500,
             state: Some("CA".to_string()),
             format: DatesFormat::Tui,
+            as_of: None,
         };
 
         let ids = args_with_state.category_ids();
@@ -1259,6 +1284,7 @@ mod tests {
             limit: 500,
             state: None,
             format: DatesFormat::Tui,
+            as_of: None,
         };
 
         let ids = args_without_state.category_ids();
@@ -1280,6 +1306,7 @@ mod tests {
             limit: 500,
             state: Some("CA".to_string()),
             format: DatesFormat::Tui,
+            as_of: None,
         };
 
         let ids = args.category_ids();
