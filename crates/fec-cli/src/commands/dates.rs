@@ -126,6 +126,44 @@ impl CalendarEvent {
         }
     }
 
+    /// Extract the election type from the summary by stripping the state prefix.
+    /// e.g. "CA Primary Election" -> "Primary Election"
+    /// e.g. "TX/18 Special General Election Runoff" -> "Special General Election Runoff"
+    /// Returns None for non-elections (category_id != 36).
+    fn extract_election_type(&self) -> Option<&str> {
+        if self.category_id != 36 {
+            return None;
+        }
+        let summary = self.summary.as_str();
+        if let Some(first_word) = summary.split_whitespace().next() {
+            // "TX/18 ..." or "CA ..." — strip the first word if it looks like a state prefix
+            if first_word.contains('/') {
+                // District format like "TX/18"
+                if let Some((state_part, _)) = first_word.split_once('/') {
+                    if crate::utils::states::is_valid_state_code(state_part) {
+                        let rest = summary[first_word.len()..].trim_start();
+                        if !rest.is_empty() {
+                            return Some(rest);
+                        }
+                    }
+                }
+            } else if first_word.len() == 2
+                && crate::utils::states::is_valid_state_code(first_word)
+            {
+                let rest = summary[first_word.len()..].trim_start();
+                if !rest.is_empty() {
+                    return Some(rest);
+                }
+            }
+        }
+        // Fallback: return the whole summary if we can't strip a prefix
+        if summary.is_empty() {
+            None
+        } else {
+            Some(summary)
+        }
+    }
+
     /// Extract state code(s) from event summary or location
     /// Elections typically have format "XX/## Election Type" or "XX Election Type"
     /// Returns all applicable state codes for the event
@@ -212,6 +250,50 @@ impl CalendarEvent {
     }
 }
 
+enum DisplayRow {
+    Single(usize),
+    Grouped {
+        event_indices: Vec<usize>,
+        date: JiffDate,
+        election_type: String,
+        states: Vec<String>,
+    },
+}
+
+impl DisplayRow {
+    fn date(&self, events: &[CalendarEvent]) -> Option<JiffDate> {
+        match self {
+            DisplayRow::Single(idx) => events[*idx].start_date,
+            DisplayRow::Grouped { date, .. } => Some(*date),
+        }
+    }
+}
+
+fn format_state_list(states: &[String]) -> String {
+    match states.len() {
+        0 => String::new(),
+        1 => states[0].clone(),
+        2 => format!("{} and {}", states[0], states[1]),
+        _ => {
+            let (last, rest) = states.split_last().unwrap();
+            format!("{}, and {}", rest.join(", "), last)
+        }
+    }
+}
+
+fn pluralize_election_type(election_type: &str, count: usize) -> String {
+    if count <= 1 {
+        return election_type.to_string();
+    }
+    if election_type.ends_with("Election Runoff") {
+        format!("{}s", election_type)
+    } else if election_type.ends_with("Election") {
+        format!("{}s", election_type)
+    } else {
+        election_type.to_string()
+    }
+}
+
 fn parse_date(s: &str) -> Option<JiffDate> {
     // Try YYYY-MM-DD format
     if let Ok(date) = s.parse::<JiffDate>() {
@@ -258,6 +340,8 @@ struct App {
     last_key: Option<KeyCode>,
     /// Events grouped by date for calendar highlighting
     events_by_date: HashMap<(i32, u8, u8), Vec<usize>>,
+    /// Display rows (grouped elections + ungrouped events)
+    display_rows: Vec<DisplayRow>,
     /// The API URL used for the last fetch
     api_url: Option<String>,
     /// The date to treat as "today" (from --as-of or real today)
@@ -279,6 +363,7 @@ impl App {
             current_year,
             last_key: None,
             events_by_date: HashMap::new(),
+            display_rows: Vec::new(),
             api_url: None,
             today,
         }
@@ -336,7 +421,8 @@ impl App {
                 }
 
                 self.error = None;
-                if !self.events.is_empty() && self.table_state.selected().is_none() {
+                self.build_display_rows();
+                if !self.display_rows.is_empty() && self.table_state.selected().is_none() {
                     self.table_state.select(Some(0));
                 }
             }
@@ -347,8 +433,69 @@ impl App {
         Ok(())
     }
 
+    fn build_display_rows(&mut self) {
+        use std::collections::BTreeMap;
+
+        // Separate elections (category_id 36) that have extractable types from other events
+        // Key: (start_date, election_type) -> Vec<event_index>
+        let mut election_groups: BTreeMap<(JiffDate, String), Vec<usize>> = BTreeMap::new();
+        let mut non_election_indices: Vec<usize> = Vec::new();
+
+        for (idx, event) in self.events.iter().enumerate() {
+            if let Some(election_type) = event.extract_election_type() {
+                if let Some(date) = event.start_date {
+                    election_groups
+                        .entry((date, election_type.to_string()))
+                        .or_default()
+                        .push(idx);
+                    continue;
+                }
+            }
+            non_election_indices.push(idx);
+        }
+
+        let mut rows: Vec<DisplayRow> = Vec::new();
+
+        // Convert election groups into display rows
+        for ((date, election_type), indices) in &election_groups {
+            if indices.len() == 1 {
+                rows.push(DisplayRow::Single(indices[0]));
+            } else {
+                // Collect unique state codes, deduplicating (e.g. TX/18 + TX/25 -> just TX)
+                let mut states: Vec<String> = Vec::new();
+                for &idx in indices {
+                    for code in self.events[idx].extract_state_codes() {
+                        if !states.contains(&code) {
+                            states.push(code);
+                        }
+                    }
+                }
+                rows.push(DisplayRow::Grouped {
+                    event_indices: indices.clone(),
+                    date: *date,
+                    election_type: election_type.clone(),
+                    states,
+                });
+            }
+        }
+
+        // Add non-election events as Single rows
+        for idx in non_election_indices {
+            rows.push(DisplayRow::Single(idx));
+        }
+
+        // Sort all rows by date
+        rows.sort_by(|a, b| {
+            let date_a = a.date(&self.events);
+            let date_b = b.date(&self.events);
+            date_a.cmp(&date_b)
+        });
+
+        self.display_rows = rows;
+    }
+
     fn select_next(&mut self) {
-        let count = self.events.len();
+        let count = self.display_rows.len();
         if count == 0 {
             return;
         }
@@ -360,7 +507,7 @@ impl App {
     }
 
     fn select_previous(&mut self) {
-        let count = self.events.len();
+        let count = self.display_rows.len();
         if count == 0 {
             return;
         }
@@ -378,14 +525,14 @@ impl App {
     }
 
     fn select_first(&mut self) {
-        if !self.events.is_empty() {
+        if !self.display_rows.is_empty() {
             self.table_state.select(Some(0));
         }
     }
 
     fn select_last(&mut self) {
-        if !self.events.is_empty() {
-            self.table_state.select(Some(self.events.len() - 1));
+        if !self.display_rows.is_empty() {
+            self.table_state.select(Some(self.display_rows.len() - 1));
         }
     }
 
@@ -403,8 +550,10 @@ impl App {
         }
     }
 
-    fn get_selected_event(&self) -> Option<&CalendarEvent> {
-        self.table_state.selected().and_then(|i| self.events.get(i))
+    fn get_selected_display_row(&self) -> Option<&DisplayRow> {
+        self.table_state
+            .selected()
+            .and_then(|i| self.display_rows.get(i))
     }
 
     fn build_calendar_events(
@@ -638,10 +787,21 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<Stdout>>, app: &mut App) -> 
                     }
                     KeyCode::Char('o') => {
                         // Open event URL in browser if available
-                        if let Some(event) = app.get_selected_event() {
-                            if let Some(ref url) = event.url {
-                                let _ = open::that(url);
+                        match app.get_selected_display_row() {
+                            Some(DisplayRow::Single(idx)) => {
+                                if let Some(ref url) = app.events[*idx].url {
+                                    let _ = open::that(url);
+                                }
                             }
+                            Some(DisplayRow::Grouped { event_indices, .. }) => {
+                                // Open first event's URL
+                                if let Some(&idx) = event_indices.first() {
+                                    if let Some(ref url) = app.events[idx].url {
+                                        let _ = open::that(url);
+                                    }
+                                }
+                            }
+                            None => {}
                         }
                     }
                     KeyCode::Char('O') => {
@@ -682,7 +842,7 @@ fn render_header(f: &mut Frame, app: &App, area: Rect) {
             ),
             Span::raw("  "),
             Span::styled(
-                format!("{} ({} events)", category_str, app.events.len()),
+                format!("{} ({} events)", category_str, app.display_rows.len()),
                 Style::default().fg(Color::Gray),
             ),
         ])
@@ -852,43 +1012,79 @@ fn render_events_list(f: &mut Frame, app: &mut App, area: Rect) {
     let today = app.today;
 
     let rows: Vec<Row> = app
-        .events
+        .display_rows
         .iter()
-        .map(|event| {
-            let date = event.format_date_range();
-            let category = &event.category;
-            let desc = if event.summary.is_empty() {
-                &event.description
-            } else {
-                &event.summary
-            };
+        .map(|display_row| match display_row {
+            DisplayRow::Single(idx) => {
+                let event = &app.events[*idx];
+                let date = event.format_date_range();
+                let category = &event.category;
+                let desc = if event.summary.is_empty() {
+                    &event.description
+                } else {
+                    &event.summary
+                };
 
-            let is_past = event
-                .end_date
-                .as_ref()
-                .or(event.start_date.as_ref())
-                .is_some_and(|d| *d < today);
+                let is_past = event
+                    .end_date
+                    .as_ref()
+                    .or(event.start_date.as_ref())
+                    .is_some_and(|d| *d < today);
 
-            if is_past {
-                let dim = Style::default().add_modifier(Modifier::DIM);
-                Row::new(vec![
-                    Cell::from(date).style(dim),
-                    Cell::from(category.as_str())
-                        .style(Style::default().fg(event.category_color()).add_modifier(Modifier::DIM)),
-                    Cell::from(truncate_str(desc, 60)).style(dim),
-                ])
-            } else {
-                Row::new(vec![
-                    Cell::from(date),
-                    Cell::from(category.as_str())
-                        .style(Style::default().fg(event.category_color())),
-                    Cell::from(truncate_str(desc, 60)),
-                ])
+                if is_past {
+                    let dim = Style::default().add_modifier(Modifier::DIM);
+                    Row::new(vec![
+                        Cell::from(date).style(dim),
+                        Cell::from(category.as_str()).style(
+                            Style::default()
+                                .fg(event.category_color())
+                                .add_modifier(Modifier::DIM),
+                        ),
+                        Cell::from(truncate_str(desc, 60)).style(dim),
+                    ])
+                } else {
+                    Row::new(vec![
+                        Cell::from(date),
+                        Cell::from(category.as_str())
+                            .style(Style::default().fg(event.category_color())),
+                        Cell::from(truncate_str(desc, 60)),
+                    ])
+                }
+            }
+            DisplayRow::Grouped {
+                date,
+                election_type,
+                states,
+                ..
+            } => {
+                let date_str = format_date(date);
+                let type_str =
+                    pluralize_election_type(election_type, states.len());
+                let desc = format!("{} in {}", type_str, format_state_list(states));
+                let is_past = *date < today;
+                let color = Color::Cyan; // Elections are always Cyan
+
+                if is_past {
+                    let dim = Style::default().add_modifier(Modifier::DIM);
+                    Row::new(vec![
+                        Cell::from(date_str).style(dim),
+                        Cell::from("Election Dates")
+                            .style(Style::default().fg(color).add_modifier(Modifier::DIM)),
+                        Cell::from(truncate_str(&desc, 60)).style(dim),
+                    ])
+                } else {
+                    Row::new(vec![
+                        Cell::from(date_str),
+                        Cell::from("Election Dates")
+                            .style(Style::default().fg(color)),
+                        Cell::from(truncate_str(&desc, 60)),
+                    ])
+                }
             }
         })
         .collect();
 
-    let title = format!("Upcoming Events ({})", app.events.len());
+    let title = format!("Upcoming Events ({})", app.display_rows.len());
 
     let table = Table::new(
         rows,
@@ -911,46 +1107,74 @@ fn render_events_list(f: &mut Frame, app: &mut App, area: Rect) {
 }
 
 fn render_event_detail_panel(f: &mut Frame, app: &App, area: Rect) {
-    let lines = if let Some(event) = app.get_selected_event() {
-        let mut lines = Vec::new();
+    let (lines, border_color) = match app.get_selected_display_row() {
+        Some(DisplayRow::Single(idx)) => {
+            let event = &app.events[*idx];
+            let mut lines = Vec::new();
 
-        // Summary/Title
-        if !event.summary.is_empty() {
-            lines.push(Line::from(vec![
-                Span::styled("Summary: ", Style::default().fg(Color::Gray)),
-                Span::styled(&event.summary, Style::default().fg(Color::White)),
-            ]));
+            if !event.summary.is_empty() {
+                lines.push(Line::from(vec![
+                    Span::styled("Summary: ", Style::default().fg(Color::Gray)),
+                    Span::styled(&event.summary, Style::default().fg(Color::White)),
+                ]));
+            }
+
+            if let Some(ref loc) = event.location {
+                lines.push(Line::from(vec![
+                    Span::styled("Location: ", Style::default().fg(Color::Gray)),
+                    Span::styled(loc, Style::default().fg(Color::Cyan)),
+                ]));
+            }
+
+            if !event.description.is_empty() {
+                let desc =
+                    truncate_str(&event.description, (area.width as usize).saturating_sub(15));
+                lines.push(Line::from(vec![
+                    Span::styled("Details: ", Style::default().fg(Color::Gray)),
+                    Span::styled(desc, Style::default().fg(Color::White)),
+                ]));
+            }
+
+            (lines, event.category_color())
         }
+        Some(DisplayRow::Grouped {
+            election_type,
+            states,
+            date,
+            ..
+        }) => {
+            let type_str = pluralize_election_type(election_type, states.len());
+            let lines = vec![
+                Line::from(vec![
+                    Span::styled("Summary: ", Style::default().fg(Color::Gray)),
+                    Span::styled(
+                        format!("{} in {}", type_str, format_state_list(states)),
+                        Style::default().fg(Color::White),
+                    ),
+                ]),
+                Line::from(vec![
+                    Span::styled("Date: ", Style::default().fg(Color::Gray)),
+                    Span::styled(format_date(date), Style::default().fg(Color::White)),
+                ]),
+                Line::from(vec![
+                    Span::styled("States: ", Style::default().fg(Color::Gray)),
+                    Span::styled(
+                        format_state_list(states),
+                        Style::default().fg(Color::Cyan),
+                    ),
+                ]),
+            ];
 
-        // Location if available
-        if let Some(ref loc) = event.location {
-            lines.push(Line::from(vec![
-                Span::styled("Location: ", Style::default().fg(Color::Gray)),
-                Span::styled(loc, Style::default().fg(Color::Cyan)),
-            ]));
+            (lines, Color::Cyan)
         }
-
-        // Description (truncated)
-        if !event.description.is_empty() {
-            let desc = truncate_str(&event.description, (area.width as usize).saturating_sub(15));
-            lines.push(Line::from(vec![
-                Span::styled("Details: ", Style::default().fg(Color::Gray)),
-                Span::styled(desc, Style::default().fg(Color::White)),
-            ]));
+        None => {
+            let lines = vec![Line::from(Span::styled(
+                "Select an event to see details",
+                Style::default().fg(Color::DarkGray),
+            ))];
+            (lines, Color::DarkGray)
         }
-
-        lines
-    } else {
-        vec![Line::from(Span::styled(
-            "Select an event to see details",
-            Style::default().fg(Color::DarkGray),
-        ))]
     };
-
-    let border_color = app
-        .get_selected_event()
-        .map(|e| e.category_color())
-        .unwrap_or(Color::DarkGray);
 
     let detail = Paragraph::new(lines).block(
         Block::default()
@@ -1314,5 +1538,351 @@ mod tests {
         assert!(!ids.contains(&21)); // Reporting Deadlines should NOT be included
         assert!(!ids.contains(&28)); // EC Periods should NOT be included
         assert!(!ids.contains(&29)); // IE Periods should NOT be included
+    }
+
+    // ── extract_election_type tests ──
+
+    #[test]
+    fn test_extract_election_type_primary() {
+        let event = create_election_event("CA Primary Election", "California", 36);
+        assert_eq!(event.extract_election_type(), Some("Primary Election"));
+    }
+
+    #[test]
+    fn test_extract_election_type_district_prefix() {
+        let event =
+            create_election_event("TX/18 Special General Election Runoff", "Texas", 36);
+        assert_eq!(
+            event.extract_election_type(),
+            Some("Special General Election Runoff")
+        );
+    }
+
+    #[test]
+    fn test_extract_election_type_convention() {
+        let event = create_election_event("National Convention", "DC", 36);
+        assert_eq!(event.extract_election_type(), Some("National Convention"));
+    }
+
+    #[test]
+    fn test_extract_election_type_non_election() {
+        let event = create_election_event("Q1 Report Due", "FEC", 26);
+        assert_eq!(event.extract_election_type(), None);
+    }
+
+    #[test]
+    fn test_extract_election_type_empty_summary() {
+        let mut event = create_election_event("", "California", 36);
+        event.summary = String::new();
+        assert_eq!(event.extract_election_type(), None);
+    }
+
+    // ── format_state_list tests ──
+
+    #[test]
+    fn test_format_state_list_empty() {
+        assert_eq!(format_state_list(&[]), "");
+    }
+
+    #[test]
+    fn test_format_state_list_one() {
+        assert_eq!(format_state_list(&["AR".to_string()]), "AR");
+    }
+
+    #[test]
+    fn test_format_state_list_two() {
+        assert_eq!(
+            format_state_list(&["AR".to_string(), "NC".to_string()]),
+            "AR and NC"
+        );
+    }
+
+    #[test]
+    fn test_format_state_list_three() {
+        assert_eq!(
+            format_state_list(&["AR".to_string(), "NC".to_string(), "TX".to_string()]),
+            "AR, NC, and TX"
+        );
+    }
+
+    #[test]
+    fn test_format_state_list_four() {
+        assert_eq!(
+            format_state_list(&[
+                "AR".to_string(),
+                "NC".to_string(),
+                "TX".to_string(),
+                "CA".to_string()
+            ]),
+            "AR, NC, TX, and CA"
+        );
+    }
+
+    // ── pluralize_election_type tests ──
+
+    #[test]
+    fn test_pluralize_election_type_singular() {
+        assert_eq!(
+            pluralize_election_type("Primary Election", 1),
+            "Primary Election"
+        );
+    }
+
+    #[test]
+    fn test_pluralize_election_type_plural() {
+        assert_eq!(
+            pluralize_election_type("Primary Election", 3),
+            "Primary Elections"
+        );
+    }
+
+    #[test]
+    fn test_pluralize_election_type_runoff_plural() {
+        assert_eq!(
+            pluralize_election_type("Special General Election Runoff", 2),
+            "Special General Election Runoffs"
+        );
+    }
+
+    #[test]
+    fn test_pluralize_election_type_non_election() {
+        assert_eq!(
+            pluralize_election_type("National Convention", 3),
+            "National Convention"
+        );
+    }
+
+    // ── Grouping integration tests ──
+
+    fn make_event(
+        id: i64,
+        summary: &str,
+        date: &str,
+        category_id: i64,
+        category: &str,
+    ) -> CalendarEvent {
+        CalendarEvent {
+            event_id: id,
+            summary: summary.to_string(),
+            description: format!("Description for {}", summary),
+            start_date: Some(date.parse().unwrap()),
+            end_date: None,
+            category: category.to_string(),
+            category_id,
+            location: None,
+            url: None,
+        }
+    }
+
+    fn build_test_app(events: Vec<CalendarEvent>) -> App {
+        use crate::cli::{DatesArgs, DatesFormat};
+        let mut app = App::new(DatesArgs {
+            category: "elections,deadlines".to_string(),
+            days: 365,
+            limit: 500,
+            state: None,
+            format: DatesFormat::Tui,
+            as_of: Some("2026-01-01".to_string()),
+        });
+        app.events = events;
+        app.build_display_rows();
+        if !app.display_rows.is_empty() {
+            app.table_state.select(Some(0));
+        }
+        app
+    }
+
+    #[test]
+    fn test_grouping_same_date_same_type() {
+        let app = build_test_app(vec![
+            make_event(1, "AR Primary Election", "2026-03-03", 36, "Election Dates"),
+            make_event(2, "NC Primary Election", "2026-03-03", 36, "Election Dates"),
+            make_event(3, "TX Primary Election", "2026-03-03", 36, "Election Dates"),
+        ]);
+
+        assert_eq!(app.display_rows.len(), 1);
+        match &app.display_rows[0] {
+            DisplayRow::Grouped {
+                states,
+                election_type,
+                event_indices,
+                ..
+            } => {
+                assert_eq!(election_type, "Primary Election");
+                assert_eq!(states, &["AR", "NC", "TX"]);
+                assert_eq!(event_indices.len(), 3);
+            }
+            _ => panic!("Expected Grouped row"),
+        }
+    }
+
+    #[test]
+    fn test_grouping_same_date_different_type() {
+        let app = build_test_app(vec![
+            make_event(1, "AR Primary Election", "2026-03-03", 36, "Election Dates"),
+            make_event(
+                2,
+                "NC General Election",
+                "2026-03-03",
+                36,
+                "Election Dates",
+            ),
+        ]);
+
+        // Different types on the same date should NOT group
+        assert_eq!(app.display_rows.len(), 2);
+        assert!(matches!(app.display_rows[0], DisplayRow::Single(_)));
+        assert!(matches!(app.display_rows[1], DisplayRow::Single(_)));
+    }
+
+    #[test]
+    fn test_grouping_different_date_same_type() {
+        let app = build_test_app(vec![
+            make_event(1, "AR Primary Election", "2026-03-03", 36, "Election Dates"),
+            make_event(2, "NC Primary Election", "2026-06-09", 36, "Election Dates"),
+        ]);
+
+        // Different dates should NOT group
+        assert_eq!(app.display_rows.len(), 2);
+        assert!(matches!(app.display_rows[0], DisplayRow::Single(_)));
+        assert!(matches!(app.display_rows[1], DisplayRow::Single(_)));
+    }
+
+    #[test]
+    fn test_grouping_non_elections_never_grouped() {
+        let app = build_test_app(vec![
+            make_event(1, "Monthly Report Due", "2026-03-03", 26, "Monthly"),
+            make_event(2, "Monthly Report Due", "2026-03-03", 26, "Monthly"),
+        ]);
+
+        // Non-elections should remain as singles
+        assert_eq!(app.display_rows.len(), 2);
+        assert!(matches!(app.display_rows[0], DisplayRow::Single(_)));
+        assert!(matches!(app.display_rows[1], DisplayRow::Single(_)));
+    }
+
+    #[test]
+    fn test_grouping_single_election_stays_single() {
+        let app = build_test_app(vec![make_event(
+            1,
+            "AR Primary Election",
+            "2026-03-03",
+            36,
+            "Election Dates",
+        )]);
+
+        assert_eq!(app.display_rows.len(), 1);
+        assert!(matches!(app.display_rows[0], DisplayRow::Single(0)));
+    }
+
+    #[test]
+    fn test_grouping_mixed_events_preserve_date_order() {
+        let app = build_test_app(vec![
+            make_event(1, "Monthly Report Due", "2026-02-20", 26, "Monthly"),
+            make_event(2, "AR Primary Election", "2026-03-03", 36, "Election Dates"),
+            make_event(3, "NC Primary Election", "2026-03-03", 36, "Election Dates"),
+            make_event(4, "TX Primary Election", "2026-03-03", 36, "Election Dates"),
+            make_event(5, "Quarterly Report Due", "2026-04-15", 25, "Quarterly"),
+        ]);
+
+        assert_eq!(app.display_rows.len(), 3);
+
+        // First: report due on 2026-02-20
+        assert!(matches!(app.display_rows[0], DisplayRow::Single(_)));
+
+        // Second: grouped primary elections on 2026-03-03
+        match &app.display_rows[1] {
+            DisplayRow::Grouped { states, .. } => {
+                assert_eq!(states.len(), 3);
+            }
+            _ => panic!("Expected Grouped row at index 1"),
+        }
+
+        // Third: quarterly report on 2026-04-15
+        assert!(matches!(app.display_rows[2], DisplayRow::Single(_)));
+    }
+
+    #[test]
+    fn test_grouping_district_elections_dedup_states() {
+        let app = build_test_app(vec![
+            make_event(
+                1,
+                "TX/18 Special General Election",
+                "2026-03-03",
+                36,
+                "Election Dates",
+            ),
+            make_event(
+                2,
+                "TX/25 Special General Election",
+                "2026-03-03",
+                36,
+                "Election Dates",
+            ),
+        ]);
+
+        assert_eq!(app.display_rows.len(), 1);
+        match &app.display_rows[0] {
+            DisplayRow::Grouped { states, .. } => {
+                // TX should appear only once even though there are two TX districts
+                assert_eq!(states, &["TX"]);
+            }
+            _ => panic!("Expected Grouped row"),
+        }
+    }
+
+    // ── TUI snapshot tests ──
+
+    use insta::assert_snapshot;
+    use ratatui::{backend::TestBackend, Terminal};
+
+    #[test]
+    fn test_tui_grouped_elections() {
+        let mut app = build_test_app(vec![
+            make_event(1, "AR Primary Election", "2026-03-03", 36, "Election Dates"),
+            make_event(2, "NC Primary Election", "2026-03-03", 36, "Election Dates"),
+            make_event(3, "TX Primary Election", "2026-03-03", 36, "Election Dates"),
+        ]);
+
+        let mut terminal = Terminal::new(TestBackend::new(100, 30)).unwrap();
+        terminal.draw(|f| ui(f, &mut app)).unwrap();
+        assert_snapshot!(terminal.backend());
+    }
+
+    #[test]
+    fn test_tui_mixed_grouped_and_ungrouped() {
+        let mut app = build_test_app(vec![
+            make_event(1, "Monthly Report Due", "2026-02-20", 26, "Monthly"),
+            make_event(2, "AR Primary Election", "2026-03-03", 36, "Election Dates"),
+            make_event(3, "NC Primary Election", "2026-03-03", 36, "Election Dates"),
+            make_event(4, "TX Primary Election", "2026-03-03", 36, "Election Dates"),
+            make_event(5, "Quarterly Report Due", "2026-04-15", 25, "Quarterly"),
+            make_event(
+                6,
+                "CA General Election",
+                "2026-11-03",
+                36,
+                "Election Dates",
+            ),
+        ]);
+
+        let mut terminal = Terminal::new(TestBackend::new(100, 30)).unwrap();
+        terminal.draw(|f| ui(f, &mut app)).unwrap();
+        assert_snapshot!(terminal.backend());
+    }
+
+    #[test]
+    fn test_tui_grouped_detail_panel() {
+        let mut app = build_test_app(vec![
+            make_event(1, "AR Primary Election", "2026-03-03", 36, "Election Dates"),
+            make_event(2, "NC Primary Election", "2026-03-03", 36, "Election Dates"),
+            make_event(3, "TX Primary Election", "2026-03-03", 36, "Election Dates"),
+        ]);
+        // Select the grouped row
+        app.table_state.select(Some(0));
+
+        let mut terminal = Terminal::new(TestBackend::new(100, 30)).unwrap();
+        terminal.draw(|f| ui(f, &mut app)).unwrap();
+        assert_snapshot!(terminal.backend());
     }
 }
