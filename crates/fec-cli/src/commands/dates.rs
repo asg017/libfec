@@ -20,7 +20,7 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use fec_api::{Api, CalendarDatesArgs};
+use fec_api::{Api, ApiCache, CalendarDatesArgs};
 use jiff::{civil::Date as JiffDate, Zoned};
 use ratatui::{
     backend::CrosstermBackend,
@@ -369,7 +369,7 @@ impl App {
         }
     }
 
-    fn fetch(&mut self, _sourcer: &FilingSourcer) -> Result<()> {
+    fn fetch(&mut self, sourcer: &mut FilingSourcer) -> Result<()> {
         let api_key = std::env::var("LIBFEC_API_KEY").unwrap_or_else(|_| "DEMO_KEY".to_string());
         let api = Api::new(api_key.as_str());
 
@@ -400,7 +400,13 @@ impl App {
 
         let url = api.calendar_dates_url(args);
         self.api_url = Some(url.0.to_string());
-        match fec_api::api_request(&url.0) {
+        match fec_api::api_request_cached(
+            &url.0,
+            sourcer
+                .cache
+                .api_cache_mut()
+                .map(|c| c as &mut dyn ApiCache),
+        ) {
             Ok(response) => {
                 // Parse and filter events by state if specified
                 let state_filter = self.args.state_code();
@@ -641,14 +647,14 @@ impl App {
 }
 
 /// Entry point for the dates command
-pub fn dates(sourcer: FilingSourcer, args: &DatesArgs) -> Result<()> {
+pub fn dates(mut sourcer: FilingSourcer, args: &DatesArgs) -> Result<()> {
     match args.format {
-        DatesFormat::Json => run_json_mode(args),
+        DatesFormat::Json => run_json_mode(&mut sourcer, args),
         DatesFormat::Tui => run_tui_mode(sourcer, args),
     }
 }
 
-fn run_json_mode(args: &DatesArgs) -> Result<()> {
+fn run_json_mode(sourcer: &mut FilingSourcer, args: &DatesArgs) -> Result<()> {
     let api_key = std::env::var("LIBFEC_API_KEY").unwrap_or_else(|_| "DEMO_KEY".to_string());
     let api = Api::new(api_key.as_str());
 
@@ -680,7 +686,13 @@ fn run_json_mode(args: &DatesArgs) -> Result<()> {
     let url = api.calendar_dates_url(api_args);
     eprintln!("URL: {}", url.0);
 
-    let response = fec_api::api_request(&url.0)?;
+    let response = fec_api::api_request_cached(
+        &url.0,
+        sourcer
+            .cache
+            .api_cache_mut()
+            .map(|c| c as &mut dyn ApiCache),
+    )?;
 
     // Apply state filtering if specified
     let state_filter = args.state_code();
@@ -711,7 +723,7 @@ fn run_json_mode(args: &DatesArgs) -> Result<()> {
     Ok(())
 }
 
-fn run_tui_mode(sourcer: FilingSourcer, args: &DatesArgs) -> Result<()> {
+fn run_tui_mode(mut sourcer: FilingSourcer, args: &DatesArgs) -> Result<()> {
     enable_raw_mode()?;
     let mut stdout = io::stdout();
     execute!(stdout, EnterAlternateScreen)?;
@@ -719,7 +731,7 @@ fn run_tui_mode(sourcer: FilingSourcer, args: &DatesArgs) -> Result<()> {
     let mut terminal = Terminal::new(backend)?;
 
     let mut app = App::new(args.clone());
-    app.fetch(&sourcer)?;
+    app.fetch(&mut sourcer)?;
 
     let res = run_app(&mut terminal, &mut app);
 
