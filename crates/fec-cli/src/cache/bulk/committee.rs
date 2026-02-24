@@ -69,6 +69,7 @@ pub struct CommitteeDetail {
     pub interest_group_category: String,
     pub connected_org_name: String,
     pub candidate_id: Option<String>,
+    pub candidate_name: Option<String>,
 }
 
 impl CommitteeDetail {
@@ -185,14 +186,41 @@ pub fn get_committee_detail(
             interest_group_category: row.get(12)?,
             connected_org_name: row.get(13)?,
             candidate_id: cand_id.filter(|s| !s.is_empty()),
+            candidate_name: None,
         })
     })?;
 
-    match results.next() {
-        Some(Ok(detail)) => Ok(Some(detail)),
-        Some(Err(e)) => Err(e.into()),
-        None => Ok(None),
+    let mut detail = match results.next() {
+        Some(Ok(detail)) => detail,
+        Some(Err(e)) => return Err(e.into()),
+        None => return Ok(None),
+    };
+
+    // Look up candidate name from bulk candidates data if candidate_id is present
+    if let Some(ref candidate_id) = detail.candidate_id {
+        detail.candidate_name = lookup_candidate_name(bulk_db, cycle, candidate_id);
     }
+
+    Ok(Some(detail))
+}
+
+/// Look up a candidate's name from the libfec_candidates table.
+/// Returns None silently if the table doesn't exist or the candidate isn't found.
+fn lookup_candidate_name(db: &Connection, cycle: u16, candidate_id: &str) -> Option<String> {
+    let sql = r#"
+      SELECT name
+      FROM libfec_candidates
+      WHERE cycle = :cycle AND candidate_id = :candidate_id
+      LIMIT 1
+    "#;
+    let params = rusqlite::named_params! {
+        ":cycle": cycle,
+        ":candidate_id": candidate_id,
+    };
+    db.prepare(sql)
+        .ok()?
+        .query_row(params, |row| row.get(0))
+        .ok()
 }
 
 pub fn export(tx: &mut Transaction<'_>, year: u16) -> Result<()> {

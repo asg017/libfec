@@ -98,7 +98,8 @@ impl CommitteeDetailState {
     }
 
     /// Set filings after fetch completes
-    pub fn set_filings(&mut self, filings: Vec<FilingListItem>) {
+    pub fn set_filings(&mut self, mut filings: Vec<FilingListItem>) {
+        filings.sort_by(|a, b| b.receipt_date.cmp(&a.receipt_date));
         self.filings = filings;
         self.filings_loading = false;
         self.filings_error = None;
@@ -180,6 +181,8 @@ impl CommitteeDetailState {
             .report_types(None)
             .committee_types(None)
             .cycle(vec![self.filings_cycle])
+            .min_receipt_date(None)
+            .max_receipt_date(None)
             .build();
 
         match args {
@@ -377,49 +380,79 @@ impl FilingListItem {
     }
 }
 
+fn filing_frequency_label(code: &str) -> Option<&'static str> {
+    match code.chars().next()? {
+        'A' => Some("Administratively terminated"),
+        'D' => Some("Debt"),
+        'M' => Some("Monthly"),
+        'Q' => Some("Quarterly"),
+        'T' => Some("Terminated"),
+        'W' => Some("Waived"),
+        _ => None,
+    }
+}
+
+fn designation_label(committee: &CommitteeDetail) -> Option<String> {
+    match committee.designation.chars().next()? {
+        'A' => Some("Authorized by a candidate".to_string()),
+        'B' => Some("Lobbyist/Registrant PAC".to_string()),
+        'D' => Some("Leadership PAC".to_string()),
+        'J' => Some("Joint fundraiser".to_string()),
+        'P' => {
+            let base = "Principal campaign committee";
+            match (&committee.candidate_name, &committee.candidate_id) {
+                (Some(name), Some(id)) => Some(format!("{base} for {name} ({id})")),
+                (None, Some(id)) => Some(format!("{base} for {id}")),
+                _ => Some(base.to_string()),
+            }
+        }
+        'U' => Some("Unauthorized".to_string()),
+        _ => None,
+    }
+}
+
+fn party_color(code: &str) -> Color {
+    match code {
+        "DEM" | "DFL" | "DNL" | "D/C" => Color::Blue,
+        "REP" => Color::Red,
+        "LIB" => Color::Yellow,
+        "GRE" | "GR" | "IGR" | "PG" | "DCG" | "DGR" => Color::Green,
+        _ => Color::Gray,
+    }
+}
+
 fn render_title(f: &mut Frame, committee: &CommitteeDetail, area: Rect) {
-    let title_text = format!("{} ({})", committee.name, committee.committee_id);
-    let title = Paragraph::new(title_text).style(Style::default().add_modifier(Modifier::BOLD));
+    let mut title_spans = vec![Span::styled(
+        format!("{} ({})", committee.name, committee.committee_id),
+        Style::default().add_modifier(Modifier::BOLD),
+    )];
+
+    if !committee.party_affiliation.is_empty() {
+        title_spans.push(Span::raw(" "));
+        title_spans.push(Span::styled(
+            format!("[{}]", committee.party_affiliation),
+            Style::default()
+                .fg(party_color(&committee.party_affiliation))
+                .add_modifier(Modifier::BOLD),
+        ));
+    }
+
+    let mut lines = vec![Line::from(title_spans)];
+
+    if let Some(label) = designation_label(committee) {
+        lines.push(Line::from(label));
+    }
+
+    if let Some(label) = filing_frequency_label(&committee.filing_frequency) {
+        lines.push(Line::from(format!("Files {label}")));
+    }
+
+    let title = Paragraph::new(lines);
     f.render_widget(title, area);
 }
 
 fn render_content(f: &mut Frame, committee: &CommitteeDetail, area: Rect) {
-    let mut lines = vec![
-        Line::from(vec![
-            Span::styled(
-                "Committee ID: ",
-                Style::default()
-                    .fg(Color::Yellow)
-                    .add_modifier(Modifier::BOLD),
-            ),
-            Span::raw(&committee.committee_id),
-        ]),
-        Line::from(""),
-    ];
-
-    lines.push(Line::from(vec![
-        Span::styled(
-            "Name: ",
-            Style::default()
-                .fg(Color::Yellow)
-                .add_modifier(Modifier::BOLD),
-        ),
-        Span::raw(&committee.name),
-    ]));
-    lines.push(Line::from(""));
-
-    if !committee.treasurer_name.is_empty() {
-        lines.push(Line::from(vec![
-            Span::styled(
-                "Treasurer: ",
-                Style::default()
-                    .fg(Color::Yellow)
-                    .add_modifier(Modifier::BOLD),
-            ),
-            Span::raw(&committee.treasurer_name),
-        ]));
-        lines.push(Line::from(""));
-    }
+    let mut lines = vec![];
 
     // Address
     if !committee.address_street1.is_empty() || !committee.address_city.is_empty() {
@@ -457,67 +490,6 @@ fn render_content(f: &mut Frame, committee: &CommitteeDetail, area: Rect) {
         lines.push(Line::from(""));
     }
 
-    // Committee details
-    if !committee.committee_type.is_empty() {
-        lines.push(Line::from(vec![
-            Span::styled(
-                "Committee Type: ",
-                Style::default()
-                    .fg(Color::Yellow)
-                    .add_modifier(Modifier::BOLD),
-            ),
-            Span::raw(&committee.committee_type),
-        ]));
-    }
-
-    if !committee.designation.is_empty() {
-        lines.push(Line::from(vec![
-            Span::styled(
-                "Designation: ",
-                Style::default()
-                    .fg(Color::Yellow)
-                    .add_modifier(Modifier::BOLD),
-            ),
-            Span::raw(&committee.designation),
-        ]));
-    }
-
-    if !committee.party_affiliation.is_empty() {
-        lines.push(Line::from(vec![
-            Span::styled(
-                "Party Affiliation: ",
-                Style::default()
-                    .fg(Color::Yellow)
-                    .add_modifier(Modifier::BOLD),
-            ),
-            Span::raw(&committee.party_affiliation),
-        ]));
-    }
-
-    if !committee.filing_frequency.is_empty() {
-        lines.push(Line::from(vec![
-            Span::styled(
-                "Filing Frequency: ",
-                Style::default()
-                    .fg(Color::Yellow)
-                    .add_modifier(Modifier::BOLD),
-            ),
-            Span::raw(&committee.filing_frequency),
-        ]));
-    }
-
-    if !committee.interest_group_category.is_empty() {
-        lines.push(Line::from(vec![
-            Span::styled(
-                "Interest Group Category: ",
-                Style::default()
-                    .fg(Color::Yellow)
-                    .add_modifier(Modifier::BOLD),
-            ),
-            Span::raw(&committee.interest_group_category),
-        ]));
-    }
-
     if !committee.connected_org_name.is_empty() {
         lines.push(Line::from(vec![
             Span::styled(
@@ -530,18 +502,6 @@ fn render_content(f: &mut Frame, committee: &CommitteeDetail, area: Rect) {
         ]));
     }
 
-    if let Some(ref candidate_id) = committee.candidate_id {
-        lines.push(Line::from(""));
-        lines.push(Line::from(vec![
-            Span::styled(
-                "Candidate ID: ",
-                Style::default()
-                    .fg(Color::Yellow)
-                    .add_modifier(Modifier::BOLD),
-            ),
-            Span::styled(candidate_id, Style::default().fg(Color::Cyan)),
-        ]));
-    }
 
     let content = Paragraph::new(lines).wrap(Wrap { trim: false });
     f.render_widget(content, area);
@@ -759,7 +719,7 @@ pub fn render_committee_detail(
     let layout = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(1),  // Title
+            Constraint::Length(3),  // Title
             Constraint::Min(10),    // Content
             Constraint::Length(12), // Filings table (smaller, scrollable)
             Constraint::Length(2),  // Help text
@@ -800,6 +760,7 @@ mod tests {
             interest_group_category: String::new(),
             connected_org_name: "DEMOCRACY CORP".to_string(),
             candidate_id: None,
+            candidate_name: None,
         }
     }
 
@@ -820,6 +781,7 @@ mod tests {
             interest_group_category: String::new(),
             connected_org_name: String::new(),
             candidate_id: Some("H4CA12345".to_string()),
+            candidate_name: Some("DOE, JANE".to_string()),
         }
     }
 
