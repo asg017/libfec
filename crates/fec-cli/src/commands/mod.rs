@@ -1,6 +1,7 @@
 mod api;
 mod bulk;
 mod cache;
+mod contest;
 mod dates;
 pub mod export;
 mod fastfec;
@@ -12,6 +13,7 @@ mod search;
 pub use api::api;
 pub use bulk::bulk;
 pub use cache::cache;
+pub use contest::contest;
 pub use dates::dates;
 pub use export::export;
 pub use fastfec::fastfec;

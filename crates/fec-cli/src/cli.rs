@@ -471,6 +471,8 @@ pub enum BulkSource {
     ContributionsToCandidates,
     /// PAC and party committee summary financial data
     PacSummary,
+    /// Candidate summary financial data (weball)
+    CandidateSummary,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, clap::ValueEnum)]

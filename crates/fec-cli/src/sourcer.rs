@@ -594,7 +594,7 @@ pub enum Contest {
 }
 
 impl Contest {
-    fn from_arg(input: &str) -> anyhow::Result<Option<Self>> {
+    pub fn from_arg(input: &str) -> anyhow::Result<Option<Self>> {
         if input == "P" || input.to_lowercase() == "president" {
             return Ok(Some(Contest::President));
         }

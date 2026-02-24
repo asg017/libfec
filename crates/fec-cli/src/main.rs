@@ -42,7 +42,11 @@ fn main() {
             }
             // If parsing failed, check if the first argument could be an InfoInput
             if args.len() > 1 {
-                if commands::InfoInput::from_arg(&args[1]).is_ok() {
+                if let Ok(Some(contest)) = sourcer::Contest::from_arg(&args[1]) {
+                    // Contest shorthand (CA41, H-CA41, S-CA, P) takes priority
+                    let sourcer = sourcer::FilingSourcer::new(None);
+                    commands::contest(sourcer, contest, 2026)
+                } else if commands::InfoInput::from_arg(&args[1]).is_ok() {
                     // Treat as info command with the argument as a filing/committee/candidate
                     let sourcer = sourcer::FilingSourcer::new(None);
                     let info_args = cli::InfoArgs {

@@ -135,7 +135,7 @@ impl<R: std::io::Read> From<&fec_parser::Filing<R>> for FilingDetail {
     }
 }
 
-pub(crate) fn format_usd(amount: f64) -> String {
+pub fn format_usd(amount: f64) -> String {
     let rounded = (amount * 100.0).round() as i64;
     let dollars = rounded / 100;
     let cents = (rounded % 100).abs();

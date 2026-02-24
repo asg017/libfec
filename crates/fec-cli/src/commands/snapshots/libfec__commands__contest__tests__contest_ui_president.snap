@@ -1,0 +1,17 @@
+---
+source: crates/fec-cli/src/commands/contest.rs
+expression: terminal.backend()
+snapshot_kind: text
+---
+"President (2028)  2 candidates                                                                      "
+"────────────────────────────────────────────────────────────────────────────────────────────────────"
+"Candidate               Party Receipts       Disbursed      Indiv.         COH            Thru      "
+"HARRIS, KAMALA D. (I)   DEM   997,000,000.00 950,000,000.00 800,000,000.00 $47,000,000.00 12/31/2025"
+"TRUMP, DONALD J.        REP   890,000,000.00 850,000,000.00 700,000,000.00 $40,000,000.00 12/31/2025"
+"                                                                                                    "
+"                                                                                                    "
+"                                                                                                    "
+"                                                                                                    "
+"                                                                                                    "
+"────────────────────────────────────────────────────────────────────────────────────────────────────"
+"     q quit  ↑/↓ or j/k navigate  g/  G first/last  o open contest  Enter open candidate  y yank    "

@@ -1,0 +1,25 @@
+---
+source: crates/fec-cli/src/commands/contest.rs
+expression: terminal.backend()
+snapshot_kind: text
+---
+"California 41st District (2026)  0 candidates                                                       "
+"No candidates found for this contest.                                                               "
+"                                                                                                    "
+"                                                                                                    "
+"                                                                                                    "
+"                                                                                                    "
+"                                                                                                    "
+"                                                                                                    "
+"                                                                                                    "
+"                                                                                                    "
+"                                                                                                    "
+"                                                                                                    "
+"                                                                                                    "
+"                                                                                                    "
+"                                                                                                    "
+"                                                                                                    "
+"                                                                                                    "
+"                                                                                                    "
+"────────────────────────────────────────────────────────────────────────────────────────────────────"
+"     q quit  ↑/↓ or j/k navigate  g/  G first/last  o open contest  Enter open candidate  y yank    "
