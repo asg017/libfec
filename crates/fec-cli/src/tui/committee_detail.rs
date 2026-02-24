@@ -776,3 +776,174 @@ pub fn render_committee_detail(
         render_yank_popup(f, area, committee, state);
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use insta::assert_snapshot;
+    use ratatui::{backend::TestBackend, Terminal};
+
+    fn create_test_committee() -> CommitteeDetail {
+        CommitteeDetail {
+            committee_id: "C00401224".to_string(),
+            name: "FRIENDS OF DEMOCRACY PAC".to_string(),
+            treasurer_name: "SMITH, JOHN Q".to_string(),
+            address_street1: "123 K Street NW".to_string(),
+            address_street2: "Suite 400".to_string(),
+            address_city: "Washington".to_string(),
+            address_state: "DC".to_string(),
+            address_zip: "20001".to_string(),
+            designation: "B - Lobbyist/Registrant PAC".to_string(),
+            committee_type: "Q - Qualified Non-Party (e.g. PAC)".to_string(),
+            party_affiliation: String::new(),
+            filing_frequency: "Q - Quarterly".to_string(),
+            interest_group_category: String::new(),
+            connected_org_name: "DEMOCRACY CORP".to_string(),
+            candidate_id: None,
+        }
+    }
+
+    fn create_test_committee_with_candidate() -> CommitteeDetail {
+        CommitteeDetail {
+            committee_id: "C00703975".to_string(),
+            name: "DOE FOR CONGRESS".to_string(),
+            treasurer_name: "DOE, JANE A".to_string(),
+            address_street1: "456 Main Street".to_string(),
+            address_street2: String::new(),
+            address_city: "Los Angeles".to_string(),
+            address_state: "CA".to_string(),
+            address_zip: "90001".to_string(),
+            designation: "P - Principal Campaign Committee".to_string(),
+            committee_type: "H - House".to_string(),
+            party_affiliation: "DEM".to_string(),
+            filing_frequency: "Q - Quarterly".to_string(),
+            interest_group_category: String::new(),
+            connected_org_name: String::new(),
+            candidate_id: Some("H4CA12345".to_string()),
+        }
+    }
+
+    fn create_test_filings() -> Vec<FilingListItem> {
+        vec![
+            FilingListItem {
+                filing_id: "FEC-1234567".to_string(),
+                form_type: "F3XN".to_string(),
+                report_type: Some("YEAR-END".to_string()),
+                coverage_from: Some("2025-07-01".to_string()),
+                coverage_through: Some("2025-12-31".to_string()),
+                receipt_date: Some("2026-01-31".to_string()),
+            },
+            FilingListItem {
+                filing_id: "FEC-1234566".to_string(),
+                form_type: "F3XN".to_string(),
+                report_type: Some("MID-YEAR".to_string()),
+                coverage_from: Some("2025-01-01".to_string()),
+                coverage_through: Some("2025-06-30".to_string()),
+                receipt_date: Some("2025-07-31".to_string()),
+            },
+            FilingListItem {
+                filing_id: "FEC-1234500".to_string(),
+                form_type: "F99".to_string(),
+                report_type: None,
+                coverage_from: None,
+                coverage_through: None,
+                receipt_date: Some("2025-03-15".to_string()),
+            },
+        ]
+    }
+
+    #[test]
+    fn test_committee_detail_basic() {
+        let committee = create_test_committee();
+        let mut state = CommitteeDetailState::new();
+        let mut terminal = Terminal::new(TestBackend::new(80, 30)).unwrap();
+        terminal
+            .draw(|f| render_committee_detail(f, f.area(), &committee, &mut state))
+            .unwrap();
+        assert_snapshot!(terminal.backend());
+    }
+
+    #[test]
+    fn test_committee_detail_with_candidate() {
+        let committee = create_test_committee_with_candidate();
+        let mut state = CommitteeDetailState::new();
+        let mut terminal = Terminal::new(TestBackend::new(80, 30)).unwrap();
+        terminal
+            .draw(|f| render_committee_detail(f, f.area(), &committee, &mut state))
+            .unwrap();
+        assert_snapshot!(terminal.backend());
+    }
+
+    #[test]
+    fn test_committee_detail_with_filings() {
+        let committee = create_test_committee();
+        let mut state = CommitteeDetailState::new();
+        state.set_filings(create_test_filings());
+        let mut terminal = Terminal::new(TestBackend::new(80, 30)).unwrap();
+        terminal
+            .draw(|f| render_committee_detail(f, f.area(), &committee, &mut state))
+            .unwrap();
+        assert_snapshot!(terminal.backend());
+    }
+
+    #[test]
+    fn test_committee_detail_filings_loading() {
+        let committee = create_test_committee();
+        let mut state = CommitteeDetailState::new();
+        state.filings_loading = true;
+        let mut terminal = Terminal::new(TestBackend::new(80, 30)).unwrap();
+        terminal
+            .draw(|f| render_committee_detail(f, f.area(), &committee, &mut state))
+            .unwrap();
+        assert_snapshot!(terminal.backend());
+    }
+
+    #[test]
+    fn test_committee_detail_filings_error() {
+        let committee = create_test_committee();
+        let mut state = CommitteeDetailState::new();
+        state.set_filings_error("Connection timeout".to_string());
+        let mut terminal = Terminal::new(TestBackend::new(80, 30)).unwrap();
+        terminal
+            .draw(|f| render_committee_detail(f, f.area(), &committee, &mut state))
+            .unwrap();
+        assert_snapshot!(terminal.backend());
+    }
+
+    #[test]
+    fn test_committee_detail_with_yank_popup() {
+        let committee = create_test_committee();
+        let mut state = CommitteeDetailState::new();
+        state.show_yank_popup = true;
+        let mut terminal = Terminal::new(TestBackend::new(80, 30)).unwrap();
+        terminal
+            .draw(|f| render_committee_detail(f, f.area(), &committee, &mut state))
+            .unwrap();
+        assert_snapshot!(terminal.backend());
+    }
+
+    #[test]
+    fn test_committee_detail_with_yank_popup_candidate() {
+        let committee = create_test_committee_with_candidate();
+        let mut state = CommitteeDetailState::new();
+        state.show_yank_popup = true;
+        state.yank_selected = 1; // Candidate ID selected
+        let mut terminal = Terminal::new(TestBackend::new(80, 30)).unwrap();
+        terminal
+            .draw(|f| render_committee_detail(f, f.area(), &committee, &mut state))
+            .unwrap();
+        assert_snapshot!(terminal.backend());
+    }
+
+    #[test]
+    fn test_committee_detail_wide_terminal() {
+        let committee = create_test_committee();
+        let mut state = CommitteeDetailState::new();
+        state.set_filings(create_test_filings());
+        let mut terminal = Terminal::new(TestBackend::new(120, 35)).unwrap();
+        terminal
+            .draw(|f| render_committee_detail(f, f.area(), &committee, &mut state))
+            .unwrap();
+        assert_snapshot!(terminal.backend());
+    }
+}
