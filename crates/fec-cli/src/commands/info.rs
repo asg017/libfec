@@ -18,7 +18,7 @@ use crate::tui::{
 };
 use colored::Colorize;
 use crossterm::{
-    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyEventKind},
+    event::{self, Event, KeyEventKind},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
@@ -577,7 +577,7 @@ fn show_committee_detail_tui(
 ) -> anyhow::Result<()> {
     enable_raw_mode()?;
     let mut stdout = io::stdout();
-    execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
+    execute!(stdout, EnterAlternateScreen)?;
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
@@ -625,8 +625,7 @@ fn show_committee_detail_tui(
                             disable_raw_mode()?;
                             execute!(
                                 terminal.backend_mut(),
-                                LeaveAlternateScreen,
-                                DisableMouseCapture
+                                LeaveAlternateScreen
                             )?;
 
                             // Show filing detail
@@ -636,8 +635,7 @@ fn show_committee_detail_tui(
                             enable_raw_mode()?;
                             execute!(
                                 terminal.backend_mut(),
-                                EnterAlternateScreen,
-                                EnableMouseCapture
+                                EnterAlternateScreen
                             )?;
                         }
                         Err(e) => {
@@ -664,11 +662,7 @@ fn show_committee_detail_tui(
     }
 
     disable_raw_mode()?;
-    execute!(
-        terminal.backend_mut(),
-        LeaveAlternateScreen,
-        DisableMouseCapture
-    )?;
+    execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
     terminal.show_cursor()?;
 
     Ok(())
@@ -681,7 +675,7 @@ fn show_candidate_detail_tui(
 ) -> anyhow::Result<()> {
     enable_raw_mode()?;
     let mut stdout = io::stdout();
-    execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
+    execute!(stdout, EnterAlternateScreen)?;
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
@@ -741,11 +735,7 @@ fn show_candidate_detail_tui(
     }
 
     disable_raw_mode()?;
-    execute!(
-        terminal.backend_mut(),
-        LeaveAlternateScreen,
-        DisableMouseCapture
-    )?;
+    execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
     terminal.show_cursor()?;
 
     Ok(())
@@ -754,7 +744,7 @@ fn show_candidate_detail_tui(
 fn show_filing_detail_tui(detail: FilingDetail, committee_name: &str) -> anyhow::Result<()> {
     enable_raw_mode()?;
     let mut stdout = io::stdout();
-    execute!(stdout, EnterAlternateScreen /*  EnableMouseCapture*/)?;
+    execute!(stdout, EnterAlternateScreen)?;
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
