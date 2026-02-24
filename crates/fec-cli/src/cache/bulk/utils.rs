@@ -253,7 +253,11 @@ pub(crate) fn sync_item(
         )
     })?;
 
-    let mut rdr = csv_reader_from_response(response, &item.data_file_name)?;
+    let data_file_name = item
+        .data_file_name
+        .replace("$YEAR2", &year.to_string()[year.to_string().len() - 2..])
+        .replace("$YEAR", &year.to_string());
+    let mut rdr = csv_reader_from_response(response, &data_file_name)?;
     insert_rows(tx, year, &mut rdr, &item.table_name, item.column_count)?;
     Ok(SyncResult::Updated)
 }

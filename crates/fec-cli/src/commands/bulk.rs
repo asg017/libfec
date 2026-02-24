@@ -1,5 +1,5 @@
 use crate::{
-    cache::bulk::{candidate_committee_linkage, candidates, committee, opexp, pas2},
+    cache::bulk::{candidate_committee_linkage, candidates, committee, opexp, pac_summary, pas2},
     cli::{BulkArgs, BulkSource, CycleArg},
     sourcer::FilingSourcer,
 };
@@ -41,6 +41,7 @@ pub fn bulk(_sourcer: FilingSourcer, args: &BulkArgs) -> anyhow::Result<()> {
                 BulkSource::Committees => committee::export(&mut tx, year),
                 BulkSource::Candidates => candidates::export(&mut tx, year),
                 BulkSource::ContributionsToCandidates => pas2::export(&mut tx, year),
+                BulkSource::PacSummary => pac_summary::export(&mut tx, year),
             };
             result.unwrap();
             pb.inc(1);
