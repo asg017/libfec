@@ -603,6 +603,7 @@ fn handle_sync_start(
             // Move to exporting phase (or complete if nothing to export)
             if new_state.export_queue.is_empty() {
                 new_state.phase = RpcPhase::Complete;
+                finalize_sync_metadata(&mut new_state);
             } else {
                 new_state.phase = RpcPhase::Exporting;
             }
