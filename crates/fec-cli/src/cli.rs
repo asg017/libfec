@@ -503,6 +503,24 @@ pub struct ApiArgs {
     pub api: FilingsApiFlags,
 }
 
+#[derive(Args, Debug)]
+pub struct DatasetteArgs {
+    /// FEC filing IDs, committee IDs, contest shorthand, or path to .db file
+    #[arg(required = true)]
+    pub inputs: Vec<String>,
+
+    /// Starting port (increments if in use)
+    #[arg(long, short = 'p', default_value_t = 8888)]
+    pub port: u16,
+
+    /// Only export cover records
+    #[arg(long)]
+    pub cover_only: bool,
+
+    #[command(flatten)]
+    pub api: FilingsApiFlags,
+}
+
 #[derive(Subcommand, Debug)]
 pub enum Commands {
     /// Export FEC filings into SQLite, Excel, CSV, or JSON
@@ -531,6 +549,9 @@ pub enum Commands {
 
     /// Query the FEC API and print raw JSON responses
     Api(ApiArgs),
+
+    /// Export FEC data to SQLite and open in Datasette
+    Datasette(Box<DatasetteArgs>),
 }
 
 #[derive(Parser)]

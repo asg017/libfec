@@ -31,6 +31,7 @@ fn main() {
                 Commands::Rss(ref args) => commands::rss(sourcer, args),
                 Commands::Dates(ref args) => commands::dates(sourcer, args),
                 Commands::Api(ref args) => commands::api(sourcer, args),
+                Commands::Datasette(args) => commands::datasette(sourcer, *args),
             }
         }
         Err(parse_err) => {
