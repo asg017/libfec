@@ -3,4 +3,4 @@ source: crates/fec-cli/src/commands/api/mod.rs
 expression: "url_for(&[\"schedule-e\", \"--candidate\", \"P80001571\",\n\"--support-oppose-indicator\", \"S\", \"--cycle\", \"2024\", \"--min-amount\", \"10000\",\n\"--most-recent\", \"true\",])"
 snapshot_kind: text
 ---
-https://api.open.fec.gov/v1/schedules/schedule_e/?api_key=API_KEY&per_page=100&candidate_id=P80001571&support_oppose_indicator=S&min_amount=10000&cycle=2024&most_recent=true
+https://api.open.fec.gov/v1/schedules/schedule_e/?api_key=DEMO_KEY&per_page=100&candidate_id=P80001571&support_oppose_indicator=S&min_amount=10000&cycle=2024&most_recent=true

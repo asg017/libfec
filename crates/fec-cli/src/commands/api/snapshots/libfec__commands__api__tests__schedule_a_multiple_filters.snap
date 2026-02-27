@@ -3,4 +3,4 @@ source: crates/fec-cli/src/commands/api/mod.rs
 expression: "url_for(&[\"schedule-a\", \"--committee\", \"C00401224\", \"--min-amount\", \"200\",\n\"--max-date\", \"2025-12-31\", \"--contributor-state\", \"CA\", \"--is-individual\",])"
 snapshot_kind: text
 ---
-https://api.open.fec.gov/v1/schedules/schedule_a/?api_key=API_KEY&per_page=100&committee_id=C00401224&contributor_state=CA&min_amount=200&max_date=2025-12-31&is_individual=true
+https://api.open.fec.gov/v1/schedules/schedule_a/?api_key=DEMO_KEY&per_page=100&committee_id=C00401224&contributor_state=CA&min_amount=200&max_date=2025-12-31&is_individual=true

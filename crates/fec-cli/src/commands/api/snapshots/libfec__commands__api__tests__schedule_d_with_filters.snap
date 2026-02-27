@@ -3,4 +3,4 @@ source: crates/fec-cli/src/commands/api/mod.rs
 expression: "url_for(&[\"schedule-d\", \"--committee\", \"C00401224\", \"--creditor-debtor-name\",\n\"Acme Corp\", \"--min-amount\", \"1000\",])"
 snapshot_kind: text
 ---
-https://api.open.fec.gov/v1/schedules/schedule_d/?api_key=API_KEY&per_page=100&committee_id=C00401224&creditor_debtor_name=Acme+Corp&min_amount=1000
+https://api.open.fec.gov/v1/schedules/schedule_d/?api_key=DEMO_KEY&per_page=100&committee_id=C00401224&creditor_debtor_name=Acme+Corp&min_amount=1000
