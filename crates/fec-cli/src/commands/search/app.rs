@@ -7,7 +7,7 @@ use crate::{
     cache::bulk::candidates::{CandidateDetail, CandidateSearchResult},
     cache::bulk::committee::{CommitteeDetail, CommitteeSearchResult},
     cache::bulk::opexp::OpExpSearchResult,
-    sourcer::FilingSourcer,
+    sourcer::{Contest, FilingSourcer},
     tui::candidate_detail::CandidateDetailState,
     tui::committee_detail::CommitteeDetailState,
     tui::filing_detail::{FilingDetail, FilingDetailState},
@@ -144,27 +144,49 @@ impl App {
         } else {
             match sourcer.cache.open_bulk_data_database() {
                 Ok(mut db) => {
-                    // Check if input is a district query (e.g., "CA41", "IL09")
-                    let candidate_results = if let Some((state, district)) =
-                        crate::cache::bulk::candidates::parse_district_query(&self.input)
-                    {
-                        crate::cache::bulk::candidates::filter_candidates_by_district(
-                            &mut db,
-                            self.cycle,
-                            &state,
-                            &district,
-                            None,
-                        )
-                        .unwrap_or_default()
-                    } else {
-                        crate::cache::bulk::candidates::search_candidates(
-                            &mut db,
-                            self.cycle,
-                            &self.input,
-                            None,
-                        )
-                        .unwrap_or_default()
-                    };
+                    // Check if input is a contest query (e.g., "CA41", "TX-S", "S-CA")
+                    let candidate_results =
+                        if let Ok(Some(contest)) = Contest::from_arg(&self.input) {
+                            match contest {
+                                Contest::House { state, district } => {
+                                    // Normalize district: strip leading zeros
+                                    let district_num: u8 =
+                                        district.parse().unwrap_or(0);
+                                    crate::cache::bulk::candidates::filter_candidates_by_district(
+                                        &mut db,
+                                        self.cycle,
+                                        &state,
+                                        &district_num.to_string(),
+                                        None,
+                                    )
+                                    .unwrap_or_default()
+                                }
+                                Contest::Senate { state } => {
+                                    crate::cache::bulk::candidates::filter_candidates_by_senate(
+                                        &mut db, self.cycle, &state, None,
+                                    )
+                                    .unwrap_or_default()
+                                }
+                                Contest::President => {
+                                    // Fall through to regular name search for "P"/"president"
+                                    crate::cache::bulk::candidates::search_candidates(
+                                        &mut db,
+                                        self.cycle,
+                                        &self.input,
+                                        None,
+                                    )
+                                    .unwrap_or_default()
+                                }
+                            }
+                        } else {
+                            crate::cache::bulk::candidates::search_candidates(
+                                &mut db,
+                                self.cycle,
+                                &self.input,
+                                None,
+                            )
+                            .unwrap_or_default()
+                        };
                     let committee_results = crate::cache::bulk::committee::search_committees(
                         &mut db,
                         self.cycle,

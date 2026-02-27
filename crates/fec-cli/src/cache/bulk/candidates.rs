@@ -183,31 +183,6 @@ pub struct CandidateDetail {
 
 /// Parses a district query like "CA41", "IL09", "TX01" into (state, district).
 /// Returns None if the input doesn't match the pattern.
-pub fn parse_district_query(query: &str) -> Option<(String, String)> {
-    let query = query.trim().to_uppercase();
-    if query.len() < 3 || query.len() > 4 {
-        return None;
-    }
-
-    let state = &query[..2];
-    let district = &query[2..];
-
-    // Validate state is two letters
-    if !state.chars().all(|c| c.is_ascii_uppercase()) {
-        return None;
-    }
-
-    // Validate district is 1-2 digits
-    if !district.chars().all(|c| c.is_ascii_digit()) {
-        return None;
-    }
-
-    // Normalize district to remove leading zero (FEC stores as "1" not "01")
-    let district_num: u8 = district.parse().ok()?;
-    let normalized_district = district_num.to_string();
-
-    Some((state.to_string(), normalized_district))
-}
 
 pub fn search_candidates(
     bulk_db: &mut Connection,
@@ -311,6 +286,56 @@ pub fn filter_candidates_by_district(
     Ok(results)
 }
 
+pub fn filter_candidates_by_senate(
+    bulk_db: &mut Connection,
+    cycle: u16,
+    state: &str,
+    on_progress: Option<&dyn Fn(u64, Option<u64>)>,
+) -> Result<Vec<CandidateSearchResult>> {
+    bulk_db.execute_batch(SCHEMA)?;
+    let mut tx = bulk_db
+        .transaction()
+        .context("Could not start a transaction on the .bulk-data.db database")?;
+    sync_item(&mut tx, cycle, &ITEM, on_progress)?;
+    tx.commit()?;
+
+    let sql = r#"
+      SELECT
+        candidate_id,
+        name,
+        election_year,
+        COALESCE(office, ''),
+        COALESCE(state, ''),
+        COALESCE(district, ''),
+        principal_campaign_committee
+      FROM libfec_candidates
+      WHERE cycle = :cycle
+        AND state = :state
+        AND office = 'S'
+      ORDER BY name
+      "#;
+    let params = rusqlite::named_params! {
+      ":cycle": cycle,
+      ":state": state,
+    };
+    let mut stmt = bulk_db.prepare(sql)?;
+    let results = stmt
+        .query_map(params, |row| {
+            let pcc: Option<String> = row.get(6)?;
+            Ok(CandidateSearchResult {
+                candidate_id: row.get(0)?,
+                name: row.get(1)?,
+                election_year: row.get(2)?,
+                office: row.get(3)?,
+                state: row.get(4)?,
+                district: row.get(5)?,
+                principal_campaign_committee: pcc.filter(|s| !s.is_empty()),
+            })
+        })?
+        .collect::<Result<Vec<CandidateSearchResult>, _>>()?;
+    Ok(results)
+}
+
 pub fn get_candidate_detail(
     bulk_db: &mut Connection,
     cycle: u16,
@@ -382,39 +407,4 @@ pub fn get_candidate_detail(
 pub fn export(tx: &mut Transaction<'_>, year: u16, on_progress: Option<&dyn Fn(u64, Option<u64>)>) -> Result<()> {
     sync_item(tx, year, &ITEM, on_progress)?;
     Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_parse_district_query() {
-        // Valid district queries
-        assert_eq!(
-            parse_district_query("CA41"),
-            Some(("CA".to_string(), "41".to_string()))
-        );
-        assert_eq!(
-            parse_district_query("IL09"),
-            Some(("IL".to_string(), "9".to_string())) // Leading zero stripped
-        );
-        assert_eq!(
-            parse_district_query("TX1"),
-            Some(("TX".to_string(), "1".to_string()))
-        );
-        assert_eq!(
-            parse_district_query("ny12"),
-            Some(("NY".to_string(), "12".to_string())) // Lowercase converted
-        );
-
-        // Invalid queries - should return None
-        assert_eq!(parse_district_query("Biden"), None); // Name, not district
-        assert_eq!(parse_district_query("C00401224"), None); // Committee ID
-        assert_eq!(parse_district_query(""), None); // Empty
-        assert_eq!(parse_district_query("CA"), None); // No district
-        assert_eq!(parse_district_query("123"), None); // No state
-        assert_eq!(parse_district_query("CAA1"), None); // Invalid - letter in district
-        assert_eq!(parse_district_query("1A41"), None); // Invalid state
-    }
 }
