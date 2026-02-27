@@ -356,7 +356,10 @@ pub(crate) fn process_inputs(
                     .push(candidate);
             }
             Ok(UserArgument::Contest(contest)) => {
-                let cycle = api_flags.election.unwrap();
+                let cycle = api_flags
+                    .election
+                    .or_else(|| api_flags.cycle.as_ref().and_then(|c| c.first().copied()))
+                    .ok_or_else(|| anyhow::anyhow!("--election is required for contest inputs (e.g. --election 2026)"))?;
                 let params = contest.resolve_candidate_params(cycle);
                 input_mappings.push(InputMapping {
                     raw_input: item.clone(),
@@ -436,7 +439,10 @@ pub(crate) fn process_inputs(
                         if let Some(s) = spinner.as_ref() {
                             s.set_message(format!("Resolving {}...", line_item));
                         }
-                        let cycle = api_flags.election.unwrap();
+                        let cycle = api_flags
+                            .election
+                            .or_else(|| api_flags.cycle.as_ref().and_then(|c| c.first().copied()))
+                            .ok_or_else(|| anyhow::anyhow!("--election is required for contest inputs (e.g. --election 2026)"))?;
                         let params = contest.resolve_candidate_params(cycle);
                         input_mappings.push(InputMapping {
                             raw_input: line_item.to_string(),
