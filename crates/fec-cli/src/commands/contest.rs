@@ -504,7 +504,7 @@ pub fn contest(mut sourcer: FilingSourcer, contest: Contest, cycle: u16) -> Resu
 
     // Open bulk database and fetch candidates
     let mut db = sourcer.cache.open_bulk_data_database()?;
-    let candidates = get_contest_candidates(&mut db, cycle, office, state, district)?;
+    let candidates = get_contest_candidates(&mut db, cycle, office, state, district, None)?;
 
     // Look up committee IDs from the candidates bulk table (best-effort)
     let committee_ids = lookup_committee_ids(&db, cycle, &candidates);

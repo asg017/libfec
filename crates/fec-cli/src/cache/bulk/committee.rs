@@ -86,12 +86,13 @@ pub fn search_committees(
     bulk_db: &mut Connection,
     cycle: u16,
     name_query: &str,
+    on_progress: Option<&dyn Fn(u64, Option<u64>)>,
 ) -> Result<Vec<CommitteeSearchResult>> {
     bulk_db.execute_batch(SCHEMA)?;
     let mut tx = bulk_db
         .transaction()
         .context("Could not start a transaction on the .bulk-data.db database")?;
-    sync_item(&mut tx, cycle, &ITEM)?;
+    sync_item(&mut tx, cycle, &ITEM, on_progress)?;
     tx.commit()?;
 
     let sql = r#"
@@ -133,12 +134,13 @@ pub fn get_committee_detail(
     bulk_db: &mut Connection,
     cycle: u16,
     committee_id: &str,
+    on_progress: Option<&dyn Fn(u64, Option<u64>)>,
 ) -> Result<Option<CommitteeDetail>> {
     bulk_db.execute_batch(SCHEMA)?;
     let mut tx = bulk_db
         .transaction()
         .context("Could not start a transaction on the .bulk-data.db database")?;
-    sync_item(&mut tx, cycle, &ITEM)?;
+    sync_item(&mut tx, cycle, &ITEM, on_progress)?;
     tx.commit()?;
 
     let sql = r#"
@@ -223,8 +225,8 @@ fn lookup_candidate_name(db: &Connection, cycle: u16, candidate_id: &str) -> Opt
         .ok()
 }
 
-pub fn export(tx: &mut Transaction<'_>, year: u16) -> Result<()> {
-    sync_item(tx, year, &ITEM)?;
+pub fn export(tx: &mut Transaction<'_>, year: u16, on_progress: Option<&dyn Fn(u64, Option<u64>)>) -> Result<()> {
+    sync_item(tx, year, &ITEM, on_progress)?;
     Ok(())
 }
 

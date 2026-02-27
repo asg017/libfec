@@ -6,7 +6,7 @@ use crate::{
     cli::{BulkArgs, BulkSource, CycleArg},
     sourcer::FilingSourcer,
 };
-use indicatif::{ProgressBar, ProgressStyle};
+use indicatif::{HumanBytes, ProgressBar, ProgressStyle};
 
 pub fn bulk(_sourcer: FilingSourcer, args: &BulkArgs) -> anyhow::Result<()> {
     println!("Running bulk command with args: {:?}", args);
@@ -36,16 +36,24 @@ pub fn bulk(_sourcer: FilingSourcer, args: &BulkArgs) -> anyhow::Result<()> {
             .progress_chars("#>-"),
     );
 
+    let on_progress = |bytes: u64, total: Option<u64>| {
+        let msg = match total {
+            Some(t) => format!("downloading {} / {}", HumanBytes(bytes), HumanBytes(t)),
+            None => format!("downloading {}", HumanBytes(bytes)),
+        };
+        pb.set_message(msg);
+    };
+
     for year in cycles {
         for source in &args.source {
             pb.set_message(format!("{} - {:?}", year, source));
             let result = match source {
-                BulkSource::Opex => opexp::export(&mut tx, year),
-                BulkSource::Committees => committee::export(&mut tx, year),
-                BulkSource::Candidates => candidates::export(&mut tx, year),
-                BulkSource::ContributionsToCandidates => pas2::export(&mut tx, year),
-                BulkSource::PacSummary => pac_summary::export(&mut tx, year),
-                BulkSource::CandidateSummary => candidate_summary::export(&mut tx, year),
+                BulkSource::Opex => opexp::export(&mut tx, year, Some(&on_progress)),
+                BulkSource::Committees => committee::export(&mut tx, year, Some(&on_progress)),
+                BulkSource::Candidates => candidates::export(&mut tx, year, Some(&on_progress)),
+                BulkSource::ContributionsToCandidates => pas2::export(&mut tx, year, Some(&on_progress)),
+                BulkSource::PacSummary => pac_summary::export(&mut tx, year, Some(&on_progress)),
+                BulkSource::CandidateSummary => candidate_summary::export(&mut tx, year, Some(&on_progress)),
             };
             result.unwrap();
             pb.inc(1);
@@ -54,7 +62,7 @@ pub fn bulk(_sourcer: FilingSourcer, args: &BulkArgs) -> anyhow::Result<()> {
             && args.source.contains(&BulkSource::Committees)
         {
             pb.set_message(format!("{} - Candidate-Committee Linkage", year));
-            candidate_committee_linkage::export(&mut tx, year)?;
+            candidate_committee_linkage::export(&mut tx, year, Some(&on_progress))?;
             pb.inc(1);
         }
     }

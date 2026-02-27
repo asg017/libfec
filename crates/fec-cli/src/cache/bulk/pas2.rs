@@ -52,8 +52,8 @@ CREATE TABLE IF NOT EXISTS committee_contributions_to_candidates(
 
 "#;
 
-pub fn export(tx: &mut Transaction<'_>, year: u16) -> Result<()> {
-    let result = sync_item(tx, year, &ITEM)?;
+pub fn export(tx: &mut Transaction<'_>, year: u16, on_progress: Option<&dyn Fn(u64, Option<u64>)>) -> Result<()> {
+    let result = sync_item(tx, year, &ITEM, on_progress)?;
     println!("pas2 {year} {result:?}");
     Ok(())
 }
@@ -79,11 +79,12 @@ pub fn search_contributions_to_candidates(
     conn: &mut rusqlite::Connection,
     cycle: u16,
     query: &str,
+    on_progress: Option<&dyn Fn(u64, Option<u64>)>,
 ) -> Result<Vec<Pas2SearchResult>> {
     // Ensure schema exists and data is synced
     conn.execute_batch(SCHEMA)?;
     let mut tx = conn.transaction()?;
-    sync_item(&mut tx, cycle, &ITEM)?;
+    sync_item(&mut tx, cycle, &ITEM, on_progress)?;
     tx.commit()?;
 
     let search_pattern = format!("%{}%", query);

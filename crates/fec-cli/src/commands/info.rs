@@ -441,6 +441,7 @@ pub fn info(mut sourcer: FilingSourcer, args: InfoArgs) -> anyhow::Result<()> {
                             &mut db,
                             cycle,
                             &committee_id,
+                            None,
                         ) {
                             Ok(Some(detail)) => {
                                 if let Some(s) = spinner.as_ref() {
@@ -471,6 +472,7 @@ pub fn info(mut sourcer: FilingSourcer, args: InfoArgs) -> anyhow::Result<()> {
                             &mut db,
                             cycle,
                             &candidate_id,
+                            None,
                         ) {
                             Ok(Some(detail)) => {
                                 // Load linked committees
@@ -478,6 +480,7 @@ pub fn info(mut sourcer: FilingSourcer, args: InfoArgs) -> anyhow::Result<()> {
                                     &mut db,
                                     cycle,
                                     &candidate_id,
+                                    None,
                                 ).unwrap_or_default();
                                 if let Some(s) = spinner.as_ref() {
                                     s.finish_and_clear();

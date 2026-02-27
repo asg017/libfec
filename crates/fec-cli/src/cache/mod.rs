@@ -238,6 +238,7 @@ impl Cache {
         bulk::candidates::resolve_candidate_principal_campaign_committees(
             self.open_bulk_data_database()?,
             params,
+            None,
         )
     }
 

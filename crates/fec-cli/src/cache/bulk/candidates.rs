@@ -138,12 +138,13 @@ fn query_candidate_principal_campaign_committees(
 pub fn resolve_candidate_principal_campaign_committees(
     mut bulk_db: Connection,
     params: ResolveCandidateParams,
+    on_progress: Option<&dyn Fn(u64, Option<u64>)>,
 ) -> Result<Vec<String>> {
     bulk_db.execute_batch(SCHEMA)?;
     let mut tx = bulk_db
         .transaction()
         .context("Could not start a transaction on the .bulk-data.db database")?;
-    sync_item(&mut tx, params.cycle, &ITEM)?;
+    sync_item(&mut tx, params.cycle, &ITEM, on_progress)?;
     tx.commit()?;
     query_candidate_principal_campaign_committees(&bulk_db, params)
 }
@@ -212,12 +213,13 @@ pub fn search_candidates(
     bulk_db: &mut Connection,
     cycle: u16,
     name_query: &str,
+    on_progress: Option<&dyn Fn(u64, Option<u64>)>,
 ) -> Result<Vec<CandidateSearchResult>> {
     bulk_db.execute_batch(SCHEMA)?;
     let mut tx = bulk_db
         .transaction()
         .context("Could not start a transaction on the .bulk-data.db database")?;
-    sync_item(&mut tx, cycle, &ITEM)?;
+    sync_item(&mut tx, cycle, &ITEM, on_progress)?;
     tx.commit()?;
 
     let sql = r#"
@@ -261,12 +263,13 @@ pub fn filter_candidates_by_district(
     cycle: u16,
     state: &str,
     district: &str,
+    on_progress: Option<&dyn Fn(u64, Option<u64>)>,
 ) -> Result<Vec<CandidateSearchResult>> {
     bulk_db.execute_batch(SCHEMA)?;
     let mut tx = bulk_db
         .transaction()
         .context("Could not start a transaction on the .bulk-data.db database")?;
-    sync_item(&mut tx, cycle, &ITEM)?;
+    sync_item(&mut tx, cycle, &ITEM, on_progress)?;
     tx.commit()?;
 
     let sql = r#"
@@ -312,12 +315,13 @@ pub fn get_candidate_detail(
     bulk_db: &mut Connection,
     cycle: u16,
     candidate_id: &str,
+    on_progress: Option<&dyn Fn(u64, Option<u64>)>,
 ) -> Result<Option<CandidateDetail>> {
     bulk_db.execute_batch(SCHEMA)?;
     let mut tx = bulk_db
         .transaction()
         .context("Could not start a transaction on the .bulk-data.db database")?;
-    sync_item(&mut tx, cycle, &ITEM)?;
+    sync_item(&mut tx, cycle, &ITEM, on_progress)?;
     tx.commit()?;
 
     let sql = r#"
@@ -375,8 +379,8 @@ pub fn get_candidate_detail(
     }
 }
 
-pub fn export(tx: &mut Transaction<'_>, year: u16) -> Result<()> {
-    sync_item(tx, year, &ITEM)?;
+pub fn export(tx: &mut Transaction<'_>, year: u16, on_progress: Option<&dyn Fn(u64, Option<u64>)>) -> Result<()> {
+    sync_item(tx, year, &ITEM, on_progress)?;
     Ok(())
 }
 

@@ -33,8 +33,8 @@ CREATE TABLE IF NOT EXISTS libfec_candidate_committee_linkages(
 );
 "#;
 
-pub fn export(tx: &mut Transaction<'_>, year: u16) -> Result<()> {
-    sync_item(tx, year, &ITEM)?;
+pub fn export(tx: &mut Transaction<'_>, year: u16, on_progress: Option<&dyn Fn(u64, Option<u64>)>) -> Result<()> {
+    sync_item(tx, year, &ITEM, on_progress)?;
     Ok(())
 }
 
@@ -91,12 +91,13 @@ pub fn get_candidate_committee_linkages(
     bulk_db: &mut rusqlite::Connection,
     cycle: u16,
     candidate_id: &str,
+    on_progress: Option<&dyn Fn(u64, Option<u64>)>,
 ) -> Result<Vec<CommitteeLinkage>> {
     bulk_db.execute_batch(SCHEMA)?;
     let mut tx = bulk_db
         .transaction()
         .context("Could not start a transaction on the .bulk-data.db database")?;
-    sync_item(&mut tx, cycle, &ITEM)?;
+    sync_item(&mut tx, cycle, &ITEM, on_progress)?;
     tx.commit()?;
 
     let sql = r#"

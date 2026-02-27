@@ -153,6 +153,7 @@ impl App {
                             self.cycle,
                             &state,
                             &district,
+                            None,
                         )
                         .unwrap_or_default()
                     } else {
@@ -160,6 +161,7 @@ impl App {
                             &mut db,
                             self.cycle,
                             &self.input,
+                            None,
                         )
                         .unwrap_or_default()
                     };
@@ -167,6 +169,7 @@ impl App {
                         &mut db,
                         self.cycle,
                         &self.input,
+                        None,
                     )
                     .unwrap_or_default();
 
@@ -179,6 +182,7 @@ impl App {
                             &mut db,
                             self.cycle,
                             &self.input,
+                            None,
                         ) {
                             Ok(results) => {
                                 self.opexp_results = results;
@@ -353,6 +357,7 @@ impl App {
                                     &mut db,
                                     self.cycle,
                                     &candidate.candidate_id,
+                                    None,
                                 )
                             {
                                 self.candidate_detail_state = CandidateDetailState::new();
@@ -361,6 +366,7 @@ impl App {
                                     &mut db,
                                     self.cycle,
                                     &candidate.candidate_id,
+                                    None,
                                 ) {
                                     self.candidate_detail_state.set_linked_committees(linkages);
                                 }
@@ -381,6 +387,7 @@ impl App {
                                     &mut db,
                                     self.cycle,
                                     &committee.committee_id,
+                                    None,
                                 )
                             {
                                 self.committee_detail = Some(detail);
@@ -433,6 +440,7 @@ impl App {
                 &mut db,
                 self.cycle,
                 committee_id,
+                None,
             ) {
                 self.committee_detail = Some(detail);
                 self.committee_detail_state = CommitteeDetailState::new();
@@ -537,7 +545,7 @@ impl App {
             // Committee
             if let Ok(mut db) = sourcer.cache.open_bulk_data_database() {
                 if let Ok(Some(detail)) = crate::cache::bulk::committee::get_committee_detail(
-                    &mut db, self.cycle, filer_id,
+                    &mut db, self.cycle, filer_id, None,
                 ) {
                     self.committee_detail = Some(detail);
                     self.committee_detail_state = CommitteeDetailState::new();
@@ -551,7 +559,7 @@ impl App {
             // Candidate
             if let Ok(mut db) = sourcer.cache.open_bulk_data_database() {
                 if let Ok(Some(detail)) = crate::cache::bulk::candidates::get_candidate_detail(
-                    &mut db, self.cycle, filer_id,
+                    &mut db, self.cycle, filer_id, None,
                 ) {
                     self.candidate_detail = Some(detail);
                     self.candidate_detail_state = CandidateDetailState::new();

@@ -661,13 +661,13 @@ fn process_bulk_download(state: &mut ExportState, sourcer: &mut FilingSourcer) -
 
         match task.data_type {
             BulkDataType::Candidates => {
-                candidates::export(&mut bulk_tx, task.cycle)?;
+                candidates::export(&mut bulk_tx, task.cycle, None)?;
             }
             BulkDataType::Committees => {
-                committee::export(&mut bulk_tx, task.cycle)?;
+                committee::export(&mut bulk_tx, task.cycle, None)?;
             }
             BulkDataType::Linkages => {
-                candidate_committee_linkage::export(&mut bulk_tx, task.cycle)?;
+                candidate_committee_linkage::export(&mut bulk_tx, task.cycle, None)?;
             }
         }
 

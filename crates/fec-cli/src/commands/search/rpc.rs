@@ -387,7 +387,7 @@ fn handle_search_query(
 
     // Search candidates
     let candidate_results =
-        candidates::search_candidates(&mut db, cycle, &search_params.query).map_err(|e| {
+        candidates::search_candidates(&mut db, cycle, &search_params.query, None).map_err(|e| {
             JsonRpcError {
                 code: -32000,
                 message: "Candidate search error".to_string(),
@@ -397,7 +397,7 @@ fn handle_search_query(
 
     // Search committees
     let committee_results =
-        committee::search_committees(&mut db, cycle, &search_params.query).map_err(|e| {
+        committee::search_committees(&mut db, cycle, &search_params.query, None).map_err(|e| {
             JsonRpcError {
                 code: -32000,
                 message: "Committee search error".to_string(),
@@ -453,7 +453,7 @@ fn handle_candidate_detail(
 
     // Get candidate detail
     let detail =
-        candidates::get_candidate_detail(&mut db, cycle, &detail_params.candidate_id)
+        candidates::get_candidate_detail(&mut db, cycle, &detail_params.candidate_id, None)
             .map_err(|e| JsonRpcError {
                 code: -32000,
                 message: "Candidate lookup error".to_string(),
@@ -502,7 +502,7 @@ fn handle_committee_detail(
 
     // Get committee detail
     let detail =
-        committee::get_committee_detail(&mut db, cycle, &detail_params.committee_id).map_err(
+        committee::get_committee_detail(&mut db, cycle, &detail_params.committee_id, None).map_err(
             |e| JsonRpcError {
                 code: -32000,
                 message: "Committee lookup error".to_string(),

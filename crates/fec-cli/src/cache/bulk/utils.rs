@@ -12,6 +12,34 @@ use std::{
 };
 use ureq::{http::Response, Body};
 
+/// Wraps a reader to report progress via a callback on each read.
+struct ProgressReader<'a, R> {
+    inner: R,
+    bytes_read: u64,
+    total: Option<u64>,
+    on_progress: &'a dyn Fn(u64, Option<u64>),
+}
+
+impl<'a, R: Read> ProgressReader<'a, R> {
+    fn new(inner: R, total: Option<u64>, on_progress: &'a dyn Fn(u64, Option<u64>)) -> Self {
+        Self {
+            inner,
+            bytes_read: 0,
+            total,
+            on_progress,
+        }
+    }
+}
+
+impl<R: Read> Read for ProgressReader<'_, R> {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        let n = self.inner.read(buf)?;
+        self.bytes_read += n as u64;
+        (self.on_progress)(self.bytes_read, self.total);
+        Ok(n)
+    }
+}
+
 pub(crate) struct BulkDataItem {
     pub(crate) table_name: String,
     pub(crate) schema: String,
@@ -23,12 +51,27 @@ pub(crate) struct BulkDataItem {
 pub(crate) fn csv_reader_from_response(
     response: Response<Body>,
     name: &str,
+    on_progress: Option<&dyn Fn(u64, Option<u64>)>,
 ) -> anyhow::Result<csv::Reader<Cursor<Vec<u8>>>> {
+    let content_length = response
+        .headers()
+        .get("Content-Length")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.parse::<u64>().ok());
+    let mut reader = response.into_body().into_reader();
     let mut buffer = Cursor::new(Vec::new());
-    std::io::copy(
-        &mut response.into_body().into_reader(),
-        &mut BufWriter::new(&mut buffer),
-    )?;
+    if let Some(on_progress) = on_progress {
+        let mut progress_reader = ProgressReader::new(&mut reader, content_length, on_progress);
+        std::io::copy(
+            &mut progress_reader,
+            &mut BufWriter::new(&mut buffer),
+        )?;
+    } else {
+        std::io::copy(
+            &mut reader,
+            &mut BufWriter::new(&mut buffer),
+        )?;
+    }
 
     let mut archive = zip::ZipArchive::new(buffer)?;
     let mut txt_file = archive.by_name(name)?;
@@ -83,6 +126,7 @@ pub(crate) fn sync_item(
     tx: &mut Transaction,
     year: u16,
     item: &BulkDataItem,
+    on_progress: Option<&dyn Fn(u64, Option<u64>)>,
 ) -> anyhow::Result<SyncResult> {
     tx.execute_batch(&item.schema)?;
     tx.execute(
@@ -257,7 +301,7 @@ pub(crate) fn sync_item(
         .data_file_name
         .replace("$YEAR2", &year.to_string()[year.to_string().len() - 2..])
         .replace("$YEAR", &year.to_string());
-    let mut rdr = csv_reader_from_response(response, &data_file_name)?;
+    let mut rdr = csv_reader_from_response(response, &data_file_name, on_progress)?;
     insert_rows(tx, year, &mut rdr, &item.table_name, item.column_count)?;
     Ok(SyncResult::Updated)
 }

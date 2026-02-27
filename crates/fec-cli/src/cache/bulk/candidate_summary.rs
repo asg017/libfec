@@ -58,8 +58,8 @@ CREATE TABLE IF NOT EXISTS candidate_summary(
 );
 "#;
 
-pub fn export(tx: &mut Transaction<'_>, year: u16) -> Result<()> {
-    let result = sync_item(tx, year, &ITEM)?;
+pub fn export(tx: &mut Transaction<'_>, year: u16, on_progress: Option<&dyn Fn(u64, Option<u64>)>) -> Result<()> {
+    let result = sync_item(tx, year, &ITEM, on_progress)?;
     println!("candidate_summary {year} {result:?}");
     Ok(())
 }
@@ -84,10 +84,11 @@ pub fn get_contest_candidates(
     office: &str,
     state: Option<&str>,
     district: Option<&str>,
+    on_progress: Option<&dyn Fn(u64, Option<u64>)>,
 ) -> Result<Vec<ContestCandidate>> {
     // Sync bulk data first
     let mut tx = db.transaction()?;
-    let result = sync_item(&mut tx, cycle, &ITEM)?;
+    let result = sync_item(&mut tx, cycle, &ITEM, on_progress)?;
     println!("candidate_summary {cycle} {result:?}");
     tx.commit()?;
 
