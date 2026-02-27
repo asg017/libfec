@@ -72,6 +72,7 @@ mod candidates_table;
 mod committees_table;
 mod events;
 mod opexp_table;
+mod plain_text;
 mod rpc;
 mod ui;
 
@@ -85,13 +86,21 @@ use crossterm::{
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 use ratatui::{backend::CrosstermBackend, Terminal};
-use std::io;
+use std::io::{self, IsTerminal};
 
 /// Entry point for the search command
 pub fn search(mut sourcer: FilingSourcer, args: &SearchArgs) -> Result<()> {
     // RPC mode: JSON-RPC server over stdio
     if args.rpc {
         return rpc::run_rpc_mode(sourcer, args);
+    }
+
+    // Non-TTY mode: print plain text table if query is provided
+    if !io::stdout().is_terminal() {
+        if args.query.is_empty() {
+            anyhow::bail!("query required when not running in a terminal");
+        }
+        return plain_text::print_table(&mut sourcer, args);
     }
 
     // TUI mode: interactive terminal interface
@@ -118,3 +127,4 @@ pub fn search(mut sourcer: FilingSourcer, args: &SearchArgs) -> Result<()> {
 
     Ok(())
 }
+
