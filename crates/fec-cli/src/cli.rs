@@ -2,7 +2,7 @@ pub use crate::api_flags::FilingsApiFlags;
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use core::str;
 use fec_parser::schedules::ScheduleType;
-use std::{env, path::PathBuf};
+use std::path::PathBuf;
 
 #[derive(
     Debug,
@@ -485,8 +485,37 @@ pub enum ApiFormat {
     Jsonl,
 }
 
+#[derive(Subcommand, Debug)]
+#[command(after_help = r#"Examples:
+  libfec api filings C00401224 --cycle 2026
+  libfec api schedule-a --committee C00401224 --min-amount 1000
+  libfec api schedule-b --committee C00401224 --min-date 2025-01-01
+  libfec api schedule-e --candidate P80001571 --cycle 2024"#)]
+pub enum ApiSubcommand {
+    /// Query the /v1/filings endpoint
+    Filings(Box<ApiFilingsArgs>),
+    /// Query /v1/schedules/schedule_a/ — individual contributions (receipts)
+    ScheduleA(ApiScheduleAArgs),
+    /// Query /v1/schedules/schedule_b/ — disbursements
+    ScheduleB(ApiScheduleBArgs),
+    /// Query /v1/schedules/schedule_c/ — loans
+    ScheduleC(ApiScheduleCArgs),
+    /// Query /v1/schedules/schedule_d/ — debts & obligations
+    ScheduleD(ApiScheduleDArgs),
+    /// Query /v1/schedules/schedule_e/ — independent expenditures
+    ScheduleE(ApiScheduleEArgs),
+    /// Query /v1/schedules/schedule_f/ — coordinated expenditures
+    ScheduleF(ApiScheduleFArgs),
+}
+
 #[derive(Args, Debug)]
 pub struct ApiArgs {
+    #[command(subcommand)]
+    pub command: ApiSubcommand,
+}
+
+#[derive(Args, Debug)]
+pub struct ApiFilingsArgs {
     /// Committee IDs, candidate IDs, or contest shorthand (e.g. C00257337, H8VA07024, H-VA07)
     #[arg(required = false)]
     pub inputs: Vec<String>,
@@ -501,6 +530,318 @@ pub struct ApiArgs {
 
     #[command(flatten)]
     pub api: FilingsApiFlags,
+}
+
+#[derive(Args, Debug)]
+pub struct ApiScheduleAArgs {
+    /// Committee ID(s)
+    #[arg(long)]
+    pub committee: Option<Vec<String>>,
+    /// Contributor name(s)
+    #[arg(long)]
+    pub contributor_name: Option<Vec<String>>,
+    /// Contributor city
+    #[arg(long)]
+    pub contributor_city: Option<Vec<String>>,
+    /// Contributor state (2-letter code)
+    #[arg(long)]
+    pub contributor_state: Option<Vec<String>>,
+    /// Contributor ZIP code
+    #[arg(long)]
+    pub contributor_zip: Option<Vec<String>>,
+    /// Contributor employer
+    #[arg(long)]
+    pub contributor_employer: Option<Vec<String>>,
+    /// Contributor occupation
+    #[arg(long)]
+    pub contributor_occupation: Option<Vec<String>>,
+    /// Minimum contribution amount
+    #[arg(long)]
+    pub min_amount: Option<f64>,
+    /// Maximum contribution amount
+    #[arg(long)]
+    pub max_amount: Option<f64>,
+    /// Minimum contribution date (YYYY-MM-DD)
+    #[arg(long)]
+    pub min_date: Option<String>,
+    /// Maximum contribution date (YYYY-MM-DD)
+    #[arg(long)]
+    pub max_date: Option<String>,
+    /// Only individual contributions
+    #[arg(long)]
+    pub is_individual: bool,
+    /// Schedule A line number
+    #[arg(long)]
+    pub line_number: Option<String>,
+    /// Two-year transaction period(s)
+    #[arg(long)]
+    pub two_year_transaction_period: Option<Vec<u16>>,
+    /// Sort field
+    #[arg(long)]
+    pub sort: Option<String>,
+
+    /// Output format
+    #[arg(long, short = 'f', value_enum, default_value = "json")]
+    pub format: ApiFormat,
+    /// API key for OpenFEC
+    #[arg(long, env = "LIBFEC_API_KEY", hide_env = true)]
+    pub api_key: Option<String>,
+    /// Results per page (max 100)
+    #[arg(long, default_value = "100")]
+    pub per_page: u16,
+    /// Fetch all pages automatically
+    #[arg(long)]
+    pub all: bool,
+    /// Print the API URL that would be requested, without making the request
+    #[arg(long)]
+    pub url_only: bool,
+}
+
+#[derive(Args, Debug)]
+pub struct ApiScheduleBArgs {
+    /// Committee ID(s)
+    #[arg(long)]
+    pub committee: Option<Vec<String>>,
+    /// Recipient name
+    #[arg(long)]
+    pub recipient_name: Option<Vec<String>>,
+    /// Recipient city
+    #[arg(long)]
+    pub recipient_city: Option<Vec<String>>,
+    /// Recipient state (2-letter code)
+    #[arg(long)]
+    pub recipient_state: Option<Vec<String>>,
+    /// Disbursement purpose category
+    #[arg(long)]
+    pub disbursement_purpose_category: Option<Vec<String>>,
+    /// Minimum disbursement amount
+    #[arg(long)]
+    pub min_amount: Option<f64>,
+    /// Maximum disbursement amount
+    #[arg(long)]
+    pub max_amount: Option<f64>,
+    /// Minimum disbursement date (YYYY-MM-DD)
+    #[arg(long)]
+    pub min_date: Option<String>,
+    /// Maximum disbursement date (YYYY-MM-DD)
+    #[arg(long)]
+    pub max_date: Option<String>,
+    /// Schedule B line number
+    #[arg(long)]
+    pub line_number: Option<String>,
+    /// Two-year transaction period(s)
+    #[arg(long)]
+    pub two_year_transaction_period: Option<Vec<u16>>,
+    /// Sort field
+    #[arg(long)]
+    pub sort: Option<String>,
+
+    /// Output format
+    #[arg(long, short = 'f', value_enum, default_value = "json")]
+    pub format: ApiFormat,
+    /// API key for OpenFEC
+    #[arg(long, env = "LIBFEC_API_KEY", hide_env = true)]
+    pub api_key: Option<String>,
+    /// Results per page (max 100)
+    #[arg(long, default_value = "100")]
+    pub per_page: u16,
+    /// Fetch all pages automatically
+    #[arg(long)]
+    pub all: bool,
+    /// Print the API URL that would be requested, without making the request
+    #[arg(long)]
+    pub url_only: bool,
+}
+
+#[derive(Args, Debug)]
+pub struct ApiScheduleCArgs {
+    /// Committee ID(s)
+    #[arg(long)]
+    pub committee: Option<Vec<String>>,
+    /// Candidate ID(s)
+    #[arg(long)]
+    pub candidate: Option<Vec<String>>,
+    /// Loan source name
+    #[arg(long)]
+    pub loan_source_name: Option<Vec<String>>,
+    /// Minimum loan amount
+    #[arg(long)]
+    pub min_amount: Option<f64>,
+    /// Maximum loan amount
+    #[arg(long)]
+    pub max_amount: Option<f64>,
+    /// Minimum incurred date (YYYY-MM-DD)
+    #[arg(long)]
+    pub min_date: Option<String>,
+    /// Maximum incurred date (YYYY-MM-DD)
+    #[arg(long)]
+    pub max_date: Option<String>,
+    /// Sort field
+    #[arg(long)]
+    pub sort: Option<String>,
+
+    /// Output format
+    #[arg(long, short = 'f', value_enum, default_value = "json")]
+    pub format: ApiFormat,
+    /// API key for OpenFEC
+    #[arg(long, env = "LIBFEC_API_KEY", hide_env = true)]
+    pub api_key: Option<String>,
+    /// Results per page (max 100)
+    #[arg(long, default_value = "100")]
+    pub per_page: u16,
+    /// Fetch all pages automatically
+    #[arg(long)]
+    pub all: bool,
+    /// Print the API URL that would be requested, without making the request
+    #[arg(long)]
+    pub url_only: bool,
+}
+
+#[derive(Args, Debug)]
+pub struct ApiScheduleDArgs {
+    /// Committee ID(s)
+    #[arg(long)]
+    pub committee: Option<Vec<String>>,
+    /// Candidate ID(s)
+    #[arg(long)]
+    pub candidate: Option<Vec<String>>,
+    /// Creditor/debtor name
+    #[arg(long)]
+    pub creditor_debtor_name: Option<Vec<String>>,
+    /// Minimum amount
+    #[arg(long)]
+    pub min_amount: Option<f64>,
+    /// Maximum amount
+    #[arg(long)]
+    pub max_amount: Option<f64>,
+    /// Minimum coverage end date (YYYY-MM-DD)
+    #[arg(long)]
+    pub min_date: Option<String>,
+    /// Maximum coverage end date (YYYY-MM-DD)
+    #[arg(long)]
+    pub max_date: Option<String>,
+    /// Sort field
+    #[arg(long)]
+    pub sort: Option<String>,
+
+    /// Output format
+    #[arg(long, short = 'f', value_enum, default_value = "json")]
+    pub format: ApiFormat,
+    /// API key for OpenFEC
+    #[arg(long, env = "LIBFEC_API_KEY", hide_env = true)]
+    pub api_key: Option<String>,
+    /// Results per page (max 100)
+    #[arg(long, default_value = "100")]
+    pub per_page: u16,
+    /// Fetch all pages automatically
+    #[arg(long)]
+    pub all: bool,
+    /// Print the API URL that would be requested, without making the request
+    #[arg(long)]
+    pub url_only: bool,
+}
+
+#[derive(Args, Debug)]
+pub struct ApiScheduleEArgs {
+    /// Committee ID(s)
+    #[arg(long)]
+    pub committee: Option<Vec<String>>,
+    /// Candidate ID(s)
+    #[arg(long)]
+    pub candidate: Option<Vec<String>>,
+    /// Support or oppose (S or O)
+    #[arg(long)]
+    pub support_oppose_indicator: Option<String>,
+    /// Is notice (filed within 24/48 hours of expenditure)
+    #[arg(long)]
+    pub is_notice: Option<bool>,
+    /// Filing form (F24 or F3X)
+    #[arg(long)]
+    pub filing_form: Option<Vec<String>>,
+    /// Minimum expenditure amount
+    #[arg(long)]
+    pub min_amount: Option<f64>,
+    /// Maximum expenditure amount
+    #[arg(long)]
+    pub max_amount: Option<f64>,
+    /// Minimum expenditure date (YYYY-MM-DD)
+    #[arg(long)]
+    pub min_date: Option<String>,
+    /// Maximum expenditure date (YYYY-MM-DD)
+    #[arg(long)]
+    pub max_date: Option<String>,
+    /// Election cycle(s)
+    #[arg(long)]
+    pub cycle: Option<Vec<u16>>,
+    /// Most recent filing only
+    #[arg(long)]
+    pub most_recent: Option<bool>,
+    /// Sort field
+    #[arg(long)]
+    pub sort: Option<String>,
+
+    /// Output format
+    #[arg(long, short = 'f', value_enum, default_value = "json")]
+    pub format: ApiFormat,
+    /// API key for OpenFEC
+    #[arg(long, env = "LIBFEC_API_KEY", hide_env = true)]
+    pub api_key: Option<String>,
+    /// Results per page (max 100)
+    #[arg(long, default_value = "100")]
+    pub per_page: u16,
+    /// Fetch all pages automatically
+    #[arg(long)]
+    pub all: bool,
+    /// Print the API URL that would be requested, without making the request
+    #[arg(long)]
+    pub url_only: bool,
+}
+
+#[derive(Args, Debug)]
+pub struct ApiScheduleFArgs {
+    /// Committee ID(s)
+    #[arg(long)]
+    pub committee: Option<Vec<String>>,
+    /// Candidate ID(s)
+    #[arg(long)]
+    pub candidate: Option<Vec<String>>,
+    /// Payee name
+    #[arg(long)]
+    pub payee_name: Option<Vec<String>>,
+    /// Minimum expenditure amount
+    #[arg(long)]
+    pub min_amount: Option<f64>,
+    /// Maximum expenditure amount
+    #[arg(long)]
+    pub max_amount: Option<f64>,
+    /// Minimum expenditure date (YYYY-MM-DD)
+    #[arg(long)]
+    pub min_date: Option<String>,
+    /// Maximum expenditure date (YYYY-MM-DD)
+    #[arg(long)]
+    pub max_date: Option<String>,
+    /// Election cycle(s)
+    #[arg(long)]
+    pub cycle: Option<Vec<u16>>,
+    /// Sort field
+    #[arg(long)]
+    pub sort: Option<String>,
+
+    /// Output format
+    #[arg(long, short = 'f', value_enum, default_value = "json")]
+    pub format: ApiFormat,
+    /// API key for OpenFEC
+    #[arg(long, env = "LIBFEC_API_KEY", hide_env = true)]
+    pub api_key: Option<String>,
+    /// Results per page (max 100)
+    #[arg(long, default_value = "100")]
+    pub per_page: u16,
+    /// Fetch all pages automatically
+    #[arg(long)]
+    pub all: bool,
+    /// Print the API URL that would be requested, without making the request
+    #[arg(long)]
+    pub url_only: bool,
 }
 
 #[derive(Args, Debug)]

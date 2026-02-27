@@ -158,6 +158,10 @@ pub struct CalendarDatesUrl(pub Url);
 
 pub struct EfilingFilingUrl(pub Url);
 
+/// A URL for any arbitrary API endpoint, built via `Api::endpoint_url()`.
+#[derive(Debug, Clone)]
+pub struct GenericApiUrl(pub Url);
+
 fn redact_api_key(url: &Url) -> String {
     let mut redacted = url.clone();
     let mut qp = redacted.query_pairs_mut();
@@ -320,6 +324,19 @@ impl Api {
         FilingsUrl(url)
     }
 
+    /// Build a URL for any endpoint with arbitrary query parameters.
+    pub fn endpoint_url(&self, path: &str, params: &[(&str, &str)]) -> GenericApiUrl {
+        let mut url = self.base_url.clone();
+        url.set_path(path);
+        let mut qp = url.query_pairs_mut();
+        qp.append_pair("api_key", &self.api_key);
+        for (key, value) in params {
+            qp.append_pair(key, value);
+        }
+        drop(qp);
+        GenericApiUrl(url)
+    }
+
     pub fn efiling_filings_url(&self, args: EfilingFilingArgs) -> EfilingFilingUrl {
         let mut url = self.base_url.clone();
         url.set_path("/v1/efile/filings");
@@ -357,6 +374,61 @@ pub struct ApiResponse {
 }
 
 static USER_AGENT: &str = concat!("libfec/", env!("CARGO_PKG_VERSION"));
+
+/// Compute the next URL for pagination. Handles both page-based and cursor-based pagination.
+///
+/// Cursor-based (schedule A/B/E): `last_indexes` contains cursor values; no `page` field.
+/// Page-based (filings, schedule D/F): uses `page`/`pages` fields.
+/// Hybrid (schedule C): has both `page`+`last_index`.
+fn compute_next_url(url: &Url, pagination: &FecApiPaginationObject) -> Option<Url> {
+    // Cursor-based pagination: use last_indexes fields as query params.
+    // If last_indexes is present with non-null values, there are more results.
+    if let Some(ref last_indexes) = pagination.last_indexes {
+        if let Some(obj) = last_indexes.as_object() {
+            // Check that at least one cursor value is non-null (null values = no more pages)
+            let has_cursor = obj.values().any(|v| !v.is_null());
+            if has_cursor {
+                let mut next_url = url.clone();
+                next_url.query_pairs_mut().clear();
+                for (key, value) in url.query_pairs() {
+                    // Strip existing cursor params that will be replaced
+                    if key.starts_with("last_") {
+                        continue;
+                    }
+                    next_url.query_pairs_mut().append_pair(&key, &value);
+                }
+                for (key, value) in obj {
+                    if let Some(s) = value.as_str() {
+                        next_url.query_pairs_mut().append_pair(key, s);
+                    } else if !value.is_null() {
+                        next_url
+                            .query_pairs_mut()
+                            .append_pair(key, &value.to_string());
+                    }
+                }
+                return Some(next_url);
+            }
+            // All cursor values are null — no more pages
+            return None;
+        }
+    }
+
+    // Page-based pagination
+    if pagination.page >= pagination.pages {
+        return None;
+    }
+    let mut next_url = url.clone();
+    next_url.query_pairs_mut().clear();
+    for (key, value) in url.query_pairs() {
+        if key != "page" {
+            next_url.query_pairs_mut().append_pair(&key, &value);
+        }
+    }
+    next_url
+        .query_pairs_mut()
+        .append_pair("page", &(pagination.page + 1).to_string());
+    Some(next_url)
+}
 
 pub fn api_request(url: &Url) -> anyhow::Result<ApiResponse> {
     let mut response = match ureq::get(url.as_str())
@@ -408,21 +480,7 @@ pub fn api_request(url: &Url) -> anyhow::Result<ApiResponse> {
         .as_array()
         .ok_or_else(|| anyhow::anyhow!("missing results array"))?
         .to_vec();
-    let next_url = if pagination.page >= pagination.pages {
-        None
-    } else {
-        let mut next_url = url.clone();
-        next_url.query_pairs_mut().clear();
-        for (key, value) in url.query_pairs() {
-            if key != "page" {
-                next_url.query_pairs_mut().append_pair(&key, &value);
-            }
-        }
-        next_url
-            .query_pairs_mut()
-            .append_pair("page", &(pagination.page + 1).to_string());
-        Some(next_url)
-    };
+    let next_url = compute_next_url(url, &pagination);
 
     Ok(ApiResponse {
         json: body,
@@ -475,21 +533,7 @@ pub fn api_request_cached(
                 .ok_or_else(|| anyhow::anyhow!("missing results array in cached response"))?
                 .to_vec();
 
-            let next_url = if pagination.page >= pagination.pages {
-                None
-            } else {
-                let mut next_url = url.clone();
-                next_url.query_pairs_mut().clear();
-                for (key, value) in url.query_pairs() {
-                    if key != "page" {
-                        next_url.query_pairs_mut().append_pair(&key, &value);
-                    }
-                }
-                next_url
-                    .query_pairs_mut()
-                    .append_pair("page", &(pagination.page + 1).to_string());
-                Some(next_url)
-            };
+            let next_url = compute_next_url(url, &pagination);
 
             return Ok(ApiResponse {
                 json: entry.body,
@@ -577,21 +621,7 @@ pub fn api_request_cached(
         .ok_or_else(|| anyhow::anyhow!("missing results array"))?
         .to_vec();
 
-    let next_url = if pagination.page >= pagination.pages {
-        None
-    } else {
-        let mut next_url = url.clone();
-        next_url.query_pairs_mut().clear();
-        for (key, value) in url.query_pairs() {
-            if key != "page" {
-                next_url.query_pairs_mut().append_pair(&key, &value);
-            }
-        }
-        next_url
-            .query_pairs_mut()
-            .append_pair("page", &(pagination.page + 1).to_string());
-        Some(next_url)
-    };
+    let next_url = compute_next_url(url, &pagination);
 
     Ok(ApiResponse {
         json: body,
@@ -605,9 +635,28 @@ pub fn api_request_cached(
 
 #[derive(Deserialize, Debug)]
 pub struct FecApiPaginationObject {
+    #[serde(default)]
     pub count: usize,
+    #[serde(default = "default_true")]
     pub is_count_exact: bool,
+    /// Page number. Absent on cursor-based endpoints (schedule A/B/E).
+    #[serde(default = "default_page")]
     pub page: usize,
+    /// Total pages. May be present even on cursor-based endpoints.
+    #[serde(default)]
     pub pages: usize,
+    #[serde(default)]
     pub per_page: usize,
+    /// For cursor-based pagination (schedule endpoints).
+    /// Contains fields like `last_index`, `last_contribution_receipt_date`, etc.
+    #[serde(default)]
+    pub last_indexes: Option<serde_json::Value>,
+}
+
+fn default_true() -> bool {
+    true
+}
+
+fn default_page() -> usize {
+    1
 }

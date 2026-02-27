@@ -1,11 +1,11 @@
 use crate::{
     api_flags::Trace,
-    cli::{ApiArgs, ApiFormat},
+    cli::{ApiFilingsArgs, ApiFormat},
     sourcer::{FilingSourcer, Item, UserArgument},
 };
 use std::io::{self, Write};
 
-pub fn api(mut sourcer: FilingSourcer, args: &ApiArgs) -> anyhow::Result<()> {
+pub fn filings(mut sourcer: FilingSourcer, args: &ApiFilingsArgs) -> anyhow::Result<()> {
     let mut api_flags = args.api.clone();
     let mut trace = Trace {
         resolve_candidate_params: vec![],
