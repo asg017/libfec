@@ -42,7 +42,7 @@ use tabled::{
 
 use crate::{
     cli::{CmdInfoFormat, InfoArgs, InfoDisplayMode},
-    sourcer::FilingSourcer,
+    sourcer::{FecFilingId, FilingSourcer},
 };
 struct FilingFormMetadata {
     count: usize,
@@ -376,7 +376,7 @@ fn process_filing<R: Read>(
 }
 
 pub enum InfoInput {
-    Filing(String),
+    Filing(FecFilingId),
     Committee(String),
     Candidate(String),
 }
@@ -388,14 +388,11 @@ impl InfoInput {
         } else if arg.starts_with("H") || arg.starts_with("P") || arg.starts_with("S") {
             Ok(InfoInput::Candidate(arg.to_string()))
         }
-        // if input is FEC-XXXXXX or FECXXXXXXX or XXXXXX (where X is digits)
-        else if let Some(stripped) = arg.strip_prefix("FEC-") {
-            Ok(InfoInput::Filing(stripped.to_string()))
-        } else if let Some(stripped) = arg.strip_prefix("FEC") {
-            Ok(InfoInput::Filing(stripped.to_string()))
+        else if let Ok(id) = FecFilingId::from_str(arg) {
+            Ok(InfoInput::Filing(id))
         } else {
             Err(anyhow::anyhow!(
-                "Expected a filling, candidate, or committee ID, got  {}",
+                "Expected a filing, candidate, or committee ID, got  {}",
                 arg
             ))
         }
@@ -419,7 +416,7 @@ pub fn info(mut sourcer: FilingSourcer, args: InfoArgs) -> anyhow::Result<()> {
     for input in inputs {
         match input {
             InfoInput::Filing(filing_arg) => {
-                let filing = sourcer.resolve_from_user_argument(&filing_arg)?;
+                let filing = sourcer.resolve_from_user_argument(&filing_arg.to_bare())?;
                 match args.display {
                     InfoDisplayMode::Tui => {
                         let detail = FilingDetail::from(&filing);

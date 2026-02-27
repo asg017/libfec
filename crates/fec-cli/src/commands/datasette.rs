@@ -7,11 +7,11 @@ use anyhow::{anyhow, Context, Result};
 
 use crate::cli::{DatasetteArgs, ExportArgs};
 use crate::commands::export::sqlite::cmd_export_sqlite;
-use crate::sourcer::{Contest, FilingSourcer};
+use crate::sourcer::{Contest, FecFilingId, FilingSourcer};
 
 enum DatasetteInput {
     DbFile(PathBuf),
-    Filing(String),
+    Filing(FecFilingId),
     Committee(String),
     Contest(Contest),
 }
@@ -35,8 +35,7 @@ fn classify_input(input: &str) -> DatasetteInput {
     }
 
     // Default to filing ID (strip FEC- prefix if present)
-    let id = input.strip_prefix("FEC-").unwrap_or(input);
-    DatasetteInput::Filing(id.to_string())
+    DatasetteInput::Filing(FecFilingId::from_str(input).expect("valid filing ID"))
 }
 
 fn find_available_port(start: u16) -> Result<u16> {
@@ -55,7 +54,7 @@ fn find_available_port(start: u16) -> Result<u16> {
 fn build_url(input: &DatasetteInput, db_name: &str, port: u16) -> String {
     let base = format!("http://127.0.0.1:{port}/{db_name}");
     match input {
-        DatasetteInput::Filing(id) => format!("{base}/-/libfec/filing/{id}"),
+        DatasetteInput::Filing(id) => format!("{base}/-/libfec/filing/{}", id.to_bare()),
         DatasetteInput::Committee(id) => format!("{base}/-/libfec/committee/{id}"),
         DatasetteInput::Contest(contest) => {
             let params = match contest {
