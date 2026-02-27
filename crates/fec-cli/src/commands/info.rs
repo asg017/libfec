@@ -44,6 +44,7 @@ use crate::{
     cli::{CmdInfoFormat, InfoArgs, InfoDisplayMode},
     sourcer::{FecFilingId, FilingSourcer},
 };
+use fec_api::{CandidateId, CommitteeId};
 struct FilingFormMetadata {
     count: usize,
     bytes: usize,
@@ -377,18 +378,17 @@ fn process_filing<R: Read>(
 
 pub enum InfoInput {
     Filing(FecFilingId),
-    Committee(String),
-    Candidate(String),
+    Committee(CommitteeId),
+    Candidate(CandidateId),
 }
 
 impl InfoInput {
     pub fn from_arg(arg: &str) -> anyhow::Result<InfoInput> {
-        if arg.starts_with("C") {
-            Ok(InfoInput::Committee(arg.to_string()))
-        } else if arg.starts_with("H") || arg.starts_with("P") || arg.starts_with("S") {
-            Ok(InfoInput::Candidate(arg.to_string()))
-        }
-        else if let Ok(id) = FecFilingId::from_str(arg) {
+        if let Ok(id) = arg.parse::<CommitteeId>() {
+            Ok(InfoInput::Committee(id))
+        } else if let Ok(id) = arg.parse::<CandidateId>() {
+            Ok(InfoInput::Candidate(id))
+        } else if let Ok(id) = FecFilingId::from_str(arg) {
             Ok(InfoInput::Filing(id))
         } else {
             Err(anyhow::anyhow!(
@@ -440,7 +440,7 @@ pub fn info(mut sourcer: FilingSourcer, args: InfoArgs) -> anyhow::Result<()> {
                         match crate::cache::bulk::committee::get_committee_detail(
                             &mut db,
                             cycle,
-                            &committee_id,
+                            committee_id.as_str(),
                             None,
                         ) {
                             Ok(Some(detail)) => {
@@ -471,7 +471,7 @@ pub fn info(mut sourcer: FilingSourcer, args: InfoArgs) -> anyhow::Result<()> {
                         match crate::cache::bulk::candidates::get_candidate_detail(
                             &mut db,
                             cycle,
-                            &candidate_id,
+                            candidate_id.as_str(),
                             None,
                         ) {
                             Ok(Some(detail)) => {
@@ -479,7 +479,7 @@ pub fn info(mut sourcer: FilingSourcer, args: InfoArgs) -> anyhow::Result<()> {
                                 let linkages = crate::cache::bulk::candidate_committee_linkage::get_candidate_committee_linkages(
                                     &mut db,
                                     cycle,
-                                    &candidate_id,
+                                    candidate_id.as_str(),
                                     None,
                                 ).unwrap_or_default();
                                 if let Some(s) = spinner.as_ref() {

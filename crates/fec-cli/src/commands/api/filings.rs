@@ -3,6 +3,7 @@ use crate::{
     cli::{ApiFilingsArgs, ApiFormat},
     sourcer::{FilingSourcer, Item, UserArgument},
 };
+use fec_api::CommitteeId;
 use std::io::{self, Write};
 
 pub fn filings(mut sourcer: FilingSourcer, args: &ApiFilingsArgs) -> anyhow::Result<()> {
@@ -28,13 +29,13 @@ pub fn filings(mut sourcer: FilingSourcer, args: &ApiFilingsArgs) -> anyhow::Res
                 })?;
                 let params = contest.resolve_candidate_params(cycle);
                 trace.resolve_candidate_params.push(params.clone());
-                let committees = sourcer
+                let committee_strings = sourcer
                     .cache
                     .resolve_candidate_principal_campaign_committees(params)?;
                 api_flags
                     .committee
                     .get_or_insert_with(Vec::new)
-                    .extend(committees);
+                    .extend(committee_strings.into_iter().map(|s| CommitteeId::new(&s).unwrap()));
             }
             UserArgument::Filing(Item::FilingId(_)) => {
                 return Err(anyhow::anyhow!(

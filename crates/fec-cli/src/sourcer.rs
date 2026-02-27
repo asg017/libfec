@@ -1,5 +1,5 @@
 use anyhow::{Context, Error, Result};
-use fec_api::Office;
+use fec_api::{CandidateId, CommitteeId, Office};
 use fec_parser::{Filing, FilingRow};
 use indicatif::{HumanBytes, MultiProgress, ProgressBar, ProgressStyle};
 use std::{
@@ -372,14 +372,14 @@ pub(crate) fn process_inputs(
                     direct_filings: vec![], // resolved via API
                 });
                 trace.resolve_candidate_params.push(params.clone());
-                let committees = sourcer
+                let committee_strings = sourcer
                     .cache
                     .resolve_candidate_principal_campaign_committees(params)
                     .unwrap();
                 api_flags
                     .committee
                     .get_or_insert_with(Vec::new)
-                    .extend(committees);
+                    .extend(committee_strings.into_iter().map(|s| CommitteeId::new(&s).unwrap()));
             }
             Ok(UserArgument::InputFile(path)) => {
                 input_mappings.push(InputMapping {
@@ -415,7 +415,7 @@ pub(crate) fn process_inputs(
                             direct_filings: vec![filing_id],
                         });
                         queue.push(Item::CustomUrl(url));
-                    } else if is_committee_input(line_item) {
+                    } else if let Ok(committee_id) = CommitteeId::from_str(line_item) {
                         input_mappings.push(InputMapping {
                             raw_input: line_item.to_string(),
                             input_type: InputType::Committee,
@@ -424,8 +424,8 @@ pub(crate) fn process_inputs(
                         api_flags
                             .committee
                             .get_or_insert_with(Vec::new)
-                            .push(line_item.to_owned());
-                    } else if is_candidate_input(line_item) {
+                            .push(committee_id);
+                    } else if let Ok(candidate_id) = CandidateId::from_str(line_item) {
                         input_mappings.push(InputMapping {
                             raw_input: line_item.to_string(),
                             input_type: InputType::Candidate,
@@ -434,7 +434,7 @@ pub(crate) fn process_inputs(
                         api_flags
                             .candidate
                             .get_or_insert_with(Vec::new)
-                            .push(line_item.to_owned());
+                            .push(candidate_id);
                     } else if let Some(contest) = Contest::from_arg(line_item).unwrap() {
                         if let Some(s) = spinner.as_ref() {
                             s.set_message(format!("Resolving {}...", line_item));
@@ -455,14 +455,14 @@ pub(crate) fn process_inputs(
                             direct_filings: vec![],
                         });
                         trace.resolve_candidate_params.push(params.clone());
-                        let committees = sourcer
+                        let committee_strings = sourcer
                             .cache
                             .resolve_candidate_principal_campaign_committees(params)
                             .unwrap();
                         api_flags
                             .committee
                             .get_or_insert_with(Vec::new)
-                            .extend(committees);
+                            .extend(committee_strings.into_iter().map(|s| CommitteeId::new(&s).unwrap()));
                     } else {
                         return Err(anyhow::anyhow!(
                             "Could not resolve input on line {} of file {}: {}",
@@ -584,8 +584,8 @@ impl<'a> Iterator for IterFilingsX<'a> {
 
 pub enum UserArgument {
     Filing(Item),
-    Committee(String),
-    Candidate(String),
+    Committee(CommitteeId),
+    Candidate(CandidateId),
     Contest(Contest),
     InputFile(PathBuf),
 }
@@ -675,18 +675,6 @@ impl Contest {
     }
 }
 
-// "Committee FEC ID codes consist of the letter C=Committee in the first position,
-// followed by 7 digits, followed by a ‘checkdigit’ in the 9th position."
-fn is_committee_input(input: &str) -> bool {
-    input.len() == 9 && matches!(input.chars().next(), Some('C'))
-}
-
-// "House & Senate Candidate FEC ID codes have the following formats: H9ST99999, S9ST99999, and P99999999...
-// (where the 1st Character is H=House, S=Senate, P=Presidential, and the 3rd & 4th characters
-//  of House & Senate codes are the 2letter State Code, and the remaining parts of all codes are numeric).""
-fn is_candidate_input(input: &str) -> bool {
-    input.len() == 9 && matches!(input.chars().next(), Some('H') | Some('S') | Some('P'))
-}
 
 impl FilingSourcer {
     pub fn new(cli_cache_directory: Option<PathBuf>) -> Self {
@@ -768,11 +756,11 @@ impl FilingSourcer {
             }
         }
 
-        if is_committee_input(input) {
-            return Ok(UserArgument::Committee(input.to_owned()));
+        if let Ok(id) = CommitteeId::from_str(input) {
+            return Ok(UserArgument::Committee(id));
         }
-        if is_candidate_input(input) {
-            return Ok(UserArgument::Candidate(input.to_owned()));
+        if let Ok(id) = CandidateId::from_str(input) {
+            return Ok(UserArgument::Candidate(id));
         }
         if let Ok(Some(contest)) = Contest::from_arg(input) {
             return Ok(UserArgument::Contest(contest));

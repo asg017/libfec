@@ -1,10 +1,164 @@
-use std::{str::FromStr, sync::LazyLock};
+use std::{fmt, str::FromStr, sync::LazyLock};
 
 use anyhow::{Context, Result};
 use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use url::Url;
+
+// ---------------------------------------------------------------------------
+// ID newtypes
+// ---------------------------------------------------------------------------
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct InvalidIdError(String);
+
+impl fmt::Display for InvalidIdError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl std::error::Error for InvalidIdError {}
+
+/// A validated FEC committee ID (e.g. `C00401224`).
+///
+/// Committee IDs are 9 characters starting with 'C' followed by 8 digits.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct CommitteeId(String);
+
+impl CommitteeId {
+    pub fn new(s: &str) -> std::result::Result<Self, InvalidIdError> {
+        if s.len() != 9 {
+            return Err(InvalidIdError(format!(
+                "committee ID must be 9 characters, got {} ('{}')",
+                s.len(),
+                s
+            )));
+        }
+        if !s.starts_with('C') {
+            return Err(InvalidIdError(format!(
+                "committee ID must start with 'C', got '{}'",
+                s
+            )));
+        }
+        Ok(CommitteeId(s.to_string()))
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+
+    pub fn fec_url(&self) -> String {
+        format!("https://www.fec.gov/data/committee/{}/", self.0)
+    }
+}
+
+impl fmt::Display for CommitteeId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+
+impl FromStr for CommitteeId {
+    type Err = InvalidIdError;
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        CommitteeId::new(s)
+    }
+}
+
+impl Serialize for CommitteeId {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error> {
+        self.0.serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for CommitteeId {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> std::result::Result<Self, D::Error> {
+        let s = String::deserialize(deserializer)?;
+        CommitteeId::new(&s).map_err(serde::de::Error::custom)
+    }
+}
+
+/// A validated FEC candidate ID (e.g. `H0CA12345`, `S6CA00123`, `P80000722`).
+///
+/// Candidate IDs are 9 characters starting with H (House), S (Senate), or P (President).
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct CandidateId(String);
+
+impl CandidateId {
+    pub fn new(s: &str) -> std::result::Result<Self, InvalidIdError> {
+        if s.len() != 9 {
+            return Err(InvalidIdError(format!(
+                "candidate ID must be 9 characters, got {} ('{}')",
+                s.len(),
+                s
+            )));
+        }
+        match s.as_bytes()[0] {
+            b'H' | b'S' | b'P' => {}
+            _ => {
+                return Err(InvalidIdError(format!(
+                    "candidate ID must start with H, S, or P, got '{}'",
+                    s
+                )));
+            }
+        }
+        Ok(CandidateId(s.to_string()))
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+
+    /// The office this candidate is running for, derived from the first character.
+    pub fn office(&self) -> Office {
+        match self.0.as_bytes()[0] {
+            b'H' => Office::House,
+            b'S' => Office::Senate,
+            b'P' => Office::President,
+            _ => unreachable!("validated in new()"),
+        }
+    }
+
+    /// The two-letter state code for House/Senate candidates (chars 2-4), or None for President.
+    pub fn state(&self) -> Option<&str> {
+        match self.0.as_bytes()[0] {
+            b'H' | b'S' => Some(&self.0[2..4]),
+            _ => None,
+        }
+    }
+
+    pub fn fec_url(&self) -> String {
+        format!("https://www.fec.gov/data/candidate/{}/", self.0)
+    }
+}
+
+impl fmt::Display for CandidateId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+
+impl FromStr for CandidateId {
+    type Err = InvalidIdError;
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        CandidateId::new(s)
+    }
+}
+
+impl Serialize for CandidateId {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error> {
+        self.0.serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for CandidateId {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> std::result::Result<Self, D::Error> {
+        let s = String::deserialize(deserializer)?;
+        CandidateId::new(&s).map_err(serde::de::Error::custom)
+    }
+}
 
 /// A cached API response entry.
 #[derive(Debug, Clone)]
@@ -44,8 +198,8 @@ pub struct CandidateSearchItem {
 pub struct FilingArgs {
     /// "A unique identifier assigned to each committee or filer registered with the FEC.
     /// In general a committee id begins with the letter C which is followed by eight digits."
-    pub committees: Vec<String>,
-    pub candidates: Vec<String>,
+    pub committees: Vec<CommitteeId>,
+    pub candidates: Vec<CandidateId>,
     pub form_types: Option<Vec<String>>,
     pub report_types: Option<Vec<String>>,
     pub committee_types: Option<Vec<String>>,
@@ -68,11 +222,11 @@ pub struct FilingArgs {
 }
 
 pub struct EfilingFilingArgs {
-    pub committees: Vec<String>,
+    pub committees: Vec<CommitteeId>,
     pub form_types: Option<Vec<String>>,
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 pub enum Office {
     #[serde(rename = "H")]
     House,
@@ -290,10 +444,10 @@ impl Api {
         qp.append_pair("filer_type", "e-file");
 
         for committee in &args.committees {
-            qp.append_pair("committee_id", committee);
+            qp.append_pair("committee_id", committee.as_str());
         }
         for candidate in &args.candidates {
-            qp.append_pair("candidate_id", candidate);
+            qp.append_pair("candidate_id", candidate.as_str());
         }
         if let Some(form_types) = &args.form_types {
             for form_type in form_types {
@@ -344,7 +498,7 @@ impl Api {
         qp.append_pair("api_key", &self.api_key);
 
         for committee in &args.committees {
-            qp.append_pair("committee_id", committee);
+            qp.append_pair("committee_id", committee.as_str());
         }
         if let Some(form_types) = &args.form_types {
             for form_type in form_types {
@@ -659,4 +813,94 @@ fn default_true() -> bool {
 
 fn default_page() -> usize {
     1
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_valid_committee_id() {
+        let id = CommitteeId::new("C00401224").unwrap();
+        assert_eq!(id.as_str(), "C00401224");
+        assert_eq!(id.to_string(), "C00401224");
+        assert_eq!(id.fec_url(), "https://www.fec.gov/data/committee/C00401224/");
+    }
+
+    #[test]
+    fn test_committee_id_from_str() {
+        let id: CommitteeId = "C00401224".parse().unwrap();
+        assert_eq!(id.as_str(), "C00401224");
+    }
+
+    #[test]
+    fn test_invalid_committee_id_wrong_prefix() {
+        let err = CommitteeId::new("H00401224").unwrap_err();
+        assert_eq!(err.to_string(), "committee ID must start with 'C', got 'H00401224'");
+    }
+
+    #[test]
+    fn test_invalid_committee_id_wrong_length() {
+        let err = CommitteeId::new("C004").unwrap_err();
+        assert_eq!(err.to_string(), "committee ID must be 9 characters, got 4 ('C004')");
+    }
+
+    #[test]
+    fn test_valid_candidate_id_house() {
+        let id = CandidateId::new("H0CA12345").unwrap();
+        assert_eq!(id.as_str(), "H0CA12345");
+        assert_eq!(id.office(), Office::House);
+        assert_eq!(id.state(), Some("CA"));
+        assert_eq!(id.fec_url(), "https://www.fec.gov/data/candidate/H0CA12345/");
+    }
+
+    #[test]
+    fn test_valid_candidate_id_senate() {
+        let id = CandidateId::new("S6CA00123").unwrap();
+        assert_eq!(id.office(), Office::Senate);
+        assert_eq!(id.state(), Some("CA"));
+    }
+
+    #[test]
+    fn test_valid_candidate_id_president() {
+        let id = CandidateId::new("P80000722").unwrap();
+        assert_eq!(id.office(), Office::President);
+        assert_eq!(id.state(), None);
+    }
+
+    #[test]
+    fn test_candidate_id_from_str() {
+        let id: CandidateId = "P80000722".parse().unwrap();
+        assert_eq!(id.as_str(), "P80000722");
+    }
+
+    #[test]
+    fn test_invalid_candidate_id_wrong_prefix() {
+        let err = CandidateId::new("C00401224").unwrap_err();
+        assert_eq!(err.to_string(), "candidate ID must start with H, S, or P, got 'C00401224'");
+    }
+
+    #[test]
+    fn test_invalid_candidate_id_wrong_length() {
+        let err = CandidateId::new("H0CA").unwrap_err();
+        assert_eq!(err.to_string(), "candidate ID must be 9 characters, got 4 ('H0CA')");
+    }
+
+    #[test]
+    fn test_committee_id_serde_roundtrip() {
+        let id = CommitteeId::new("C00401224").unwrap();
+        let json = serde_json::to_string(&id).unwrap();
+        assert_eq!(json, "\"C00401224\"");
+        let deserialized: CommitteeId = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized, id);
+    }
+
+    #[test]
+    fn test_candidate_id_serde_roundtrip() {
+        let id = CandidateId::new("P80000722").unwrap();
+        let json = serde_json::to_string(&id).unwrap();
+        assert_eq!(json, "\"P80000722\"");
+        let deserialized: CandidateId = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized, id);
+    }
 }

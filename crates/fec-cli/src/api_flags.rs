@@ -6,7 +6,7 @@ use crate::{
 };
 use anyhow::Context;
 use clap::Parser;
-use fec_api::{Api, ApiCache, ApiResponse, FilingArgsBuilder, FilingItem, Office};
+use fec_api::{Api, ApiCache, ApiResponse, CandidateId, CommitteeId, FilingArgsBuilder, FilingItem, Office};
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use jiff::civil::Date;
 use url::Url;
@@ -26,10 +26,10 @@ pub struct Trace {
 #[command(next_help_heading = "FEC API options")]
 pub struct FilingsApiFlags {
     #[arg(long, help = "Filter filings to only these committees")]
-    pub committee: Option<Vec<String>>,
+    pub committee: Option<Vec<CommitteeId>>,
 
     #[arg(long, help = "Filter filings to only these candidates")]
-    pub candidate: Option<Vec<String>>,
+    pub candidate: Option<Vec<CandidateId>>,
 
     #[arg(
         long,
@@ -175,7 +175,7 @@ fn fetch_all_pages(
 
 fn fetch_efiling_dedup(
     client: &Api,
-    committees: &[String],
+    committees: &[CommitteeId],
     form_types: &Option<Vec<String>>,
     sourcer: &mut FilingSourcer,
     results: &mut Vec<FilingItem>,
@@ -253,9 +253,13 @@ impl FilingsApiFlags {
         if let Some(sp) = spinner.as_ref() {
             sp.set_message(format!("Resolving committees for election {election}…"))
         }
-        let committees = sourcer
+        let committee_strings = sourcer
             .cache
             .resolve_candidate_principal_campaign_committees(params)?;
+        let committees: Vec<CommitteeId> = committee_strings
+            .into_iter()
+            .map(|s| CommitteeId::new(&s).unwrap())
+            .collect();
         if committees.is_empty() {
             panic!("No committees found for election {}", election);
         }

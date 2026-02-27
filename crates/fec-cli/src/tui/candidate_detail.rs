@@ -26,7 +26,7 @@ use crate::cache::bulk::candidates::CandidateDetail;
 use crate::tui::committee_detail::FilingListItem;
 use crate::tui::{navigation_popup_help_line, HelpBar};
 use crossterm::event::{KeyCode, KeyEvent};
-use fec_api::{Api, FilingArgsBuilder};
+use fec_api::{Api, CandidateId, CommitteeId, FilingArgsBuilder};
 use fec_parser::mappings::column_names_for_field;
 use indexmap::IndexMap;
 use ratatui::{
@@ -232,8 +232,8 @@ impl CandidateDetailState {
         let client = Api::new(api_key.as_str());
 
         let args = FilingArgsBuilder::default()
-            .committees(Vec::<String>::new())
-            .candidates(vec![candidate_id.to_string()])
+            .committees(Vec::<CommitteeId>::new())
+            .candidates(vec![CandidateId::new(candidate_id).unwrap()])
             .form_types(None)
             .report_types(None)
             .committee_types(None)
@@ -279,8 +279,8 @@ impl CandidateDetailState {
 
         // Fetch F1 filings for the committee
         let args = FilingArgsBuilder::default()
-            .committees(vec![committee_id.to_string()])
-            .candidates(Vec::<String>::new())
+            .committees(vec![CommitteeId::new(committee_id).unwrap()])
+            .candidates(Vec::<CandidateId>::new())
             .form_types(Some(vec!["F1".to_string()]))
             .report_types(None)
             .committee_types(None)
