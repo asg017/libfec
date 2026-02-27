@@ -590,10 +590,11 @@ pub enum UserArgument {
     InputFile(PathBuf),
 }
 
+#[derive(Debug)]
 pub enum Contest {
     // ex "P" or "president"
     President,
-    // ex "S-CA" or "senate-CA"
+    // ex "S-CA", "senate-CA", or "CA-S"
     Senate { state: String },
     // ex "H-CA12" or "house-CA12"
     House { state: String, district: String },
@@ -609,6 +610,15 @@ impl Contest {
             if parts.len() == 2 {
                 return Ok(Some(Contest::Senate {
                     state: parts[1].to_uppercase(),
+                }));
+            }
+            todo!("Invalid senate contest format");
+        }
+        if input.ends_with("-S") || input.to_lowercase().ends_with("-senate") {
+            let parts: Vec<&str> = input.split('-').collect();
+            if parts.len() == 2 {
+                return Ok(Some(Contest::Senate {
+                    state: parts[0].to_uppercase(),
                 }));
             }
             todo!("Invalid senate contest format");
@@ -791,5 +801,157 @@ impl FilingSourcer {
             resolve_from_filing_id(&filing_id.to_bare())?
         };
         Filing::from_reader(resolved.reader, resolved.filing_id, resolved.source_length)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use insta::assert_debug_snapshot;
+
+    #[test]
+    fn test_contest_president_short() {
+        assert_debug_snapshot!(Contest::from_arg("P").unwrap(), @r#"
+        Some(
+            President,
+        )
+        "#);
+    }
+
+    #[test]
+    fn test_contest_president_long() {
+        assert_debug_snapshot!(Contest::from_arg("president").unwrap(), @r#"
+        Some(
+            President,
+        )
+        "#);
+    }
+
+    #[test]
+    fn test_contest_president_mixed_case() {
+        assert_debug_snapshot!(Contest::from_arg("President").unwrap(), @r#"
+        Some(
+            President,
+        )
+        "#);
+    }
+
+    #[test]
+    fn test_contest_senate_prefix() {
+        assert_debug_snapshot!(Contest::from_arg("S-CA").unwrap(), @r#"
+        Some(
+            Senate {
+                state: "CA",
+            },
+        )
+        "#);
+    }
+
+    #[test]
+    fn test_contest_senate_long_prefix() {
+        assert_debug_snapshot!(Contest::from_arg("senate-CA").unwrap(), @r#"
+        Some(
+            Senate {
+                state: "CA",
+            },
+        )
+        "#);
+    }
+
+    #[test]
+    fn test_contest_senate_suffix() {
+        assert_debug_snapshot!(Contest::from_arg("CA-S").unwrap(), @r#"
+        Some(
+            Senate {
+                state: "CA",
+            },
+        )
+        "#);
+    }
+
+    #[test]
+    fn test_contest_senate_long_suffix() {
+        assert_debug_snapshot!(Contest::from_arg("CA-senate").unwrap(), @r#"
+        Some(
+            Senate {
+                state: "CA",
+            },
+        )
+        "#);
+    }
+
+    #[test]
+    fn test_contest_senate_lowercase_state() {
+        assert_debug_snapshot!(Contest::from_arg("S-ca").unwrap(), @r#"
+        Some(
+            Senate {
+                state: "CA",
+            },
+        )
+        "#);
+    }
+
+    #[test]
+    fn test_contest_senate_suffix_lowercase() {
+        assert_debug_snapshot!(Contest::from_arg("ca-S").unwrap(), @r#"
+        Some(
+            Senate {
+                state: "CA",
+            },
+        )
+        "#);
+    }
+
+    #[test]
+    fn test_contest_house_prefix() {
+        assert_debug_snapshot!(Contest::from_arg("H-CA12").unwrap(), @r#"
+        Some(
+            House {
+                state: "CA",
+                district: "12",
+            },
+        )
+        "#);
+    }
+
+    #[test]
+    fn test_contest_house_long_prefix() {
+        assert_debug_snapshot!(Contest::from_arg("house-CA12").unwrap(), @r#"
+        Some(
+            House {
+                state: "CA",
+                district: "12",
+            },
+        )
+        "#);
+    }
+
+    #[test]
+    fn test_contest_house_short_form() {
+        assert_debug_snapshot!(Contest::from_arg("CA12").unwrap(), @r#"
+        Some(
+            House {
+                state: "CA",
+                district: "12",
+            },
+        )
+        "#);
+    }
+
+    #[test]
+    fn test_contest_house_lowercase() {
+        assert_debug_snapshot!(Contest::from_arg("H-ca12").unwrap(), @r#"
+        Some(
+            House {
+                state: "CA",
+                district: "12",
+            },
+        )
+        "#);
+    }
+
+    #[test]
+    fn test_contest_no_match() {
+        assert_debug_snapshot!(Contest::from_arg("foobar").unwrap(), @"None");
     }
 }
