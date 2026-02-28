@@ -3,6 +3,7 @@
 //! This module handles rendering the candidate search results in a table format.
 
 use super::app::{App, FocusPanel};
+use crate::tui::normalize_candidate_name;
 use ratatui::{
     layout::{Constraint, Rect},
     style::{Color, Modifier, Style},
@@ -49,7 +50,7 @@ pub(crate) fn render_candidate_results_table(f: &mut Frame, app: &mut App, area:
 
             Row::new(vec![
                 Cell::from(result.candidate_id.clone()).style(Style::default().fg(Color::Cyan)),
-                Cell::from(result.name.clone()),
+                Cell::from(normalize_candidate_name(&result.name)),
                 Cell::from(result.election_year.to_string()),
                 Cell::from(office),
                 Cell::from(state_district),

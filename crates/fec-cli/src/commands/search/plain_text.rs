@@ -1,3 +1,4 @@
+use crate::tui::normalize_candidate_name;
 use crate::{cli::SearchArgs, sourcer::FilingSourcer};
 use anyhow::Result;
 
@@ -25,7 +26,7 @@ pub fn print_table(sourcer: &mut FilingSourcer, args: &SearchArgs) -> Result<()>
             println!(
                 "{:<13} {:<40} {:>4} {:>6} {:>10} {:<11}",
                 c.candidate_id,
-                truncate(&c.name, 40),
+                truncate(&normalize_candidate_name(&c.name), 40),
                 c.election_year,
                 c.office,
                 state_dist,

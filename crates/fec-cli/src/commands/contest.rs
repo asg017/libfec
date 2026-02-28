@@ -1,7 +1,7 @@
 use crate::cache::bulk::candidate_summary::{get_contest_candidates, ContestCandidate};
 use crate::sourcer::{Contest, FilingSourcer};
 use crate::tui::filing_detail::format_usd;
-use crate::tui::{navigation_popup_help_line, popup_area, HelpBar};
+use crate::tui::{navigation_popup_help_line, normalize_candidate_name, popup_area, HelpBar};
 use anyhow::Result;
 use crossterm::{
     event::{self, Event, KeyCode, KeyEventKind},
@@ -328,13 +328,14 @@ fn render_candidates_table(f: &mut Frame, app: &mut App, area: Rect) {
             let is_stale = date_to_sortable(&c.coverage_end_date) < app.latest_date;
 
             // Name cell: append gold (I) for incumbents
+            let normalized_name = normalize_candidate_name(&c.name);
             let name_cell = if c.incumbent_challenger_status == "I" {
                 Cell::from(Line::from(vec![
-                    Span::raw(&c.name),
+                    Span::raw(normalized_name),
                     Span::styled(" (I)", Style::default().fg(Color::Yellow)),
                 ]))
             } else {
-                Cell::new(c.name.clone())
+                Cell::new(normalized_name)
             };
 
             let thru_style = if is_stale {

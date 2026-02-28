@@ -3,7 +3,7 @@ source: crates/fec-cli/src/tui/candidate_detail.rs
 expression: terminal.backend()
 snapshot_kind: text
 ---
-"│DOE, JANE A (H4CA12345)                                                        "
+"│Jane A Doe (H4CA12345)                                                         "
 "Republican CA12 candidate in 2024                                               "
 "Campaign committee: C00654321                                                   "
 "Address:                                                                        "

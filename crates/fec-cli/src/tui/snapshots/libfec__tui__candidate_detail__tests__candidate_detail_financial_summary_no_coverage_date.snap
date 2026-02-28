@@ -3,7 +3,7 @@ source: crates/fec-cli/src/tui/candidate_detail.rs
 expression: terminal.backend()
 snapshot_kind: text
 ---
-"│SMITH, JOHN Q (P00000001)                                                      "
+"│John Q Smith (P00000001)                                                       "
 "Democrat presidential candidate in 2024                                         "
 "Campaign committee: C00123456                                                   "
 "┌Financial Summary──────────────────────────────┐                               "

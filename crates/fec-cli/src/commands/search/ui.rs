@@ -9,7 +9,7 @@ use super::committees_table::render_committee_results_table;
 use super::opexp_table::render_opexp_results_table;
 use crate::tui::{
     candidate_detail::render_candidate_detail, committee_detail::render_committee_detail,
-    filing_detail::render_filing_detail, truncate_string, HelpBar,
+    filing_detail::render_filing_detail, normalize_candidate_name, truncate_string, HelpBar,
 };
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
@@ -71,7 +71,7 @@ fn render_breadcrumb(f: &mut Frame, app: &App, area: Rect) {
         ViewState::Search => "Search".to_string(),
         ViewState::CandidateDetail => {
             if let Some(ref candidate) = app.candidate_detail {
-                let name = truncate_string(&candidate.name, 40);
+                let name = truncate_string(&normalize_candidate_name(&candidate.name), 40);
                 format!("Search / {}", name)
             } else {
                 "Search / Candidate".to_string()

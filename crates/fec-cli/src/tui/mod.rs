@@ -136,6 +136,45 @@ pub fn navigation_popup_help_line() -> Line<'static> {
         .into_line()
 }
 
+/// Normalize an FEC candidate name from "LAST, FIRST MIDDLE" to "First Middle Last"
+///
+/// Splits on the first comma, swaps parts, and title-cases each word.
+/// Hyphenated segments are title-cased independently (e.g., "OCASIO-CORTEZ" → "Ocasio-Cortez").
+/// Names without a comma are just title-cased (e.g., "ACTBLUE" → "Actblue").
+pub fn normalize_candidate_name(name: &str) -> String {
+    fn title_case_word(word: &str) -> String {
+        word.split('-')
+            .map(|segment| {
+                let mut chars = segment.chars();
+                match chars.next() {
+                    None => String::new(),
+                    Some(first) => {
+                        let upper: String = first.to_uppercase().collect();
+                        let lower: String = chars.as_str().to_lowercase();
+                        format!("{}{}", upper, lower)
+                    }
+                }
+            })
+            .collect::<Vec<_>>()
+            .join("-")
+    }
+
+    let (first_part, last_part) = match name.split_once(',') {
+        Some((last, first)) => (first.trim(), last.trim()),
+        None => {
+            return name
+                .split_whitespace()
+                .map(title_case_word)
+                .collect::<Vec<_>>()
+                .join(" ");
+        }
+    };
+
+    let mut words: Vec<String> = first_part.split_whitespace().map(title_case_word).collect();
+    words.extend(last_part.split_whitespace().map(title_case_word));
+    words.join(" ")
+}
+
 /// Truncate a string to max_len characters, adding "..." if truncated
 pub fn truncate_string(s: &str, max_len: usize) -> String {
     if s.len() > max_len {

@@ -540,7 +540,11 @@ impl Default for CandidateDetailState {
 }
 
 fn render_title(f: &mut Frame, candidate: &CandidateDetail, area: Rect) {
-    let title_text = format!("{} ({})", candidate.name, candidate.candidate_id);
+    let title_text = format!(
+        "{} ({})",
+        crate::tui::normalize_candidate_name(&candidate.name),
+        candidate.candidate_id
+    );
     let title = Paragraph::new(title_text)
         .block(
             Block::default()
