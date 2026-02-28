@@ -77,7 +77,9 @@ pub struct ContestCandidate {
     pub total_disbursements: f64,
     pub cash_on_hand_close: f64,
     pub total_individual_contributions: f64,
+    #[allow(dead_code)]
     pub other_committee_contributions: f64,
+    #[allow(dead_code)]
     pub debts_owed_by: f64,
     pub coverage_end_date: String,
 }

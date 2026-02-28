@@ -284,9 +284,7 @@ fn pluralize_election_type(election_type: &str, count: usize) -> String {
     if count <= 1 {
         return election_type.to_string();
     }
-    if election_type.ends_with("Election Runoff") {
-        format!("{}s", election_type)
-    } else if election_type.ends_with("Election") {
+    if election_type.ends_with("Election Runoff") || election_type.ends_with("Election") {
         format!("{}s", election_type)
     } else {
         election_type.to_string()

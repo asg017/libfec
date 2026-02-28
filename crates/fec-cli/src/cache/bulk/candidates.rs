@@ -183,7 +183,6 @@ pub struct CandidateDetail {
 
 /// Parses a district query like "CA41", "IL09", "TX01" into (state, district).
 /// Returns None if the input doesn't match the pattern.
-
 pub fn search_candidates(
     bulk_db: &mut Connection,
     cycle: u16,

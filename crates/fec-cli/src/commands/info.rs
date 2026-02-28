@@ -26,7 +26,7 @@ use fec_parser::{
     report_code_label, Filing,
 };
 use indicatif::{HumanBytes, ProgressBar};
-use ratatui::{backend::CrosstermBackend, Frame, Terminal};
+use ratatui::{backend::CrosstermBackend, Terminal};
 use serde_json::Value;
 use std::{
     collections::HashMap,

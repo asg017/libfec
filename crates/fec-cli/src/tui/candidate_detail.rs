@@ -1050,7 +1050,7 @@ pub fn render_candidate_detail(
     let fin_height = state
         .financial_summary
         .as_ref()
-        .map(|s| financial_summary_height(s))
+        .map(financial_summary_height)
         .unwrap_or(0);
 
     let filings_prompt_height: u16 = if state.filings.is_empty() && !state.filings_loading {
