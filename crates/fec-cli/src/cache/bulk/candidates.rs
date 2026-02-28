@@ -8,7 +8,7 @@
  * Sample: https://www.fec.gov/files/bulk-downloads/2026/weball26.zip
  *
  */
-use super::utils::{sync_item, BulkDataItem};
+use super::utils::{build_fts_query, sync_item, BulkDataItem};
 use anyhow::{Context, Result};
 use derive_builder::Builder;
 use fec_api::Office;
@@ -21,7 +21,16 @@ static ITEM: LazyLock<BulkDataItem> = LazyLock::new(|| BulkDataItem {
     schema: SCHEMA.to_string(),
     data_file_name: "cn.txt".to_string(),
     column_count: 15,
+    fts_schema: Some(FTS_SCHEMA.to_string()),
 });
+
+static FTS_SCHEMA: &str = r#"
+CREATE VIRTUAL TABLE IF NOT EXISTS libfec_candidates_fts USING fts5(
+  name,
+  content='libfec_candidates',
+  content_rowid='rowid'
+);
+"#;
 
 static SCHEMA: &str = r#"
 CREATE TABLE IF NOT EXISTS libfec_candidates(
@@ -196,22 +205,28 @@ pub fn search_candidates(
     sync_item(&mut tx, cycle, &ITEM, on_progress)?;
     tx.commit()?;
 
+    let fts_query = match build_fts_query(name_query) {
+        Some(q) => q,
+        None => return Ok(Vec::new()),
+    };
+
     let sql = r#"
       SELECT
-        candidate_id,
-        name,
-        election_year,
-        COALESCE(office, ''),
-        COALESCE(state, ''),
-        COALESCE(district, ''),
-        principal_campaign_committee
-      FROM libfec_candidates
-      WHERE cycle = :cycle
-        AND name LIKE '%' || :name_query || '%'
+        c.candidate_id,
+        c.name,
+        c.election_year,
+        COALESCE(c.office, ''),
+        COALESCE(c.state, ''),
+        COALESCE(c.district, ''),
+        c.principal_campaign_committee
+      FROM libfec_candidates_fts fts
+      JOIN libfec_candidates c ON c.rowid = fts.rowid
+      WHERE fts.name MATCH :fts_query
+        AND c.cycle = :cycle
       "#;
     let params = rusqlite::named_params! {
       ":cycle": cycle,
-      ":name_query": name_query,
+      ":fts_query": fts_query,
     };
     let mut stmt = bulk_db.prepare(sql)?;
     let results = stmt

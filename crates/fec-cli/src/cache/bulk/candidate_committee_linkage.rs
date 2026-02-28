@@ -17,6 +17,7 @@ static ITEM: LazyLock<BulkDataItem> = LazyLock::new(|| BulkDataItem {
     schema: SCHEMA.to_string(),
     data_file_name: "ccl.txt".to_string(),
     column_count: 7,
+    fts_schema: None,
 });
 
 static SCHEMA: &str = r#"

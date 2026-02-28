@@ -19,6 +19,7 @@ static ITEM: LazyLock<BulkDataItem> = LazyLock::new(|| BulkDataItem {
     schema: SCHEMA.to_string(),
     data_file_name: "webk$YEAR2.txt".to_string(),
     column_count: 27,
+    fts_schema: None,
 });
 
 static SCHEMA: &str = r#"

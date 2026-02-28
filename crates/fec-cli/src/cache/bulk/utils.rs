@@ -46,6 +46,7 @@ pub(crate) struct BulkDataItem {
     pub(crate) url_scheme: String,
     pub(crate) data_file_name: String,
     pub(crate) column_count: usize,
+    pub(crate) fts_schema: Option<String>,
 }
 
 pub(crate) fn csv_reader_from_response(
@@ -123,6 +124,9 @@ pub(crate) fn sync_item(
     on_progress: Option<&dyn Fn(u64, Option<u64>)>,
 ) -> anyhow::Result<SyncResult> {
     tx.execute_batch(&item.schema)?;
+    if let Some(fts_schema) = &item.fts_schema {
+        tx.execute_batch(fts_schema)?;
+    }
     tx.execute(
         &format!(
             r#"
@@ -207,6 +211,9 @@ pub(crate) fn sync_item(
                     item.table_name, year
                 )
             })?;
+            if item.fts_schema.is_some() {
+                rebuild_fts_index_if_empty(tx, &item.table_name)?;
+            }
             return Ok(SyncResult::SkippedRecent);
         }
     }
@@ -243,6 +250,9 @@ pub(crate) fn sync_item(
             ),
             rusqlite::params![year],
         )?;
+        if item.fts_schema.is_some() {
+            rebuild_fts_index_if_empty(tx, &item.table_name)?;
+        }
 
         return Ok(SyncResult::SkippedNotModified);
     } else if response.status() != 200 {
@@ -297,5 +307,55 @@ pub(crate) fn sync_item(
         .replace("$YEAR", &year.to_string());
     let mut rdr = csv_reader_from_response(response, &data_file_name, on_progress)?;
     insert_rows(tx, year, &mut rdr, &item.table_name, item.column_count)?;
+    if item.fts_schema.is_some() {
+        rebuild_fts_index(tx, &item.table_name)?;
+    }
     Ok(SyncResult::Updated)
+}
+
+/// Convert user input into an FTS5 prefix query.
+/// Each whitespace-separated term becomes a quoted prefix token.
+/// e.g. "joe biden" → `"joe"* "biden"*`
+pub(crate) fn build_fts_query(input: &str) -> Option<String> {
+    let terms: Vec<&str> = input.split_whitespace().collect();
+    if terms.is_empty() {
+        return None;
+    }
+    Some(
+        terms
+            .iter()
+            .map(|term| {
+                let escaped = term.replace('"', "");
+                format!("\"{}\"*", escaped)
+            })
+            .collect::<Vec<_>>()
+            .join(" "),
+    )
+}
+
+fn rebuild_fts_index(tx: &Transaction, table_name: &str) -> anyhow::Result<()> {
+    tx.execute_batch(&format!(
+        "INSERT INTO {table_name}_fts({table_name}_fts) VALUES('rebuild');"
+    ))?;
+    Ok(())
+}
+
+/// Rebuild the FTS index only if it's empty while the main table has data.
+/// This handles migration for existing databases that didn't have FTS tables.
+fn rebuild_fts_index_if_empty(tx: &Transaction, table_name: &str) -> anyhow::Result<()> {
+    let fts_count: i64 = tx.query_row(
+        &format!("SELECT COUNT(*) FROM {table_name}_fts"),
+        [],
+        |row| row.get(0),
+    )?;
+    if fts_count == 0 {
+        let main_count: i64 =
+            tx.query_row(&format!("SELECT COUNT(*) FROM {table_name}"), [], |row| {
+                row.get(0)
+            })?;
+        if main_count > 0 {
+            rebuild_fts_index(tx, table_name)?;
+        }
+    }
+    Ok(())
 }

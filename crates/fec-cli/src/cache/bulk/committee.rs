@@ -6,7 +6,7 @@
  * Sample: https://www.fec.gov/files/bulk-downloads/2026/cm26.zip
  *
  */
-use super::utils::{sync_item, BulkDataItem};
+use super::utils::{build_fts_query, sync_item, BulkDataItem};
 use anyhow::{Context, Result};
 use rusqlite::{Connection, Transaction};
 use std::sync::LazyLock;
@@ -17,7 +17,16 @@ static ITEM: LazyLock<BulkDataItem> = LazyLock::new(|| BulkDataItem {
     schema: SCHEMA.to_string(),
     data_file_name: "cm.txt".to_string(),
     column_count: 15,
+    fts_schema: Some(FTS_SCHEMA.to_string()),
 });
+
+static FTS_SCHEMA: &str = r#"
+CREATE VIRTUAL TABLE IF NOT EXISTS libfec_committees_fts USING fts5(
+  name,
+  content='libfec_committees',
+  content_rowid='rowid'
+);
+"#;
 
 static SCHEMA: &str = r#"
 CREATE TABLE IF NOT EXISTS libfec_committees(
@@ -95,22 +104,28 @@ pub fn search_committees(
     sync_item(&mut tx, cycle, &ITEM, on_progress)?;
     tx.commit()?;
 
+    let fts_query = match build_fts_query(name_query) {
+        Some(q) => q,
+        None => return Ok(Vec::new()),
+    };
+
     let sql = r#"
       SELECT
-        committee_id,
-        name,
-        COALESCE(committee_type, ''),
-        COALESCE(designation, ''),
-        COALESCE(party_affiliation, ''),
-        COALESCE(connected_org_name, ''),
-        candidate_id
-      FROM libfec_committees
-      WHERE cycle = :cycle
-        AND name LIKE '%' || :name_query || '%'
+        c.committee_id,
+        c.name,
+        COALESCE(c.committee_type, ''),
+        COALESCE(c.designation, ''),
+        COALESCE(c.party_affiliation, ''),
+        COALESCE(c.connected_org_name, ''),
+        c.candidate_id
+      FROM libfec_committees_fts fts
+      JOIN libfec_committees c ON c.rowid = fts.rowid
+      WHERE fts.name MATCH :fts_query
+        AND c.cycle = :cycle
       "#;
     let params = rusqlite::named_params! {
       ":cycle": cycle,
-      ":name_query": name_query,
+      ":fts_query": fts_query,
     };
     let mut stmt = bulk_db.prepare(sql)?;
     let results = stmt

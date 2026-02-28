@@ -20,6 +20,7 @@ static ITEM: LazyLock<BulkDataItem> = LazyLock::new(|| BulkDataItem {
     schema: SCHEMA.to_string(),
     data_file_name: "itpas2.txt".to_string(),
     column_count: 22,
+    fts_schema: None,
 });
 
 static SCHEMA: &str = r#"
