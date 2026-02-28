@@ -24,7 +24,11 @@ pub fn build_feed_url(args: &RssArgs) -> (String, ActiveFilters) {
 
         if let Some(ref committee) = args.committee {
             params.push(format!("cids={}", committee));
-            filters.committee = Some(committee.clone());
+            filters.committee = Some(
+                args.committee_label
+                    .clone()
+                    .unwrap_or_else(|| committee.clone()),
+            );
         }
 
         if let Some(ref form_type) = args.form_type {

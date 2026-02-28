@@ -4,7 +4,7 @@ use crate::sourcer::FilingSourcer;
 use crate::tui::filing_detail::{
     render_filing_detail, FilingDetail, FilingDetailAction, FilingDetailState,
 };
-use anyhow::Result;
+use anyhow::{Context, Result};
 use crossterm::{
     event::{self, Event, KeyCode, KeyEventKind},
     execute,
@@ -20,9 +20,15 @@ use super::app::{App, CopyOption, SearchMode};
 use super::export::open_or_create_export_db;
 use super::render::ui;
 
+/// Returns the current FEC election cycle (current year rounded up to even).
+fn current_cycle() -> u16 {
+    let year = jiff::Zoned::now().year() as u16;
+    year + (year % 2)
+}
+
 /// Watch mode: interactive TUI with auto-refresh
 pub fn run_watch_mode(
-    sourcer: FilingSourcer,
+    mut sourcer: FilingSourcer,
     args: &RssArgs,
     since_ts: Option<Timestamp>,
 ) -> Result<()> {
@@ -30,6 +36,12 @@ pub fn run_watch_mode(
     let (export_db, exported_ids) = if let Some(ref export_path) = args.export {
         let mut db = open_or_create_export_db(export_path)?;
         sqlite::init_schema(&mut db)?;
+
+        // Import bulk candidate/committee data before entering the TUI
+        if args.include_all_bulk {
+            import_bulk_data(&mut sourcer, &mut db)?;
+        }
+
         let ids = sqlite::get_existing_filing_ids(&db).unwrap_or_default();
         (Some(db), ids)
     } else {
@@ -267,5 +279,52 @@ fn show_filing_detail(
         }
     }
 
+    Ok(())
+}
+
+/// Import all bulk candidate/committee data for the current cycle into the export database.
+/// This runs before entering the TUI so download progress is printed to stdout.
+fn import_bulk_data(sourcer: &mut FilingSourcer, db: &mut rusqlite::Connection) -> Result<()> {
+    use crate::cache::bulk::{candidates, committee};
+
+    let cycle = current_cycle();
+    eprintln!(
+        "Importing bulk candidate/committee data for cycle {}...",
+        cycle
+    );
+
+    // Sync bulk data into the cache database (downloads if needed)
+    let mut bulk_db = sourcer
+        .cache
+        .open_bulk_data_database()
+        .context("Could not open bulk data database")?;
+    let mut bulk_tx = bulk_db
+        .transaction()
+        .context("Could not start bulk data transaction")?;
+    candidates::export(&mut bulk_tx, cycle, None)
+        .with_context(|| format!("Error syncing candidate data for cycle {}", cycle))?;
+    committee::export(&mut bulk_tx, cycle, None)
+        .with_context(|| format!("Error syncing committee data for cycle {}", cycle))?;
+    bulk_tx.commit()?;
+    drop(bulk_db);
+
+    // Include bulk data in the export database
+    let bulk_db_path = sourcer.cache.bulk_data_database_path();
+    let mut tx = db
+        .transaction()
+        .context("Could not start export transaction for bulk data")?;
+    let params = candidates::ResolveCandidateParams {
+        cycle,
+        office: None,
+        state: None,
+        district: None,
+    };
+    candidates::include(&mut tx, bulk_db_path.clone(), &params)
+        .with_context(|| format!("Error including candidates for cycle {}", cycle))?;
+    committee::include(&mut tx, bulk_db_path, cycle)
+        .with_context(|| format!("Error including committees for cycle {}", cycle))?;
+    tx.commit()?;
+
+    eprintln!("Bulk data imported.");
     Ok(())
 }

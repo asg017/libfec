@@ -334,9 +334,13 @@ pub struct RssArgs {
     #[arg(long, short = 'f')]
     pub form_type: Option<String>,
 
-    /// Filter by committee ID(s), comma-separated (e.g., C00505412,C00513531)
+    /// Filter by committee ID(s), comma-separated (e.g., C00505412,C00513531) or a .txt file of IDs
     #[arg(long, short = 'c')]
     pub committee: Option<String>,
+
+    /// Display label for committee filter (set automatically when a .txt file is used)
+    #[arg(skip)]
+    pub committee_label: Option<String>,
 
     /// Filter by state code (e.g., CA, TX, NY)
     #[arg(long, short = 's')]
@@ -365,6 +369,10 @@ pub struct RssArgs {
     /// Write metadata about RSS sync operations to the database (requires --export)
     #[arg(long)]
     pub write_metadata: bool,
+
+    /// Include all bulk candidate/committee data for the latest cycle before the first export (requires --export)
+    #[arg(long, requires = "export")]
+    pub include_all_bulk: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, clap::ValueEnum)]

@@ -139,6 +139,7 @@ pub fn landing(cache_directory: Option<PathBuf>) -> Result<()> {
                             preset: RssPreset::All,
                             form_type: None,
                             committee: None,
+                            committee_label: None,
                             state: None,
                             party: None,
                             export: None,
@@ -146,6 +147,7 @@ pub fn landing(cache_directory: Option<PathBuf>) -> Result<()> {
                             since: None,
                             rpc: false,
                             write_metadata: false,
+                            include_all_bulk: false,
                         };
                         crate::commands::rss(sourcer, &args)?;
                     }

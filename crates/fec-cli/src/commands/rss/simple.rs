@@ -21,7 +21,10 @@ pub fn run_simple_mode(
 
     // Capture feed metadata before moving items
     let total_feed_items = result.feed.items.len();
-    let feed_title = result.feed.title.clone();
+    let feed_title = match args.committee_label {
+        Some(ref label) => super::app::replace_committee_ids_in_title(&result.feed.title, label),
+        None => result.feed.title.clone(),
+    };
     let feed_last_modified = result.last_modified;
 
     // Filter items by --since if provided

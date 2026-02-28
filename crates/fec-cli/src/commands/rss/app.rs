@@ -150,7 +150,10 @@ impl App {
     pub fn fetch(&mut self) -> Result<()> {
         match rss::fetch_feed_with_args(&self.args) {
             Ok((result, filters)) => {
-                self.feed_title = result.feed.title;
+                self.feed_title = match self.args.committee_label {
+                    Some(ref label) => replace_committee_ids_in_title(&result.feed.title, label),
+                    None => result.feed.title,
+                };
                 self.last_modified = result.last_modified;
                 self.last_fetch = Instant::now();
                 self.next_fetch = self.last_fetch + self.interval;
@@ -427,5 +430,15 @@ impl App {
         self.search_mode = SearchMode::Off;
         self.search_query.clear();
         self.update_filter();
+    }
+}
+
+/// Replace the "Committees: C00...,C00..." portion of a feed title with a display label.
+/// e.g. "FEC ... - Committees: C00123,C00456" → "FEC ... - ftc-pacs.txt (20 committees)"
+pub fn replace_committee_ids_in_title(title: &str, label: &str) -> String {
+    if let Some(idx) = title.find(" - Committees: ") {
+        format!("{} - {}", &title[..idx], label)
+    } else {
+        title.to_string()
     }
 }
