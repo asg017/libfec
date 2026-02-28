@@ -58,7 +58,11 @@ CREATE TABLE IF NOT EXISTS candidate_summary(
 );
 "#;
 
-pub fn export(tx: &mut Transaction<'_>, year: u16, on_progress: Option<&dyn Fn(u64, Option<u64>)>) -> Result<()> {
+pub fn export(
+    tx: &mut Transaction<'_>,
+    year: u16,
+    on_progress: Option<&dyn Fn(u64, Option<u64>)>,
+) -> Result<()> {
     let result = sync_item(tx, year, &ITEM, on_progress)?;
     println!("candidate_summary {year} {result:?}");
     Ok(())
@@ -116,23 +120,20 @@ pub fn get_candidate_summary(
          WHERE cycle = ? AND candidate_id = ?",
     )?;
 
-    let result = stmt.query_row(
-        rusqlite::params![cycle, candidate_id],
-        |row| {
-            Ok(CandidateFinancialSummary {
-                total_receipts: row.get(0)?,
-                total_disbursements: row.get(1)?,
-                cash_on_hand_close: row.get(2)?,
-                total_individual_contributions: row.get(3)?,
-                other_committee_contributions: row.get(4)?,
-                party_contributions: row.get(5)?,
-                candidate_contributions: row.get(6)?,
-                candidate_loans: row.get(7)?,
-                debts_owed_by: row.get(8)?,
-                coverage_end_date: row.get(9)?,
-            })
-        },
-    );
+    let result = stmt.query_row(rusqlite::params![cycle, candidate_id], |row| {
+        Ok(CandidateFinancialSummary {
+            total_receipts: row.get(0)?,
+            total_disbursements: row.get(1)?,
+            cash_on_hand_close: row.get(2)?,
+            total_individual_contributions: row.get(3)?,
+            other_committee_contributions: row.get(4)?,
+            party_contributions: row.get(5)?,
+            candidate_contributions: row.get(6)?,
+            candidate_loans: row.get(7)?,
+            debts_owed_by: row.get(8)?,
+            coverage_end_date: row.get(9)?,
+        })
+    });
 
     match result {
         Ok(summary) => Ok(Some(summary)),

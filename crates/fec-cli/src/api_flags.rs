@@ -6,7 +6,9 @@ use crate::{
 };
 use anyhow::Context;
 use clap::Parser;
-use fec_api::{Api, ApiCache, ApiResponse, CandidateId, CommitteeId, FilingArgsBuilder, FilingItem, Office};
+use fec_api::{
+    Api, ApiCache, ApiResponse, CandidateId, CommitteeId, FilingArgsBuilder, FilingItem, Office,
+};
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use jiff::civil::Date;
 use url::Url;

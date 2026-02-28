@@ -135,7 +135,9 @@ pub fn render_filters(f: &mut Frame, app: &App, area: Rect) {
 pub fn render_search_bar(f: &mut Frame, app: &App, area: Rect) {
     let mut spans = vec![Span::styled(
         "/",
-        Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD),
+        Style::default()
+            .fg(Color::Yellow)
+            .add_modifier(Modifier::BOLD),
     )];
 
     match app.search_mode {

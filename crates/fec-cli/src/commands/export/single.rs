@@ -68,8 +68,8 @@ pub fn cmd_export_single(
     };
 
     let mb = indicatif::MultiProgress::new();
-    let (_trace, _input_mappings, iter) = sourcer
-        .resolve_iterator_from_flags(args.filings, args.api, Some(&mb))?;
+    let (_trace, _input_mappings, iter) =
+        sourcer.resolve_iterator_from_flags(args.filings, args.api, Some(&mb))?;
     let mut nrows = 0;
 
     for filing in iter {

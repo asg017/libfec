@@ -1,13 +1,12 @@
-use serde::{Deserialize, Serialize};
-use wasm_bindgen::prelude::*;
 use fec_parser::{Filing, FilingHeader};
+use serde::{Deserialize, Serialize};
 use tsify::Tsify;
+use wasm_bindgen::prelude::*;
 
 /// FEC Filing header
 #[derive(Tsify, Serialize, Deserialize)]
 #[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct FilingHeaderJs {
-
     /// Record type XXX
     pub record_type: String,
     pub ef_type: String,
@@ -37,6 +36,6 @@ impl FilingHeaderJs {
 /// greet bro
 #[wasm_bindgen]
 pub fn header(body: &[u8]) -> FilingHeaderJs {
-  let f = Filing::from_reader(body, "123".to_string(), body.len()).unwrap();
-  FilingHeaderJs::from(&f.header)
+    let f = Filing::from_reader(body, "123".to_string(), body.len()).unwrap();
+    FilingHeaderJs::from(&f.header)
 }

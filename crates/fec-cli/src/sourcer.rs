@@ -359,7 +359,11 @@ pub(crate) fn process_inputs(
                 let cycle = api_flags
                     .election
                     .or_else(|| api_flags.cycle.as_ref().and_then(|c| c.first().copied()))
-                    .ok_or_else(|| anyhow::anyhow!("--election is required for contest inputs (e.g. --election 2026)"))?;
+                    .ok_or_else(|| {
+                        anyhow::anyhow!(
+                            "--election is required for contest inputs (e.g. --election 2026)"
+                        )
+                    })?;
                 let params = contest.resolve_candidate_params(cycle);
                 input_mappings.push(InputMapping {
                     raw_input: item.clone(),
@@ -376,10 +380,11 @@ pub(crate) fn process_inputs(
                     .cache
                     .resolve_candidate_principal_campaign_committees(params)
                     .unwrap();
-                api_flags
-                    .committee
-                    .get_or_insert_with(Vec::new)
-                    .extend(committee_strings.into_iter().map(|s| CommitteeId::new(&s).unwrap()));
+                api_flags.committee.get_or_insert_with(Vec::new).extend(
+                    committee_strings
+                        .into_iter()
+                        .map(|s| CommitteeId::new(&s).unwrap()),
+                );
             }
             Ok(UserArgument::InputFile(path)) => {
                 input_mappings.push(InputMapping {
@@ -459,10 +464,11 @@ pub(crate) fn process_inputs(
                             .cache
                             .resolve_candidate_principal_campaign_committees(params)
                             .unwrap();
-                        api_flags
-                            .committee
-                            .get_or_insert_with(Vec::new)
-                            .extend(committee_strings.into_iter().map(|s| CommitteeId::new(&s).unwrap()));
+                        api_flags.committee.get_or_insert_with(Vec::new).extend(
+                            committee_strings
+                                .into_iter()
+                                .map(|s| CommitteeId::new(&s).unwrap()),
+                        );
                     } else {
                         return Err(anyhow::anyhow!(
                             "Could not resolve input on line {} of file {}: {}",
@@ -523,7 +529,11 @@ pub(crate) fn process_inputs(
         queue.extend(caching_result.paths.into_iter().map(Item::CachedFile));
     }
 
-    Ok(ProcessedInputs { trace, queue, input_mappings })
+    Ok(ProcessedInputs {
+        trace,
+        queue,
+        input_mappings,
+    })
 }
 
 pub struct IterFilingsX<'a> {
@@ -674,7 +684,6 @@ impl Contest {
         b.build().unwrap()
     }
 }
-
 
 impl FilingSourcer {
     pub fn new(cli_cache_directory: Option<PathBuf>) -> Self {

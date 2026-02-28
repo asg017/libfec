@@ -17,7 +17,11 @@ pub fn build_url(args: &ApiScheduleAArgs) -> Url {
     push_vec(&mut params, "contributor_city", &args.contributor_city);
     push_vec(&mut params, "contributor_state", &args.contributor_state);
     push_vec(&mut params, "contributor_zip", &args.contributor_zip);
-    push_vec(&mut params, "contributor_employer", &args.contributor_employer);
+    push_vec(
+        &mut params,
+        "contributor_employer",
+        &args.contributor_employer,
+    );
     push_vec(
         &mut params,
         "contributor_occupation",

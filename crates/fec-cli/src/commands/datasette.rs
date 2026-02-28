@@ -154,7 +154,9 @@ pub fn datasette(sourcer: FilingSourcer, args: DatasetteArgs) -> Result<()> {
     }
 
     // Block until datasette exits (Ctrl+C propagates to child)
-    child.wait().context("Error waiting for datasette process")?;
+    child
+        .wait()
+        .context("Error waiting for datasette process")?;
 
     Ok(())
 }

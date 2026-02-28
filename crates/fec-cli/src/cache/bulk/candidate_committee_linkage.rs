@@ -33,7 +33,11 @@ CREATE TABLE IF NOT EXISTS libfec_candidate_committee_linkages(
 );
 "#;
 
-pub fn export(tx: &mut Transaction<'_>, year: u16, on_progress: Option<&dyn Fn(u64, Option<u64>)>) -> Result<()> {
+pub fn export(
+    tx: &mut Transaction<'_>,
+    year: u16,
+    on_progress: Option<&dyn Fn(u64, Option<u64>)>,
+) -> Result<()> {
     sync_item(tx, year, &ITEM, on_progress)?;
     Ok(())
 }

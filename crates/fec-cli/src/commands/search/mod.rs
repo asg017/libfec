@@ -127,4 +127,3 @@ pub fn search(mut sourcer: FilingSourcer, args: &SearchArgs) -> Result<()> {
 
     Ok(())
 }
-

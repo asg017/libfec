@@ -225,17 +225,17 @@ fn lookup_candidate_name(db: &Connection, cycle: u16, candidate_id: &str) -> Opt
         .ok()
 }
 
-pub fn export(tx: &mut Transaction<'_>, year: u16, on_progress: Option<&dyn Fn(u64, Option<u64>)>) -> Result<()> {
+pub fn export(
+    tx: &mut Transaction<'_>,
+    year: u16,
+    on_progress: Option<&dyn Fn(u64, Option<u64>)>,
+) -> Result<()> {
     sync_item(tx, year, &ITEM, on_progress)?;
     Ok(())
 }
 
 /// Include all committees for a cycle in the export database
-pub fn include(
-    tx: &mut Transaction,
-    bulk_db_path: std::path::PathBuf,
-    cycle: u16,
-) -> Result<()> {
+pub fn include(tx: &mut Transaction, bulk_db_path: std::path::PathBuf, cycle: u16) -> Result<()> {
     tx.execute_batch(SCHEMA)?;
 
     let bulk_db_str = bulk_db_path.to_str().ok_or_else(|| {

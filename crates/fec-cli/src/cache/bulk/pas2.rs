@@ -52,7 +52,11 @@ CREATE TABLE IF NOT EXISTS committee_contributions_to_candidates(
 
 "#;
 
-pub fn export(tx: &mut Transaction<'_>, year: u16, on_progress: Option<&dyn Fn(u64, Option<u64>)>) -> Result<()> {
+pub fn export(
+    tx: &mut Transaction<'_>,
+    year: u16,
+    on_progress: Option<&dyn Fn(u64, Option<u64>)>,
+) -> Result<()> {
     let result = sync_item(tx, year, &ITEM, on_progress)?;
     println!("pas2 {year} {result:?}");
     Ok(())

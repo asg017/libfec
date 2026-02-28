@@ -177,11 +177,7 @@ fn print_bulk_data_info(conn: &Connection) {
         any_found = true;
 
         let years: Vec<String> = cycles.iter().map(|c| c.year.to_string()).collect();
-        println!(
-            "    {} ({})",
-            source.display_name.bold(),
-            years.join(", ")
-        );
+        println!("    {} ({})", source.display_name.bold(), years.join(", "));
 
         for cycle in &cycles {
             let modified = human_duration_since_rfc2822(&cycle.modified_at);

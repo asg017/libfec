@@ -502,7 +502,6 @@ fn render_content(f: &mut Frame, committee: &CommitteeDetail, area: Rect) {
         ]));
     }
 
-
     let content = Paragraph::new(lines).wrap(Wrap { trim: false });
     f.render_widget(content, area);
 }

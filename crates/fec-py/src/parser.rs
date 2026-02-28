@@ -61,7 +61,7 @@ impl Cover {
             self.form_type, self.filer_id, self.filer_name
         )
     }
-    
+
     /// Get all cover record fields as a dictionary
     fn fields<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
         let dict = PyDict::new_bound(py);
@@ -87,13 +87,17 @@ pub struct Itemization {
 #[pymethods]
 impl Itemization {
     fn __repr__(&self) -> String {
-        format!("Itemization(row_type='{}', {} fields)", self.row_type, self.fields.len())
+        format!(
+            "Itemization(row_type='{}', {} fields)",
+            self.row_type,
+            self.fields.len()
+        )
     }
-    
+
     fn __len__(&self) -> usize {
         self.fields.len()
     }
-    
+
     fn __getitem__(&self, idx: isize) -> PyResult<String> {
         let len = self.fields.len() as isize;
         let actual_idx = if idx < 0 {
@@ -101,12 +105,13 @@ impl Itemization {
         } else {
             idx as usize
         };
-        
-        self.fields.get(actual_idx)
+
+        self.fields
+            .get(actual_idx)
             .cloned()
             .ok_or_else(|| pyo3::exceptions::PyIndexError::new_err("Index out of range"))
     }
-    
+
     /// Get all fields as a list
     fn fields(&self) -> Vec<String> {
         self.fields.clone()
@@ -127,34 +132,48 @@ impl Filing {
     #[pyo3(signature = (source))]
     pub fn new(source: &Bound<'_, PyAny>) -> PyResult<Self> {
         // Handle different input types: path (str), bytes, or file-like object
-        let (reader, source_length): (Box<dyn std::io::Read>, usize) = if let Ok(path_str) = source.extract::<String>() {
-            // It's a file path
-            let path = PathBuf::from(path_str);
-            let file = std::fs::File::open(&path)
-                .map_err(|e| pyo3::exceptions::PyIOError::new_err(format!("Failed to open file: {}", e)))?;
-            let len = file.metadata()
-                .map_err(|e| pyo3::exceptions::PyIOError::new_err(format!("Failed to get file metadata: {}", e)))?
-                .len() as usize;
-            (Box::new(file), len)
-        } else if let Ok(bytes) = source.extract::<Vec<u8>>() {
-            // It's bytes
-            let len = bytes.len();
-            (Box::new(Cursor::new(bytes)), len)
-        } else if let Ok(bytes_like) = source.call_method0("read") {
-            // It's a file-like object with read() method
-            let bytes: Vec<u8> = bytes_like.extract()?;
-            let len = bytes.len();
-            (Box::new(Cursor::new(bytes)), len)
-        } else {
-            return Err(pyo3::exceptions::PyTypeError::new_err(
+        let (reader, source_length): (Box<dyn std::io::Read>, usize) =
+            if let Ok(path_str) = source.extract::<String>() {
+                // It's a file path
+                let path = PathBuf::from(path_str);
+                let file = std::fs::File::open(&path).map_err(|e| {
+                    pyo3::exceptions::PyIOError::new_err(format!("Failed to open file: {}", e))
+                })?;
+                let len = file
+                    .metadata()
+                    .map_err(|e| {
+                        pyo3::exceptions::PyIOError::new_err(format!(
+                            "Failed to get file metadata: {}",
+                            e
+                        ))
+                    })?
+                    .len() as usize;
+                (Box::new(file), len)
+            } else if let Ok(bytes) = source.extract::<Vec<u8>>() {
+                // It's bytes
+                let len = bytes.len();
+                (Box::new(Cursor::new(bytes)), len)
+            } else if let Ok(bytes_like) = source.call_method0("read") {
+                // It's a file-like object with read() method
+                let bytes: Vec<u8> = bytes_like.extract()?;
+                let len = bytes.len();
+                (Box::new(Cursor::new(bytes)), len)
+            } else {
+                return Err(pyo3::exceptions::PyTypeError::new_err(
                 "Source must be a file path (str), bytes, or file-like object with read() method"
             ));
-        };
-        
+            };
+
         // Parse the filing
-        let mut filing = fec_parser::Filing::from_reader(reader, "filing".to_string(), source_length)
-            .map_err(|e| pyo3::exceptions::PyValueError::new_err(format!("Failed to parse filing: {}", e)))?;
-        
+        let mut filing = fec_parser::Filing::from_reader(
+            reader,
+            "filing".to_string(),
+            source_length,
+        )
+        .map_err(|e| {
+            pyo3::exceptions::PyValueError::new_err(format!("Failed to parse filing: {}", e))
+        })?;
+
         // Convert header
         let header = Header {
             record_type: filing.header.record_type.clone(),
@@ -166,7 +185,7 @@ impl Filing {
             report_number: filing.header.report_number.clone(),
             comment: filing.header.comment.clone(),
         };
-        
+
         // Convert cover
         let cover = Cover {
             form_type: filing.cover.form_type.clone(),
@@ -176,54 +195,58 @@ impl Filing {
             coverage_from_date: filing.cover.coverage_from_date.map(|d| d.to_string()),
             coverage_through_date: filing.cover.coverage_through_date.map(|d| d.to_string()),
         };
-        
+
         // Collect all itemizations
         let mut itemizations = Vec::new();
         while let Some(row_result) = filing.next_row() {
-            let row = row_result
-                .map_err(|e| pyo3::exceptions::PyValueError::new_err(format!("Failed to read row: {}", e)))?;
-            
+            let row = row_result.map_err(|e| {
+                pyo3::exceptions::PyValueError::new_err(format!("Failed to read row: {}", e))
+            })?;
+
             let fields: Vec<String> = row.record.iter().map(|s| s.to_string()).collect();
             itemizations.push(Itemization {
                 row_type: row.row_type,
                 fields,
             });
         }
-        
+
         Ok(Filing {
             header,
             cover,
             itemizations,
         })
     }
-    
+
     #[getter]
     fn header(&self) -> Header {
         self.header.clone()
     }
-    
+
     #[getter]
     fn cover(&self) -> Cover {
         self.cover.clone()
     }
-    
+
     #[getter]
     fn itemizations(&self) -> Vec<Itemization> {
         self.itemizations.clone()
     }
-    
+
     fn __repr__(&self) -> String {
         format!(
             "Filing(form_type='{}', filer_id='{}', {} itemizations)",
-            self.cover.form_type, self.cover.filer_id, self.itemizations.len()
+            self.cover.form_type,
+            self.cover.filer_id,
+            self.itemizations.len()
         )
     }
 }
 
 #[pyfunction]
 pub fn fec_header(contents: &[u8]) -> PyResult<String> {
-    let f = fec_parser::Filing::from_reader(contents, "123".to_string(), contents.len())
-        .map_err(|e| pyo3::exceptions::PyValueError::new_err(format!("Failed to parse filing: {}", e)))?;
+    let f = fec_parser::Filing::from_reader(contents, "123".to_string(), contents.len()).map_err(
+        |e| pyo3::exceptions::PyValueError::new_err(format!("Failed to parse filing: {}", e)),
+    )?;
     Ok(f.header.fec_version)
 }
 

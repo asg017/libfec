@@ -68,13 +68,18 @@ impl FromStr for CommitteeId {
 }
 
 impl Serialize for CommitteeId {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error> {
+    fn serialize<S: serde::Serializer>(
+        &self,
+        serializer: S,
+    ) -> std::result::Result<S::Ok, S::Error> {
         self.0.serialize(serializer)
     }
 }
 
 impl<'de> Deserialize<'de> for CommitteeId {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> std::result::Result<Self, D::Error> {
+    fn deserialize<D: serde::Deserializer<'de>>(
+        deserializer: D,
+    ) -> std::result::Result<Self, D::Error> {
         let s = String::deserialize(deserializer)?;
         CommitteeId::new(&s).map_err(serde::de::Error::custom)
     }
@@ -148,13 +153,18 @@ impl FromStr for CandidateId {
 }
 
 impl Serialize for CandidateId {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error> {
+    fn serialize<S: serde::Serializer>(
+        &self,
+        serializer: S,
+    ) -> std::result::Result<S::Ok, S::Error> {
         self.0.serialize(serializer)
     }
 }
 
 impl<'de> Deserialize<'de> for CandidateId {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> std::result::Result<Self, D::Error> {
+    fn deserialize<D: serde::Deserializer<'de>>(
+        deserializer: D,
+    ) -> std::result::Result<Self, D::Error> {
         let s = String::deserialize(deserializer)?;
         CandidateId::new(&s).map_err(serde::de::Error::custom)
     }
@@ -824,7 +834,10 @@ mod tests {
         let id = CommitteeId::new("C00401224").unwrap();
         assert_eq!(id.as_str(), "C00401224");
         assert_eq!(id.to_string(), "C00401224");
-        assert_eq!(id.fec_url(), "https://www.fec.gov/data/committee/C00401224/");
+        assert_eq!(
+            id.fec_url(),
+            "https://www.fec.gov/data/committee/C00401224/"
+        );
     }
 
     #[test]
@@ -836,13 +849,19 @@ mod tests {
     #[test]
     fn test_invalid_committee_id_wrong_prefix() {
         let err = CommitteeId::new("H00401224").unwrap_err();
-        assert_eq!(err.to_string(), "committee ID must start with 'C', got 'H00401224'");
+        assert_eq!(
+            err.to_string(),
+            "committee ID must start with 'C', got 'H00401224'"
+        );
     }
 
     #[test]
     fn test_invalid_committee_id_wrong_length() {
         let err = CommitteeId::new("C004").unwrap_err();
-        assert_eq!(err.to_string(), "committee ID must be 9 characters, got 4 ('C004')");
+        assert_eq!(
+            err.to_string(),
+            "committee ID must be 9 characters, got 4 ('C004')"
+        );
     }
 
     #[test]
@@ -851,7 +870,10 @@ mod tests {
         assert_eq!(id.as_str(), "H0CA12345");
         assert_eq!(id.office(), Office::House);
         assert_eq!(id.state(), Some("CA"));
-        assert_eq!(id.fec_url(), "https://www.fec.gov/data/candidate/H0CA12345/");
+        assert_eq!(
+            id.fec_url(),
+            "https://www.fec.gov/data/candidate/H0CA12345/"
+        );
     }
 
     #[test]
@@ -877,13 +899,19 @@ mod tests {
     #[test]
     fn test_invalid_candidate_id_wrong_prefix() {
         let err = CandidateId::new("C00401224").unwrap_err();
-        assert_eq!(err.to_string(), "candidate ID must start with H, S, or P, got 'C00401224'");
+        assert_eq!(
+            err.to_string(),
+            "candidate ID must start with H, S, or P, got 'C00401224'"
+        );
     }
 
     #[test]
     fn test_invalid_candidate_id_wrong_length() {
         let err = CandidateId::new("H0CA").unwrap_err();
-        assert_eq!(err.to_string(), "candidate ID must be 9 characters, got 4 ('H0CA')");
+        assert_eq!(
+            err.to_string(),
+            "candidate ID must be 9 characters, got 4 ('H0CA')"
+        );
     }
 
     #[test]

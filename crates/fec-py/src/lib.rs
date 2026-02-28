@@ -1,8 +1,8 @@
 #![allow(clippy::useless_conversion)]
 
-mod parser;
-mod foo;
 mod fecfile;
+mod foo;
+mod parser;
 
 use pyo3::prelude::*;
 use pyo3::wrap_pymodule;

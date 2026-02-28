@@ -459,11 +459,12 @@ fn handle_export_start(
         })?;
 
         // Create export record
-        let metadata = sqlite::create_export(&db, &export_id, cover_only).map_err(|e| JsonRpcError {
-            code: -32002,
-            message: "Failed to create export record".to_string(),
-            data: Some(json!({ "details": e.to_string() })),
-        })?;
+        let metadata =
+            sqlite::create_export(&db, &export_id, cover_only).map_err(|e| JsonRpcError {
+                code: -32002,
+                message: "Failed to create export record".to_string(),
+                data: Some(json!({ "details": e.to_string() })),
+            })?;
         new_state.metadata_export_id = Some(metadata.export_id);
     }
 
@@ -487,11 +488,12 @@ fn handle_export_start(
     }
 
     // Resolve filings using process_inputs
-    let processed = process_inputs(&filings, api_flags.clone(), sourcer, None).map_err(|e| JsonRpcError {
-        code: -32003,
-        message: "Failed to resolve filings".to_string(),
-        data: Some(json!({ "details": e.to_string() })),
-    })?;
+    let processed =
+        process_inputs(&filings, api_flags.clone(), sourcer, None).map_err(|e| JsonRpcError {
+            code: -32003,
+            message: "Failed to resolve filings".to_string(),
+            data: Some(json!({ "details": e.to_string() })),
+        })?;
 
     // Store filing IDs
     new_state.filing_ids = processed.queue;
@@ -622,7 +624,9 @@ fn handle_export_status(state: &Option<ExportState>) -> Result<serde_json::Value
 }
 
 /// Handle export/cancel method
-fn handle_export_cancel(state: &mut Option<ExportState>) -> Result<serde_json::Value, JsonRpcError> {
+fn handle_export_cancel(
+    state: &mut Option<ExportState>,
+) -> Result<serde_json::Value, JsonRpcError> {
     if let Some(ref mut export_state) = state {
         let export_id = export_state.export_id.clone();
         export_state.phase = ExportPhase::Canceled;
@@ -674,7 +678,9 @@ fn process_bulk_download(state: &mut ExportState, sourcer: &mut FilingSourcer) -
         bulk_tx.commit()?;
 
         // Now copy the data to the export database
-        let tx = db.transaction().context("Could not start export transaction")?;
+        let tx = db
+            .transaction()
+            .context("Could not start export transaction")?;
 
         // Attach the bulk database to the export database
         let bulk_db_str = bulk_db_path.to_str().ok_or_else(|| {
@@ -770,7 +776,13 @@ fn process_exports(
                         // Record filing in metadata if enabled
                         if state.write_metadata {
                             if let Some(metadata_id) = state.metadata_export_id {
-                                let _ = sqlite::record_export_filing(db, metadata_id, &filing_id, true, None);
+                                let _ = sqlite::record_export_filing(
+                                    db,
+                                    metadata_id,
+                                    &filing_id,
+                                    true,
+                                    None,
+                                );
                             }
                         }
                     }
@@ -782,7 +794,13 @@ fn process_exports(
                         if state.write_metadata {
                             if let Some(metadata_id) = state.metadata_export_id {
                                 let db = state.export_db.as_ref().unwrap();
-                                let _ = sqlite::record_export_filing(db, metadata_id, &filing_id, false, Some(&warning));
+                                let _ = sqlite::record_export_filing(
+                                    db,
+                                    metadata_id,
+                                    &filing_id,
+                                    false,
+                                    Some(&warning),
+                                );
                             }
                         }
                     }
@@ -796,7 +814,13 @@ fn process_exports(
                 if state.write_metadata {
                     if let Some(metadata_id) = state.metadata_export_id {
                         if let Some(ref db) = state.export_db {
-                            let _ = sqlite::record_export_filing(db, metadata_id, &filing_id, false, Some(&warning));
+                            let _ = sqlite::record_export_filing(
+                                db,
+                                metadata_id,
+                                &filing_id,
+                                false,
+                                Some(&warning),
+                            );
                         }
                     }
                 }
@@ -812,8 +836,15 @@ fn process_exports(
 
         // Finalize metadata if enabled
         if state.write_metadata {
-            if let (Some(metadata_id), Some(ref db)) = (state.metadata_export_id, &state.export_db) {
-                let _ = sqlite::finalize_export(db, metadata_id, "complete", state.exported_count, None);
+            if let (Some(metadata_id), Some(ref db)) = (state.metadata_export_id, &state.export_db)
+            {
+                let _ = sqlite::finalize_export(
+                    db,
+                    metadata_id,
+                    "complete",
+                    state.exported_count,
+                    None,
+                );
             }
         }
     }
@@ -847,7 +878,9 @@ fn resolve_item_to_filing(
     item: &Item,
 ) -> Result<fec_parser::Filing<Box<dyn std::io::Read>>> {
     match item {
-        Item::CachedFile(path) | Item::File(path) => crate::sourcer::resolve_from_path(path.clone()),
+        Item::CachedFile(path) | Item::File(path) => {
+            crate::sourcer::resolve_from_path(path.clone())
+        }
         Item::CustomUrl(_) | Item::FilingId(_) => {
             let id = item_to_filing_id(item);
             sourcer.resolve_from_user_argument(&id)
@@ -924,7 +957,8 @@ mod tests {
 
     #[test]
     fn test_parse_json_rpc_request() {
-        let json = r#"{"jsonrpc":"2.0","id":1,"method":"export/start","params":{"filings":["1884420"]}}"#;
+        let json =
+            r#"{"jsonrpc":"2.0","id":1,"method":"export/start","params":{"filings":["1884420"]}}"#;
         let request: JsonRpcRequest = serde_json::from_str(json).unwrap();
         assert_eq!(request.jsonrpc, "2.0");
         assert_eq!(request.method, "export/start");
@@ -934,7 +968,10 @@ mod tests {
     fn test_parse_export_start_params() {
         let json = r#"{"filings":["1884420","1884421"],"cover_only":true,"cycle":2024}"#;
         let params: ExportStartParams = serde_json::from_str(json).unwrap();
-        assert_eq!(params.filings, Some(vec!["1884420".to_string(), "1884421".to_string()]));
+        assert_eq!(
+            params.filings,
+            Some(vec!["1884420".to_string(), "1884421".to_string()])
+        );
         assert_eq!(params.cover_only, Some(true));
         assert_eq!(params.cycle, Some(2024));
     }

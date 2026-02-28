@@ -83,7 +83,10 @@ pub fn append_f1_content_lines(lines: &mut Vec<Line<'static>>, data: &FilingDeta
             addr.push_str(s2);
         }
     }
-    addr.push_str(&format!(", {}, {} {}", data.city, data.state, data.zip_code));
+    addr.push_str(&format!(
+        ", {}, {} {}",
+        data.city, data.state, data.zip_code
+    ));
     lines.push(label_line("Address: ", addr));
 
     // Email
@@ -134,10 +137,7 @@ pub fn append_f1_content_lines(lines: &mut Vec<Line<'static>>, data: &FilingDeta
                     .fg(Color::Yellow)
                     .add_modifier(Modifier::BOLD),
             ),
-            Span::styled(
-                name.clone(),
-                Style::default().add_modifier(Modifier::BOLD),
-            ),
+            Span::styled(name.clone(), Style::default().add_modifier(Modifier::BOLD)),
         ];
         if let Some(ref id) = data.candidate_id {
             parts.push(Span::raw(format!(" ({})", id)));

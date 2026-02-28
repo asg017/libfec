@@ -270,7 +270,8 @@ impl App {
 
     pub fn select_last(&mut self) {
         if !self.filtered_indices.is_empty() {
-            self.table_state.select(Some(self.filtered_indices.len() - 1));
+            self.table_state
+                .select(Some(self.filtered_indices.len() - 1));
         }
     }
 

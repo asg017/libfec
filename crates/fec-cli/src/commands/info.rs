@@ -479,22 +479,36 @@ pub fn info(mut sourcer: FilingSourcer, args: InfoArgs) -> anyhow::Result<()> {
                                     None,
                                 ).unwrap_or_default();
                                 // Load financial summary
-                                let financial_summary = crate::cache::bulk::candidate_summary::get_candidate_summary(
-                                    &mut db,
-                                    cycle,
-                                    candidate_id.as_str(),
-                                    None,
-                                ).unwrap_or(None);
+                                let financial_summary =
+                                    crate::cache::bulk::candidate_summary::get_candidate_summary(
+                                        &mut db,
+                                        cycle,
+                                        candidate_id.as_str(),
+                                        None,
+                                    )
+                                    .unwrap_or(None);
                                 // Load PCC name
-                                let pcc_name = detail.principal_campaign_committee.as_ref().and_then(|pcc_id| {
-                                    crate::cache::bulk::committee::get_committee_detail(
-                                        &mut db, cycle, pcc_id, None,
-                                    ).ok().flatten().map(|c| c.name)
-                                });
+                                let pcc_name = detail
+                                    .principal_campaign_committee
+                                    .as_ref()
+                                    .and_then(|pcc_id| {
+                                        crate::cache::bulk::committee::get_committee_detail(
+                                            &mut db, cycle, pcc_id, None,
+                                        )
+                                        .ok()
+                                        .flatten()
+                                        .map(|c| c.name)
+                                    });
                                 if let Some(s) = spinner.as_ref() {
                                     s.finish_and_clear();
                                 }
-                                show_candidate_detail_tui(detail, linkages, financial_summary, pcc_name, &mut sourcer)?;
+                                show_candidate_detail_tui(
+                                    detail,
+                                    linkages,
+                                    financial_summary,
+                                    pcc_name,
+                                    &mut sourcer,
+                                )?;
                             }
                             Ok(None) => {
                                 println!("Candidate {} not found in cycle {}", candidate_id, cycle);
@@ -514,7 +528,6 @@ pub fn info(mut sourcer: FilingSourcer, args: InfoArgs) -> anyhow::Result<()> {
 
     Ok(())
 }
-
 
 fn show_committee_detail_tui(
     detail: crate::cache::bulk::committee::CommitteeDetail,
@@ -656,8 +669,7 @@ fn show_candidate_detail_tui(
                                 None,
                             )
                         {
-                            let _ =
-                                run_committee_detail_tui(&mut terminal, &committee, sourcer);
+                            let _ = run_committee_detail_tui(&mut terminal, &committee, sourcer);
                         }
                     }
                 }
@@ -690,10 +702,7 @@ fn show_candidate_detail_tui(
                         Ok(filing) => {
                             let filing_detail = FilingDetail::from(&filing);
                             state.filing_detail_loading = false;
-                            let _ = run_filing_detail_tui(
-                                &mut terminal,
-                                &filing_detail,
-                            );
+                            let _ = run_filing_detail_tui(&mut terminal, &filing_detail);
                         }
                         Err(e) => {
                             state.filing_detail_loading = false;
@@ -724,7 +733,10 @@ fn show_candidate_detail_tui(
                     if let Some(contest) = contest {
                         let cycle = 2026;
                         let _ = crate::commands::contest::run_contest_tui(
-                            &mut terminal, sourcer, &contest, cycle,
+                            &mut terminal,
+                            sourcer,
+                            &contest,
+                            cycle,
                         );
                     }
                 }

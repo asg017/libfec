@@ -89,7 +89,7 @@ pub struct ExportArgs {
     #[arg(long, alias = "outdir", help = "Output directory")]
     pub output_directory: Option<PathBuf>,
 
-  #[arg(long, action, help = "Overwrite existing files")]
+    #[arg(long, action, help = "Overwrite existing files")]
     pub clobber: bool,
 
     #[arg(long, action, help = "Only export cover records, not itemizations")]
@@ -102,9 +102,13 @@ pub struct ExportArgs {
     /// Write export metadata to the database (export ID, input mappings, filing list)
     #[arg(long)]
     pub write_metadata: bool,
-    
+
     /// Export all bulk candidates/committees for the given cycle
-    #[arg(long, requires = "cycle", help = "Include all bulk data (candidates, committees, etc.) for the specified cycle")]
+    #[arg(
+        long,
+        requires = "cycle",
+        help = "Include all bulk data (candidates, committees, etc.) for the specified cycle"
+    )]
     pub include_all_bulk: bool,
 
     //#[arg(long, short = 'f', help = "Format to export to")]

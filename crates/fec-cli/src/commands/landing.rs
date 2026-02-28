@@ -253,10 +253,7 @@ fn render_menu(f: &mut Frame, app: &App, area: Rect) {
                 Span::styled(version, Style::default().fg(Color::White)),
             ]));
         } else {
-            lines.push(Line::from(Span::styled(
-                *line,
-                Style::default().fg(*color),
-            )));
+            lines.push(Line::from(Span::styled(*line, Style::default().fg(*color))));
         }
     }
 

@@ -22,20 +22,18 @@ pub fn filings(mut sourcer: FilingSourcer, args: &ApiFilingsArgs) -> anyhow::Res
             }
             UserArgument::Contest(contest) => {
                 let cycle = api_flags.election.ok_or_else(|| {
-                    anyhow::anyhow!(
-                        "contest '{}' requires --election to be set",
-                        input
-                    )
+                    anyhow::anyhow!("contest '{}' requires --election to be set", input)
                 })?;
                 let params = contest.resolve_candidate_params(cycle);
                 trace.resolve_candidate_params.push(params.clone());
                 let committee_strings = sourcer
                     .cache
                     .resolve_candidate_principal_campaign_committees(params)?;
-                api_flags
-                    .committee
-                    .get_or_insert_with(Vec::new)
-                    .extend(committee_strings.into_iter().map(|s| CommitteeId::new(&s).unwrap()));
+                api_flags.committee.get_or_insert_with(Vec::new).extend(
+                    committee_strings
+                        .into_iter()
+                        .map(|s| CommitteeId::new(&s).unwrap()),
+                );
             }
             UserArgument::Filing(Item::FilingId(_)) => {
                 return Err(anyhow::anyhow!(

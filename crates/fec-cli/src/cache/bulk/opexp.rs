@@ -53,7 +53,11 @@ CREATE TABLE IF NOT EXISTS operating_expenses(
 
 "#;
 
-pub fn export(tx: &mut Transaction<'_>, year: u16, on_progress: Option<&dyn Fn(u64, Option<u64>)>) -> Result<()> {
+pub fn export(
+    tx: &mut Transaction<'_>,
+    year: u16,
+    on_progress: Option<&dyn Fn(u64, Option<u64>)>,
+) -> Result<()> {
     let result = sync_item(tx, year, &ITEM, on_progress)?;
     println!("opeexp {year} {result:?}");
     Ok(())

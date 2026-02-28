@@ -5,8 +5,7 @@
 use super::app::ResultsTab;
 use super::{app::App, ui::render_search_view};
 use crate::cache::bulk::{
-    candidates::CandidateSearchResult, committee::CommitteeSearchResult,
-    opexp::OpExpSearchResult,
+    candidates::CandidateSearchResult, committee::CommitteeSearchResult, opexp::OpExpSearchResult,
 };
 use insta::assert_snapshot;
 use ratatui::{backend::TestBackend, Terminal};

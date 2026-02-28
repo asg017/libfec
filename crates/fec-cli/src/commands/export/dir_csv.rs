@@ -27,8 +27,8 @@ pub fn export(
     let mut itemization_writers: std::collections::HashMap<ItemizationKey, ItemizationValue> =
         HashMap::new();
     let mb = indicatif::MultiProgress::new();
-    let (_trace, _input_mappings, iter) = sourcer
-        .resolve_iterator_from_flags(args.filings, args.api, Some(&mb))?;
+    let (_trace, _input_mappings, iter) =
+        sourcer.resolve_iterator_from_flags(args.filings, args.api, Some(&mb))?;
 
     for filing in iter {
         let mut filing = match filing {

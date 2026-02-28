@@ -150,8 +150,7 @@ impl App {
                             match contest {
                                 Contest::House { state, district } => {
                                     // Normalize district: strip leading zeros
-                                    let district_num: u8 =
-                                        district.parse().unwrap_or(0);
+                                    let district_num: u8 = district.parse().unwrap_or(0);
                                     crate::cache::bulk::candidates::filter_candidates_by_district(
                                         &mut db,
                                         self.cycle,
@@ -393,19 +392,23 @@ impl App {
                                     self.candidate_detail_state.set_linked_committees(linkages);
                                 }
                                 // Load financial summary
-                                if let Ok(summary) = crate::cache::bulk::candidate_summary::get_candidate_summary(
-                                    &mut db,
-                                    self.cycle,
-                                    &candidate.candidate_id,
-                                    None,
-                                ) {
+                                if let Ok(summary) =
+                                    crate::cache::bulk::candidate_summary::get_candidate_summary(
+                                        &mut db,
+                                        self.cycle,
+                                        &candidate.candidate_id,
+                                        None,
+                                    )
+                                {
                                     self.candidate_detail_state.set_financial_summary(summary);
                                 }
                                 // Load PCC name
                                 if let Some(ref pcc_id) = detail.principal_campaign_committee {
-                                    if let Ok(Some(committee)) = crate::cache::bulk::committee::get_committee_detail(
-                                        &mut db, self.cycle, pcc_id, None,
-                                    ) {
+                                    if let Ok(Some(committee)) =
+                                        crate::cache::bulk::committee::get_committee_detail(
+                                            &mut db, self.cycle, pcc_id, None,
+                                        )
+                                    {
                                         self.candidate_detail_state.pcc_name = Some(committee.name);
                                     }
                                 }
@@ -602,16 +605,20 @@ impl App {
                 ) {
                     self.candidate_detail_state = CandidateDetailState::new();
                     // Load financial summary
-                    if let Ok(summary) = crate::cache::bulk::candidate_summary::get_candidate_summary(
-                        &mut db, self.cycle, filer_id, None,
-                    ) {
+                    if let Ok(summary) =
+                        crate::cache::bulk::candidate_summary::get_candidate_summary(
+                            &mut db, self.cycle, filer_id, None,
+                        )
+                    {
                         self.candidate_detail_state.set_financial_summary(summary);
                     }
                     // Load PCC name
                     if let Some(ref pcc_id) = detail.principal_campaign_committee {
-                        if let Ok(Some(committee)) = crate::cache::bulk::committee::get_committee_detail(
-                            &mut db, self.cycle, pcc_id, None,
-                        ) {
+                        if let Ok(Some(committee)) =
+                            crate::cache::bulk::committee::get_committee_detail(
+                                &mut db, self.cycle, pcc_id, None,
+                            )
+                        {
                             self.candidate_detail_state.pcc_name = Some(committee.name);
                         }
                     }

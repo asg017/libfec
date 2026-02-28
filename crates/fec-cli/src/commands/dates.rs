@@ -147,8 +147,7 @@ impl CalendarEvent {
                         }
                     }
                 }
-            } else if first_word.len() == 2
-                && crate::utils::states::is_valid_state_code(first_word)
+            } else if first_word.len() == 2 && crate::utils::states::is_valid_state_code(first_word)
             {
                 let rest = summary[first_word.len()..].trim_start();
                 if !rest.is_empty() {
@@ -351,7 +350,8 @@ struct App {
 impl App {
     fn new(args: DatesArgs) -> Self {
         let today = parse_as_of_date(&args.as_of);
-        let current_month = time::Month::try_from(today.month() as u8).unwrap_or(time::Month::January);
+        let current_month =
+            time::Month::try_from(today.month() as u8).unwrap_or(time::Month::January);
         let current_year = today.year() as i32;
         Self {
             events: Vec::new(),
@@ -596,14 +596,9 @@ impl App {
                 let days_in_month = month.length(year);
                 for day in 1..=days_in_month {
                     if let Ok(date) = Date::from_calendar_date(year, month, day) {
-                        if let Ok(jiff_date) =
-                            JiffDate::new(year as i16, month as i8, day as i8)
-                        {
+                        if let Ok(jiff_date) = JiffDate::new(year as i16, month as i8, day as i8) {
                             if jiff_date < today_jiff {
-                                store.add(
-                                    date,
-                                    Style::default().add_modifier(Modifier::DIM),
-                                );
+                                store.add(date, Style::default().add_modifier(Modifier::DIM));
                             }
                         }
                     }
@@ -971,8 +966,7 @@ fn render_calendar_row(f: &mut Frame, app: &App, area: Rect) {
         .constraints(constraints)
         .split(centered_area);
 
-    let calendar_store =
-        app.build_calendar_events(app.current_month, app.current_year, num_months);
+    let calendar_store = app.build_calendar_events(app.current_month, app.current_year, num_months);
 
     let default_style = Style::default();
 
@@ -1070,8 +1064,7 @@ fn render_events_list(f: &mut Frame, app: &mut App, area: Rect) {
                 ..
             } => {
                 let date_str = format_date(date);
-                let type_str =
-                    pluralize_election_type(election_type, states.len());
+                let type_str = pluralize_election_type(election_type, states.len());
                 let desc = format!("{} in {}", type_str, format_state_list(states));
                 let is_past = *date < today;
                 let color = Color::Cyan; // Elections are always Cyan
@@ -1087,8 +1080,7 @@ fn render_events_list(f: &mut Frame, app: &mut App, area: Rect) {
                 } else {
                     Row::new(vec![
                         Cell::from(date_str),
-                        Cell::from("Election Dates")
-                            .style(Style::default().fg(color)),
+                        Cell::from("Election Dates").style(Style::default().fg(color)),
                         Cell::from(truncate_str(&desc, 60)),
                     ])
                 }
@@ -1170,10 +1162,7 @@ fn render_event_detail_panel(f: &mut Frame, app: &App, area: Rect) {
                 ]),
                 Line::from(vec![
                     Span::styled("States: ", Style::default().fg(Color::Gray)),
-                    Span::styled(
-                        format_state_list(states),
-                        Style::default().fg(Color::Cyan),
-                    ),
+                    Span::styled(format_state_list(states), Style::default().fg(Color::Cyan)),
                 ]),
             ];
 
@@ -1562,8 +1551,7 @@ mod tests {
 
     #[test]
     fn test_extract_election_type_district_prefix() {
-        let event =
-            create_election_event("TX/18 Special General Election Runoff", "Texas", 36);
+        let event = create_election_event("TX/18 Special General Election Runoff", "Texas", 36);
         assert_eq!(
             event.extract_election_type(),
             Some("Special General Election Runoff")
@@ -1732,13 +1720,7 @@ mod tests {
     fn test_grouping_same_date_different_type() {
         let app = build_test_app(vec![
             make_event(1, "AR Primary Election", "2026-03-03", 36, "Election Dates"),
-            make_event(
-                2,
-                "NC General Election",
-                "2026-03-03",
-                36,
-                "Election Dates",
-            ),
+            make_event(2, "NC General Election", "2026-03-03", 36, "Election Dates"),
         ]);
 
         // Different types on the same date should NOT group
@@ -1869,13 +1851,7 @@ mod tests {
             make_event(3, "NC Primary Election", "2026-03-03", 36, "Election Dates"),
             make_event(4, "TX Primary Election", "2026-03-03", 36, "Election Dates"),
             make_event(5, "Quarterly Report Due", "2026-04-15", 25, "Quarterly"),
-            make_event(
-                6,
-                "CA General Election",
-                "2026-11-03",
-                36,
-                "Election Dates",
-            ),
+            make_event(6, "CA General Election", "2026-11-03", 36, "Election Dates"),
         ]);
 
         let mut terminal = Terminal::new(TestBackend::new(100, 30)).unwrap();

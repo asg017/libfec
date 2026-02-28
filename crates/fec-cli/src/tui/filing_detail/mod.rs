@@ -449,7 +449,9 @@ fn render_help_text(f: &mut Frame, filing: &FilingDetail, area: Rect) {
         }
     }
 
-    help.item("y", " copy").item("j/k", " scroll").render(f, area);
+    help.item("y", " copy")
+        .item("j/k", " scroll")
+        .render(f, area);
 }
 
 pub fn render_filing_detail(

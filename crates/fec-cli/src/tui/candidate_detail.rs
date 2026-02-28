@@ -821,8 +821,14 @@ fn render_financial_summary(f: &mut Frame, summary: &CandidateFinancialSummary, 
 
     // Secondary lines (shown if non-zero)
     let secondary = [
-        ("Individual Contributions", summary.total_individual_contributions),
-        ("Committee Contributions", summary.other_committee_contributions),
+        (
+            "Individual Contributions",
+            summary.total_individual_contributions,
+        ),
+        (
+            "Committee Contributions",
+            summary.other_committee_contributions,
+        ),
         ("Party Contributions", summary.party_contributions),
         ("Candidate Contributions", summary.candidate_contributions),
         ("Candidate Loans", summary.candidate_loans),
@@ -832,10 +838,7 @@ fn render_financial_summary(f: &mut Frame, summary: &CandidateFinancialSummary, 
         if value != 0.0 {
             lines.push(Line::from(vec![
                 Span::styled(format!(" {:<28}", label), dim),
-                Span::styled(
-                    format!("{:>w$}", format_usd(value), w = amount_width),
-                    dim,
-                ),
+                Span::styled(format!("{:>w$}", format_usd(value), w = amount_width), dim),
             ]));
         }
     }
@@ -1061,13 +1064,13 @@ pub fn render_candidate_detail(
     let layout = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(1),                      // Title
-            Constraint::Length(subtitle_height),         // Subtitle (election line + committee)
-            Constraint::Length(fin_height),              // Financial summary box
-            Constraint::Min(4),                         // Content (affiliations, address, etc.)
-            Constraint::Length(filings_prompt_height),   // "Press f to fetch filings"
-            Constraint::Length(12),                      // Filings table
-            Constraint::Length(2),                       // Help text
+            Constraint::Length(1),                     // Title
+            Constraint::Length(subtitle_height),       // Subtitle (election line + committee)
+            Constraint::Length(fin_height),            // Financial summary box
+            Constraint::Min(4),                        // Content (affiliations, address, etc.)
+            Constraint::Length(filings_prompt_height), // "Press f to fetch filings"
+            Constraint::Length(12),                    // Filings table
+            Constraint::Length(2),                     // Help text
         ]);
 
     let [title_area, subtitle_area, fin_area, content_area, filings_prompt_area, filings_area, help_area] =
@@ -1121,7 +1124,7 @@ fn render_yank_popup(
         + 1                     // blank line
         + options.len() as u16  // option rows
         + 1                     // blank line
-        + 1;                    // help line
+        + 1; // help line
     let popup_height = content_lines + 2; // +2 for borders
 
     // Compute width from widest content line
@@ -1193,9 +1196,7 @@ fn render_yank_popup(
     }
 
     lines.push(Line::from(""));
-    lines.push(
-        navigation_popup_help_line().alignment(ratatui::layout::Alignment::Center),
-    );
+    lines.push(navigation_popup_help_line().alignment(ratatui::layout::Alignment::Center));
 
     let paragraph = Paragraph::new(lines);
     f.render_widget(paragraph, inner_area);

@@ -55,7 +55,11 @@ CREATE TABLE IF NOT EXISTS pac_summary(
 );
 "#;
 
-pub fn export(tx: &mut Transaction<'_>, year: u16, on_progress: Option<&dyn Fn(u64, Option<u64>)>) -> Result<()> {
+pub fn export(
+    tx: &mut Transaction<'_>,
+    year: u16,
+    on_progress: Option<&dyn Fn(u64, Option<u64>)>,
+) -> Result<()> {
     let result = sync_item(tx, year, &ITEM, on_progress)?;
     println!("pac_summary {year} {result:?}");
     Ok(())

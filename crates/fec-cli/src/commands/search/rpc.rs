@@ -261,8 +261,7 @@ pub fn run_rpc_mode(mut sourcer: FilingSourcer, args: &SearchArgs) -> Result<()>
         // Read next request
         match stdin_lines.next() {
             Some(Ok(line)) => {
-                let (response, should_exit) =
-                    handle_request(&line, &mut sourcer, default_cycle)?;
+                let (response, should_exit) = handle_request(&line, &mut sourcer, default_cycle)?;
                 send_response(&mut stdout_lock, response)?;
                 if should_exit {
                     break;
@@ -379,11 +378,14 @@ fn handle_search_query(
     }
 
     // Open bulk database
-    let mut db = sourcer.cache.open_bulk_data_database().map_err(|e| JsonRpcError {
-        code: -32000,
-        message: "Database error".to_string(),
-        data: Some(json!({ "details": e.to_string() })),
-    })?;
+    let mut db = sourcer
+        .cache
+        .open_bulk_data_database()
+        .map_err(|e| JsonRpcError {
+            code: -32000,
+            message: "Database error".to_string(),
+            data: Some(json!({ "details": e.to_string() })),
+        })?;
 
     // Search candidates
     let candidate_results =
@@ -445,11 +447,14 @@ fn handle_candidate_detail(
     let cycle = detail_params.cycle.unwrap_or(default_cycle);
 
     // Open bulk database
-    let mut db = sourcer.cache.open_bulk_data_database().map_err(|e| JsonRpcError {
-        code: -32000,
-        message: "Database error".to_string(),
-        data: Some(json!({ "details": e.to_string() })),
-    })?;
+    let mut db = sourcer
+        .cache
+        .open_bulk_data_database()
+        .map_err(|e| JsonRpcError {
+            code: -32000,
+            message: "Database error".to_string(),
+            data: Some(json!({ "details": e.to_string() })),
+        })?;
 
     // Get candidate detail
     let detail =
@@ -494,21 +499,22 @@ fn handle_committee_detail(
     let cycle = detail_params.cycle.unwrap_or(default_cycle);
 
     // Open bulk database
-    let mut db = sourcer.cache.open_bulk_data_database().map_err(|e| JsonRpcError {
-        code: -32000,
-        message: "Database error".to_string(),
-        data: Some(json!({ "details": e.to_string() })),
-    })?;
+    let mut db = sourcer
+        .cache
+        .open_bulk_data_database()
+        .map_err(|e| JsonRpcError {
+            code: -32000,
+            message: "Database error".to_string(),
+            data: Some(json!({ "details": e.to_string() })),
+        })?;
 
     // Get committee detail
-    let detail =
-        committee::get_committee_detail(&mut db, cycle, &detail_params.committee_id, None).map_err(
-            |e| JsonRpcError {
-                code: -32000,
-                message: "Committee lookup error".to_string(),
-                data: Some(json!({ "details": e.to_string() })),
-            },
-        )?;
+    let detail = committee::get_committee_detail(&mut db, cycle, &detail_params.committee_id, None)
+        .map_err(|e| JsonRpcError {
+            code: -32000,
+            message: "Committee lookup error".to_string(),
+            data: Some(json!({ "details": e.to_string() })),
+        })?;
 
     match detail {
         Some(committee) => {

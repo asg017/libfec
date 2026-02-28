@@ -62,15 +62,9 @@ pub(crate) fn csv_reader_from_response(
     let mut buffer = Cursor::new(Vec::new());
     if let Some(on_progress) = on_progress {
         let mut progress_reader = ProgressReader::new(&mut reader, content_length, on_progress);
-        std::io::copy(
-            &mut progress_reader,
-            &mut BufWriter::new(&mut buffer),
-        )?;
+        std::io::copy(&mut progress_reader, &mut BufWriter::new(&mut buffer))?;
     } else {
-        std::io::copy(
-            &mut reader,
-            &mut BufWriter::new(&mut buffer),
-        )?;
+        std::io::copy(&mut reader, &mut BufWriter::new(&mut buffer))?;
     }
 
     let mut archive = zip::ZipArchive::new(buffer)?;

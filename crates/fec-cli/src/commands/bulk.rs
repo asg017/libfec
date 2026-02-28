@@ -51,9 +51,13 @@ pub fn bulk(_sourcer: FilingSourcer, args: &BulkArgs) -> anyhow::Result<()> {
                 BulkSource::Opex => opexp::export(&mut tx, year, Some(&on_progress)),
                 BulkSource::Committees => committee::export(&mut tx, year, Some(&on_progress)),
                 BulkSource::Candidates => candidates::export(&mut tx, year, Some(&on_progress)),
-                BulkSource::ContributionsToCandidates => pas2::export(&mut tx, year, Some(&on_progress)),
+                BulkSource::ContributionsToCandidates => {
+                    pas2::export(&mut tx, year, Some(&on_progress))
+                }
                 BulkSource::PacSummary => pac_summary::export(&mut tx, year, Some(&on_progress)),
-                BulkSource::CandidateSummary => candidate_summary::export(&mut tx, year, Some(&on_progress)),
+                BulkSource::CandidateSummary => {
+                    candidate_summary::export(&mut tx, year, Some(&on_progress))
+                }
             };
             result.unwrap();
             pb.inc(1);

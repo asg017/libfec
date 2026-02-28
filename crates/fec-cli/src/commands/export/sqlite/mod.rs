@@ -468,7 +468,8 @@ pub fn cmd_export_sqlite(
     // Initialize metadata tracking if enabled
     let metadata_export_id = if args.write_metadata {
         // Need to commit the transaction to use metadata functions that require &Connection
-        tx.commit().context("Error committing initial transaction")?;
+        tx.commit()
+            .context("Error committing initial transaction")?;
 
         init_metadata_schema(&db)?;
         let export_uuid = format!("export-{}", uuid::Uuid::new_v4());
@@ -476,7 +477,12 @@ pub fn cmd_export_sqlite(
 
         // Record input mappings
         for mapping in &input_mappings {
-            if let Ok(input_id) = record_export_input(&db, metadata.export_id, &mapping.input_type, &mapping.raw_input) {
+            if let Ok(input_id) = record_export_input(
+                &db,
+                metadata.export_id,
+                &mapping.input_type,
+                &mapping.raw_input,
+            ) {
                 for filing_id in &mapping.direct_filings {
                     let _ = link_input_to_filing(&db, input_id, filing_id);
                 }
@@ -484,7 +490,9 @@ pub fn cmd_export_sqlite(
         }
 
         // Start a new transaction for the actual export
-        tx = db.transaction().context("Error starting export transaction")?;
+        tx = db
+            .transaction()
+            .context("Error starting export transaction")?;
         Some(metadata.export_id)
     } else {
         None
@@ -542,7 +550,8 @@ pub fn cmd_export_sqlite(
                 // Record successful filing in metadata if enabled
                 if let Some(export_id) = metadata_export_id {
                     // Commit current work and record filing
-                    tx.commit().context("Error committing transaction for metadata")?;
+                    tx.commit()
+                        .context("Error committing transaction for metadata")?;
                     let _ = record_export_filing(&db, export_id, &filing_id_str, true, None);
                     tx = db.transaction().context("Error restarting transaction")?;
                 }
@@ -554,8 +563,15 @@ pub fn cmd_export_sqlite(
                 ));
                 // Record failed filing in metadata if enabled
                 if let Some(export_id) = metadata_export_id {
-                    tx.commit().context("Error committing transaction for metadata")?;
-                    let _ = record_export_filing(&db, export_id, &filing_id_str, false, Some(&e.to_string()));
+                    tx.commit()
+                        .context("Error committing transaction for metadata")?;
+                    let _ = record_export_filing(
+                        &db,
+                        export_id,
+                        &filing_id_str,
+                        false,
+                        Some(&e.to_string()),
+                    );
                     tx = db.transaction().context("Error restarting transaction")?;
                 }
                 continue;
@@ -575,10 +591,7 @@ pub fn cmd_export_sqlite(
     // Finalize metadata if enabled
     if let Some(export_id) = metadata_export_id {
         finalize_export(&db, export_id, "complete", nfilings, None)?;
-        println!(
-            "Export metadata recorded with export_id: {}",
-            export_id
-        );
+        println!("Export metadata recorded with export_id: {}", export_id);
     }
 
     let elapsed = Instant::now() - t0;

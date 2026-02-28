@@ -134,18 +134,14 @@ impl RpcSyncState {
         if let Some(filing_id) = self.export_queue.pop() {
             if let Some(ref mut db) = self.export_db {
                 let (success, message) = match sourcer.resolve_from_user_argument(&filing_id) {
-                    Ok(filing) => {
-                        match sqlite::export_single_filing(db, filing, self.cover_only) {
-                            Ok(_) => {
-                                self.exported_ids.insert(filing_id.clone());
-                                (true, None)
-                            }
-                            Err(e) => (false, Some(e.to_string())),
+                    Ok(filing) => match sqlite::export_single_filing(db, filing, self.cover_only) {
+                        Ok(_) => {
+                            self.exported_ids.insert(filing_id.clone());
+                            (true, None)
                         }
-                    }
-                    Err(e) => {
-                        (false, Some(format!("Failed to fetch filing: {}", e)))
-                    }
+                        Err(e) => (false, Some(e.to_string())),
+                    },
+                    Err(e) => (false, Some(format!("Failed to fetch filing: {}", e))),
                 };
 
                 // Record metadata if enabled
@@ -353,10 +349,8 @@ fn handle_request(
 
     // Dispatch method
     let result: Result<(serde_json::Value, bool), JsonRpcError> = match request.method.as_str() {
-        "sync/start" => {
-            handle_sync_start(request.params, state, sourcer, base_args, base_since_ts)
-                .map(|r| (r, false))
-        }
+        "sync/start" => handle_sync_start(request.params, state, sourcer, base_args, base_since_ts)
+            .map(|r| (r, false)),
         "sync/status" => handle_sync_status(state).map(|r| (r, false)),
         "sync/cancel" => handle_sync_cancel(state).map(|r| (r, false)),
         "shutdown" => Ok((json!({ "ok": true }), true)),
@@ -412,11 +406,12 @@ fn handle_sync_start(
     }
 
     // Parse parameters
-    let sync_params: SyncStartParams = serde_json::from_value(params).map_err(|e| JsonRpcError {
-        code: -32602,
-        message: "Invalid params".to_string(),
-        data: Some(json!({ "details": e.to_string() })),
-    })?;
+    let sync_params: SyncStartParams =
+        serde_json::from_value(params).map_err(|e| JsonRpcError {
+            code: -32602,
+            message: "Invalid params".to_string(),
+            data: Some(json!({ "details": e.to_string() })),
+        })?;
 
     // Parse since timestamp if provided
     let since_ts = if let Some(ref since_str) = sync_params.since {
@@ -623,9 +618,7 @@ fn handle_sync_start(
 }
 
 /// Handle sync/status method
-fn handle_sync_status(
-    state: &Option<RpcSyncState>,
-) -> Result<serde_json::Value, JsonRpcError> {
+fn handle_sync_status(state: &Option<RpcSyncState>) -> Result<serde_json::Value, JsonRpcError> {
     if let Some(ref sync_state) = state {
         Ok(sync_state.to_status_json())
     } else {
@@ -637,9 +630,7 @@ fn handle_sync_status(
 }
 
 /// Handle sync/cancel method
-fn handle_sync_cancel(
-    state: &mut Option<RpcSyncState>,
-) -> Result<serde_json::Value, JsonRpcError> {
+fn handle_sync_cancel(state: &mut Option<RpcSyncState>) -> Result<serde_json::Value, JsonRpcError> {
     if let Some(ref mut sync_state) = state {
         let sync_id = sync_state.sync_id.clone();
         sync_state.phase = RpcPhase::Canceled;

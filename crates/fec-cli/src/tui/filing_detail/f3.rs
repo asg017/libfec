@@ -47,15 +47,39 @@ pub fn append_f3_content_lines(lines: &mut Vec<Line<'static>>, data: &FilingDeta
     let label_style = Style::default().fg(Color::White);
 
     let summary_items: Vec<(&str, f64)> = vec![
-        ("6.  Total Contributions (No Loans)", data.line6_total_contributions_no_loans),
-        ("7.  Total Contribution Refunds", data.line7_total_contribution_refunds),
+        (
+            "6.  Total Contributions (No Loans)",
+            data.line6_total_contributions_no_loans,
+        ),
+        (
+            "7.  Total Contribution Refunds",
+            data.line7_total_contribution_refunds,
+        ),
         ("8.  Net Contributions", data.line8_net_contributions),
-        ("9.  Total Operating Expenditures", data.line9_total_operating_expenditures),
-        ("10. Total Offset to Operating Exp.", data.line10_total_offset_to_operating_expenditures),
-        ("11. Net Operating Expenditures", data.line11_net_operating_expenditures),
-        ("12. Cash on Hand - Close", data.line12_cash_on_hand_close_of_period),
-        ("13. Debts Owed TO Committee", data.line13_debts_owed_to_committee),
-        ("14. Debts Owed BY Committee", data.line14_debts_owed_by_committee),
+        (
+            "9.  Total Operating Expenditures",
+            data.line9_total_operating_expenditures,
+        ),
+        (
+            "10. Total Offset to Operating Exp.",
+            data.line10_total_offset_to_operating_expenditures,
+        ),
+        (
+            "11. Net Operating Expenditures",
+            data.line11_net_operating_expenditures,
+        ),
+        (
+            "12. Cash on Hand - Close",
+            data.line12_cash_on_hand_close_of_period,
+        ),
+        (
+            "13. Debts Owed TO Committee",
+            data.line13_debts_owed_to_committee,
+        ),
+        (
+            "14. Debts Owed BY Committee",
+            data.line14_debts_owed_by_committee,
+        ),
     ];
 
     for (label, value) in &summary_items {
@@ -85,10 +109,7 @@ pub fn append_f3_content_lines(lines: &mut Vec<Line<'static>>, data: &FilingDeta
 
     lines.push(Line::from(vec![
         Span::styled(format!("{:<24}", "Cash on Hand - Start"), label_style),
-        Span::styled(
-            format!("{:>16}", format_usd(cash_begin)),
-            label_style,
-        ),
+        Span::styled(format!("{:>16}", format_usd(cash_begin)), label_style),
     ]));
     lines.push(Line::from(vec![
         Span::styled(format!("{:<24}", "Receipts"), label_style),

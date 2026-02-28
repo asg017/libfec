@@ -106,10 +106,7 @@ impl App {
 
     fn open_candidate_in_browser(&self) {
         if let Some(c) = self.selected_candidate() {
-            let url = format!(
-                "https://www.fec.gov/data/candidate/{}/",
-                c.candidate_id
-            );
+            let url = format!("https://www.fec.gov/data/candidate/{}/", c.candidate_id);
             let _ = open::that(url);
         }
     }
@@ -480,10 +477,9 @@ fn lookup_committee_ids(
                  AND principal_campaign_committee != ''";
     if let Ok(mut stmt) = db.prepare(sql) {
         for c in candidates {
-            if let Ok(cid) = stmt.query_row(
-                rusqlite::params![cycle, &c.candidate_id],
-                |row| row.get::<_, String>(1),
-            ) {
+            if let Ok(cid) = stmt.query_row(rusqlite::params![cycle, &c.candidate_id], |row| {
+                row.get::<_, String>(1)
+            }) {
                 map.insert(c.candidate_id.clone(), cid);
             }
         }
@@ -633,7 +629,12 @@ mod tests {
     #[test]
     fn test_contest_ui() {
         let candidates = create_test_candidates();
-        let mut app = App::new(candidates, HashMap::new(), String::new(), "California 41st District (2026)".to_string());
+        let mut app = App::new(
+            candidates,
+            HashMap::new(),
+            String::new(),
+            "California 41st District (2026)".to_string(),
+        );
         let mut terminal = Terminal::new(TestBackend::new(100, 20)).unwrap();
         terminal.draw(|f| ui(f, &mut app)).unwrap();
         assert_snapshot!(terminal.backend());
@@ -641,7 +642,12 @@ mod tests {
 
     #[test]
     fn test_contest_ui_empty() {
-        let mut app = App::new(vec![], HashMap::new(), String::new(), "California 41st District (2026)".to_string());
+        let mut app = App::new(
+            vec![],
+            HashMap::new(),
+            String::new(),
+            "California 41st District (2026)".to_string(),
+        );
         let mut terminal = Terminal::new(TestBackend::new(100, 20)).unwrap();
         terminal.draw(|f| ui(f, &mut app)).unwrap();
         assert_snapshot!(terminal.backend());
@@ -677,7 +683,12 @@ mod tests {
                 coverage_end_date: "12/31/2025".to_string(),
             },
         ];
-        let mut app = App::new(candidates, HashMap::new(), String::new(), "President (2028)".to_string());
+        let mut app = App::new(
+            candidates,
+            HashMap::new(),
+            String::new(),
+            "President (2028)".to_string(),
+        );
         let mut terminal = Terminal::new(TestBackend::new(100, 12)).unwrap();
         terminal.draw(|f| ui(f, &mut app)).unwrap();
         assert_snapshot!(terminal.backend());
@@ -685,22 +696,25 @@ mod tests {
 
     #[test]
     fn test_contest_ui_senate() {
-        let candidates = vec![
-            ContestCandidate {
-                candidate_id: "S8CA00001".to_string(),
-                name: "FEINSTEIN, DIANNE".to_string(),
-                party_affiliation: "DEM".to_string(),
-                incumbent_challenger_status: "I".to_string(),
-                total_receipts: 5000000.0,
-                total_disbursements: 4500000.0,
-                cash_on_hand_close: 500000.0,
-                total_individual_contributions: 4000000.0,
-                other_committee_contributions: 800000.0,
-                debts_owed_by: 0.0,
-                coverage_end_date: "12/31/2025".to_string(),
-            },
-        ];
-        let mut app = App::new(candidates, HashMap::new(), String::new(), "California Senate (2026)".to_string());
+        let candidates = vec![ContestCandidate {
+            candidate_id: "S8CA00001".to_string(),
+            name: "FEINSTEIN, DIANNE".to_string(),
+            party_affiliation: "DEM".to_string(),
+            incumbent_challenger_status: "I".to_string(),
+            total_receipts: 5000000.0,
+            total_disbursements: 4500000.0,
+            cash_on_hand_close: 500000.0,
+            total_individual_contributions: 4000000.0,
+            other_committee_contributions: 800000.0,
+            debts_owed_by: 0.0,
+            coverage_end_date: "12/31/2025".to_string(),
+        }];
+        let mut app = App::new(
+            candidates,
+            HashMap::new(),
+            String::new(),
+            "California Senate (2026)".to_string(),
+        );
         let mut terminal = Terminal::new(TestBackend::new(100, 12)).unwrap();
         terminal.draw(|f| ui(f, &mut app)).unwrap();
         assert_snapshot!(terminal.backend());
@@ -708,10 +722,7 @@ mod tests {
 
     #[test]
     fn test_contest_title() {
-        assert_eq!(
-            contest_title(&Contest::President, 2028),
-            "President (2028)"
-        );
+        assert_eq!(contest_title(&Contest::President, 2028), "President (2028)");
         assert_eq!(
             contest_title(
                 &Contest::Senate {

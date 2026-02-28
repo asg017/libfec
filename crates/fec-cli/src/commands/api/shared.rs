@@ -103,11 +103,7 @@ pub fn push_opt_f64<'a>(params: &mut Vec<(&'a str, String)>, key: &'a str, value
     }
 }
 
-pub fn push_opt_bool<'a>(
-    params: &mut Vec<(&'a str, String)>,
-    key: &'a str,
-    value: &Option<bool>,
-) {
+pub fn push_opt_bool<'a>(params: &mut Vec<(&'a str, String)>, key: &'a str, value: &Option<bool>) {
     if let Some(v) = value {
         params.push((key, v.to_string()));
     }
