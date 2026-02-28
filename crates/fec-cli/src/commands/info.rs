@@ -440,10 +440,18 @@ pub fn info(mut sourcer: FilingSourcer, args: InfoArgs) -> anyhow::Result<()> {
                             None,
                         ) {
                             Ok(Some(detail)) => {
+                                let financial_summary =
+                                    crate::cache::bulk::pac_summary::get_pac_summary(
+                                        &mut db,
+                                        cycle,
+                                        committee_id.as_str(),
+                                        None,
+                                    )
+                                    .unwrap_or(None);
                                 if let Some(s) = spinner.as_ref() {
                                     s.finish_and_clear();
                                 }
-                                show_committee_detail_tui(detail, &sourcer)?;
+                                show_committee_detail_tui(detail, financial_summary, &sourcer)?;
                             }
                             Ok(None) => {
                                 println!("Committee {} not found in cycle {}", committee_id, cycle);
@@ -531,6 +539,7 @@ pub fn info(mut sourcer: FilingSourcer, args: InfoArgs) -> anyhow::Result<()> {
 
 fn show_committee_detail_tui(
     detail: crate::cache::bulk::committee::CommitteeDetail,
+    financial_summary: Option<crate::cache::bulk::pac_summary::CommitteeFinancialSummary>,
     sourcer: &FilingSourcer,
 ) -> anyhow::Result<()> {
     enable_raw_mode()?;
@@ -539,7 +548,7 @@ fn show_committee_detail_tui(
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
-    run_committee_detail_tui(&mut terminal, &detail, sourcer)?;
+    run_committee_detail_tui(&mut terminal, &detail, financial_summary, sourcer)?;
 
     disable_raw_mode()?;
     execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
@@ -551,9 +560,11 @@ fn show_committee_detail_tui(
 fn run_committee_detail_tui<B: ratatui::backend::Backend<Error: Send + Sync + 'static>>(
     terminal: &mut Terminal<B>,
     detail: &crate::cache::bulk::committee::CommitteeDetail,
+    financial_summary: Option<crate::cache::bulk::pac_summary::CommitteeFinancialSummary>,
     sourcer: &FilingSourcer,
 ) -> anyhow::Result<()> {
     let mut state = CommitteeDetailState::new();
+    state.set_financial_summary(financial_summary);
 
     loop {
         terminal.draw(|f| {
@@ -669,7 +680,19 @@ fn show_candidate_detail_tui(
                                 None,
                             )
                         {
-                            let _ = run_committee_detail_tui(&mut terminal, &committee, sourcer);
+                            let fin_summary = crate::cache::bulk::pac_summary::get_pac_summary(
+                                &mut db,
+                                cycle,
+                                &committee_id,
+                                None,
+                            )
+                            .unwrap_or(None);
+                            let _ = run_committee_detail_tui(
+                                &mut terminal,
+                                &committee,
+                                fin_summary,
+                                sourcer,
+                            );
                         }
                     }
                 }

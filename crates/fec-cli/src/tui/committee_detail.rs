@@ -22,6 +22,8 @@
 //! - Esc: Cancel and close popup
 
 use crate::cache::bulk::committee::CommitteeDetail;
+use crate::cache::bulk::pac_summary::CommitteeFinancialSummary;
+use crate::tui::filing_detail::format_usd;
 use crate::tui::{navigation_popup_help_line, HelpBar};
 use crossterm::event::{KeyCode, KeyEvent};
 use fec_api::{Api, CandidateId, CommitteeId, FilingArgsBuilder};
@@ -81,6 +83,8 @@ pub struct CommitteeDetailState {
     pub filings_cycle: u16,
     /// Whether a filing detail is currently being loaded
     pub filing_detail_loading: bool,
+    /// Financial summary from PAC summary bulk data
+    pub financial_summary: Option<CommitteeFinancialSummary>,
 }
 
 impl CommitteeDetailState {
@@ -94,6 +98,7 @@ impl CommitteeDetailState {
             filings_error: None,
             filings_cycle: 2026,
             filing_detail_loading: false,
+            financial_summary: None,
         }
     }
 
@@ -112,6 +117,11 @@ impl CommitteeDetailState {
     pub fn set_filings_error(&mut self, error: String) {
         self.filings_loading = false;
         self.filings_error = Some(error);
+    }
+
+    /// Set financial summary
+    pub fn set_financial_summary(&mut self, summary: Option<CommitteeFinancialSummary>) {
+        self.financial_summary = summary;
     }
 
     fn filings_select_next(&mut self) {
@@ -707,6 +717,138 @@ fn render_yank_popup(
     f.render_widget(paragraph, inner_area);
 }
 
+fn render_financial_summary(f: &mut Frame, summary: &CommitteeFinancialSummary, area: Rect) {
+    let dim = Style::default().add_modifier(Modifier::DIM);
+    let green = Style::default().fg(Color::Green);
+    let amount_width = 18;
+    let content_width: u16 = 1 + 28 + amount_width as u16; // pad + label + amount
+
+    let mut lines = vec![];
+
+    // Primary lines (always shown)
+    lines.push(Line::from(vec![
+        Span::styled(format!(" {:<28}", "Total Receipts"), dim),
+        Span::styled(
+            format!(
+                "{:>w$}",
+                format_usd(summary.total_receipts),
+                w = amount_width
+            ),
+            green,
+        ),
+    ]));
+    lines.push(Line::from(vec![
+        Span::styled(format!(" {:<28}", "Total Disbursements"), dim),
+        Span::styled(
+            format!(
+                "{:>w$}",
+                format_usd(summary.total_disbursements),
+                w = amount_width
+            ),
+            green,
+        ),
+    ]));
+    lines.push(Line::from(vec![
+        Span::styled(format!(" {:<28}", "Cash on Hand"), dim),
+        Span::styled(
+            format!(
+                "{:>w$}",
+                format_usd(summary.cash_on_hand_close),
+                w = amount_width
+            ),
+            green,
+        ),
+    ]));
+
+    // Secondary lines (shown if non-zero)
+    let secondary = [
+        ("Individual Contributions", summary.individual_contributions),
+        (
+            "Committee Contributions",
+            summary.other_committee_contributions,
+        ),
+        (
+            "Contributions to Cmtes",
+            summary.contributions_to_other_committees,
+        ),
+        ("Independent Expenditures", summary.independent_expenditures),
+        (
+            "Transfers From Affiliates",
+            summary.transfers_from_affiliates,
+        ),
+        ("Transfers To Affiliates", summary.transfers_to_affiliates),
+        ("Debts Owed", summary.debts_owed_by),
+    ];
+    for (label, value) in secondary {
+        if value != 0.0 {
+            lines.push(Line::from(vec![
+                Span::styled(format!(" {:<28}", label), dim),
+                Span::styled(format!("{:>w$}", format_usd(value), w = amount_width), dim),
+            ]));
+        }
+    }
+
+    let title_style = Style::default()
+        .fg(Color::White)
+        .add_modifier(Modifier::BOLD);
+
+    let title = if summary.coverage_end_date.is_empty() {
+        "Financial Summary".to_string()
+    } else {
+        // Convert MM/DD/YYYY to YYYY-MM-DD if possible
+        let date_str = if let Some((m, rest)) = summary.coverage_end_date.split_once('/') {
+            if let Some((d, y)) = rest.split_once('/') {
+                format!("{}-{}-{}", y, m, d)
+            } else {
+                summary.coverage_end_date.clone()
+            }
+        } else {
+            summary.coverage_end_date.clone()
+        };
+        format!("Financial Summary (thru {})", date_str)
+    };
+
+    // Box width: content + 2 for borders, but at least wide enough for the title + borders
+    let title_width = title.len() as u16 + 2; // +2 for border chars around title
+    let box_width = (content_width + 2).max(title_width).min(area.width);
+
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .title(Span::styled(title, title_style))
+        .border_style(Style::default().fg(Color::DarkGray));
+
+    // Constrain the area to box_width
+    let constrained_area = Rect {
+        x: area.x,
+        y: area.y,
+        width: box_width,
+        height: area.height,
+    };
+
+    let paragraph = Paragraph::new(lines).block(block);
+    f.render_widget(paragraph, constrained_area);
+}
+
+/// Compute how many rows the financial summary box needs (including border)
+fn financial_summary_height(summary: &CommitteeFinancialSummary) -> u16 {
+    let mut rows: u16 = 3; // 3 primary lines
+    let secondary = [
+        summary.individual_contributions,
+        summary.other_committee_contributions,
+        summary.contributions_to_other_committees,
+        summary.independent_expenditures,
+        summary.transfers_from_affiliates,
+        summary.transfers_to_affiliates,
+        summary.debts_owed_by,
+    ];
+    for v in secondary {
+        if v != 0.0 {
+            rows += 1;
+        }
+    }
+    rows + 2 // +2 for top/bottom border
+}
+
 pub fn render_committee_detail(
     f: &mut Frame,
     area: Rect,
@@ -715,18 +857,28 @@ pub fn render_committee_detail(
 ) {
     let has_filings = !state.filings.is_empty() || state.filings_loading;
 
+    let fin_height = state
+        .financial_summary
+        .as_ref()
+        .map(financial_summary_height)
+        .unwrap_or(0);
+
     let layout = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(3),  // Title
-            Constraint::Min(10),    // Content
-            Constraint::Length(12), // Filings table (smaller, scrollable)
-            Constraint::Length(2),  // Help text
+            Constraint::Length(3),          // Title
+            Constraint::Length(fin_height), // Financial summary box
+            Constraint::Min(10),            // Content
+            Constraint::Length(12),         // Filings table (smaller, scrollable)
+            Constraint::Length(2),          // Help text
         ]);
 
-    let [title_area, content_area, filings_area, help_area] = area.layout(&layout);
+    let [title_area, fin_area, content_area, filings_area, help_area] = area.layout(&layout);
 
     render_title(f, committee, title_area);
+    if let Some(ref summary) = state.financial_summary {
+        render_financial_summary(f, summary, fin_area);
+    }
     render_content(f, committee, content_area);
     render_filings_table(f, committee, state, filings_area);
     render_help_text(f, help_area, has_filings);
@@ -902,6 +1054,58 @@ mod tests {
         let mut state = CommitteeDetailState::new();
         state.set_filings(create_test_filings());
         let mut terminal = Terminal::new(TestBackend::new(120, 35)).unwrap();
+        terminal
+            .draw(|f| render_committee_detail(f, f.area(), &committee, &mut state))
+            .unwrap();
+        assert_snapshot!(terminal.backend());
+    }
+
+    fn create_test_financial_summary() -> CommitteeFinancialSummary {
+        CommitteeFinancialSummary {
+            total_receipts: 2_500_000.00,
+            total_disbursements: 1_800_000.50,
+            cash_on_hand_close: 700_000.25,
+            individual_contributions: 1_200_000.00,
+            other_committee_contributions: 500_000.00,
+            contributions_to_other_committees: 150_000.00,
+            independent_expenditures: 300_000.00,
+            transfers_from_affiliates: 100_000.00,
+            transfers_to_affiliates: 50_000.00,
+            debts_owed_by: 25_000.00,
+            coverage_end_date: "12/31/2025".to_string(),
+        }
+    }
+
+    #[test]
+    fn test_committee_detail_with_financial_summary() {
+        let committee = create_test_committee();
+        let mut state = CommitteeDetailState::new();
+        state.set_financial_summary(Some(create_test_financial_summary()));
+        let mut terminal = Terminal::new(TestBackend::new(80, 30)).unwrap();
+        terminal
+            .draw(|f| render_committee_detail(f, f.area(), &committee, &mut state))
+            .unwrap();
+        assert_snapshot!(terminal.backend());
+    }
+
+    #[test]
+    fn test_committee_detail_financial_summary_minimal() {
+        let committee = create_test_committee();
+        let mut state = CommitteeDetailState::new();
+        state.set_financial_summary(Some(CommitteeFinancialSummary {
+            total_receipts: 50_000.00,
+            total_disbursements: 30_000.00,
+            cash_on_hand_close: 20_000.00,
+            individual_contributions: 0.0,
+            other_committee_contributions: 0.0,
+            contributions_to_other_committees: 0.0,
+            independent_expenditures: 0.0,
+            transfers_from_affiliates: 0.0,
+            transfers_to_affiliates: 0.0,
+            debts_owed_by: 0.0,
+            coverage_end_date: String::new(),
+        }));
+        let mut terminal = Terminal::new(TestBackend::new(80, 30)).unwrap();
         terminal
             .draw(|f| render_committee_detail(f, f.area(), &committee, &mut state))
             .unwrap();

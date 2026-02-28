@@ -432,9 +432,19 @@ impl App {
                                     None,
                                 )
                             {
+                                self.committee_detail_state = CommitteeDetailState::new();
+                                if let Ok(summary) =
+                                    crate::cache::bulk::pac_summary::get_pac_summary(
+                                        &mut db,
+                                        self.cycle,
+                                        &committee.committee_id,
+                                        None,
+                                    )
+                                {
+                                    self.committee_detail_state.set_financial_summary(summary);
+                                }
                                 self.committee_detail = Some(detail);
                                 self.view_state = ViewState::CommitteeDetail;
-                                self.committee_detail_state = CommitteeDetailState::new();
                             }
                         }
                     }
@@ -484,8 +494,16 @@ impl App {
                 committee_id,
                 None,
             ) {
-                self.committee_detail = Some(detail);
                 self.committee_detail_state = CommitteeDetailState::new();
+                if let Ok(summary) = crate::cache::bulk::pac_summary::get_pac_summary(
+                    &mut db,
+                    self.cycle,
+                    committee_id,
+                    None,
+                ) {
+                    self.committee_detail_state.set_financial_summary(summary);
+                }
+                self.committee_detail = Some(detail);
                 self.view_state = ViewState::CommitteeDetail;
             }
         }
@@ -589,8 +607,13 @@ impl App {
                 if let Ok(Some(detail)) = crate::cache::bulk::committee::get_committee_detail(
                     &mut db, self.cycle, filer_id, None,
                 ) {
-                    self.committee_detail = Some(detail);
                     self.committee_detail_state = CommitteeDetailState::new();
+                    if let Ok(summary) = crate::cache::bulk::pac_summary::get_pac_summary(
+                        &mut db, self.cycle, filer_id, None,
+                    ) {
+                        self.committee_detail_state.set_financial_summary(summary);
+                    }
+                    self.committee_detail = Some(detail);
                     self.view_state = ViewState::CommitteeDetail;
                 }
             }
