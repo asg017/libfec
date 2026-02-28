@@ -5,14 +5,16 @@
 use super::app::{App, FocusPanel, ResultsTab, ViewState};
 use super::ui::ui;
 use crate::{
-    sourcer::FilingSourcer, tui::candidate_detail::CandidateDetailAction,
-    tui::committee_detail::CommitteeDetailAction, tui::filing_detail::FilingDetailAction,
+    sourcer::{Contest, FilingSourcer},
+    tui::candidate_detail::CandidateDetailAction,
+    tui::committee_detail::CommitteeDetailAction,
+    tui::filing_detail::FilingDetailAction,
 };
 use crossterm::event::{self, Event, KeyCode, KeyEventKind};
 use ratatui::Terminal;
 
 /// Main event loop for the search TUI
-pub(crate) fn run_app<B: ratatui::backend::Backend>(
+pub(crate) fn run_app<B: ratatui::backend::Backend<Error: Send + Sync + 'static>>(
     terminal: &mut Terminal<B>,
     app: &mut App,
     sourcer: &mut FilingSourcer,
@@ -81,6 +83,30 @@ pub(crate) fn run_app<B: ratatui::backend::Backend>(
                                 terminal.draw(|f| ui(f, app)).unwrap();
                                 app.candidate_detail_state
                                     .fetch_f1_affiliations(&committee_id, sourcer);
+                            }
+                            CandidateDetailAction::OpenFecPage => {
+                                let url = format!(
+                                    "https://www.fec.gov/data/candidate/{}/",
+                                    candidate.candidate_id
+                                );
+                                let _ = open::that(&url);
+                            }
+                            CandidateDetailAction::ShowContest {
+                                office,
+                                state,
+                                district,
+                            } => {
+                                let contest = match office.as_str() {
+                                    "P" => Some(Contest::President),
+                                    "S" => Some(Contest::Senate { state }),
+                                    "H" => Some(Contest::House { state, district }),
+                                    _ => None,
+                                };
+                                if let Some(contest) = contest {
+                                    let _ = crate::commands::contest::run_contest_tui(
+                                        terminal, sourcer, &contest, app.cycle,
+                                    );
+                                }
                             }
                             CandidateDetailAction::None => {}
                         }

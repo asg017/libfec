@@ -392,6 +392,23 @@ impl App {
                                 ) {
                                     self.candidate_detail_state.set_linked_committees(linkages);
                                 }
+                                // Load financial summary
+                                if let Ok(summary) = crate::cache::bulk::candidate_summary::get_candidate_summary(
+                                    &mut db,
+                                    self.cycle,
+                                    &candidate.candidate_id,
+                                    None,
+                                ) {
+                                    self.candidate_detail_state.set_financial_summary(summary);
+                                }
+                                // Load PCC name
+                                if let Some(ref pcc_id) = detail.principal_campaign_committee {
+                                    if let Ok(Some(committee)) = crate::cache::bulk::committee::get_committee_detail(
+                                        &mut db, self.cycle, pcc_id, None,
+                                    ) {
+                                        self.candidate_detail_state.pcc_name = Some(committee.name);
+                                    }
+                                }
                                 self.candidate_detail = Some(detail);
                                 self.view_state = ViewState::CandidateDetail;
                             }
@@ -583,8 +600,22 @@ impl App {
                 if let Ok(Some(detail)) = crate::cache::bulk::candidates::get_candidate_detail(
                     &mut db, self.cycle, filer_id, None,
                 ) {
-                    self.candidate_detail = Some(detail);
                     self.candidate_detail_state = CandidateDetailState::new();
+                    // Load financial summary
+                    if let Ok(summary) = crate::cache::bulk::candidate_summary::get_candidate_summary(
+                        &mut db, self.cycle, filer_id, None,
+                    ) {
+                        self.candidate_detail_state.set_financial_summary(summary);
+                    }
+                    // Load PCC name
+                    if let Some(ref pcc_id) = detail.principal_campaign_committee {
+                        if let Ok(Some(committee)) = crate::cache::bulk::committee::get_committee_detail(
+                            &mut db, self.cycle, pcc_id, None,
+                        ) {
+                            self.candidate_detail_state.pcc_name = Some(committee.name);
+                        }
+                    }
+                    self.candidate_detail = Some(detail);
                     self.view_state = ViewState::CandidateDetail;
                 }
             }

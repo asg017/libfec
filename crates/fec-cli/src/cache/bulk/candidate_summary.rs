@@ -78,6 +78,69 @@ pub struct ContestCandidate {
     pub coverage_end_date: String,
 }
 
+pub struct CandidateFinancialSummary {
+    pub total_receipts: f64,
+    pub total_disbursements: f64,
+    pub cash_on_hand_close: f64,
+    pub total_individual_contributions: f64,
+    pub other_committee_contributions: f64,
+    pub party_contributions: f64,
+    pub candidate_contributions: f64,
+    pub candidate_loans: f64,
+    pub debts_owed_by: f64,
+    pub coverage_end_date: String,
+}
+
+pub fn get_candidate_summary(
+    db: &mut Connection,
+    cycle: u16,
+    candidate_id: &str,
+    on_progress: Option<&dyn Fn(u64, Option<u64>)>,
+) -> Result<Option<CandidateFinancialSummary>> {
+    let mut tx = db.transaction()?;
+    let _result = sync_item(&mut tx, cycle, &ITEM, on_progress)?;
+    tx.commit()?;
+
+    let mut stmt = db.prepare(
+        "SELECT COALESCE(total_receipts, 0.0),
+                COALESCE(total_disbursements, 0.0),
+                COALESCE(cash_on_hand_close, 0.0),
+                COALESCE(total_individual_contributions, 0.0),
+                COALESCE(other_committee_contributions, 0.0),
+                COALESCE(party_contributions, 0.0),
+                COALESCE(candidate_contributions, 0.0),
+                COALESCE(candidate_loans, 0.0),
+                COALESCE(debts_owed_by, 0.0),
+                COALESCE(coverage_end_date, '')
+         FROM candidate_summary
+         WHERE cycle = ? AND candidate_id = ?",
+    )?;
+
+    let result = stmt.query_row(
+        rusqlite::params![cycle, candidate_id],
+        |row| {
+            Ok(CandidateFinancialSummary {
+                total_receipts: row.get(0)?,
+                total_disbursements: row.get(1)?,
+                cash_on_hand_close: row.get(2)?,
+                total_individual_contributions: row.get(3)?,
+                other_committee_contributions: row.get(4)?,
+                party_contributions: row.get(5)?,
+                candidate_contributions: row.get(6)?,
+                candidate_loans: row.get(7)?,
+                debts_owed_by: row.get(8)?,
+                coverage_end_date: row.get(9)?,
+            })
+        },
+    );
+
+    match result {
+        Ok(summary) => Ok(Some(summary)),
+        Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+        Err(e) => Err(e.into()),
+    }
+}
+
 pub fn get_contest_candidates(
     db: &mut Connection,
     cycle: u16,

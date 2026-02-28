@@ -11,6 +11,8 @@
 //! - Esc/q: Return to previous view
 //! - c: View principal campaign committee (if available)
 //! - a: Fetch F1 affiliations (affiliated committees and joint fund participants)
+//! - o: Open candidate's FEC page in browser
+//! - r: View contest (opponents in the same race)
 //! - y: Open copy popup to copy candidate ID, committee ID, or name to clipboard
 //! - f: Fetch and display filings for this candidate
 //! - j/k: Navigate filings (when filings are loaded)
@@ -22,8 +24,10 @@
 //! - Esc: Cancel and close popup
 
 use crate::cache::bulk::candidate_committee_linkage::CommitteeLinkage;
+use crate::cache::bulk::candidate_summary::CandidateFinancialSummary;
 use crate::cache::bulk::candidates::CandidateDetail;
 use crate::tui::committee_detail::FilingListItem;
+use crate::tui::filing_detail::format_usd;
 use crate::tui::{navigation_popup_help_line, HelpBar};
 use crossterm::event::{KeyCode, KeyEvent};
 use fec_api::{Api, CandidateId, CommitteeId, FilingArgsBuilder};
@@ -95,6 +99,14 @@ pub enum CandidateDetailAction {
     ShowFilingDetail { filing_id: String },
     /// User pressed 'a' to fetch F1 affiliations - parent should call fetch_f1_affiliations
     FetchF1Affiliations { committee_id: String },
+    /// User pressed 'o' to open candidate's FEC page in browser
+    OpenFecPage,
+    /// User pressed 'r' to view the contest (opponents)
+    ShowContest {
+        office: String,
+        state: String,
+        district: String,
+    },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -129,6 +141,10 @@ pub struct CandidateDetailState {
     pub f1_error: Option<String>,
     /// The filing ID of the most recent F1
     pub f1_filing_id: Option<String>,
+    /// Financial summary from bulk data
+    pub financial_summary: Option<CandidateFinancialSummary>,
+    /// Name of the principal campaign committee (looked up from committee bulk data)
+    pub pcc_name: Option<String>,
 }
 
 impl CandidateDetailState {
@@ -147,12 +163,19 @@ impl CandidateDetailState {
             f1_loading: false,
             f1_error: None,
             f1_filing_id: None,
+            financial_summary: None,
+            pcc_name: None,
         }
     }
 
     /// Set linked committees
     pub fn set_linked_committees(&mut self, linkages: Vec<CommitteeLinkage>) {
         self.linked_committees = linkages;
+    }
+
+    /// Set financial summary
+    pub fn set_financial_summary(&mut self, summary: Option<CandidateFinancialSummary>) {
+        self.financial_summary = summary;
     }
 
     /// Set filings after fetch completes
@@ -237,6 +260,8 @@ impl CandidateDetailState {
             .form_types(None)
             .report_types(None)
             .committee_types(None)
+            .min_receipt_date(None)
+            .max_receipt_date(None)
             .cycle(vec![self.filings_cycle])
             .build();
 
@@ -284,6 +309,8 @@ impl CandidateDetailState {
             .form_types(Some(vec!["F1".to_string()]))
             .report_types(None)
             .committee_types(None)
+            .min_receipt_date(None)
+            .max_receipt_date(None)
             .cycle(vec![self.filings_cycle])
             .build();
 
@@ -495,6 +522,12 @@ impl CandidateDetailState {
                     CandidateDetailAction::None
                 }
             }
+            KeyCode::Char('o') => CandidateDetailAction::OpenFecPage,
+            KeyCode::Char('r') => CandidateDetailAction::ShowContest {
+                office: candidate.office.clone(),
+                state: candidate.state.clone(),
+                district: candidate.district.clone(),
+            },
             _ => CandidateDetailAction::None,
         }
     }
@@ -518,7 +551,7 @@ fn render_title(f: &mut Frame, candidate: &CandidateDetail, area: Rect) {
     f.render_widget(title, area);
 }
 
-fn render_content(
+fn render_subtitle(
     f: &mut Frame,
     candidate: &CandidateDetail,
     state: &CandidateDetailState,
@@ -526,8 +559,17 @@ fn render_content(
 ) {
     let mut lines = vec![];
     let dim = Style::default().add_modifier(Modifier::DIM);
+
+    let party_span = match candidate.party_affiliation.as_str() {
+        "DEM" => Span::styled("Democrat", Style::default().fg(Color::Rgb(0, 0, 255))),
+        "REP" => Span::styled("Republican", Style::default().fg(Color::Rgb(255, 0, 0))),
+        other => Span::styled(other, Style::default().fg(Color::Yellow)),
+    };
+
     let election_line = match candidate.office.as_str() {
         "H" => Line::from(vec![
+            party_span,
+            Span::styled(" ", dim),
             Span::styled(
                 format!("{}{}", candidate.state, candidate.district),
                 Style::default().fg(Color::Cyan),
@@ -537,59 +579,55 @@ fn render_content(
                 candidate.election_year.to_string(),
                 Style::default().fg(Color::Cyan),
             ),
-            Span::styled(", running as a ", dim),
-            match candidate.party_affiliation.as_str() {
-                "DEM" => Span::styled("Democrat", Style::default().fg(Color::Rgb(0, 0, 255))),
-                "REP" => Span::styled("⬤Republican", Style::default().fg(Color::Rgb(255, 0, 0))),
-                other => Span::styled(other, Style::default().fg(Color::Yellow)),
-            },
         ]),
         "S" => Line::from(vec![
+            party_span,
+            Span::styled(" ", dim),
             Span::styled(candidate.state.as_str(), Style::default().fg(Color::Cyan)),
             Span::styled(" candidate in ", dim),
             Span::styled(
                 format!("{} Senate race", candidate.election_year),
                 Style::default().fg(Color::Cyan),
             ),
-            Span::styled(", running as a ", dim),
-            match candidate.party_affiliation.as_str() {
-                "DEM" => Span::styled("Democrat", Style::default().fg(Color::Rgb(0, 0, 255))),
-                "REP" => Span::styled("⬤Republican", Style::default().fg(Color::Rgb(255, 0, 0))),
-                other => Span::styled(other, Style::default().fg(Color::Yellow)),
-            },
         ]),
         "P" => Line::from(vec![
-            Span::styled("Presidential candidate", Style::default().fg(Color::Cyan)),
-            Span::styled(" in ", dim),
+            party_span,
+            Span::styled(" presidential candidate in ", dim),
             Span::styled(
                 candidate.election_year.to_string(),
                 Style::default().fg(Color::Cyan),
             ),
-            Span::styled(", running as a ", dim),
-            match candidate.party_affiliation.as_str() {
-                "DEM" => Span::styled("Democrat", Style::default().fg(Color::Rgb(0, 0, 255))),
-                "REP" => Span::styled("⬤Republican", Style::default().fg(Color::Rgb(255, 0, 0))),
-                other => Span::styled(other, Style::default().fg(Color::Yellow)),
-            },
         ]),
         _ => Line::from(""),
     };
     lines.push(election_line);
 
-    // Principal campaign committee
+    // Campaign committee
     if let Some(ref pcc) = candidate.principal_campaign_committee {
-        lines.push(Line::from(vec![
-            Span::styled(
-                "Principal Campaign Committee: ",
-                Style::default()
-                    .fg(Color::Yellow)
-                    .add_modifier(Modifier::BOLD),
-            ),
-            Span::styled(pcc, Style::default().fg(Color::Magenta)),
-            Span::styled(" (press 'c' to view)", Style::default().fg(Color::DarkGray)),
-        ]));
-        lines.push(Line::from(""));
+        let mut spans = vec![Span::styled("Campaign committee: ", dim)];
+        if let Some(ref name) = state.pcc_name {
+            spans.push(Span::styled(name, Style::default().fg(Color::Magenta)));
+            spans.push(Span::styled(
+                format!(" ({})", pcc),
+                Style::default().fg(Color::DarkGray),
+            ));
+        } else {
+            spans.push(Span::styled(pcc, Style::default().fg(Color::Magenta)));
+        }
+        lines.push(Line::from(spans));
     }
+
+    let content = Paragraph::new(lines);
+    f.render_widget(content, area);
+}
+
+fn render_content(
+    f: &mut Frame,
+    candidate: &CandidateDetail,
+    state: &CandidateDetailState,
+    area: Rect,
+) {
+    let mut lines = vec![];
 
     // F1 Affiliations (from most recent F1 filing)
     if state.f1_loading {
@@ -738,6 +776,111 @@ fn render_content(
     f.render_widget(content, area);
 }
 
+fn render_financial_summary(f: &mut Frame, summary: &CandidateFinancialSummary, area: Rect) {
+    let dim = Style::default().add_modifier(Modifier::DIM);
+    let green = Style::default().fg(Color::Green);
+    let amount_width = 18;
+    let content_width: u16 = 1 + 28 + amount_width as u16; // pad + label + amount
+
+    let mut lines = vec![];
+
+    // Primary lines (always shown)
+    lines.push(Line::from(vec![
+        Span::styled(format!(" {:<28}", "Total Receipts"), dim),
+        Span::styled(
+            format!(
+                "{:>w$}",
+                format_usd(summary.total_receipts),
+                w = amount_width
+            ),
+            green,
+        ),
+    ]));
+    lines.push(Line::from(vec![
+        Span::styled(format!(" {:<28}", "Total Disbursements"), dim),
+        Span::styled(
+            format!(
+                "{:>w$}",
+                format_usd(summary.total_disbursements),
+                w = amount_width
+            ),
+            green,
+        ),
+    ]));
+    lines.push(Line::from(vec![
+        Span::styled(format!(" {:<28}", "Cash on Hand"), dim),
+        Span::styled(
+            format!(
+                "{:>w$}",
+                format_usd(summary.cash_on_hand_close),
+                w = amount_width
+            ),
+            green,
+        ),
+    ]));
+
+    // Secondary lines (shown if non-zero)
+    let secondary = [
+        ("Individual Contributions", summary.total_individual_contributions),
+        ("Committee Contributions", summary.other_committee_contributions),
+        ("Party Contributions", summary.party_contributions),
+        ("Candidate Contributions", summary.candidate_contributions),
+        ("Candidate Loans", summary.candidate_loans),
+        ("Debts Owed", summary.debts_owed_by),
+    ];
+    for (label, value) in secondary {
+        if value != 0.0 {
+            lines.push(Line::from(vec![
+                Span::styled(format!(" {:<28}", label), dim),
+                Span::styled(
+                    format!("{:>w$}", format_usd(value), w = amount_width),
+                    dim,
+                ),
+            ]));
+        }
+    }
+
+    let title_style = Style::default()
+        .fg(Color::White)
+        .add_modifier(Modifier::BOLD);
+
+    let title = if summary.coverage_end_date.is_empty() {
+        "Financial Summary".to_string()
+    } else {
+        // Convert MM/DD/YYYY to YYYY-MM-DD if possible
+        let date_str = if let Some((m, rest)) = summary.coverage_end_date.split_once('/') {
+            if let Some((d, y)) = rest.split_once('/') {
+                format!("{}-{}-{}", y, m, d)
+            } else {
+                summary.coverage_end_date.clone()
+            }
+        } else {
+            summary.coverage_end_date.clone()
+        };
+        format!("Financial Summary (thru {})", date_str)
+    };
+
+    // Box width: content + 2 for borders, but at least wide enough for the title + borders
+    let title_width = title.len() as u16 + 2; // +2 for border chars around title
+    let box_width = (content_width + 2).max(title_width).min(area.width);
+
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .title(Span::styled(title, title_style))
+        .border_style(Style::default().fg(Color::DarkGray));
+
+    // Constrain the area to box_width
+    let constrained_area = Rect {
+        x: area.x,
+        y: area.y,
+        width: box_width,
+        height: area.height,
+    };
+
+    let paragraph = Paragraph::new(lines).block(block);
+    f.render_widget(paragraph, constrained_area);
+}
+
 fn render_filings_table(
     f: &mut Frame,
     candidate: &CandidateDetail,
@@ -773,16 +916,7 @@ fn render_filings_table(
     ])
     .height(1);
 
-    let rows: Vec<Row> = if state.filings.is_empty() && !state.filings_loading {
-        // Show prompt when there are no filings
-        vec![Row::new(vec![Cell::from(Span::styled(
-            "Press 'f' to fetch filings",
-            Style::default()
-                .fg(Color::DarkGray)
-                .add_modifier(Modifier::ITALIC),
-        ))
-        .style(Style::default().fg(Color::DarkGray))])]
-    } else {
+    let rows: Vec<Row> = {
         state
             .filings
             .iter()
@@ -870,6 +1004,7 @@ fn render_help_text(f: &mut Frame, area: Rect, has_filings: bool, has_pcc: bool)
     if has_pcc {
         bar = bar.item("c", " committee").item("a", " F1 affiliations");
     }
+    bar = bar.item("o", " fec.gov").item("r", " contest");
     if has_filings {
         bar = bar
             .item("j/k", " navigate")
@@ -881,6 +1016,25 @@ fn render_help_text(f: &mut Frame, area: Rect, has_filings: bool, has_pcc: bool)
     bar.render(f, area);
 }
 
+/// Compute how many rows the financial summary box needs (including border)
+fn financial_summary_height(summary: &CandidateFinancialSummary) -> u16 {
+    let mut rows: u16 = 3; // 3 primary lines
+    let secondary = [
+        summary.total_individual_contributions,
+        summary.other_committee_contributions,
+        summary.party_contributions,
+        summary.candidate_contributions,
+        summary.candidate_loans,
+        summary.debts_owed_by,
+    ];
+    for v in secondary {
+        if v != 0.0 {
+            rows += 1;
+        }
+    }
+    rows + 2 // +2 for top/bottom border
+}
+
 pub fn render_candidate_detail(
     f: &mut Frame,
     area: Rect,
@@ -890,19 +1044,54 @@ pub fn render_candidate_detail(
     let has_filings = !state.filings.is_empty() || state.filings_loading;
     let has_pcc = candidate.principal_campaign_committee.is_some();
 
+    let fin_height = state
+        .financial_summary
+        .as_ref()
+        .map(|s| financial_summary_height(s))
+        .unwrap_or(0);
+
+    let filings_prompt_height: u16 = if state.filings.is_empty() && !state.filings_loading {
+        1
+    } else {
+        0
+    };
+
+    let subtitle_height: u16 = if has_pcc { 2 } else { 1 };
+
     let layout = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(1),  // Title
-            Constraint::Min(10),    // Content
-            Constraint::Length(12), // Filings table
-            Constraint::Length(2),  // Help text
+            Constraint::Length(1),                      // Title
+            Constraint::Length(subtitle_height),         // Subtitle (election line + committee)
+            Constraint::Length(fin_height),              // Financial summary box
+            Constraint::Min(4),                         // Content (affiliations, address, etc.)
+            Constraint::Length(filings_prompt_height),   // "Press f to fetch filings"
+            Constraint::Length(12),                      // Filings table
+            Constraint::Length(2),                       // Help text
         ]);
 
-    let [title_area, content_area, filings_area, help_area] = area.layout(&layout);
+    let [title_area, subtitle_area, fin_area, content_area, filings_prompt_area, filings_area, help_area] =
+        area.layout(&layout);
 
     render_title(f, candidate, title_area);
+    render_subtitle(f, candidate, state, subtitle_area);
+    if let Some(ref summary) = state.financial_summary {
+        render_financial_summary(f, summary, fin_area);
+    }
     render_content(f, candidate, state, content_area);
+    if filings_prompt_height > 0 {
+        let prompt = Line::from(vec![
+            Span::styled("Press ", Style::default().fg(Color::DarkGray)),
+            Span::styled(
+                "f",
+                Style::default()
+                    .fg(Color::DarkGray)
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::styled(" to fetch filings", Style::default().fg(Color::DarkGray)),
+        ]);
+        f.render_widget(Paragraph::new(prompt), filings_prompt_area);
+    }
     render_filings_table(f, candidate, state, filings_area);
     render_help_text(f, help_area, has_filings, has_pcc);
 
@@ -917,29 +1106,71 @@ fn render_yank_popup(
     candidate: &CandidateDetail,
     state: &CandidateDetailState,
 ) {
-    let popup_area = super::popup_area(area, 50, 40);
+    // Dim the background
+    let buf = f.buffer_mut();
+    for y in area.top()..area.bottom() {
+        for x in area.left()..area.right() {
+            let cell = &mut buf[(x, y)];
+            cell.set_style(Style::default().add_modifier(Modifier::DIM));
+        }
+    }
 
-    // Clear the background
+    // Compute fixed popup dimensions based on content
+    let options = state.get_yank_options(candidate);
+    let content_lines: u16 = 1 // "Select what to copy:"
+        + 1                     // blank line
+        + options.len() as u16  // option rows
+        + 1                     // blank line
+        + 1;                    // help line
+    let popup_height = content_lines + 2; // +2 for borders
+
+    // Compute width from widest content line
+    let title = "Copy to Clipboard";
+    let help_line = navigation_popup_help_line();
+    let help_width: usize = help_line.spans.iter().map(|s| s.content.len()).sum();
+    let max_option_width = options
+        .iter()
+        .filter_map(|(_, label, value)| {
+            value.as_ref().map(|val| 3 + label.len() + 2 + val.len()) // ">> " + label + ": " + val
+        })
+        .max()
+        .unwrap_or(0);
+    let content_width = max_option_width
+        .max(title.len())
+        .max("Select what to copy:".len())
+        .max(help_width);
+    let popup_width = (content_width as u16 + 4).min(area.width); // +2 borders +2 padding
+
+    // Center the popup
+    let popup_area = Rect {
+        x: area.x + (area.width.saturating_sub(popup_width)) / 2,
+        y: area.y + (area.height.saturating_sub(popup_height)) / 2,
+        width: popup_width,
+        height: popup_height.min(area.height),
+    };
+
     f.render_widget(Clear, popup_area);
 
     let block = Block::default()
         .borders(Borders::ALL)
-        .title("Copy to Clipboard")
+        .title(title)
         .border_style(Style::default().fg(Color::Green));
 
     let inner_area = block.inner(popup_area);
     f.render_widget(block, popup_area);
 
     // Build the options list
-    let options = state.get_yank_options(candidate);
     let mut lines = vec![];
 
-    lines.push(Line::from(Span::styled(
-        "Select what to copy:",
-        Style::default()
-            .fg(Color::Yellow)
-            .add_modifier(Modifier::BOLD),
-    )));
+    lines.push(
+        Line::from(Span::styled(
+            "Select what to copy:",
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        ))
+        .alignment(ratatui::layout::Alignment::Center),
+    );
     lines.push(Line::from(""));
 
     for (idx, (_, label, value)) in options.iter().enumerate() {
@@ -962,15 +1193,18 @@ fn render_yank_popup(
     }
 
     lines.push(Line::from(""));
-    lines.push(navigation_popup_help_line());
+    lines.push(
+        navigation_popup_help_line().alignment(ratatui::layout::Alignment::Center),
+    );
 
-    let paragraph = Paragraph::new(lines).wrap(Wrap { trim: false });
+    let paragraph = Paragraph::new(lines);
     f.render_widget(paragraph, inner_area);
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::cache::bulk::candidate_summary::CandidateFinancialSummary;
     use crate::cache::bulk::candidates::CandidateDetail;
     use insta::assert_snapshot;
     use ratatui::{backend::TestBackend, Terminal};
@@ -1054,6 +1288,52 @@ mod tests {
         let candidate = create_test_candidate();
         let mut state = CandidateDetailState::new();
         let mut terminal = Terminal::new(TestBackend::new(120, 30)).unwrap();
+        terminal
+            .draw(|f| render_candidate_detail(f, f.area(), &candidate, &mut state))
+            .unwrap();
+        assert_snapshot!(terminal.backend());
+    }
+
+    fn create_test_financial_summary() -> CandidateFinancialSummary {
+        CandidateFinancialSummary {
+            total_receipts: 1_234_567.89,
+            total_disbursements: 987_654.32,
+            cash_on_hand_close: 246_913.57,
+            total_individual_contributions: 800_000.00,
+            other_committee_contributions: 150_000.00,
+            party_contributions: 50_000.00,
+            candidate_contributions: 10_000.00,
+            candidate_loans: 100_000.00,
+            debts_owed_by: 25_000.00,
+            coverage_end_date: "12/31/2025".to_string(),
+        }
+    }
+
+    #[test]
+    fn test_candidate_detail_with_financial_summary() {
+        let candidate = create_test_candidate();
+        let mut state = CandidateDetailState::new();
+        state.set_financial_summary(Some(create_test_financial_summary()));
+        let mut terminal = Terminal::new(TestBackend::new(80, 30)).unwrap();
+        terminal
+            .draw(|f| render_candidate_detail(f, f.area(), &candidate, &mut state))
+            .unwrap();
+        assert_snapshot!(terminal.backend());
+    }
+
+    #[test]
+    fn test_candidate_detail_financial_summary_no_coverage_date() {
+        let candidate = create_test_candidate();
+        let mut state = CandidateDetailState::new();
+        let mut summary = create_test_financial_summary();
+        summary.coverage_end_date = String::new();
+        // Zero out some secondary fields to test conditional rendering
+        summary.party_contributions = 0.0;
+        summary.candidate_contributions = 0.0;
+        summary.candidate_loans = 0.0;
+        summary.debts_owed_by = 0.0;
+        state.set_financial_summary(Some(summary));
+        let mut terminal = Terminal::new(TestBackend::new(80, 30)).unwrap();
         terminal
             .draw(|f| render_candidate_detail(f, f.area(), &candidate, &mut state))
             .unwrap();

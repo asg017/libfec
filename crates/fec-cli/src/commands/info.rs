@@ -14,7 +14,6 @@ use crate::tui::{
     candidate_detail::{render_candidate_detail, CandidateDetailAction, CandidateDetailState},
     committee_detail::{render_committee_detail, CommitteeDetailAction, CommitteeDetailState},
     filing_detail::{render_filing_detail, FilingDetail, FilingDetailAction, FilingDetailState},
-    truncate_string,
 };
 use colored::Colorize;
 use crossterm::{
@@ -482,10 +481,23 @@ pub fn info(mut sourcer: FilingSourcer, args: InfoArgs) -> anyhow::Result<()> {
                                     candidate_id.as_str(),
                                     None,
                                 ).unwrap_or_default();
+                                // Load financial summary
+                                let financial_summary = crate::cache::bulk::candidate_summary::get_candidate_summary(
+                                    &mut db,
+                                    cycle,
+                                    candidate_id.as_str(),
+                                    None,
+                                ).unwrap_or(None);
+                                // Load PCC name
+                                let pcc_name = detail.principal_campaign_committee.as_ref().and_then(|pcc_id| {
+                                    crate::cache::bulk::committee::get_committee_detail(
+                                        &mut db, cycle, pcc_id, None,
+                                    ).ok().flatten().map(|c| c.name)
+                                });
                                 if let Some(s) = spinner.as_ref() {
                                     s.finish_and_clear();
                                 }
-                                show_candidate_detail_tui(detail, linkages, &sourcer)?;
+                                show_candidate_detail_tui(detail, linkages, financial_summary, pcc_name, &mut sourcer)?;
                             }
                             Ok(None) => {
                                 println!("Candidate {} not found in cycle {}", candidate_id, cycle);
@@ -506,70 +518,6 @@ pub fn info(mut sourcer: FilingSourcer, args: InfoArgs) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn render_committee_detail_with_breadcrumb(
-    f: &mut Frame,
-    detail: &crate::cache::bulk::committee::CommitteeDetail,
-    state: &mut CommitteeDetailState,
-) {
-    use ratatui::layout::{Constraint, Direction, Layout};
-    use ratatui::style::{Color, Style};
-    use ratatui::widgets::Paragraph;
-
-    // Layout with breadcrumb at the top
-    let layout = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Length(1), // Breadcrumb
-            Constraint::Min(1),    // Main content
-        ]);
-
-    let [breadcrumb_area, content_area] = f.area().layout(&layout);
-
-    // Build breadcrumb text
-    let name = truncate_string(&detail.name, 50);
-    let breadcrumb_text = format!("Info / {}", name);
-
-    let breadcrumb = Paragraph::new(breadcrumb_text).style(Style::default().fg(Color::DarkGray));
-    f.render_widget(breadcrumb, breadcrumb_area);
-
-    // Render committee detail in the content area
-    render_committee_detail(f, content_area, detail, state);
-}
-
-fn render_filing_detail_with_breadcrumb(
-    f: &mut Frame,
-    detail: &FilingDetail,
-    state: &FilingDetailState,
-    committee_name: &str,
-) {
-    use ratatui::layout::{Constraint, Direction, Layout};
-    use ratatui::style::{Color, Style};
-    use ratatui::widgets::Paragraph;
-
-    // Layout with breadcrumb at the top
-    let layout = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Length(1), // Breadcrumb
-            Constraint::Min(1),    // Main content
-        ]);
-
-    let [breadcrumb_area, content_area] = f.area().layout(&layout);
-
-    // Build breadcrumb text
-    let breadcrumb_text = if committee_name == "Filing" {
-        format!("Info / {}", detail.filing_id)
-    } else {
-        let name = truncate_string(committee_name, 40);
-        format!("Info / {} / {}", name, detail.filing_id)
-    };
-
-    let breadcrumb = Paragraph::new(breadcrumb_text).style(Style::default().fg(Color::DarkGray));
-    f.render_widget(breadcrumb, breadcrumb_area);
-
-    // Render filing detail in the content area
-    render_filing_detail(f, content_area, detail, state);
-}
 
 fn show_committee_detail_tui(
     detail: crate::cache::bulk::committee::CommitteeDetail,
@@ -581,11 +529,25 @@ fn show_committee_detail_tui(
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
+    run_committee_detail_tui(&mut terminal, &detail, sourcer)?;
+
+    disable_raw_mode()?;
+    execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
+    terminal.show_cursor()?;
+
+    Ok(())
+}
+
+fn run_committee_detail_tui<B: ratatui::backend::Backend<Error: Send + Sync + 'static>>(
+    terminal: &mut Terminal<B>,
+    detail: &crate::cache::bulk::committee::CommitteeDetail,
+    sourcer: &FilingSourcer,
+) -> anyhow::Result<()> {
     let mut state = CommitteeDetailState::new();
 
     loop {
         terminal.draw(|f| {
-            render_committee_detail_with_breadcrumb(f, &detail, &mut state);
+            render_committee_detail(f, f.area(), detail, &mut state);
         })?;
 
         if let Event::Key(key) = event::read()? {
@@ -602,7 +564,7 @@ fn show_committee_detail_tui(
                 break;
             }
 
-            match state.handle_key_event(key, &detail) {
+            match state.handle_key_event(key, detail) {
                 CommitteeDetailAction::Exit => break,
                 CommitteeDetailAction::OpenBrowser => {
                     let _ = detail.open_in_browser();
@@ -611,32 +573,15 @@ fn show_committee_detail_tui(
                     // Render the loading state before blocking API call
                     terminal
                         .draw(|f| {
-                            render_committee_detail_with_breadcrumb(f, &detail, &mut state);
+                            render_committee_detail(f, f.area(), detail, &mut state);
                         })
                         .unwrap();
 
-                    // Try to resolve and show filing detail
                     match sourcer.resolve_from_user_argument(&filing_id) {
                         Ok(filing) => {
                             let filing_detail = FilingDetail::from(&filing);
                             state.filing_detail_loading = false;
-
-                            // Show filing detail in nested view
-                            disable_raw_mode()?;
-                            execute!(
-                                terminal.backend_mut(),
-                                LeaveAlternateScreen
-                            )?;
-
-                            // Show filing detail
-                            show_filing_detail_tui(filing_detail, &detail.name)?;
-
-                            // Restore committee detail view
-                            enable_raw_mode()?;
-                            execute!(
-                                terminal.backend_mut(),
-                                EnterAlternateScreen
-                            )?;
+                            run_filing_detail_tui(terminal, &filing_detail, &detail.name)?;
                         }
                         Err(e) => {
                             state.filing_detail_loading = false;
@@ -651,7 +596,7 @@ fn show_committee_detail_tui(
                     // Render the loading state before blocking API call
                     terminal
                         .draw(|f| {
-                            render_committee_detail_with_breadcrumb(f, &detail, &mut state);
+                            render_committee_detail(f, f.area(), detail, &mut state);
                         })
                         .unwrap();
                     state.fetch_filings_for_committee(&detail.committee_id);
@@ -661,17 +606,15 @@ fn show_committee_detail_tui(
         }
     }
 
-    disable_raw_mode()?;
-    execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
-    terminal.show_cursor()?;
-
     Ok(())
 }
 
 fn show_candidate_detail_tui(
     detail: crate::cache::bulk::candidates::CandidateDetail,
     linkages: Vec<crate::cache::bulk::candidate_committee_linkage::CommitteeLinkage>,
-    sourcer: &crate::sourcer::FilingSourcer,
+    financial_summary: Option<crate::cache::bulk::candidate_summary::CandidateFinancialSummary>,
+    pcc_name: Option<String>,
+    sourcer: &mut crate::sourcer::FilingSourcer,
 ) -> anyhow::Result<()> {
     enable_raw_mode()?;
     let mut stdout = io::stdout();
@@ -681,6 +624,8 @@ fn show_candidate_detail_tui(
 
     let mut state = CandidateDetailState::new();
     state.set_linked_committees(linkages);
+    state.set_financial_summary(financial_summary);
+    state.pcc_name = pcc_name;
 
     loop {
         terminal.draw(|f| {
@@ -703,9 +648,21 @@ fn show_candidate_detail_tui(
 
             match state.handle_key_event(key, &detail) {
                 CandidateDetailAction::Exit => break,
-                CandidateDetailAction::ShowCommitteeDetail { committee_id: _ } => {
-                    // TODO: Navigate to committee detail view
-                    // For now, just ignore - would need to refactor to support nested views
+                CandidateDetailAction::ShowCommitteeDetail { committee_id } => {
+                    let cycle = 2026;
+                    if let Ok(mut db) = sourcer.cache.open_bulk_data_database() {
+                        if let Ok(Some(committee)) =
+                            crate::cache::bulk::committee::get_committee_detail(
+                                &mut db,
+                                cycle,
+                                &committee_id,
+                                None,
+                            )
+                        {
+                            let _ =
+                                run_committee_detail_tui(&mut terminal, &committee, sourcer);
+                        }
+                    }
                 }
                 CandidateDetailAction::FetchFilings => {
                     // Render the loading state before blocking API call
@@ -725,9 +682,55 @@ fn show_candidate_detail_tui(
                         .unwrap();
                     state.fetch_f1_affiliations(&committee_id, sourcer);
                 }
-                CandidateDetailAction::ShowFilingDetail { filing_id: _ } => {
-                    // TODO: Navigate to filing detail view
-                    // For now, just ignore - would need to refactor to support nested views
+                CandidateDetailAction::ShowFilingDetail { filing_id } => {
+                    // Render the loading state before blocking API call
+                    terminal
+                        .draw(|f| {
+                            render_candidate_detail(f, f.area(), &detail, &mut state);
+                        })
+                        .unwrap();
+                    match sourcer.resolve_from_user_argument(&filing_id) {
+                        Ok(filing) => {
+                            let filing_detail = FilingDetail::from(&filing);
+                            state.filing_detail_loading = false;
+                            let _ = run_filing_detail_tui(
+                                &mut terminal,
+                                &filing_detail,
+                                &detail.name,
+                            );
+                        }
+                        Err(e) => {
+                            state.filing_detail_loading = false;
+                            state.filings_error =
+                                Some(format!("Error loading filing {}: {}", filing_id, e));
+                        }
+                    }
+                }
+                CandidateDetailAction::OpenFecPage => {
+                    let url = format!(
+                        "https://www.fec.gov/data/candidate/{}/",
+                        detail.candidate_id
+                    );
+                    let _ = open::that(&url);
+                }
+                CandidateDetailAction::ShowContest {
+                    office,
+                    state,
+                    district,
+                } => {
+                    use crate::sourcer::Contest;
+                    let contest = match office.as_str() {
+                        "P" => Some(Contest::President),
+                        "S" => Some(Contest::Senate { state }),
+                        "H" => Some(Contest::House { state, district }),
+                        _ => None,
+                    };
+                    if let Some(contest) = contest {
+                        let cycle = 2026;
+                        let _ = crate::commands::contest::run_contest_tui(
+                            &mut terminal, sourcer, &contest, cycle,
+                        );
+                    }
                 }
                 CandidateDetailAction::None => {}
             }
@@ -748,12 +751,25 @@ fn show_filing_detail_tui(detail: FilingDetail, committee_name: &str) -> anyhow:
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
+    run_filing_detail_tui(&mut terminal, &detail, committee_name)?;
+
+    disable_raw_mode()?;
+    execute!(terminal.backend_mut(), LeaveAlternateScreen,)?;
+    terminal.show_cursor()?;
+
+    Ok(())
+}
+
+fn run_filing_detail_tui<B: ratatui::backend::Backend<Error: Send + Sync + 'static>>(
+    terminal: &mut Terminal<B>,
+    detail: &FilingDetail,
+    committee_name: &str,
+) -> anyhow::Result<()> {
     let mut state = FilingDetailState::new();
-    let committee_name = committee_name.to_string();
 
     loop {
         terminal.draw(|f| {
-            render_filing_detail_with_breadcrumb(f, &detail, &state, &committee_name);
+            render_filing_detail(f, f.area(), detail, &state);
         })?;
 
         if let Event::Key(key) = event::read()? {
@@ -770,13 +786,12 @@ fn show_filing_detail_tui(detail: FilingDetail, committee_name: &str) -> anyhow:
                 break;
             }
 
-            match state.handle_key_event(key, &detail) {
+            match state.handle_key_event(key, detail) {
                 FilingDetailAction::Exit => break,
                 FilingDetailAction::OpenBrowser => {
                     let _ = detail.open_in_browser();
                 }
                 FilingDetailAction::ShowFiler { .. } => {
-                    // In info context, go back to committee detail (if coming from there)
                     break;
                 }
                 FilingDetailAction::OpenWebsite { url } => {
@@ -786,10 +801,6 @@ fn show_filing_detail_tui(detail: FilingDetail, committee_name: &str) -> anyhow:
             }
         }
     }
-
-    disable_raw_mode()?;
-    execute!(terminal.backend_mut(), LeaveAlternateScreen,)?;
-    terminal.show_cursor()?;
 
     Ok(())
 }

@@ -491,30 +491,25 @@ fn lookup_committee_ids(
     map
 }
 
-pub fn contest(mut sourcer: FilingSourcer, contest: Contest, cycle: u16) -> Result<()> {
-    // Determine office/state/district from Contest enum
-    let (office, state, district) = match &contest {
+/// Run the contest TUI on an existing terminal. Returns when the user exits.
+pub fn run_contest_tui<B: ratatui::backend::Backend<Error: Send + Sync + 'static>>(
+    terminal: &mut Terminal<B>,
+    sourcer: &mut FilingSourcer,
+    contest: &Contest,
+    cycle: u16,
+) -> Result<()> {
+    let (office, state, district) = match contest {
         Contest::President => ("P", None, None),
         Contest::Senate { state } => ("S", Some(state.as_str()), None),
         Contest::House { state, district } => ("H", Some(state.as_str()), Some(district.as_str())),
     };
 
-    let title = contest_title(&contest, cycle);
-    let contest_url = fec_contest_url(&contest, cycle);
+    let title = contest_title(contest, cycle);
+    let contest_url = fec_contest_url(contest, cycle);
 
-    // Open bulk database and fetch candidates
     let mut db = sourcer.cache.open_bulk_data_database()?;
     let candidates = get_contest_candidates(&mut db, cycle, office, state, district, None)?;
-
-    // Look up committee IDs from the candidates bulk table (best-effort)
     let committee_ids = lookup_committee_ids(&db, cycle, &candidates);
-
-    // Launch TUI
-    enable_raw_mode()?;
-    let mut stdout = io::stdout();
-    execute!(stdout, EnterAlternateScreen)?;
-    let backend = CrosstermBackend::new(stdout);
-    let mut terminal = Terminal::new(backend)?;
 
     let mut app = App::new(candidates, committee_ids, contest_url, title);
 
@@ -526,7 +521,6 @@ pub fn contest(mut sourcer: FilingSourcer, contest: Contest, cycle: u16) -> Resu
                 continue;
             }
 
-            // Ctrl+C exits immediately
             if key.code == KeyCode::Char('c')
                 && key
                     .modifiers
@@ -566,6 +560,18 @@ pub fn contest(mut sourcer: FilingSourcer, contest: Contest, cycle: u16) -> Resu
             }
         }
     }
+
+    Ok(())
+}
+
+pub fn contest(mut sourcer: FilingSourcer, contest: Contest, cycle: u16) -> Result<()> {
+    enable_raw_mode()?;
+    let mut stdout = io::stdout();
+    execute!(stdout, EnterAlternateScreen)?;
+    let backend = CrosstermBackend::new(stdout);
+    let mut terminal = Terminal::new(backend)?;
+
+    run_contest_tui(&mut terminal, &mut sourcer, &contest, cycle)?;
 
     disable_raw_mode()?;
     execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
