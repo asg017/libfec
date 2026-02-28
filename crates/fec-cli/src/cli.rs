@@ -21,13 +21,6 @@ pub enum CmdInfoFormat {
     Json,
 }
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, clap::ValueEnum)]
-pub enum InfoDisplayMode {
-    #[default]
-    Text,
-    Tui,
-}
-
 #[derive(Args, Debug)]
 pub struct InfoArgs {
     pub filings: Vec<String>,
@@ -47,15 +40,6 @@ pub struct InfoArgs {
       default_value_t = CmdInfoFormat::Human)]
     pub format: CmdInfoFormat,
 
-    #[arg(
-      long,
-      short = 'd',
-      value_enum,
-      help = "Display mode: text (default) or tui",
-      default_value_t = InfoDisplayMode::Text)]
-    pub display: InfoDisplayMode,
-    //#[arg(long, short = 'f', value_enum)]
-    //pub format: Option<QueryFormat>,
     #[arg(
         long,
         help = "Calculate stats on all itemizations in the provided filings"

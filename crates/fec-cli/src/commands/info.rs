@@ -30,7 +30,7 @@ use ratatui::{backend::CrosstermBackend, Frame, Terminal};
 use serde_json::Value;
 use std::{
     collections::HashMap,
-    io::{self, Read},
+    io::{self, IsTerminal, Read},
     time::Duration,
 };
 
@@ -40,7 +40,7 @@ use tabled::{
 };
 
 use crate::{
-    cli::{CmdInfoFormat, InfoArgs, InfoDisplayMode},
+    cli::{CmdInfoFormat, InfoArgs},
     sourcer::{FecFilingId, FilingSourcer},
 };
 use fec_api::{CandidateId, CommitteeId};
@@ -416,18 +416,15 @@ pub fn info(mut sourcer: FilingSourcer, args: InfoArgs) -> anyhow::Result<()> {
         match input {
             InfoInput::Filing(filing_arg) => {
                 let filing = sourcer.resolve_from_user_argument(&filing_arg.to_bare())?;
-                match args.display {
-                    InfoDisplayMode::Tui => {
-                        let detail = FilingDetail::from(&filing);
-                        if let Some(s) = spinner.as_ref() {
-                            s.finish_and_clear();
-                        }
-                        show_filing_detail_tui(detail, "Filing")?;
+                if io::stdout().is_terminal() {
+                    let detail = FilingDetail::from(&filing);
+                    if let Some(s) = spinner.as_ref() {
+                        s.finish_and_clear();
                     }
-                    InfoDisplayMode::Text => {
-                        let mut filing = filing;
-                        process_filing(&mut filing, &args.format, &spinner, args.full);
-                    }
+                    show_filing_detail_tui(detail)?;
+                } else {
+                    let mut filing = filing;
+                    process_filing(&mut filing, &args.format, &spinner, args.full);
                 }
             }
             InfoInput::Committee(committee_id) => {
@@ -581,7 +578,7 @@ fn run_committee_detail_tui<B: ratatui::backend::Backend<Error: Send + Sync + 's
                         Ok(filing) => {
                             let filing_detail = FilingDetail::from(&filing);
                             state.filing_detail_loading = false;
-                            run_filing_detail_tui(terminal, &filing_detail, &detail.name)?;
+                            run_filing_detail_tui(terminal, &filing_detail)?;
                         }
                         Err(e) => {
                             state.filing_detail_loading = false;
@@ -696,7 +693,6 @@ fn show_candidate_detail_tui(
                             let _ = run_filing_detail_tui(
                                 &mut terminal,
                                 &filing_detail,
-                                &detail.name,
                             );
                         }
                         Err(e) => {
@@ -744,14 +740,14 @@ fn show_candidate_detail_tui(
     Ok(())
 }
 
-fn show_filing_detail_tui(detail: FilingDetail, committee_name: &str) -> anyhow::Result<()> {
+fn show_filing_detail_tui(detail: FilingDetail) -> anyhow::Result<()> {
     enable_raw_mode()?;
     let mut stdout = io::stdout();
     execute!(stdout, EnterAlternateScreen)?;
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
-    run_filing_detail_tui(&mut terminal, &detail, committee_name)?;
+    run_filing_detail_tui(&mut terminal, &detail)?;
 
     disable_raw_mode()?;
     execute!(terminal.backend_mut(), LeaveAlternateScreen,)?;
@@ -763,7 +759,6 @@ fn show_filing_detail_tui(detail: FilingDetail, committee_name: &str) -> anyhow:
 fn run_filing_detail_tui<B: ratatui::backend::Backend<Error: Send + Sync + 'static>>(
     terminal: &mut Terminal<B>,
     detail: &FilingDetail,
-    committee_name: &str,
 ) -> anyhow::Result<()> {
     let mut state = FilingDetailState::new();
 

@@ -54,7 +54,6 @@ fn main() {
                         filings: args[1..].to_vec(),
                         input_file: None,
                         format: cli::CmdInfoFormat::Human,
-                        display: cli::InfoDisplayMode::Text,
                         full: false,
                     };
                     commands::info(sourcer, info_args)
