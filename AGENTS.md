@@ -1,5 +1,9 @@
 # Agent Guidelines
 
+## Verification
+
+Before confirming completion of any Rust-based task, run `cargo clippy -p fec-cli` and fix all warnings.
+
 ## TUI Code Patterns
 
 When building TUI interfaces with `ratatui`, follow these conventions:

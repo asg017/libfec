@@ -1,4 +1,5 @@
 pub use crate::api_flags::FilingsApiFlags;
+use clap::builder::styling::{AnsiColor, Effects, Styles};
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use core::str;
 use fec_parser::schedules::ScheduleType;
@@ -73,21 +74,53 @@ impl From<ExportTarget> for ScheduleType {
 }
 
 #[derive(Args, Debug)]
+#[command(after_long_help = "\x1b[1;32mExamples:\x1b[0m
+
+  Export itemizations for a specific filing:
+
+    libfec export FEC-1949543 -o filing.db
+    libfec export FEC-1949543 --output-directory filings/
+    libfec export FEC-1949543 --target schedule-a -o contributions.csv
+    libfec export FEC-1949543 --target schedule-b -o disbursements.json
+
+  Export filings from specific committees:
+
+    libfec export C00835959 --cycle 2026 -o fairshake.db
+
+  Export all filings for all candidate committes in an election:
+  
+    libfec export TX-S --cycle 2026 -o texas-senate.db
+    libfec export CA41 --cycle 2024 -o california-house-41.db
+")]
 pub struct ExportArgs {
-    #[arg(required = false)]
+    #[arg(
+        required = false,
+        help = "Each argument can be one of:
+
+- Filing ID, ex. FEC-1949543
+- Path or URL to a .fec file, ex ./1949543.fec
+- Committee ID, ex. C00835959
+- Contest shorthand, ex. TX-S, CA41, H-IL03
+- .txt file containing filing IDs, committee IDs, or contest shorthands (one per line)
+"
+    )]
     pub filings: Vec<String>,
 
-    #[arg(long, short = 'f', help = "Output file")]
-    pub format: Option<ExportFormat>,
-
-    #[arg(long, help = "Output file")]
-    pub target: Option<ExportTarget>,
-
-    #[arg(long, short = 'o', help = "Output file")]
+    
+    
+    #[arg(long, short = 'o', help = "Output data to a specific file. File type is inferred from extension (.db, .xlsx, .csv, .json)")]
     pub output: Option<PathBuf>,
 
-    #[arg(long, alias = "outdir", help = "Output directory")]
+    #[arg(long, alias = "outdir", help = "Output data into a directory, with one file per form type")]
     pub output_directory: Option<PathBuf>,
+
+    #[arg(long, short = 'f', help = "Which file format to output. Inferred from file extension if not provided. Required if using --output-directory.")]
+    pub format: Option<ExportFormat>,
+
+    #[arg(long, help = "Choose which itemizations to export when using a single output file (e.g., a single CSV with all contributions or disbursements). Required when exporting to a single CSV or JSON file. ")]
+    pub target: Option<ExportTarget>,
+
+
 
     #[arg(long, action, help = "Overwrite existing files")]
     pub clobber: bool,
@@ -111,8 +144,6 @@ pub struct ExportArgs {
     )]
     pub include_all_bulk: bool,
 
-    //#[arg(long, short = 'f', help = "Format to export to")]
-    //pub format: Option<ExportFormat>,
     #[command(flatten)]
     pub api: FilingsApiFlags,
 }
@@ -860,17 +891,8 @@ pub struct DatasetteArgs {
 
 #[derive(Subcommand, Debug)]
 pub enum Commands {
-    /// Export FEC filings into SQLite, Excel, CSV, or JSON
+    /// Export data from FEC filings into SQLite, CSV, or JSON
     Export(Box<ExportArgs>),
-
-    /// Cache .fec files from fec.gov to your filesystem
-    Cache(CacheArgs),
-
-    /// Print debug information about a FEC filing, committee, or candidate
-    Info(InfoArgs),
-
-    /// FastFEC compatible export
-    Fastfec(FastFecArgs),
 
     /// Search candidates and committees
     Search(SearchArgs),
@@ -878,16 +900,25 @@ pub enum Commands {
     /// Export bulk datasets from fec.gov
     Bulk(BulkArgs),
 
-    /// Watch FEC RSS feed for new filings
+    /// Print debug information about a FEC filing, committee, or candidate
+    Info(InfoArgs),
+
+    /// Continuously watch the official FEC RSS feeds for new filings
     Rss(RssArgs),
 
     /// View upcoming FEC calendar dates (elections, deadlines, meetings)
     Dates(DatesArgs),
 
+    /// Explicitly cache .fec files from fec.gov to your filesystem
+    Cache(CacheArgs),
+
+    /// FastFEC compatible export
+    Fastfec(FastFecArgs),
+
     /// Query the FEC API and print raw JSON responses
     Api(ApiArgs),
 
-    /// Export FEC data to SQLite and open in Datasette
+    /// Use Datasette for instant SQLite database browsing and visualizations
     Datasette(Box<DatasetteArgs>),
 }
 
@@ -898,19 +929,53 @@ pub struct TopLevelArgs {
         global = true,
         long,
         env = "LIBFEC_CACHE_DIRECTORY",
-        help_heading = "Global options"
+        help_heading = "Global options",
+        help = "Directory to use for caching .fec files downloaded from the FEC API. Can also be set via the LIBFEC_CACHE_DIRECTORY environment variable."
     )]
     pub cache_directory: Option<PathBuf>,
 }
 
+const STYLES: Styles = Styles::styled()
+    .header(AnsiColor::Green.on_default().effects(Effects::BOLD))
+    .usage(AnsiColor::Green.on_default().effects(Effects::BOLD))
+    .literal(AnsiColor::Cyan.on_default().effects(Effects::BOLD))
+    .placeholder(AnsiColor::Cyan.on_default());
+
 #[derive(Parser)]
 #[command(
-  name = "libfec", 
+  name = "libfec",
   author,
-  long_version = env!("CARGO_PKG_VERSION"), 
-  about = "libfec CLI", 
+  long_version = env!("CARGO_PKG_VERSION"),
+  about = "A federal campaign finance data toolkit",
   version,
   subcommand_required = true,
+  styles = STYLES,
+  after_long_help = "\x1b[1;32mExamples:\x1b[0m
+
+  Set the LIBFEC_API_KEY environment variable for higher API rate limits:
+  export LIBFEC_API_KEY=your_api_key_here
+
+  Export filings to SQLite:
+    libfec export FEC-1949543 -o filing.db
+    libfec export C00835959 --cycle 2026 -o fairshake.db
+    libfec export TX-S --cycle 2026 -o texas-senate.db
+    libfec export CA40 --cycle 2026 -o california-house-40.db
+
+  Query the FEC API:
+    libfec api filings C00401224 --cycle 2026
+    libfec api schedule-a --committee C00401224 --min-amount 1000
+    libfec api schedule-b --committee C00401224 --min-date 2025-01-01
+    libfec api schedule-e --candidate P80001571 --cycle 2024
+
+  Watch the RSS feed:
+    libfec rss --watch --preset monthly --state CA --export monthly_filings.db
+
+  Other:
+    libfec dates --category elections,deadlines --state TX --format json
+    libfec cache add FEC-1949543 C00401224 --cycle 2026
+    libfec datasette FEC-1949543 -p 9000
+    libfec bulk --source candidates,committees --cycle 2024-2026 -o bulk_data.db
+"
 )]
 pub struct Cli {
     #[command(subcommand)]

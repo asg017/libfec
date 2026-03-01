@@ -1,6 +1,8 @@
 target/
 *.db
 *.db-journal
+*.db-wal
+*.db-shm
 mappings.json
 
 notes/
@@ -24,7 +26,8 @@ june/
 .DS_Store
 
 # temporary!!!
-/examples/
+examples/*
+!examples/ie-24hr
 
 .vscode/
 

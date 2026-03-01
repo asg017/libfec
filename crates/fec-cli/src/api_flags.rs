@@ -25,7 +25,7 @@ pub struct Trace {
 }
 
 #[derive(Parser, Debug, Clone)]
-#[command(next_help_heading = "FEC API options")]
+#[command(next_help_heading = "Filing filters")]
 pub struct FilingsApiFlags {
     #[arg(long, help = "Filter filings to only these committees")]
     pub committee: Option<Vec<CommitteeId>>,
@@ -73,14 +73,14 @@ pub struct FilingsApiFlags {
     #[arg(long, help = "Only filings received before this date (YYYY-MM-DD)")]
     pub received_before: Option<Date>,
 
-    #[arg(long)]
+    #[arg(long, help = "Only filings related to this election year (e.g., 2024)")]
     pub election: Option<u16>,
-    #[arg(long)]
+    #[arg(long, help = "Only filings related to this state (e.g., 'TX')")]
     pub state: Option<String>,
-    #[arg(long)]
+    #[arg(long, help = "Only filings related to a specific house district (e.g., '03')")]
     pub district: Option<String>,
-
-    #[arg(long)]
+  
+    #[arg(long, help = "Only filings related to a specific office (e.g., 'H' for House, 'S' for Senate, 'P' for President)")]
     pub office: Option<String>,
 
     #[arg(long, num_args = 2)]

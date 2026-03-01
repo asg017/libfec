@@ -21,7 +21,7 @@ path = "src/main.rs"
 [dependencies]
 fec-parser = { path = "../fec-parser" }
 fec-api = { path = "../fec-api" }
-clap = { version = "4.1.8", features = ["derive", "cargo", "env"] }
+clap = { version = "4.5.60", features = ["derive", "cargo", "env"] }
 anyhow = {version="1.0", features=["backtrace"]}
 csv = "1.2.2"
 colored = "2.1.0"
