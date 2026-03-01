@@ -1,4 +1,5 @@
 import { defineConfig } from 'vitepress'
+import llmstxt, {copyOrDownloadAsMarkdownButtons } from 'vitepress-plugin-llms'
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
@@ -6,6 +7,11 @@ export default defineConfig({
   description: "Tools to work with campaign finance data from the FEC",
   appearance: false,
   base: "/libfec/",
+  vite: {
+    plugins: [
+      llmstxt()
+    ]
+  },
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
     nav: [

@@ -11,7 +11,7 @@ libfec export \
   FEC-1721616 \
   -o haley-2023-Q1.db
 ```
-```output
+```
 Exporting filings to SQLite database at "haley-2023-Q1.db"
 Finished exporting 1 filings into haley-2023-Q1.db, in 0 seconds
 ```
@@ -46,7 +46,7 @@ $ libfec export \
 $ tree --du -h haley-2023-Q1/
 ```
 
-```output
+```
 [5.4M]  haley-2023-Q1/
 ├── [5.3K]  cover_F3P.csv
 ├── [5.4M]  schedule_a.csv

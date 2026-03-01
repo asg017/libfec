@@ -5,7 +5,7 @@ layout: home
 hero:
   name: "libfec"
   text: ""
-  tagline: A tool for wranging campaign finance data from the FEC
+  tagline: Wrangle federal campaign finance data from the command line
   actions:
     - theme: brand
       text: Installing
@@ -20,6 +20,6 @@ features:
   - title: Works with the OpenFEC API
     details: Automatically download all filings for a given committee/candidate in one command
   - title: Really fast!
-    details: Parses large ActBlue + WinRed Filings in 30 seconds or less
+    details: Parses large ActBlue + WinRed filings in 30 seconds or less
 ---
 
