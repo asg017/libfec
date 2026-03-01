@@ -249,6 +249,37 @@ pub fn export(
     Ok(())
 }
 
+/// Include committees for a cycle whose committee_id matches a filer_id in libfec_filings
+pub fn include_from_filings(
+    tx: &mut Transaction,
+    bulk_db_path: std::path::PathBuf,
+    cycle: u16,
+) -> Result<()> {
+    tx.execute_batch(SCHEMA)?;
+
+    let bulk_db_str = bulk_db_path.to_str().ok_or_else(|| {
+        anyhow::anyhow!("Bulk database path is not valid UTF-8: {:?}", bulk_db_path)
+    })?;
+
+    if !tx
+        .prepare_cached("select 1 from pragma_database_list where name = 'bulk_db'")?
+        .exists([])?
+    {
+        tx.execute("ATTACH DATABASE ? AS bulk_db", [bulk_db_str])?;
+    }
+
+    let sql = r#"
+      INSERT OR REPLACE INTO libfec_committees
+        SELECT *
+        FROM bulk_db.libfec_committees
+        WHERE cycle = :cycle
+          AND committee_id IN (SELECT DISTINCT filer_id FROM libfec_filings)
+      "#;
+    let mut stmt = tx.prepare(sql)?;
+    stmt.execute(rusqlite::named_params! { ":cycle": cycle })?;
+    Ok(())
+}
+
 /// Include all committees for a cycle in the export database
 pub fn include(tx: &mut Transaction, bulk_db_path: std::path::PathBuf, cycle: u16) -> Result<()> {
     tx.execute_batch(SCHEMA)?;

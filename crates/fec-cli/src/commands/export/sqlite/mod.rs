@@ -498,6 +498,29 @@ pub fn cmd_export_sqlite(
         None
     };
 
+    // Collect cycles and sync committee bulk data before ATTACHing bulk_db to the export transaction.
+    // We open the bulk DB directly via `p` to avoid borrow conflicts with `sourcer` (held by `iter`).
+    let committee_cycles: Vec<u16> = if !args.include_all_bulk {
+        let mut cycles: Vec<u16> = args.api.cycle.clone().unwrap_or_default();
+        for params in &trace.resolve_candidate_params {
+            if !cycles.contains(&params.cycle) {
+                cycles.push(params.cycle);
+            }
+        }
+        {
+            let mut bulk_db = Connection::open(&p)
+                .with_context(|| format!("Could not open bulk database at {:?}", p))?;
+            for &cycle in &cycles {
+                let mut bulk_tx = bulk_db.transaction()?;
+                committee::export(&mut bulk_tx, cycle, None)?;
+                bulk_tx.commit()?;
+            }
+        }
+        cycles
+    } else {
+        vec![]
+    };
+
     if args.include_all_bulk {
         // Include ALL bulk data for the specified cycle(s)
         let cycles = args.api.cycle.clone().unwrap_or_default();
@@ -514,8 +537,8 @@ pub fn cmd_export_sqlite(
                 .with_context(|| format!("Error including committees for cycle {}", cycle))?;
         }
     } else {
-        for params in trace.resolve_candidate_params {
-            candidates::include(&mut tx, p.clone(), &params).unwrap();
+        for params in &trace.resolve_candidate_params {
+            candidates::include(&mut tx, p.clone(), params).unwrap();
         }
     }
 
@@ -584,6 +607,11 @@ pub fn cmd_export_sqlite(
             export_itemizations(&mut tx, filing, Some(&pb))
                 .with_context(|| format!("Error exporting itemizations for FEC-{}", filing_id))?;
         }
+    }
+
+    // Include committee records matching exported filings (unless --include-all-bulk already did it)
+    for &cycle in &committee_cycles {
+        committee::include_from_filings(&mut tx, p.clone(), cycle)?;
     }
 
     tx.commit().context("Error committing SQLite transaction")?;
