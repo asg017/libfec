@@ -226,7 +226,10 @@ fn handle_main_input(
                 .and_then(|item| item.filing_id.clone());
             if let Some(filing_id) = filing_id {
                 match show_filing_detail(terminal, &mut app.sourcer, &filing_id) {
-                    Ok(_) => {}
+                    Ok(true) => {
+                        app.should_exit = true;
+                    }
+                    Ok(false) => {}
                     Err(e) => {
                         app.status_message = Some(format!("Error: {}", e));
                     }
@@ -238,14 +241,16 @@ fn handle_main_input(
     Ok(())
 }
 
+/// Returns `Ok(true)` if the user pressed Ctrl+C (force quit).
 fn show_filing_detail(
     terminal: &mut Terminal<CrosstermBackend<Stdout>>,
     sourcer: &mut FilingSourcer,
     filing_id: &str,
-) -> Result<()> {
+) -> Result<bool> {
     let filing = sourcer.resolve_from_user_argument(filing_id)?;
     let detail = FilingDetail::from(&filing);
     let mut state = FilingDetailState::new();
+    let mut force_quit = false;
 
     loop {
         terminal.draw(|f| {
@@ -263,6 +268,7 @@ fn show_filing_detail(
                     .modifiers
                     .contains(crossterm::event::KeyModifiers::CONTROL)
             {
+                force_quit = true;
                 break;
             }
 
@@ -279,7 +285,7 @@ fn show_filing_detail(
         }
     }
 
-    Ok(())
+    Ok(force_quit)
 }
 
 /// Import all bulk candidate/committee data for the current cycle into the export database.

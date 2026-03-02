@@ -103,9 +103,11 @@ pub(crate) fn run_app<B: ratatui::backend::Backend<Error: Send + Sync + 'static>
                                     _ => None,
                                 };
                                 if let Some(contest) = contest {
-                                    let _ = crate::commands::contest::run_contest_tui(
+                                    if crate::commands::contest::run_contest_tui(
                                         terminal, sourcer, &contest, app.cycle,
-                                    );
+                                    )? {
+                                        return Ok(());
+                                    }
                                 }
                             }
                             CandidateDetailAction::None => {}

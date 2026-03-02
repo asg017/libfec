@@ -548,7 +548,7 @@ fn show_committee_detail_tui(
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
-    run_committee_detail_tui(&mut terminal, &detail, financial_summary, sourcer)?;
+    let _ = run_committee_detail_tui(&mut terminal, &detail, financial_summary, sourcer)?;
 
     disable_raw_mode()?;
     execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
@@ -557,14 +557,16 @@ fn show_committee_detail_tui(
     Ok(())
 }
 
+/// Returns `Ok(true)` if the user pressed Ctrl+C (force quit).
 fn run_committee_detail_tui<B: ratatui::backend::Backend<Error: Send + Sync + 'static>>(
     terminal: &mut Terminal<B>,
     detail: &crate::cache::bulk::committee::CommitteeDetail,
     financial_summary: Option<crate::cache::bulk::pac_summary::CommitteeFinancialSummary>,
     sourcer: &FilingSourcer,
-) -> anyhow::Result<()> {
+) -> anyhow::Result<bool> {
     let mut state = CommitteeDetailState::new();
     state.set_financial_summary(financial_summary);
+    let mut force_quit = false;
 
     loop {
         terminal.draw(|f| {
@@ -582,6 +584,7 @@ fn run_committee_detail_tui<B: ratatui::backend::Backend<Error: Send + Sync + 's
                     .modifiers
                     .contains(crossterm::event::KeyModifiers::CONTROL)
             {
+                force_quit = true;
                 break;
             }
 
@@ -602,7 +605,10 @@ fn run_committee_detail_tui<B: ratatui::backend::Backend<Error: Send + Sync + 's
                         Ok(filing) => {
                             let filing_detail = FilingDetail::from(&filing);
                             state.filing_detail_loading = false;
-                            run_filing_detail_tui(terminal, &filing_detail)?;
+                            if run_filing_detail_tui(terminal, &filing_detail)? {
+                                force_quit = true;
+                                break;
+                            }
                         }
                         Err(e) => {
                             state.filing_detail_loading = false;
@@ -627,7 +633,7 @@ fn run_committee_detail_tui<B: ratatui::backend::Backend<Error: Send + Sync + 's
         }
     }
 
-    Ok(())
+    Ok(force_quit)
 }
 
 fn show_candidate_detail_tui(
@@ -687,12 +693,14 @@ fn show_candidate_detail_tui(
                                 None,
                             )
                             .unwrap_or(None);
-                            let _ = run_committee_detail_tui(
+                            if run_committee_detail_tui(
                                 &mut terminal,
                                 &committee,
                                 fin_summary,
                                 sourcer,
-                            );
+                            )? {
+                                break;
+                            }
                         }
                     }
                 }
@@ -725,7 +733,9 @@ fn show_candidate_detail_tui(
                         Ok(filing) => {
                             let filing_detail = FilingDetail::from(&filing);
                             state.filing_detail_loading = false;
-                            let _ = run_filing_detail_tui(&mut terminal, &filing_detail);
+                            if run_filing_detail_tui(&mut terminal, &filing_detail)? {
+                                break;
+                            }
                         }
                         Err(e) => {
                             state.filing_detail_loading = false;
@@ -755,12 +765,14 @@ fn show_candidate_detail_tui(
                     };
                     if let Some(contest) = contest {
                         let cycle = 2026;
-                        let _ = crate::commands::contest::run_contest_tui(
+                        if crate::commands::contest::run_contest_tui(
                             &mut terminal,
                             sourcer,
                             &contest,
                             cycle,
-                        );
+                        )? {
+                            break;
+                        }
                     }
                 }
                 CandidateDetailAction::None => {}
@@ -782,7 +794,7 @@ fn show_filing_detail_tui(detail: FilingDetail) -> anyhow::Result<()> {
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
-    run_filing_detail_tui(&mut terminal, &detail)?;
+    let _ = run_filing_detail_tui(&mut terminal, &detail)?;
 
     disable_raw_mode()?;
     execute!(terminal.backend_mut(), LeaveAlternateScreen,)?;
@@ -791,11 +803,13 @@ fn show_filing_detail_tui(detail: FilingDetail) -> anyhow::Result<()> {
     Ok(())
 }
 
+/// Returns `Ok(true)` if the user pressed Ctrl+C (force quit).
 fn run_filing_detail_tui<B: ratatui::backend::Backend<Error: Send + Sync + 'static>>(
     terminal: &mut Terminal<B>,
     detail: &FilingDetail,
-) -> anyhow::Result<()> {
+) -> anyhow::Result<bool> {
     let mut state = FilingDetailState::new();
+    let mut force_quit = false;
 
     loop {
         terminal.draw(|f| {
@@ -813,6 +827,7 @@ fn run_filing_detail_tui<B: ratatui::backend::Backend<Error: Send + Sync + 'stat
                     .modifiers
                     .contains(crossterm::event::KeyModifiers::CONTROL)
             {
+                force_quit = true;
                 break;
             }
 
@@ -832,5 +847,5 @@ fn run_filing_detail_tui<B: ratatui::backend::Backend<Error: Send + Sync + 'stat
         }
     }
 
-    Ok(())
+    Ok(force_quit)
 }

@@ -488,13 +488,14 @@ fn lookup_committee_ids(
     map
 }
 
-/// Run the contest TUI on an existing terminal. Returns when the user exits.
+/// Run the contest TUI on an existing terminal. Returns `Ok(true)` if the user
+/// pressed Ctrl+C (force quit), `Ok(false)` for normal exit (Escape/q).
 pub fn run_contest_tui<B: ratatui::backend::Backend<Error: Send + Sync + 'static>>(
     terminal: &mut Terminal<B>,
     sourcer: &mut FilingSourcer,
     contest: &Contest,
     cycle: u16,
-) -> Result<()> {
+) -> Result<bool> {
     let (office, state, district) = match contest {
         Contest::President => ("P", None, None),
         Contest::Senate { state } => ("S", Some(state.as_str()), None),
@@ -509,6 +510,7 @@ pub fn run_contest_tui<B: ratatui::backend::Backend<Error: Send + Sync + 'static
     let committee_ids = lookup_committee_ids(&db, cycle, &candidates);
 
     let mut app = App::new(candidates, committee_ids, contest_url, title);
+    let mut force_quit = false;
 
     loop {
         terminal.draw(|f| ui(f, &mut app))?;
@@ -523,6 +525,7 @@ pub fn run_contest_tui<B: ratatui::backend::Backend<Error: Send + Sync + 'static
                     .modifiers
                     .contains(crossterm::event::KeyModifiers::CONTROL)
             {
+                force_quit = true;
                 break;
             }
 
@@ -558,7 +561,7 @@ pub fn run_contest_tui<B: ratatui::backend::Backend<Error: Send + Sync + 'static
         }
     }
 
-    Ok(())
+    Ok(force_quit)
 }
 
 pub fn contest(mut sourcer: FilingSourcer, contest: Contest, cycle: u16) -> Result<()> {
@@ -568,7 +571,7 @@ pub fn contest(mut sourcer: FilingSourcer, contest: Contest, cycle: u16) -> Resu
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
-    run_contest_tui(&mut terminal, &mut sourcer, &contest, cycle)?;
+    let _ = run_contest_tui(&mut terminal, &mut sourcer, &contest, cycle)?;
 
     disable_raw_mode()?;
     execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
