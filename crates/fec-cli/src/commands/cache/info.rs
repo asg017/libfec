@@ -74,7 +74,40 @@ const BULK_DATA_SOURCES: &[BulkDataSource] = &[
         display_name: "Contributions to Candidates",
         table_name: "committee_contributions_to_candidates",
     },
+    BulkDataSource {
+        display_name: "Independent Expenditures",
+        table_name: "independent_expenditures",
+    },
+    BulkDataSource {
+        display_name: "PAC Summary",
+        table_name: "pac_summary",
+    },
+    BulkDataSource {
+        display_name: "Candidate Summary",
+        table_name: "candidate_summary",
+    },
+    BulkDataSource {
+        display_name: "Candidate Summary (CSV)",
+        table_name: "candidate_summary_csv",
+    },
+    BulkDataSource {
+        display_name: "Committee Summary (CSV)",
+        table_name: "committee_summary_csv",
+    },
+    BulkDataSource {
+        display_name: "Form 1 Filers",
+        table_name: "form1_filers",
+    },
+    BulkDataSource {
+        display_name: "Form 2 Filers",
+        table_name: "form2_filers",
+    },
 ];
+
+const INDIVIDUAL_CONTRIBUTIONS_SOURCE: BulkDataSource = BulkDataSource {
+    display_name: "Individual Contributions",
+    table_name: "individual_contributions",
+};
 
 struct CycleInfo {
     year: u16,
@@ -229,6 +262,16 @@ pub fn cache_info(sourcer: &FilingSourcer) {
         println!("  Bulk data database:    {}", "(not found)".dimmed());
     }
 
+    // Individual contributions DB
+    let ic_db_path = cache_dir.join(".individual-contributions.db");
+    if let Some(size) = get_file_size(&ic_db_path) {
+        println!(
+            "  Individual contribs:   {}  {}",
+            HumanBytes(size),
+            ic_db_path.display().to_string().dimmed()
+        );
+    }
+
     // API cache DB
     let api_cache_path = cache_dir.join(".api-cache.db");
     if let Some(size) = get_file_size(&api_cache_path) {
@@ -246,5 +289,29 @@ pub fn cache_info(sourcer: &FilingSourcer) {
         println!();
         println!("  {}", "Bulk Data".bold());
         print_bulk_data_info(&conn);
+    }
+
+    // Individual contributions cycle details
+    if let Ok(conn) = Connection::open(&ic_db_path) {
+        let cycles = query_bulk_cycles(&conn, INDIVIDUAL_CONTRIBUTIONS_SOURCE.table_name);
+        if !cycles.is_empty() {
+            println!();
+            println!("  {}", "Individual Contributions".bold());
+            let years: Vec<String> = cycles.iter().map(|c| c.year.to_string()).collect();
+            println!(
+                "    {} ({})",
+                INDIVIDUAL_CONTRIBUTIONS_SOURCE.display_name.bold(),
+                years.join(", ")
+            );
+            for cycle in &cycles {
+                let modified = human_duration_since_rfc2822(&cycle.modified_at);
+                let checked = human_duration_since_sqlite(&cycle.last_checked_at);
+                println!(
+                    "      {} — {}",
+                    cycle.year.to_string().bold(),
+                    format!("modified {}, checked {}", modified, checked).dimmed()
+                );
+            }
+        }
     }
 }

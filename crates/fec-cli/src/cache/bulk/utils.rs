@@ -44,6 +44,7 @@ impl<R: Read> Read for ProgressReader<'_, R> {
 pub(crate) enum BulkFormat {
     ZipPipeDelimited,
     Csv,
+    ZipPipeDelimitedDir, // Zip containing a directory of pipe-delimited .txt files
 }
 
 pub(crate) struct BulkDataItem {
@@ -132,6 +133,62 @@ pub(crate) fn insert_rows(
         params.extend(record.iter().take(number_of_columns).map(ToSqlOutput::from));
         stmt.execute(rusqlite::params_from_iter(params))?;
     }
+    Ok(())
+}
+
+pub(crate) fn insert_rows_from_zip_dir(
+    response: Response<Body>,
+    on_progress: Option<&dyn Fn(u64, Option<u64>)>,
+    tx: &mut Transaction,
+    year: u16,
+    item: &BulkDataItem,
+) -> anyhow::Result<()> {
+    let content_length = response
+        .headers()
+        .get("Content-Length")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.parse::<u64>().ok());
+    let mut reader = response.into_body().into_reader();
+    let mut buffer = Cursor::new(Vec::new());
+    if let Some(on_progress) = on_progress {
+        let mut progress_reader = ProgressReader::new(&mut reader, content_length, on_progress);
+        std::io::copy(&mut progress_reader, &mut BufWriter::new(&mut buffer))?;
+    } else {
+        std::io::copy(&mut reader, &mut BufWriter::new(&mut buffer))?;
+    }
+
+    let mut archive = zip::ZipArchive::new(buffer)?;
+    let dir_prefix = item
+        .data_file_name
+        .replace("$YEAR2", &year.to_string()[year.to_string().len() - 2..])
+        .replace("$YEAR", &year.to_string());
+
+    // Collect matching file names first (can't borrow archive mutably while iterating)
+    let file_names: Vec<String> = (0..archive.len())
+        .filter_map(|i| {
+            let entry = archive.by_index(i).ok()?;
+            let name = entry.name().to_string();
+            if name.starts_with(&dir_prefix) && name.ends_with(".txt") {
+                Some(name)
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    for name in &file_names {
+        let mut entry = archive.by_name(name)?;
+        let mut contents = Vec::new();
+        entry.read_to_end(&mut contents)?;
+
+        let mut rdr = csv::ReaderBuilder::new()
+            .has_headers(false)
+            .delimiter(b'|')
+            .from_reader(Cursor::new(contents));
+
+        insert_rows(tx, year, &mut rdr, &item.table_name, item.column_count)?;
+    }
+
     Ok(())
 }
 
@@ -250,7 +307,8 @@ pub(crate) fn sync_item(
     }
 
     let config = ureq::Agent::config_builder()
-        .timeout_global(Some(std::time::Duration::from_secs(30)))
+        .timeout_connect(Some(std::time::Duration::from_secs(30)))
+        .timeout_recv_body(None)
         .build();
     let url = item
         .url_scheme
@@ -332,17 +390,23 @@ pub(crate) fn sync_item(
         )
     })?;
 
-    let mut rdr = match item.format {
+    match item.format {
         BulkFormat::ZipPipeDelimited => {
             let data_file_name = item
                 .data_file_name
                 .replace("$YEAR2", &year.to_string()[year.to_string().len() - 2..])
                 .replace("$YEAR", &year.to_string());
-            csv_reader_from_response(response, &data_file_name, on_progress)?
+            let mut rdr = csv_reader_from_response(response, &data_file_name, on_progress)?;
+            insert_rows(tx, year, &mut rdr, &item.table_name, item.column_count)?;
         }
-        BulkFormat::Csv => csv_reader_from_flat_response(response, on_progress)?,
+        BulkFormat::Csv => {
+            let mut rdr = csv_reader_from_flat_response(response, on_progress)?;
+            insert_rows(tx, year, &mut rdr, &item.table_name, item.column_count)?;
+        }
+        BulkFormat::ZipPipeDelimitedDir => {
+            insert_rows_from_zip_dir(response, on_progress, tx, year, item)?;
+        }
     };
-    insert_rows(tx, year, &mut rdr, &item.table_name, item.column_count)?;
     if item.fts_schema.is_some() {
         rebuild_fts_index(tx, &item.table_name)?;
     }

@@ -484,7 +484,7 @@ impl std::fmt::Display for CycleArg {
 #[derive(Args, Debug)]
 pub struct BulkArgs {
     #[arg(long, short = 'o', help = "Output file path")]
-    pub output: PathBuf,
+    pub output: Option<PathBuf>,
     #[arg(
         long,
         help = "Election cycle year (e.g., 2024) or range (e.g., 2024-2026)"
@@ -502,7 +502,6 @@ pub struct BulkArgs {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 pub enum BulkSource {
-    
     #[value(
         help = "Committee master file (\x1b]8;;https://www.fec.gov/campaign-finance-data/committee-master-file-description/\x1b\\\x1b[34mdocs\x1b[0m\x1b]8;;\x1b\\)"
     )]
@@ -549,7 +548,10 @@ pub enum BulkSource {
         help = "Committee summary - CSV (\x1b]8;;https://www.fec.gov/campaign-finance-data/committee-summary-file-description/\x1b\\\x1b[34mdocs\x1b[0m\x1b]8;;\x1b\\)"
     )]
     CommitteeSummaryCsv,
-    
+    #[value(
+        help = "Contributions by individuals (\x1b]8;;https://www.fec.gov/campaign-finance-data/contributions-individuals-file-description/\x1b\\\x1b[34mdocs\x1b[0m\x1b]8;;\x1b\\)"
+    )]
+    IndividualContributions,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, clap::ValueEnum)]

@@ -102,6 +102,16 @@ impl Cache {
         self.cache_directory.join(".bulk-data.db")
     }
 
+    pub(crate) fn individual_contributions_database_path(&self) -> PathBuf {
+        self.cache_directory.join(".individual-contributions.db")
+    }
+
+    pub(crate) fn open_individual_contributions_database(&mut self) -> Result<Connection> {
+        let db_path = self.individual_contributions_database_path();
+        let conn = Connection::open(&db_path)?;
+        Ok(conn)
+    }
+
     pub fn cache_bulk_daily_zip(
         &self,
         date: Date,

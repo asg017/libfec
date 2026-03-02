@@ -7,6 +7,7 @@ pub mod committee_summary_csv;
 pub mod form1_filers;
 pub mod form2_filers;
 pub mod independent_expenditures;
+pub mod individual_contributions;
 pub mod opexp;
 pub mod pac_summary;
 pub mod pas2;
