@@ -88,7 +88,7 @@ impl From<ExportTarget> for ScheduleType {
     libfec export C00835959 --cycle 2026 -o fairshake.db
 
   Export all filings for all candidate committes in an election:
-  
+
     libfec export TX-S --cycle 2026 -o texas-senate.db
     libfec export CA41 --cycle 2024 -o california-house-41.db
 ")]
@@ -106,21 +106,32 @@ pub struct ExportArgs {
     )]
     pub filings: Vec<String>,
 
-    
-    
-    #[arg(long, short = 'o', help = "Output data to a specific file. File type is inferred from extension (.db, .xlsx, .csv, .json)")]
+    #[arg(
+        long,
+        short = 'o',
+        help = "Output data to a specific file. File type is inferred from extension (.db, .xlsx, .csv, .json)"
+    )]
     pub output: Option<PathBuf>,
 
-    #[arg(long, alias = "outdir", help = "Output data into a directory, with one file per form type")]
+    #[arg(
+        long,
+        alias = "outdir",
+        help = "Output data into a directory, with one file per form type"
+    )]
     pub output_directory: Option<PathBuf>,
 
-    #[arg(long, short = 'f', help = "Which file format to output. Inferred from file extension if not provided. Required if using --output-directory.")]
+    #[arg(
+        long,
+        short = 'f',
+        help = "Which file format to output. Inferred from file extension if not provided. Required if using --output-directory."
+    )]
     pub format: Option<ExportFormat>,
 
-    #[arg(long, help = "Choose which itemizations to export when using a single output file (e.g., a single CSV with all contributions or disbursements). Required when exporting to a single CSV or JSON file. ")]
+    #[arg(
+        long,
+        help = "Choose which itemizations to export when using a single output file (e.g., a single CSV with all contributions or disbursements). Required when exporting to a single CSV or JSON file. "
+    )]
     pub target: Option<ExportTarget>,
-
-
 
     #[arg(long, action, help = "Overwrite existing files")]
     pub clobber: bool,
@@ -491,15 +502,54 @@ pub struct BulkArgs {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 pub enum BulkSource {
-    Opex,
+    
+    #[value(
+        help = "Committee master file (\x1b]8;;https://www.fec.gov/campaign-finance-data/committee-master-file-description/\x1b\\\x1b[34mdocs\x1b[0m\x1b]8;;\x1b\\)"
+    )]
     Committees,
+    #[value(
+        help = "Candidate master file (\x1b]8;;https://www.fec.gov/campaign-finance-data/candidate-master-file-description/\x1b\\\x1b[34mdocs\x1b[0m\x1b]8;;\x1b\\)"
+    )]
     Candidates,
-    /// Contributions from committees to candidates (PAS2)
+
+    #[value(
+        help = "Operating expenditures (\x1b]8;;https://www.fec.gov/campaign-finance-data/operating-expenditures-file-description/\x1b\\\x1b[34mdocs\x1b[0m\x1b]8;;\x1b\\)"
+    )]
+    Opex,
+    #[value(
+        help = "Independent expenditures (\x1b]8;;https://www.fec.gov/campaign-finance-data/independent-expenditures-file-description/\x1b\\\x1b[34mdocs\x1b[0m\x1b]8;;\x1b\\)"
+    )]
+    IndependentExpenditures,
+
+    #[value(
+        help = "Contributions from committees to candidates (\x1b]8;;https://www.fec.gov/campaign-finance-data/contributions-committees-candidates-file-description/\x1b\\\x1b[34mdocs\x1b[0m\x1b]8;;\x1b\\)"
+    )]
     ContributionsToCandidates,
-    /// PAC and party committee summary financial data
+    #[value(
+        help = "PAC and party summary (\x1b]8;;https://www.fec.gov/campaign-finance-data/pac-and-party-summary-file-description/\x1b\\\x1b[34mdocs\x1b[0m\x1b]8;;\x1b\\)"
+    )]
     PacSummary,
-    /// Candidate summary financial data (weball)
+    #[value(
+        help = "Candidate summary - weball (\x1b]8;;https://www.fec.gov/campaign-finance-data/all-candidates-file-description/\x1b\\\x1b[34mdocs\x1b[0m\x1b]8;;\x1b\\)"
+    )]
     CandidateSummary,
+    #[value(
+        help = "Form 1 statement of organization filers (\x1b]8;;https://www.fec.gov/campaign-finance-data/new-committee-registrations-file-description/\x1b\\\x1b[34mdocs\x1b[0m\x1b]8;;\x1b\\)"
+    )]
+    Form1Filers,
+    #[value(
+        help = "Form 2 statement of candidacy filers (\x1b]8;;https://www.fec.gov/campaign-finance-data/new-statements-candidacy-file-description/\x1b\\\x1b[34mdocs\x1b[0m\x1b]8;;\x1b\\)"
+    )]
+    Form2Filers,
+    #[value(
+        help = "Candidate summary - CSV (\x1b]8;;https://www.fec.gov/campaign-finance-data/candidate-summary-file-description/\x1b\\\x1b[34mdocs\x1b[0m\x1b]8;;\x1b\\)"
+    )]
+    CandidateSummaryCsv,
+    #[value(
+        help = "Committee summary - CSV (\x1b]8;;https://www.fec.gov/campaign-finance-data/committee-summary-file-description/\x1b\\\x1b[34mdocs\x1b[0m\x1b]8;;\x1b\\)"
+    )]
+    CommitteeSummaryCsv,
+    
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, clap::ValueEnum)]
@@ -956,21 +1006,25 @@ const STYLES: Styles = Styles::styled()
   export LIBFEC_API_KEY=your_api_key_here
 
   Export filings to SQLite:
+
     libfec export FEC-1949543 -o filing.db
     libfec export C00835959 --cycle 2026 -o fairshake.db
     libfec export TX-S --cycle 2026 -o texas-senate.db
     libfec export CA40 --cycle 2026 -o california-house-40.db
 
   Query the FEC API:
+
     libfec api filings C00401224 --cycle 2026
     libfec api schedule-a --committee C00401224 --min-amount 1000
     libfec api schedule-b --committee C00401224 --min-date 2025-01-01
     libfec api schedule-e --candidate P80001571 --cycle 2024
 
   Watch the RSS feed:
+
     libfec rss --watch --preset monthly --state CA --export monthly_filings.db
 
   Other:
+  
     libfec dates --category elections,deadlines --state TX --format json
     libfec cache add FEC-1949543 C00401224 --cycle 2026
     libfec datasette FEC-1949543 -p 9000

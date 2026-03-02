@@ -8,7 +8,7 @@
  * Sample: https://www.fec.gov/files/bulk-downloads/2026/webk26.zip
  *
  */
-use super::utils::{sync_item, BulkDataItem};
+use super::utils::{sync_item, BulkDataItem, BulkFormat};
 use anyhow::Result;
 use rusqlite::{Connection, Transaction};
 use std::sync::LazyLock;
@@ -20,6 +20,7 @@ static ITEM: LazyLock<BulkDataItem> = LazyLock::new(|| BulkDataItem {
     data_file_name: "webk$YEAR2.txt".to_string(),
     column_count: 27,
     fts_schema: None,
+    format: BulkFormat::ZipPipeDelimited,
 });
 
 static SCHEMA: &str = r#"

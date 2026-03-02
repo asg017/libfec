@@ -6,7 +6,7 @@
  * Sample: https://www.fec.gov/files/bulk-downloads/2026/ccl26.zip
  *
  */
-use super::utils::{sync_item, BulkDataItem};
+use super::utils::{sync_item, BulkDataItem, BulkFormat};
 use anyhow::{Context, Result};
 use rusqlite::Transaction;
 use std::sync::LazyLock;
@@ -18,6 +18,7 @@ static ITEM: LazyLock<BulkDataItem> = LazyLock::new(|| BulkDataItem {
     data_file_name: "ccl.txt".to_string(),
     column_count: 7,
     fts_schema: None,
+    format: BulkFormat::ZipPipeDelimited,
 });
 
 static SCHEMA: &str = r#"

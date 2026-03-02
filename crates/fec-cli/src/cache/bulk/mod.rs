@@ -1,7 +1,12 @@
 pub mod candidate_committee_linkage;
 pub mod candidate_summary;
+pub mod candidate_summary_csv;
 pub mod candidates;
 pub mod committee;
+pub mod committee_summary_csv;
+pub mod form1_filers;
+pub mod form2_filers;
+pub mod independent_expenditures;
 pub mod opexp;
 pub mod pac_summary;
 pub mod pas2;

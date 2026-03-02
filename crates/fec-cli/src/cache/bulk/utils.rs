@@ -40,6 +40,12 @@ impl<R: Read> Read for ProgressReader<'_, R> {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+pub(crate) enum BulkFormat {
+    ZipPipeDelimited,
+    Csv,
+}
+
 pub(crate) struct BulkDataItem {
     pub(crate) table_name: String,
     pub(crate) schema: String,
@@ -47,6 +53,7 @@ pub(crate) struct BulkDataItem {
     pub(crate) data_file_name: String,
     pub(crate) column_count: usize,
     pub(crate) fts_schema: Option<String>,
+    pub(crate) format: BulkFormat,
 }
 
 pub(crate) fn csv_reader_from_response(
@@ -77,6 +84,30 @@ pub(crate) fn csv_reader_from_response(
         .has_headers(false)
         .delimiter(b'|')
         .from_reader(Cursor::new(cn_contents)))
+}
+
+pub(crate) fn csv_reader_from_flat_response(
+    response: Response<Body>,
+    on_progress: Option<&dyn Fn(u64, Option<u64>)>,
+) -> anyhow::Result<csv::Reader<Cursor<Vec<u8>>>> {
+    let content_length = response
+        .headers()
+        .get("Content-Length")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.parse::<u64>().ok());
+    let mut reader = response.into_body().into_reader();
+    let mut buffer = Cursor::new(Vec::new());
+    if let Some(on_progress) = on_progress {
+        let mut progress_reader = ProgressReader::new(&mut reader, content_length, on_progress);
+        std::io::copy(&mut progress_reader, &mut BufWriter::new(&mut buffer))?;
+    } else {
+        std::io::copy(&mut reader, &mut BufWriter::new(&mut buffer))?;
+    }
+    buffer.set_position(0);
+
+    Ok(csv::ReaderBuilder::new()
+        .has_headers(true)
+        .from_reader(buffer))
 }
 
 pub(crate) fn insert_rows(
@@ -301,11 +332,16 @@ pub(crate) fn sync_item(
         )
     })?;
 
-    let data_file_name = item
-        .data_file_name
-        .replace("$YEAR2", &year.to_string()[year.to_string().len() - 2..])
-        .replace("$YEAR", &year.to_string());
-    let mut rdr = csv_reader_from_response(response, &data_file_name, on_progress)?;
+    let mut rdr = match item.format {
+        BulkFormat::ZipPipeDelimited => {
+            let data_file_name = item
+                .data_file_name
+                .replace("$YEAR2", &year.to_string()[year.to_string().len() - 2..])
+                .replace("$YEAR", &year.to_string());
+            csv_reader_from_response(response, &data_file_name, on_progress)?
+        }
+        BulkFormat::Csv => csv_reader_from_flat_response(response, on_progress)?,
+    };
     insert_rows(tx, year, &mut rdr, &item.table_name, item.column_count)?;
     if item.fts_schema.is_some() {
         rebuild_fts_index(tx, &item.table_name)?;

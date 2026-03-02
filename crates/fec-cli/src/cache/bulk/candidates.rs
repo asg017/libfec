@@ -8,7 +8,7 @@
  * Sample: https://www.fec.gov/files/bulk-downloads/2026/weball26.zip
  *
  */
-use super::utils::{build_fts_query, sync_item, BulkDataItem};
+use super::utils::{build_fts_query, sync_item, BulkDataItem, BulkFormat};
 use anyhow::{Context, Result};
 use derive_builder::Builder;
 use fec_api::Office;
@@ -22,6 +22,7 @@ static ITEM: LazyLock<BulkDataItem> = LazyLock::new(|| BulkDataItem {
     data_file_name: "cn.txt".to_string(),
     column_count: 15,
     fts_schema: Some(FTS_SCHEMA.to_string()),
+    format: BulkFormat::ZipPipeDelimited,
 });
 
 static FTS_SCHEMA: &str = r#"
