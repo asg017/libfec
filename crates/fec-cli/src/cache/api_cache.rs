@@ -115,7 +115,7 @@ impl ApiCache for SqliteApiCache {
         let now = Self::now_secs();
 
         let result: Result<(String, i64), _> = self.conn.query_row(
-            "SELECT body, max_age_secs FROM api_cache 
+            "SELECT body, max_age_secs FROM api_cache
              WHERE url = ?1 AND api_key_hash = ?2 AND cached_at + max_age_secs > ?3",
             rusqlite::params![normalized_url, hash_value, now],
             |row| Ok((row.get(0)?, row.get(1)?)),
@@ -132,6 +132,29 @@ impl ApiCache for SqliteApiCache {
                 }
             }
             Err(_) => None, // Not found or expired
+        }
+    }
+
+    fn get_stale(&self, url: &Url) -> Option<ApiCacheEntry> {
+        let (normalized_url, api_key_hash) = normalize_url_for_cache(url);
+        let hash_value = api_key_hash.unwrap_or_default();
+
+        let result: Result<(String, i64), _> = self.conn.query_row(
+            "SELECT body, max_age_secs FROM api_cache
+             WHERE url = ?1 AND api_key_hash = ?2",
+            rusqlite::params![normalized_url, hash_value],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        );
+
+        match result {
+            Ok((body_str, max_age_secs)) => match serde_json::from_str(&body_str) {
+                Ok(body) => Some(ApiCacheEntry {
+                    body,
+                    max_age_secs: max_age_secs as u64,
+                }),
+                Err(_) => None,
+            },
+            Err(_) => None,
         }
     }
 

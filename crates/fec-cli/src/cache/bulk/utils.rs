@@ -210,6 +210,7 @@ pub(crate) fn sync_item(
     year: u16,
     item: &BulkDataItem,
     on_progress: Option<&dyn Fn(u64, Option<u64>)>,
+    offline: bool,
 ) -> anyhow::Result<SyncResult> {
     tx.execute_batch(&item.schema)?;
     if let Some(fts_schema) = &item.fts_schema {
@@ -249,6 +250,25 @@ pub(crate) fn sync_item(
             },
         )
         .optional()?;
+
+    if offline {
+        if result.is_some() {
+            if item.fts_schema.is_some() {
+                rebuild_fts_index_if_empty(tx, &item.table_name)?;
+            }
+            eprintln!(
+                "warning: using cached bulk data for {} cycle {} (offline mode)",
+                item.table_name, year
+            );
+            return Ok(SyncResult::SkippedRecent);
+        } else {
+            return Err(anyhow::anyhow!(
+                "offline mode: no cached bulk data for {} cycle {}",
+                item.table_name,
+                year
+            ));
+        }
+    }
 
     // if there is already data for the given year, and the Last-Modified header
     // is recent (within the last 30 minutes), skip the update

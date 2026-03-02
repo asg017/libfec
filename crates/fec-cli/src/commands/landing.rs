@@ -110,7 +110,7 @@ pub fn landing(cache_directory: Option<PathBuf>) -> Result<()> {
         match selection {
             LandingSelection::Quit => return Ok(()),
             LandingSelection::Launch(item) => {
-                let sourcer = FilingSourcer::new(cache_directory.clone());
+                let sourcer = FilingSourcer::new(cache_directory.clone(), false);
                 match item {
                     MenuItem::Search => {
                         let args = SearchArgs {

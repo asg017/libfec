@@ -11,6 +11,7 @@ use indicatif::{HumanBytes, ProgressBar, ProgressStyle};
 
 pub fn bulk(sourcer: FilingSourcer, args: &BulkArgs) -> anyhow::Result<()> {
     println!("Running bulk command with args: {:?}", args);
+    let offline = sourcer.cache.offline;
 
     let has_individual_contributions = args.source.contains(&BulkSource::IndividualContributions);
     let non_ic_sources: Vec<&BulkSource> = args
@@ -67,34 +68,39 @@ pub fn bulk(sourcer: FilingSourcer, args: &BulkArgs) -> anyhow::Result<()> {
                 }
                 pb.set_message(format!("{} - {:?}", year, source));
                 let result = match source {
-                    BulkSource::Opex => opexp::export(&mut tx, *year, Some(&on_progress)),
-                    BulkSource::Committees => committee::export(&mut tx, *year, Some(&on_progress)),
+                    BulkSource::Opex => opexp::export(&mut tx, *year, Some(&on_progress), offline),
+                    BulkSource::Committees => {
+                        committee::export(&mut tx, *year, Some(&on_progress), offline)
+                    }
                     BulkSource::Candidates => {
-                        candidates::export(&mut tx, *year, Some(&on_progress))
+                        candidates::export(&mut tx, *year, Some(&on_progress), offline)
                     }
                     BulkSource::ContributionsToCandidates => {
-                        pas2::export(&mut tx, *year, Some(&on_progress))
+                        pas2::export(&mut tx, *year, Some(&on_progress), offline)
                     }
                     BulkSource::PacSummary => {
-                        pac_summary::export(&mut tx, *year, Some(&on_progress))
+                        pac_summary::export(&mut tx, *year, Some(&on_progress), offline)
                     }
                     BulkSource::CandidateSummary => {
-                        candidate_summary::export(&mut tx, *year, Some(&on_progress))
+                        candidate_summary::export(&mut tx, *year, Some(&on_progress), offline)
                     }
-                    BulkSource::IndependentExpenditures => {
-                        independent_expenditures::export(&mut tx, *year, Some(&on_progress))
-                    }
+                    BulkSource::IndependentExpenditures => independent_expenditures::export(
+                        &mut tx,
+                        *year,
+                        Some(&on_progress),
+                        offline,
+                    ),
                     BulkSource::Form2Filers => {
-                        form2_filers::export(&mut tx, *year, Some(&on_progress))
+                        form2_filers::export(&mut tx, *year, Some(&on_progress), offline)
                     }
                     BulkSource::CandidateSummaryCsv => {
-                        candidate_summary_csv::export(&mut tx, *year, Some(&on_progress))
+                        candidate_summary_csv::export(&mut tx, *year, Some(&on_progress), offline)
                     }
                     BulkSource::CommitteeSummaryCsv => {
-                        committee_summary_csv::export(&mut tx, *year, Some(&on_progress))
+                        committee_summary_csv::export(&mut tx, *year, Some(&on_progress), offline)
                     }
                     BulkSource::Form1Filers => {
-                        form1_filers::export(&mut tx, *year, Some(&on_progress))
+                        form1_filers::export(&mut tx, *year, Some(&on_progress), offline)
                     }
                     BulkSource::IndividualContributions => unreachable!(),
                 };
@@ -105,7 +111,7 @@ pub fn bulk(sourcer: FilingSourcer, args: &BulkArgs) -> anyhow::Result<()> {
                 && args.source.contains(&BulkSource::Committees)
             {
                 pb.set_message(format!("{} - Candidate-Committee Linkage", *year));
-                candidate_committee_linkage::export(&mut tx, *year, Some(&on_progress))?;
+                candidate_committee_linkage::export(&mut tx, *year, Some(&on_progress), offline)?;
                 pb.inc(1);
             }
         }
@@ -126,7 +132,7 @@ pub fn bulk(sourcer: FilingSourcer, args: &BulkArgs) -> anyhow::Result<()> {
 
             for year in &cycles {
                 pb.set_message(format!("{} - IndividualContributions", year));
-                individual_contributions::export(&mut ic_tx, *year, Some(&on_progress))?;
+                individual_contributions::export(&mut ic_tx, *year, Some(&on_progress), offline)?;
                 pb.inc(1);
             }
 

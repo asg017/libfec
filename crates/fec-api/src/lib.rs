@@ -185,6 +185,12 @@ pub trait ApiCache {
     /// Returns None if not cached or expired.
     fn get(&self, url: &Url) -> Option<ApiCacheEntry>;
 
+    /// Get a cached response for the given URL, ignoring TTL expiration.
+    /// Used in offline mode to return stale data rather than nothing.
+    fn get_stale(&self, _url: &Url) -> Option<ApiCacheEntry> {
+        None
+    }
+
     /// Store a response in the cache.
     fn set(&mut self, url: &Url, entry: &ApiCacheEntry) -> Result<()>;
 }
@@ -670,48 +676,68 @@ fn parse_cache_control_max_age(header_value: &str) -> Option<u64> {
     None
 }
 
+/// Reconstruct an ApiResponse from a cached entry.
+fn api_response_from_cache_entry(url: &Url, entry: ApiCacheEntry) -> anyhow::Result<ApiResponse> {
+    let pagination: FecApiPaginationObject = serde_json::from_value(
+        entry
+            .body
+            .get("pagination")
+            .ok_or_else(|| anyhow::anyhow!("missing pagination field in cached response"))?
+            .clone(),
+    )?;
+
+    let result_items = entry.body["results"]
+        .as_array()
+        .ok_or_else(|| anyhow::anyhow!("missing results array in cached response"))?
+        .to_vec();
+
+    let next_url = compute_next_url(url, &pagination);
+
+    Ok(ApiResponse {
+        json: entry.body,
+        rate_limit: FecApiRateLimit {
+            limit: 0,
+            remaining: 0,
+        },
+        result_items,
+        pagination,
+        next_url,
+        cache_hit: true,
+    })
+}
+
 /// Make an API request with optional caching support.
 ///
 /// If a cache is provided, it will:
 /// 1. Check for a valid cached response first
 /// 2. On cache hit, return the cached response (with placeholder rate limits)
 /// 3. On cache miss, make the request and store the response if max-age > 0
+///
+/// When `offline` is true, no HTTP requests will be made. Stale cached data
+/// will be returned if available, otherwise an error is returned.
 pub fn api_request_cached(
     url: &Url,
     cache: Option<&mut dyn ApiCache>,
+    offline: bool,
 ) -> anyhow::Result<ApiResponse> {
     // Check cache first
     if let Some(ref cache) = cache {
         if let Some(entry) = cache.get(url) {
-            // Cache hit - reconstruct ApiResponse from cached body
-            let pagination: FecApiPaginationObject = serde_json::from_value(
-                entry
-                    .body
-                    .get("pagination")
-                    .ok_or_else(|| anyhow::anyhow!("missing pagination field in cached response"))?
-                    .clone(),
-            )?;
-
-            let result_items = entry.body["results"]
-                .as_array()
-                .ok_or_else(|| anyhow::anyhow!("missing results array in cached response"))?
-                .to_vec();
-
-            let next_url = compute_next_url(url, &pagination);
-
-            return Ok(ApiResponse {
-                json: entry.body,
-                // Placeholder values for cached responses - we don't have the real limits
-                rate_limit: FecApiRateLimit {
-                    limit: 0,
-                    remaining: 0,
-                },
-                result_items,
-                pagination,
-                next_url,
-                cache_hit: true,
-            });
+            return api_response_from_cache_entry(url, entry);
         }
+        // In offline mode, try stale cache before giving up
+        if offline {
+            if let Some(entry) = cache.get_stale(url) {
+                return api_response_from_cache_entry(url, entry);
+            }
+        }
+    }
+
+    if offline {
+        return Err(anyhow::anyhow!(
+            "offline mode: no cached data for {}",
+            redact_api_key(url)
+        ));
     }
 
     // Cache miss - make the actual request

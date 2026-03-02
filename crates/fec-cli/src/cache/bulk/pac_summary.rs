@@ -61,8 +61,9 @@ pub fn export(
     tx: &mut Transaction<'_>,
     year: u16,
     on_progress: Option<&dyn Fn(u64, Option<u64>)>,
+    offline: bool,
 ) -> Result<()> {
-    let result = sync_item(tx, year, &ITEM, on_progress)?;
+    let result = sync_item(tx, year, &ITEM, on_progress, offline)?;
     println!("pac_summary {year} {result:?}");
     Ok(())
 }
@@ -88,7 +89,7 @@ pub fn get_pac_summary(
     on_progress: Option<&dyn Fn(u64, Option<u64>)>,
 ) -> Result<Option<CommitteeFinancialSummary>> {
     let mut tx = db.transaction()?;
-    let _result = sync_item(&mut tx, cycle, &ITEM, on_progress)?;
+    let _result = sync_item(&mut tx, cycle, &ITEM, on_progress, false)?;
     tx.commit()?;
 
     let mut stmt = db.prepare(

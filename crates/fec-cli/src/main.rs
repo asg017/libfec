@@ -20,7 +20,10 @@ fn main() {
     let args: Vec<String> = env::args().collect();
     let result = match Cli::try_parse_from(args.clone()) {
         Ok(cli) => {
-            let sourcer = sourcer::FilingSourcer::new(cli.top_level.cache_directory.clone());
+            let sourcer = sourcer::FilingSourcer::new(
+                cli.top_level.cache_directory.clone(),
+                cli.top_level.offline,
+            );
             match *cli.command {
                 Commands::Info(args) => commands::info(sourcer, args),
                 Commands::Export(args) => commands::export(sourcer, *args),
@@ -45,11 +48,11 @@ fn main() {
             if args.len() > 1 {
                 if let Ok(Some(contest)) = sourcer::Contest::from_arg(&args[1]) {
                     // Contest shorthand (CA41, H-CA41, S-CA, P) takes priority
-                    let sourcer = sourcer::FilingSourcer::new(None);
+                    let sourcer = sourcer::FilingSourcer::new(None, false);
                     commands::contest(sourcer, contest, 2026)
                 } else if commands::InfoInput::from_arg(&args[1]).is_ok() {
                     // Treat as info command with the argument as a filing/committee/candidate
-                    let sourcer = sourcer::FilingSourcer::new(None);
+                    let sourcer = sourcer::FilingSourcer::new(None, false);
                     let info_args = cli::InfoArgs {
                         filings: args[1..].to_vec(),
                         input_file: None,

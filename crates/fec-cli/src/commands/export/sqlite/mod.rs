@@ -512,7 +512,7 @@ pub fn cmd_export_sqlite(
                 .with_context(|| format!("Could not open bulk database at {:?}", p))?;
             for &cycle in &cycles {
                 let mut bulk_tx = bulk_db.transaction()?;
-                committee::export(&mut bulk_tx, cycle, None)?;
+                committee::export(&mut bulk_tx, cycle, None, false)?;
                 bulk_tx.commit()?;
             }
         }

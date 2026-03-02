@@ -398,12 +398,14 @@ impl App {
 
         let url = api.calendar_dates_url(args);
         self.api_url = Some(url.0.to_string());
+        let offline = sourcer.cache.offline;
         match fec_api::api_request_cached(
             &url.0,
             sourcer
                 .cache
                 .api_cache_mut()
                 .map(|c| c as &mut dyn ApiCache),
+            offline,
         ) {
             Ok(response) => {
                 // Parse and filter events by state if specified
@@ -679,12 +681,14 @@ fn run_json_mode(sourcer: &mut FilingSourcer, args: &DatesArgs) -> Result<()> {
     let url = api.calendar_dates_url(api_args);
     eprintln!("URL: {}", url.0);
 
+    let offline = sourcer.cache.offline;
     let response = fec_api::api_request_cached(
         &url.0,
         sourcer
             .cache
             .api_cache_mut()
             .map(|c| c as &mut dyn ApiCache),
+        offline,
     )?;
 
     // Apply state filtering if specified

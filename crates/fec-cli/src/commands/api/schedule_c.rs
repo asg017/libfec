@@ -35,9 +35,10 @@ pub fn schedule_c(mut sourcer: FilingSourcer, args: &ApiScheduleCArgs) -> anyhow
         return Ok(());
     }
 
+    let offline = sourcer.cache.offline;
     let cache = sourcer
         .cache
         .api_cache_mut()
         .map(|c| c as &mut dyn fec_api::ApiCache);
-    fetch_and_output(url, cache, args.format, args.all)
+    fetch_and_output(url, cache, args.format, args.all, offline)
 }

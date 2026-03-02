@@ -77,10 +77,16 @@ pub struct FilingsApiFlags {
     pub election: Option<u16>,
     #[arg(long, help = "Only filings related to this state (e.g., 'TX')")]
     pub state: Option<String>,
-    #[arg(long, help = "Only filings related to a specific house district (e.g., '03')")]
+    #[arg(
+        long,
+        help = "Only filings related to a specific house district (e.g., '03')"
+    )]
     pub district: Option<String>,
-  
-    #[arg(long, help = "Only filings related to a specific office (e.g., 'H' for House, 'S' for Senate, 'P' for President)")]
+
+    #[arg(
+        long,
+        help = "Only filings related to a specific office (e.g., 'H' for House, 'S' for Senate, 'P' for President)"
+    )]
     pub office: Option<String>,
 
     #[arg(long, num_args = 2)]
@@ -101,8 +107,9 @@ pub struct FilingsApiFlags {
 fn filing_items(
     url: &Url,
     cache: Option<&mut dyn ApiCache>,
+    offline: bool,
 ) -> anyhow::Result<(Vec<FilingItem>, ApiResponse)> {
-    let response = fec_api::api_request_cached(url, cache)?;
+    let response = fec_api::api_request_cached(url, cache, offline)?;
     let results = response
         .result_items
         .iter()
@@ -144,6 +151,7 @@ fn fetch_all_pages(
 ) -> anyhow::Result<Vec<FilingItem>> {
     let mut results = vec![];
     let mut current = initial_url;
+    let offline = sourcer.cache.offline;
     loop {
         let (items, response) = filing_items(
             &current,
@@ -151,6 +159,7 @@ fn fetch_all_pages(
                 .cache
                 .api_cache_mut()
                 .map(|c| c as &mut dyn ApiCache),
+            offline,
         )?;
         results.extend(items);
         stats.record(&response);
@@ -183,6 +192,7 @@ fn fetch_efiling_dedup(
     results: &mut Vec<FilingItem>,
     stats: &mut FetchStats,
 ) -> anyhow::Result<()> {
+    let offline = sourcer.cache.offline;
     for chunk in committees.chunks(50) {
         let efiling_filing_args = fec_api::EfilingFilingArgs {
             committees: chunk.to_vec(),
@@ -197,6 +207,7 @@ fn fetch_efiling_dedup(
                     .cache
                     .api_cache_mut()
                     .map(|c| c as &mut dyn ApiCache),
+                offline,
             )?;
             stats.record(&response);
             for item in items {

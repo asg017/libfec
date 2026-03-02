@@ -985,6 +985,15 @@ pub struct TopLevelArgs {
         help = "Directory to use for caching .fec files downloaded from the FEC API. Can also be set via the LIBFEC_CACHE_DIRECTORY environment variable."
     )]
     pub cache_directory: Option<PathBuf>,
+
+    #[arg(
+        global = true,
+        long,
+        env = "LIBFEC_OFFLINE",
+        help_heading = "Global options",
+        help = "Run without making any network requests. Uses cached data only."
+    )]
+    pub offline: bool,
 }
 
 const STYLES: Styles = Styles::styled()

@@ -30,12 +30,13 @@ pub fn fetch_and_output(
     cache: Option<&mut dyn ApiCache>,
     format: ApiFormat,
     fetch_all: bool,
+    offline: bool,
 ) -> anyhow::Result<()> {
     let stdout = io::stdout();
     let mut out = stdout.lock();
 
     let mut all_results: Vec<serde_json::Value> = Vec::new();
-    let first_response = api_request_cached(&url, cache)?;
+    let first_response = api_request_cached(&url, cache, offline)?;
 
     match format {
         ApiFormat::Jsonl => {
@@ -46,7 +47,7 @@ pub fn fetch_and_output(
         }
     }
 
-    if fetch_all {
+    if fetch_all && !offline {
         let mut next_url = first_response.next_url.clone();
         while let Some(url) = next_url {
             let response = fec_api::api_request(&url)?;

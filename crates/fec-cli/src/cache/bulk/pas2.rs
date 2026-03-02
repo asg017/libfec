@@ -58,8 +58,9 @@ pub fn export(
     tx: &mut Transaction<'_>,
     year: u16,
     on_progress: Option<&dyn Fn(u64, Option<u64>)>,
+    offline: bool,
 ) -> Result<()> {
-    let result = sync_item(tx, year, &ITEM, on_progress)?;
+    let result = sync_item(tx, year, &ITEM, on_progress, offline)?;
     println!("pas2 {year} {result:?}");
     Ok(())
 }
@@ -90,7 +91,7 @@ pub fn search_contributions_to_candidates(
     // Ensure schema exists and data is synced
     conn.execute_batch(SCHEMA)?;
     let mut tx = conn.transaction()?;
-    sync_item(&mut tx, cycle, &ITEM, on_progress)?;
+    sync_item(&mut tx, cycle, &ITEM, on_progress, false)?;
     tx.commit()?;
 
     let search_pattern = format!("%{}%", query);

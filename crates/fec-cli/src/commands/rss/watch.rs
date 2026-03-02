@@ -301,9 +301,9 @@ fn import_bulk_data(sourcer: &mut FilingSourcer, db: &mut rusqlite::Connection) 
     let mut bulk_tx = bulk_db
         .transaction()
         .context("Could not start bulk data transaction")?;
-    candidates::export(&mut bulk_tx, cycle, None)
+    candidates::export(&mut bulk_tx, cycle, None, false)
         .with_context(|| format!("Error syncing candidate data for cycle {}", cycle))?;
-    committee::export(&mut bulk_tx, cycle, None)
+    committee::export(&mut bulk_tx, cycle, None, false)
         .with_context(|| format!("Error syncing committee data for cycle {}", cycle))?;
     bulk_tx.commit()?;
     drop(bulk_db);

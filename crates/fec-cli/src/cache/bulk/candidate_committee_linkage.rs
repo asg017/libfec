@@ -39,8 +39,9 @@ pub fn export(
     tx: &mut Transaction<'_>,
     year: u16,
     on_progress: Option<&dyn Fn(u64, Option<u64>)>,
+    offline: bool,
 ) -> Result<()> {
-    sync_item(tx, year, &ITEM, on_progress)?;
+    sync_item(tx, year, &ITEM, on_progress, offline)?;
     Ok(())
 }
 
@@ -103,7 +104,7 @@ pub fn get_candidate_committee_linkages(
     let mut tx = bulk_db
         .transaction()
         .context("Could not start a transaction on the .bulk-data.db database")?;
-    sync_item(&mut tx, cycle, &ITEM, on_progress)?;
+    sync_item(&mut tx, cycle, &ITEM, on_progress, false)?;
     tx.commit()?;
 
     let sql = r#"

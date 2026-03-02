@@ -575,7 +575,7 @@ mod tests {
                 },
                 active_filters: self.active_filters,
                 feed_url: self.feed_url,
-                sourcer: FilingSourcer::new(None),
+                sourcer: FilingSourcer::new(None, false),
                 last_key: None,
                 copy_menu_open: self.copy_menu_open,
                 copy_menu_selection: self.copy_menu_selection,

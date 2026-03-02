@@ -64,8 +64,9 @@ pub fn export(
     tx: &mut Transaction<'_>,
     year: u16,
     on_progress: Option<&dyn Fn(u64, Option<u64>)>,
+    offline: bool,
 ) -> Result<()> {
-    let result = sync_item(tx, year, &ITEM, on_progress)?;
+    let result = sync_item(tx, year, &ITEM, on_progress, offline)?;
     println!("candidate_summary {year} {result:?}");
     Ok(())
 }
@@ -106,7 +107,7 @@ pub fn get_candidate_summary(
     on_progress: Option<&dyn Fn(u64, Option<u64>)>,
 ) -> Result<Option<CandidateFinancialSummary>> {
     let mut tx = db.transaction()?;
-    let _result = sync_item(&mut tx, cycle, &ITEM, on_progress)?;
+    let _result = sync_item(&mut tx, cycle, &ITEM, on_progress, false)?;
     tx.commit()?;
 
     let mut stmt = db.prepare(
@@ -156,7 +157,7 @@ pub fn get_contest_candidates(
 ) -> Result<Vec<ContestCandidate>> {
     // Sync bulk data first
     let mut tx = db.transaction()?;
-    let result = sync_item(&mut tx, cycle, &ITEM, on_progress)?;
+    let result = sync_item(&mut tx, cycle, &ITEM, on_progress, false)?;
     println!("candidate_summary {cycle} {result:?}");
     tx.commit()?;
 

@@ -149,12 +149,13 @@ pub fn resolve_candidate_principal_campaign_committees(
     mut bulk_db: Connection,
     params: ResolveCandidateParams,
     on_progress: Option<&dyn Fn(u64, Option<u64>)>,
+    offline: bool,
 ) -> Result<Vec<String>> {
     bulk_db.execute_batch(SCHEMA)?;
     let mut tx = bulk_db
         .transaction()
         .context("Could not start a transaction on the .bulk-data.db database")?;
-    sync_item(&mut tx, params.cycle, &ITEM, on_progress)?;
+    sync_item(&mut tx, params.cycle, &ITEM, on_progress, offline)?;
     tx.commit()?;
     query_candidate_principal_campaign_committees(&bulk_db, params)
 }
@@ -203,7 +204,7 @@ pub fn search_candidates(
     let mut tx = bulk_db
         .transaction()
         .context("Could not start a transaction on the .bulk-data.db database")?;
-    sync_item(&mut tx, cycle, &ITEM, on_progress)?;
+    sync_item(&mut tx, cycle, &ITEM, on_progress, false)?;
     tx.commit()?;
 
     let fts_query = match build_fts_query(name_query) {
@@ -259,7 +260,7 @@ pub fn filter_candidates_by_district(
     let mut tx = bulk_db
         .transaction()
         .context("Could not start a transaction on the .bulk-data.db database")?;
-    sync_item(&mut tx, cycle, &ITEM, on_progress)?;
+    sync_item(&mut tx, cycle, &ITEM, on_progress, false)?;
     tx.commit()?;
 
     let sql = r#"
@@ -311,7 +312,7 @@ pub fn filter_candidates_by_senate(
     let mut tx = bulk_db
         .transaction()
         .context("Could not start a transaction on the .bulk-data.db database")?;
-    sync_item(&mut tx, cycle, &ITEM, on_progress)?;
+    sync_item(&mut tx, cycle, &ITEM, on_progress, false)?;
     tx.commit()?;
 
     let sql = r#"
@@ -361,7 +362,7 @@ pub fn get_candidate_detail(
     let mut tx = bulk_db
         .transaction()
         .context("Could not start a transaction on the .bulk-data.db database")?;
-    sync_item(&mut tx, cycle, &ITEM, on_progress)?;
+    sync_item(&mut tx, cycle, &ITEM, on_progress, false)?;
     tx.commit()?;
 
     let sql = r#"
@@ -423,7 +424,8 @@ pub fn export(
     tx: &mut Transaction<'_>,
     year: u16,
     on_progress: Option<&dyn Fn(u64, Option<u64>)>,
+    offline: bool,
 ) -> Result<()> {
-    sync_item(tx, year, &ITEM, on_progress)?;
+    sync_item(tx, year, &ITEM, on_progress, offline)?;
     Ok(())
 }

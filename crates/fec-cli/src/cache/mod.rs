@@ -50,6 +50,7 @@ pub(crate) struct Cache {
     cache_directory: PathBuf,
     number_concurrent: usize,
     api_cache: Option<SqliteApiCache>,
+    pub offline: bool,
 }
 
 pub struct CachedFiling {
@@ -60,7 +61,7 @@ static BASE_URL: &str =
     "https://cg-519a459a-0ea3-42c2-b7bc-fa1143481f74.s3-us-gov-west-1.amazonaws.com";
 
 impl Cache {
-    pub fn new(cli_cache_directory: Option<PathBuf>) -> Self {
+    pub fn new(cli_cache_directory: Option<PathBuf>, offline: bool) -> Self {
         let cache_directory = cli_cache_directory
             .unwrap_or_else(|| {
                 let strat =
@@ -78,6 +79,7 @@ impl Cache {
             cache_directory,
             number_concurrent: 8,
             api_cache,
+            offline,
         }
     }
 
@@ -125,6 +127,14 @@ impl Cache {
             .cache_directory
             .join(format!(".daily-zip.{}.meta", date.strftime("%Y-%m-%d")));
         let meta_part_path = meta_path.with_extension("meta.part");
+
+        if self.offline && !meta_path.exists() {
+            return Err(anyhow::anyhow!(
+                "offline mode: no cached daily zip for {}",
+                date
+            ));
+        }
+
         if meta_path.exists() {
             if meta_part_path.exists() {
                 let _ = std::fs::remove_file(&meta_path);
@@ -249,6 +259,7 @@ impl Cache {
             self.open_bulk_data_database()?,
             params,
             None,
+            self.offline,
         )
     }
 
@@ -302,6 +313,15 @@ impl Cache {
                 }
             }
             queue.push(item);
+        }
+
+        if self.offline && !queue.is_empty() {
+            let missing: Vec<String> = queue.iter().map(|id| id.to_human_readable()).collect();
+            return Err(anyhow::anyhow!(
+                "offline mode: {} filing(s) not cached: {}",
+                missing.len(),
+                missing.join(", ")
+            ));
         }
 
         let spinner = mb.map(|mb| {

@@ -506,7 +506,7 @@ pub(crate) fn process_inputs(
             }
         });
 
-        let caching_result = sourcer.cache.cache_all(cacheable, mb).unwrap();
+        let caching_result = sourcer.cache.cache_all(cacheable, mb)?;
 
         if let Some(mb) = mb {
             let downloaded = caching_result.stats.number_downloaded;
@@ -686,9 +686,9 @@ impl Contest {
 }
 
 impl FilingSourcer {
-    pub fn new(cli_cache_directory: Option<PathBuf>) -> Self {
+    pub fn new(cli_cache_directory: Option<PathBuf>, offline: bool) -> Self {
         Self {
-            cache: Cache::new(cli_cache_directory),
+            cache: Cache::new(cli_cache_directory, offline),
         }
     }
 
