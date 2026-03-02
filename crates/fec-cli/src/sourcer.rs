@@ -299,6 +299,7 @@ pub(crate) fn process_inputs(
     let mut queue = vec![];
     let mut trace = Trace {
         resolve_candidate_params: vec![],
+        committee_ids: vec![],
     };
     let mut input_mappings = vec![];
 
@@ -336,6 +337,7 @@ pub(crate) fn process_inputs(
                     input_type: InputType::Committee,
                     direct_filings: vec![], // resolved via API
                 });
+                trace.committee_ids.push(committee.clone());
                 // chuck committee ids into api_flags under --committee
                 api_flags
                     .committee

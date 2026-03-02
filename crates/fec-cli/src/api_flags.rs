@@ -22,6 +22,7 @@ static DAILY_ZIP_STYLE: LazyLock<ProgressStyle> = LazyLock::new(|| {
 #[derive(Debug, Clone)]
 pub struct Trace {
     pub resolve_candidate_params: Vec<ResolveCandidateParams>,
+    pub committee_ids: Vec<CommitteeId>,
 }
 
 #[derive(Parser, Debug, Clone)]

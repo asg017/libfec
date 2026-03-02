@@ -540,6 +540,15 @@ pub fn cmd_export_sqlite(
         for params in &trace.resolve_candidate_params {
             candidates::include(&mut tx, p.clone(), params).unwrap();
         }
+        // Include libfec_committee rows for directly-specified committee IDs
+        if !trace.committee_ids.is_empty() {
+            let id_strs: Vec<&str> = trace.committee_ids.iter().map(|c| c.as_str()).collect();
+            for &cycle in &committee_cycles {
+                committee::include_specific(&mut tx, p.clone(), cycle, &id_strs).with_context(
+                    || format!("Error including specific committees for cycle {}", cycle),
+                )?;
+            }
+        }
     }
 
     let mut nfilings = 0;

@@ -10,6 +10,7 @@ pub fn filings(mut sourcer: FilingSourcer, args: &ApiFilingsArgs) -> anyhow::Res
     let mut api_flags = args.api.clone();
     let mut trace = Trace {
         resolve_candidate_params: vec![],
+        committee_ids: vec![],
     };
 
     for input in &args.inputs {
