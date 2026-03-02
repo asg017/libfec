@@ -507,6 +507,17 @@ pub fn cmd_export_sqlite(
                 cycles.push(params.cycle);
             }
         }
+        // When committee IDs are specified but no cycle is available, default to the current
+        // election cycle so bulk committee data gets synced and included.
+        if !trace.committee_ids.is_empty() && cycles.is_empty() {
+            let year = jiff::Zoned::now().year() as u16;
+            let election_cycle = if year.is_multiple_of(2) {
+                year
+            } else {
+                year + 1
+            };
+            cycles.push(election_cycle);
+        }
         {
             let mut bulk_db = Connection::open(&p)
                 .with_context(|| format!("Could not open bulk database at {:?}", p))?;

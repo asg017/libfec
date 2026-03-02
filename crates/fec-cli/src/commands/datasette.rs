@@ -94,10 +94,6 @@ pub fn datasette(sourcer: FilingSourcer, args: DatasetteArgs) -> Result<()> {
             if matches!(first_input, DatasetteInput::Contest(_)) && api.election.is_none() {
                 api.election = Some(2026);
             }
-            // Ensure cycle is set so include_all_bulk has data to include
-            if api.cycle.is_none() {
-                api.cycle = Some(vec![api.election.unwrap_or(2026)]);
-            }
 
             let export_args = ExportArgs {
                 filings: args.inputs.clone(),
@@ -109,7 +105,7 @@ pub fn datasette(sourcer: FilingSourcer, args: DatasetteArgs) -> Result<()> {
                 cover_only: args.cover_only,
                 rpc: false,
                 write_metadata: true,
-                include_all_bulk: true,
+                include_all_bulk: false,
                 api,
             };
 
