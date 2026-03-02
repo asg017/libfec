@@ -9,7 +9,7 @@ Use one of the methods detailed below to install the `libfec` CLI on your machin
 The easiest way to install the `libfec` CLI is with the following installation script:
 
 ```bash
-curl --proto '=https' --tlsv1.2 -LsSf https://github.com/asg017/libfec/releases/download/0.0.12/fec-cli-installer.sh | sh
+curl --proto '=https' --tlsv1.2 -LsSf https://github.com/asg017/libfec/releases/latest/download/fec-cli-installer.sh | sh
 ```
 
 Once ran, you can run the `libfec` command line by directly calling:
