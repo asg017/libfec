@@ -185,10 +185,13 @@ fn fetch_all_pages(
     Ok(results)
 }
 
+#[allow(clippy::too_many_arguments)]
 fn fetch_efiling_dedup(
     client: &Api,
     committees: &[CommitteeId],
     form_types: &Option<Vec<String>>,
+    report_types: &Option<Vec<String>>,
+    include_amendments: bool,
     sourcer: &mut FilingSourcer,
     results: &mut Vec<FilingItem>,
     stats: &mut FetchStats,
@@ -198,6 +201,7 @@ fn fetch_efiling_dedup(
         let efiling_filing_args = fec_api::EfilingFilingArgs {
             committees: chunk.to_vec(),
             form_types: form_types.clone(),
+            report_types: report_types.clone(),
         };
         let mut current = client.efiling_filings_url(efiling_filing_args).0;
         loop {
@@ -212,6 +216,31 @@ fn fetch_efiling_dedup(
             )?;
             stats.record(&response);
             for item in items {
+                // The efile/filings endpoint may not support report_type filtering,
+                // so filter client-side as well
+                if let Some(rt_filter) = report_types {
+                    let item_rt = item
+                        .value
+                        .get("report_type")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("");
+                    if !rt_filter.iter().any(|rt| rt == item_rt) {
+                        continue;
+                    }
+                }
+                // Skip superseded filings when not including amendments.
+                // The efile/filings endpoint doesn't support most_recent=true,
+                // so we filter client-side using the amended_by field.
+                if !include_amendments {
+                    let is_superseded = item.value.get("amended_by").is_some_and(|v| match v {
+                        serde_json::Value::Number(n) => n.as_u64().is_some_and(|n| n > 0),
+                        serde_json::Value::Null => false,
+                        _ => false,
+                    });
+                    if is_superseded {
+                        continue;
+                    }
+                }
                 if !results
                     .iter()
                     .any(|existing| existing.filing_id == item.filing_id)
@@ -307,6 +336,8 @@ impl FilingsApiFlags {
             client,
             &committees,
             &self.form_type,
+            &self.report_type,
+            self.include_amendments,
             sourcer,
             &mut results,
             &mut stats,
@@ -320,28 +351,72 @@ impl FilingsApiFlags {
         sourcer: &mut FilingSourcer,
         spinner: &Option<ProgressBar>,
     ) -> anyhow::Result<Vec<FilingItem>> {
-        let args = FilingArgsBuilder::default()
-            .committees(self.committee.clone().unwrap_or_default())
-            .candidates(self.candidate.clone().unwrap_or_default())
-            .form_types(self.form_type.clone())
-            .report_types(self.report_type.clone())
-            .committee_types(self.committee_type.clone())
-            .cycle(self.cycle.clone().unwrap_or_default())
-            .include_amendments(self.include_amendments)
-            .min_receipt_date(self.received_after.map(|d| d.to_string()))
-            .max_receipt_date(self.received_before.map(|d| d.to_string()))
-            .build()
-            .with_context(|| "could not build filing args".to_string())?;
-        let url = client.filings_url(args).0;
-
-        let mut stats = FetchStats::default();
-        let mut results = fetch_all_pages(url, sourcer, &mut stats, spinner, "")?;
-
         let committees = self.committee.clone().unwrap_or_default();
+        let candidates = self.candidate.clone().unwrap_or_default();
+        let mut stats = FetchStats::default();
+        let mut results = vec![];
+
+        if committees.len() > 50 {
+            for (idx, chunk) in committees.chunks(50).enumerate() {
+                let args = FilingArgsBuilder::default()
+                    .committees(chunk)
+                    .candidates(vec![])
+                    .form_types(self.form_type.clone())
+                    .report_types(self.report_type.clone())
+                    .committee_types(self.committee_type.clone())
+                    .cycle(self.cycle.clone().unwrap_or_default())
+                    .include_amendments(self.include_amendments)
+                    .min_receipt_date(self.received_after.map(|d| d.to_string()))
+                    .max_receipt_date(self.received_before.map(|d| d.to_string()))
+                    .build()
+                    .with_context(|| "could not build filing args".to_string())?;
+                let url = client.filings_url(args).0;
+                let prefix = format!("chunk={idx} {} ", committees.len());
+                let items = fetch_all_pages(url, sourcer, &mut stats, spinner, &prefix)?;
+                results.extend(items);
+            }
+            // Fetch candidates separately if any
+            if !candidates.is_empty() {
+                let args = FilingArgsBuilder::default()
+                    .committees(vec![])
+                    .candidates(candidates)
+                    .form_types(self.form_type.clone())
+                    .report_types(self.report_type.clone())
+                    .committee_types(self.committee_type.clone())
+                    .cycle(self.cycle.clone().unwrap_or_default())
+                    .include_amendments(self.include_amendments)
+                    .min_receipt_date(self.received_after.map(|d| d.to_string()))
+                    .max_receipt_date(self.received_before.map(|d| d.to_string()))
+                    .build()
+                    .with_context(|| "could not build filing args".to_string())?;
+                let url = client.filings_url(args).0;
+                let items = fetch_all_pages(url, sourcer, &mut stats, spinner, "")?;
+                results.extend(items);
+            }
+        } else {
+            let args = FilingArgsBuilder::default()
+                .committees(committees.clone())
+                .candidates(candidates)
+                .form_types(self.form_type.clone())
+                .report_types(self.report_type.clone())
+                .committee_types(self.committee_type.clone())
+                .cycle(self.cycle.clone().unwrap_or_default())
+                .include_amendments(self.include_amendments)
+                .min_receipt_date(self.received_after.map(|d| d.to_string()))
+                .max_receipt_date(self.received_before.map(|d| d.to_string()))
+                .build()
+                .with_context(|| "could not build filing args".to_string())?;
+            let url = client.filings_url(args).0;
+            let items = fetch_all_pages(url, sourcer, &mut stats, spinner, "")?;
+            results.extend(items);
+        }
+
         fetch_efiling_dedup(
             client,
             &committees,
             &self.form_type,
+            &self.report_type,
+            self.include_amendments,
             sourcer,
             &mut results,
             &mut stats,
@@ -492,5 +567,179 @@ impl FilingsApiFlags {
             .iter()
             .map(|item| FecFilingId::from_str(&item.filing_id).unwrap())
             .collect())
+    }
+
+    /// Build all API URLs that would be made for the current flags, without fetching.
+    /// Returns (filings_urls, efiling_urls).
+    #[cfg(test)]
+    fn build_urls(&self) -> (Vec<Url>, Vec<Url>) {
+        let client = Api::new("TEST_KEY");
+        let committees = self.committee.clone().unwrap_or_default();
+        let candidates = self.candidate.clone().unwrap_or_default();
+        let cycle = if self.election.is_some() && self.office.is_none() && self.state.is_none() {
+            self.election.map(|v| vec![v]).unwrap_or_default()
+        } else {
+            self.cycle.clone().unwrap_or_default()
+        };
+
+        let mut filings_urls = vec![];
+
+        if committees.len() > 50 {
+            for chunk in committees.chunks(50) {
+                let args = FilingArgsBuilder::default()
+                    .committees(chunk)
+                    .candidates(vec![])
+                    .form_types(self.form_type.clone())
+                    .report_types(self.report_type.clone())
+                    .committee_types(self.committee_type.clone())
+                    .cycle(cycle.clone())
+                    .include_amendments(self.include_amendments)
+                    .min_receipt_date(self.received_after.map(|d| d.to_string()))
+                    .max_receipt_date(self.received_before.map(|d| d.to_string()))
+                    .build()
+                    .unwrap();
+                filings_urls.push(client.filings_url(args).0);
+            }
+            if !candidates.is_empty() {
+                let args = FilingArgsBuilder::default()
+                    .committees(vec![])
+                    .candidates(candidates)
+                    .form_types(self.form_type.clone())
+                    .report_types(self.report_type.clone())
+                    .committee_types(self.committee_type.clone())
+                    .cycle(cycle.clone())
+                    .include_amendments(self.include_amendments)
+                    .min_receipt_date(self.received_after.map(|d| d.to_string()))
+                    .max_receipt_date(self.received_before.map(|d| d.to_string()))
+                    .build()
+                    .unwrap();
+                filings_urls.push(client.filings_url(args).0);
+            }
+        } else {
+            let args = FilingArgsBuilder::default()
+                .committees(committees.clone())
+                .candidates(candidates)
+                .form_types(self.form_type.clone())
+                .report_types(self.report_type.clone())
+                .committee_types(self.committee_type.clone())
+                .cycle(cycle.clone())
+                .include_amendments(self.include_amendments)
+                .min_receipt_date(self.received_after.map(|d| d.to_string()))
+                .max_receipt_date(self.received_before.map(|d| d.to_string()))
+                .build()
+                .unwrap();
+            filings_urls.push(client.filings_url(args).0);
+        }
+
+        let mut efiling_urls = vec![];
+        for chunk in committees.chunks(50) {
+            let efiling_args = fec_api::EfilingFilingArgs {
+                committees: chunk.to_vec(),
+                form_types: self.form_type.clone(),
+                report_types: self.report_type.clone(),
+            };
+            efiling_urls.push(client.efiling_filings_url(efiling_args).0);
+        }
+
+        (filings_urls, efiling_urls)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use insta::assert_snapshot;
+
+    fn parse_flags(args: &str) -> FilingsApiFlags {
+        let argv: Vec<&str> = std::iter::once("test")
+            .chain(args.split_whitespace())
+            .collect();
+        FilingsApiFlags::parse_from(argv)
+    }
+
+    fn format_url_params(url: &Url) -> String {
+        let redacted = fec_api::redact_api_key(url);
+        let parsed = Url::parse(&redacted).unwrap();
+        let mut lines = vec![];
+        for (key, value) in parsed.query_pairs() {
+            lines.push(format!("  {}: {}", key, value));
+        }
+        lines.join("\n")
+    }
+
+    fn snapshot_urls(flags_str: &str) -> String {
+        let flags = parse_flags(flags_str);
+        let (filings_urls, efiling_urls) = flags.build_urls();
+
+        let mut out = format!("flags: {}\n", flags_str);
+
+        for (i, url) in filings_urls.iter().enumerate() {
+            if filings_urls.len() > 1 {
+                out.push_str(&format!("\n/v1/filings [{}]\n", i));
+            } else {
+                out.push_str("\n/v1/filings\n");
+            }
+            out.push_str(&format_url_params(url));
+            out.push('\n');
+        }
+
+        for (i, url) in efiling_urls.iter().enumerate() {
+            if efiling_urls.len() > 1 {
+                out.push_str(&format!("\n/v1/efile/filings [{}]\n", i));
+            } else {
+                out.push_str("\n/v1/efile/filings\n");
+            }
+            out.push_str(&format_url_params(url));
+            out.push('\n');
+        }
+
+        out
+    }
+
+    #[test]
+    fn test_urls_single_committee_f3_ye() {
+        assert_snapshot!(snapshot_urls(
+            "--committee C00401224 --form-type F3 --report-type YE --cycle 2026"
+        ));
+    }
+
+    #[test]
+    fn test_urls_multiple_committees() {
+        assert_snapshot!(snapshot_urls(
+            "--committee C00401224 --committee C00558437 --committee C00796649 --form-type F3 --report-type YE --cycle 2026"
+        ));
+    }
+
+    #[test]
+    fn test_urls_candidate_only() {
+        assert_snapshot!(snapshot_urls("--candidate P80000722 --cycle 2024"));
+    }
+
+    #[test]
+    fn test_urls_with_amendments() {
+        assert_snapshot!(snapshot_urls(
+            "--committee C00401224 --cycle 2024 --include-amendments"
+        ));
+    }
+
+    #[test]
+    fn test_urls_with_date_filters() {
+        assert_snapshot!(snapshot_urls(
+            "--committee C00401224 --form-type F3 --received-after 2025-01-01 --received-before 2025-12-31"
+        ));
+    }
+
+    #[test]
+    fn test_urls_multiple_form_and_report_types() {
+        assert_snapshot!(snapshot_urls(
+            "--committee C00401224 --form-type F3 --form-type F3X --report-type YE --report-type Q3 --cycle 2024 --cycle 2026"
+        ));
+    }
+
+    #[test]
+    fn test_urls_election_without_office() {
+        assert_snapshot!(snapshot_urls(
+            "--committee C00401224 --form-type F3 --election 2026"
+        ));
     }
 }

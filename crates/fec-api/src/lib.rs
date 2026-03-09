@@ -240,6 +240,7 @@ pub struct FilingArgs {
 pub struct EfilingFilingArgs {
     pub committees: Vec<CommitteeId>,
     pub form_types: Option<Vec<String>>,
+    pub report_types: Option<Vec<String>>,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
@@ -332,11 +333,19 @@ pub struct EfilingFilingUrl(pub Url);
 #[derive(Debug, Clone)]
 pub struct GenericApiUrl(pub Url);
 
-fn redact_api_key(url: &Url) -> String {
+pub fn redact_api_key(url: &Url) -> String {
     let mut redacted = url.clone();
-    let mut qp = redacted.query_pairs_mut();
-    qp.clear().append_pair("api_key", "REDACTED");
-    drop(qp);
+    let pairs: Vec<(String, String)> = redacted
+        .query_pairs()
+        .map(|(k, v)| {
+            if k == "api_key" {
+                (k.into_owned(), "REDACTED".to_string())
+            } else {
+                (k.into_owned(), v.into_owned())
+            }
+        })
+        .collect();
+    redacted.query_pairs_mut().clear().extend_pairs(pairs);
     redacted.to_string()
 }
 
@@ -519,6 +528,11 @@ impl Api {
         if let Some(form_types) = &args.form_types {
             for form_type in form_types {
                 qp.append_pair("form_type", form_type);
+            }
+        }
+        if let Some(report_types) = &args.report_types {
+            for report_type in report_types {
+                qp.append_pair("report_type", report_type);
             }
         }
 

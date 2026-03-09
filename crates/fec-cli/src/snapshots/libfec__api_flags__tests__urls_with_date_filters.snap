@@ -1,0 +1,23 @@
+---
+source: crates/fec-cli/src/api_flags.rs
+expression: "snapshot_urls(\"--committee C00401224 --form-type F3 --received-after 2025-01-01 --received-before 2025-12-31\")"
+snapshot_kind: text
+---
+flags: --committee C00401224 --form-type F3 --received-after 2025-01-01 --received-before 2025-12-31
+
+/v1/filings
+  api_key: REDACTED
+  per_page: 100
+  most_recent: true
+  filer_type: e-file
+  committee_id: C00401224
+  form_type: F3
+  min_receipt_date: 2025-01-01
+  max_receipt_date: 2025-12-31
+  sort: committee_id
+
+/v1/efile/filings
+  api_key: REDACTED
+  committee_id: C00401224
+  form_type: F3
+  per_page: 100

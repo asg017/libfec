@@ -1,0 +1,19 @@
+---
+source: crates/fec-cli/src/api_flags.rs
+expression: "snapshot_urls(\"--committee C00401224 --cycle 2024 --include-amendments\")"
+snapshot_kind: text
+---
+flags: --committee C00401224 --cycle 2024 --include-amendments
+
+/v1/filings
+  api_key: REDACTED
+  per_page: 100
+  filer_type: e-file
+  committee_id: C00401224
+  cycle: 2024
+  sort: committee_id
+
+/v1/efile/filings
+  api_key: REDACTED
+  committee_id: C00401224
+  per_page: 100

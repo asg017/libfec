@@ -1,0 +1,15 @@
+---
+source: crates/fec-cli/src/api_flags.rs
+expression: "snapshot_urls(\"--candidate P80000722 --cycle 2024\")"
+snapshot_kind: text
+---
+flags: --candidate P80000722 --cycle 2024
+
+/v1/filings
+  api_key: REDACTED
+  per_page: 100
+  most_recent: true
+  filer_type: e-file
+  candidate_id: P80000722
+  cycle: 2024
+  sort: committee_id

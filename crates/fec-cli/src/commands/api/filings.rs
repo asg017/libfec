@@ -6,6 +6,62 @@ use crate::{
 use fec_api::CommitteeId;
 use std::io::{self, Write};
 
+fn process_input(
+    sourcer: &mut FilingSourcer,
+    api_flags: &mut crate::api_flags::FilingsApiFlags,
+    trace: &mut Trace,
+    input: &str,
+) -> anyhow::Result<()> {
+    match sourcer.resolve_user_argument(input)? {
+        UserArgument::Committee(id) => {
+            api_flags.committee.get_or_insert_with(Vec::new).push(id);
+        }
+        UserArgument::Candidate(id) => {
+            api_flags.candidate.get_or_insert_with(Vec::new).push(id);
+        }
+        UserArgument::Contest(contest) => {
+            let cycle = api_flags.election.ok_or_else(|| {
+                anyhow::anyhow!("contest '{}' requires --election to be set", input)
+            })?;
+            let params = contest.resolve_candidate_params(cycle);
+            trace.resolve_candidate_params.push(params.clone());
+            let committee_strings = sourcer
+                .cache
+                .resolve_candidate_principal_campaign_committees(params)?;
+            api_flags.committee.get_or_insert_with(Vec::new).extend(
+                committee_strings
+                    .into_iter()
+                    .map(|s| CommitteeId::new(&s).unwrap()),
+            );
+        }
+        UserArgument::Filing(Item::FilingId(_)) => {
+            return Err(anyhow::anyhow!(
+                "'{}' is a filing ID — the api command queries the filings API by committee/candidate, not by filing ID. Use `libfec info {}` instead.",
+                input, input
+            ));
+        }
+        UserArgument::Filing(_) => {
+            return Err(anyhow::anyhow!(
+                "'{}' is a URL or file path — the api command only accepts committee IDs, candidate IDs, and contest shorthand",
+                input
+            ));
+        }
+        UserArgument::InputFile(path) => {
+            let contents = std::fs::read_to_string(&path).map_err(|e| {
+                anyhow::anyhow!("Could not read input file '{}': {}", path.display(), e)
+            })?;
+            for line in contents.lines() {
+                let line = line.trim();
+                if line.is_empty() || line.starts_with('#') {
+                    continue;
+                }
+                process_input(sourcer, api_flags, trace, line)?;
+            }
+        }
+    }
+    Ok(())
+}
+
 pub fn filings(mut sourcer: FilingSourcer, args: &ApiFilingsArgs) -> anyhow::Result<()> {
     let mut api_flags = args.api.clone();
     let mut trace = Trace {
@@ -14,47 +70,7 @@ pub fn filings(mut sourcer: FilingSourcer, args: &ApiFilingsArgs) -> anyhow::Res
     };
 
     for input in &args.inputs {
-        match sourcer.resolve_user_argument(input)? {
-            UserArgument::Committee(id) => {
-                api_flags.committee.get_or_insert_with(Vec::new).push(id);
-            }
-            UserArgument::Candidate(id) => {
-                api_flags.candidate.get_or_insert_with(Vec::new).push(id);
-            }
-            UserArgument::Contest(contest) => {
-                let cycle = api_flags.election.ok_or_else(|| {
-                    anyhow::anyhow!("contest '{}' requires --election to be set", input)
-                })?;
-                let params = contest.resolve_candidate_params(cycle);
-                trace.resolve_candidate_params.push(params.clone());
-                let committee_strings = sourcer
-                    .cache
-                    .resolve_candidate_principal_campaign_committees(params)?;
-                api_flags.committee.get_or_insert_with(Vec::new).extend(
-                    committee_strings
-                        .into_iter()
-                        .map(|s| CommitteeId::new(&s).unwrap()),
-                );
-            }
-            UserArgument::Filing(Item::FilingId(_)) => {
-                return Err(anyhow::anyhow!(
-                    "'{}' is a filing ID — the api command queries the filings API by committee/candidate, not by filing ID. Use `libfec info {}` instead.",
-                    input, input
-                ));
-            }
-            UserArgument::Filing(_) => {
-                return Err(anyhow::anyhow!(
-                    "'{}' is a URL or file path — the api command only accepts committee IDs, candidate IDs, and contest shorthand",
-                    input
-                ));
-            }
-            UserArgument::InputFile(_) => {
-                return Err(anyhow::anyhow!(
-                    "'{}' is a file path — the api command only accepts committee IDs, candidate IDs, and contest shorthand",
-                    input
-                ));
-            }
-        }
+        process_input(&mut sourcer, &mut api_flags, &mut trace, input)?;
     }
 
     let items = api_flags.resolve_items(&mut sourcer, None, &mut trace)?;

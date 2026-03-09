@@ -1,0 +1,28 @@
+---
+source: crates/fec-cli/src/api_flags.rs
+expression: "snapshot_urls(\"--committee C00401224 --committee C00558437 --committee C00796649 --form-type F3 --report-type YE --cycle 2026\")"
+snapshot_kind: text
+---
+flags: --committee C00401224 --committee C00558437 --committee C00796649 --form-type F3 --report-type YE --cycle 2026
+
+/v1/filings
+  api_key: REDACTED
+  per_page: 100
+  most_recent: true
+  filer_type: e-file
+  committee_id: C00401224
+  committee_id: C00558437
+  committee_id: C00796649
+  form_type: F3
+  report_type: YE
+  cycle: 2026
+  sort: committee_id
+
+/v1/efile/filings
+  api_key: REDACTED
+  committee_id: C00401224
+  committee_id: C00558437
+  committee_id: C00796649
+  form_type: F3
+  report_type: YE
+  per_page: 100
