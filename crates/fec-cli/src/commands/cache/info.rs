@@ -285,14 +285,14 @@ pub fn cache_info(sourcer: &FilingSourcer) {
     }
 
     // Bulk data details
-    if let Ok(conn) = Connection::open(&bulk_db_path) {
+    if let Ok(conn) = crate::cache::open_connection(&bulk_db_path) {
         println!();
         println!("  {}", "Bulk Data".bold());
         print_bulk_data_info(&conn);
     }
 
     // Individual contributions cycle details
-    if let Ok(conn) = Connection::open(&ic_db_path) {
+    if let Ok(conn) = crate::cache::open_connection(&ic_db_path) {
         let cycles = query_bulk_cycles(&conn, INDIVIDUAL_CONTRIBUTIONS_SOURCE.table_name);
         if !cycles.is_empty() {
             println!();

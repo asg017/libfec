@@ -6,8 +6,8 @@ use std::path::PathBuf;
 
 /// Open or create the export SQLite database
 pub fn open_or_create_export_db(path: &PathBuf) -> Result<Connection> {
-    Connection::open(path)
-        .with_context(|| format!("Could not open or create database at {:?}", path))
+    crate::cache::open_connection(path)
+        .with_context(|| format!("Could not open or create export database at {:?}", path))
 }
 
 /// Export a single filing by ID using the sourcer

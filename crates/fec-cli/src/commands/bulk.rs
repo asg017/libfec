@@ -58,7 +58,7 @@ pub fn bulk(sourcer: FilingSourcer, args: &BulkArgs) -> anyhow::Result<()> {
 
     // Handle non-individual-contributions sources in the output db
     if !non_ic_sources.is_empty() {
-        let mut db = rusqlite::Connection::open(args.output.as_ref().unwrap())?;
+        let mut db = crate::cache::open_connection(args.output.as_ref().unwrap())?;
         let mut tx = db.transaction()?;
 
         for year in &cycles {
@@ -145,7 +145,7 @@ pub fn bulk(sourcer: FilingSourcer, args: &BulkArgs) -> anyhow::Result<()> {
                 std::fs::canonicalize(&cache_db_path).unwrap_or(cache_db_path.clone());
             if output_canonical != cache_canonical {
                 pb.set_message("Copying individual contributions to output…".to_string());
-                let out_db = rusqlite::Connection::open(output)?;
+                let out_db = crate::cache::open_connection(output)?;
                 out_db.execute_batch(individual_contributions::SCHEMA)?;
                 let cache_db_str = cache_db_path.to_str().ok_or_else(|| {
                     anyhow::anyhow!("Cache db path is not valid UTF-8: {:?}", cache_db_path)

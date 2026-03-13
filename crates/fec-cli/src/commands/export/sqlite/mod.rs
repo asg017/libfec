@@ -451,8 +451,10 @@ pub fn cmd_export_sqlite(
 ) -> anyhow::Result<()> {
     let t0 = Instant::now();
 
-    let mut db = Connection::open(&path)
-        .context(format!("Could not open or create database at {:?}", path))?;
+    let mut db = crate::cache::open_connection(&path).context(format!(
+        "Could not open or create export database at {:?}",
+        path
+    ))?;
     let mb = MultiProgress::new();
 
     let mut tx = db
@@ -519,7 +521,7 @@ pub fn cmd_export_sqlite(
             cycles.push(election_cycle);
         }
         {
-            let mut bulk_db = Connection::open(&p)
+            let mut bulk_db = crate::cache::open_connection(&p)
                 .with_context(|| format!("Could not open bulk database at {:?}", p))?;
             for &cycle in &cycles {
                 let mut bulk_tx = bulk_db.transaction()?;

@@ -890,8 +890,8 @@ fn resolve_item_to_filing(
 
 /// Open or create the export SQLite database
 fn open_or_create_export_db(path: &PathBuf) -> Result<Connection> {
-    Connection::open(path)
-        .with_context(|| format!("Could not open or create database at {:?}", path))
+    crate::cache::open_connection(path)
+        .with_context(|| format!("Could not open or create export database at {:?}", path))
 }
 
 /// Send JSON-RPC response to stdout

@@ -1,3 +1,4 @@
+use super::open_connection;
 use anyhow::{Context, Result};
 use fec_api::{ApiCache, ApiCacheEntry};
 use rusqlite::Connection;
@@ -54,12 +55,8 @@ impl SqliteApiCache {
     /// Create a new SqliteApiCache, opening or creating the database at the given path.
     pub fn new(cache_directory: &Path) -> Result<Self> {
         let db_path = cache_directory.join(".api-cache.db");
-        let conn = Connection::open(&db_path).with_context(|| {
-            format!(
-                "Could not open or create API cache database at {:?}",
-                db_path
-            )
-        })?;
+        let conn = open_connection(&db_path)
+            .with_context(|| format!("Could not open API cache database at {:?}", db_path))?;
 
         // Create table with auto-increment primary key
         // api_key_hash is empty string for DEMO_KEY entries

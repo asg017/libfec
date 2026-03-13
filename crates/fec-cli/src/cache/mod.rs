@@ -11,6 +11,20 @@ use jiff::civil::Date;
 use rusqlite::Connection;
 use std::io::Read;
 use std::io::Write;
+use std::path::Path;
+
+/// Open a SQLite connection with WAL journal mode and a busy timeout.
+/// WAL allows concurrent readers while a writer is active, preventing
+/// "database is locked" errors when multiple commands access the same cache DB.
+pub fn open_connection(db_path: &Path) -> Result<Connection> {
+    let conn = Connection::open(db_path)
+        .with_context(|| format!("Could not open or create database at {:?}", db_path))?;
+    conn.pragma_update(None, "journal_mode", "WAL")
+        .with_context(|| format!("Could not set WAL journal mode on {:?}", db_path))?;
+    conn.pragma_update(None, "busy_timeout", 5000)
+        .with_context(|| format!("Could not set busy_timeout on {:?}", db_path))?;
+    Ok(conn)
+}
 use std::{
     fs::File,
     io::{BufWriter, Cursor},
@@ -95,9 +109,8 @@ impl Cache {
 
     pub(crate) fn open_bulk_data_database(&mut self) -> Result<Connection> {
         let db_path = self.bulk_data_database_path();
-        let conn = Connection::open(&db_path)
-            .with_context(|| format!("Could not open or create database at {:?}", db_path))?;
-        Ok(conn)
+        open_connection(&db_path)
+            .with_context(|| format!("Could not open bulk data database at {:?}", db_path))
     }
 
     pub(crate) fn bulk_data_database_path(&self) -> PathBuf {
@@ -110,8 +123,12 @@ impl Cache {
 
     pub(crate) fn open_individual_contributions_database(&mut self) -> Result<Connection> {
         let db_path = self.individual_contributions_database_path();
-        let conn = Connection::open(&db_path)?;
-        Ok(conn)
+        open_connection(&db_path).with_context(|| {
+            format!(
+                "Could not open individual contributions database at {:?}",
+                db_path
+            )
+        })
     }
 
     pub fn cache_bulk_daily_zip(
