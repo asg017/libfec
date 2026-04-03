@@ -109,6 +109,32 @@ pub struct FilingsApiFlags {
 
     #[arg(long, help = "Include amendments in results", default_value_t = false)]
     pub include_amendments: bool,
+
+    #[arg(long, help = "Exclude filings from these committees")]
+    pub exclude_committee: Option<Vec<CommitteeId>>,
+
+    #[arg(long, help = "Skip filings larger than this size (e.g. '50MB', '1GB')", value_parser = parse_file_size)]
+    pub max_file_size: Option<u64>,
+}
+
+fn parse_file_size(s: &str) -> Result<u64, String> {
+    let s = s.trim();
+    // Find where the numeric part ends
+    let num_end = s
+        .find(|c: char| !c.is_ascii_digit() && c != '.')
+        .unwrap_or(s.len());
+    let (num_str, suffix) = s.split_at(num_end);
+    let num: f64 = num_str
+        .parse()
+        .map_err(|_| format!("invalid number: {}", num_str))?;
+    let multiplier: u64 = match suffix.trim().to_uppercase().as_str() {
+        "" | "B" => 1,
+        "K" | "KB" | "KIB" => 1024,
+        "M" | "MB" | "MIB" => 1024 * 1024,
+        "G" | "GB" | "GIB" => 1024 * 1024 * 1024,
+        other => return Err(format!("unknown size suffix: {}", other)),
+    };
+    Ok((num * multiplier as f64) as u64)
 }
 
 fn filing_items(
@@ -265,6 +291,20 @@ fn fetch_efiling_dedup(
 }
 
 impl FilingsApiFlags {
+    /// Returns a FilingArgsBuilder pre-filled with the shared filter fields from CLI flags.
+    /// Callers only need to set `committees`, `candidates`, and `cycle`.
+    fn base_filing_args_builder(&self) -> FilingArgsBuilder {
+        let mut b = FilingArgsBuilder::default();
+        b.form_types(self.form_type.clone())
+            .report_types(self.report_type.clone())
+            .committee_types(self.committee_type.clone())
+            .report_year(self.report_year.clone().unwrap_or_default())
+            .include_amendments(self.include_amendments)
+            .min_receipt_date(self.received_after.map(|d| d.to_string()))
+            .max_receipt_date(self.received_before.map(|d| d.to_string()));
+        b
+    }
+
     pub(crate) fn any_provided(&self) -> bool {
         self.candidate.is_some()
             || self.committee.is_some()
@@ -319,17 +359,11 @@ impl FilingsApiFlags {
         let mut results = vec![];
         let mut stats = FetchStats::default();
         for (idx, chunk) in committees.chunks(50).enumerate() {
-            let filing_args = FilingArgsBuilder::default()
+            let filing_args = self
+                .base_filing_args_builder()
                 .committees(chunk)
                 .candidates(vec![])
-                .form_types(self.form_type.clone())
-                .report_types(self.report_type.clone())
-                .committee_types(self.committee_type.clone())
                 .cycle(vec![election])
-                .report_year(self.report_year.clone().unwrap_or_default())
-                .include_amendments(self.include_amendments)
-                .min_receipt_date(self.received_after.map(|d| d.to_string()))
-                .max_receipt_date(self.received_before.map(|d| d.to_string()))
                 .build()
                 .with_context(|| {
                     format!("could not build filing args for election {}", election)
@@ -365,17 +399,11 @@ impl FilingsApiFlags {
 
         if committees.len() > 50 {
             for (idx, chunk) in committees.chunks(50).enumerate() {
-                let args = FilingArgsBuilder::default()
+                let args = self
+                    .base_filing_args_builder()
                     .committees(chunk)
                     .candidates(vec![])
-                    .form_types(self.form_type.clone())
-                    .report_types(self.report_type.clone())
-                    .committee_types(self.committee_type.clone())
                     .cycle(self.cycle.clone().unwrap_or_default())
-                    .report_year(self.report_year.clone().unwrap_or_default())
-                    .include_amendments(self.include_amendments)
-                    .min_receipt_date(self.received_after.map(|d| d.to_string()))
-                    .max_receipt_date(self.received_before.map(|d| d.to_string()))
                     .build()
                     .with_context(|| "could not build filing args".to_string())?;
                 let url = client.filings_url(args).0;
@@ -385,17 +413,11 @@ impl FilingsApiFlags {
             }
             // Fetch candidates separately if any
             if !candidates.is_empty() {
-                let args = FilingArgsBuilder::default()
+                let args = self
+                    .base_filing_args_builder()
                     .committees(vec![])
                     .candidates(candidates)
-                    .form_types(self.form_type.clone())
-                    .report_types(self.report_type.clone())
-                    .committee_types(self.committee_type.clone())
                     .cycle(self.cycle.clone().unwrap_or_default())
-                    .report_year(self.report_year.clone().unwrap_or_default())
-                    .include_amendments(self.include_amendments)
-                    .min_receipt_date(self.received_after.map(|d| d.to_string()))
-                    .max_receipt_date(self.received_before.map(|d| d.to_string()))
                     .build()
                     .with_context(|| "could not build filing args".to_string())?;
                 let url = client.filings_url(args).0;
@@ -403,17 +425,11 @@ impl FilingsApiFlags {
                 results.extend(items);
             }
         } else {
-            let args = FilingArgsBuilder::default()
+            let args = self
+                .base_filing_args_builder()
                 .committees(committees.clone())
                 .candidates(candidates)
-                .form_types(self.form_type.clone())
-                .report_types(self.report_type.clone())
-                .committee_types(self.committee_type.clone())
                 .cycle(self.cycle.clone().unwrap_or_default())
-                .report_year(self.report_year.clone().unwrap_or_default())
-                .include_amendments(self.include_amendments)
-                .min_receipt_date(self.received_after.map(|d| d.to_string()))
-                .max_receipt_date(self.received_before.map(|d| d.to_string()))
                 .build()
                 .with_context(|| "could not build filing args".to_string())?;
             let url = client.filings_url(args).0;
@@ -482,6 +498,30 @@ impl FilingsApiFlags {
                     .is_some_and(|coverage_end_date| coverage_end_date >= coverage_after)
             });
         }
+        // post-filter excluded committees, if provided
+        if let Some(exclude_committees) = &self.exclude_committee {
+            let before_count = results.len();
+            results.retain(|item| {
+                let committee_id = item
+                    .value
+                    .get("committee_id")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("");
+                !exclude_committees
+                    .iter()
+                    .any(|ec| ec.as_str() == committee_id)
+            });
+            let excluded = before_count - results.len();
+            if excluded > 0 {
+                let ids: Vec<&str> = exclude_committees.iter().map(|c| c.as_str()).collect();
+                eprintln!(
+                    "⚠ Skipped {} filing(s) from excluded committee(s): {}",
+                    excluded,
+                    ids.join(", ")
+                );
+            }
+        }
+
         if let Some(sp) = spinner.as_ref() {
             sp.finish_and_clear()
         }
@@ -596,49 +636,31 @@ impl FilingsApiFlags {
 
         if committees.len() > 50 {
             for chunk in committees.chunks(50) {
-                let args = FilingArgsBuilder::default()
+                let args = self
+                    .base_filing_args_builder()
                     .committees(chunk)
                     .candidates(vec![])
-                    .form_types(self.form_type.clone())
-                    .report_types(self.report_type.clone())
-                    .committee_types(self.committee_type.clone())
                     .cycle(cycle.clone())
-                    .report_year(self.report_year.clone().unwrap_or_default())
-                    .include_amendments(self.include_amendments)
-                    .min_receipt_date(self.received_after.map(|d| d.to_string()))
-                    .max_receipt_date(self.received_before.map(|d| d.to_string()))
                     .build()
                     .unwrap();
                 filings_urls.push(client.filings_url(args).0);
             }
             if !candidates.is_empty() {
-                let args = FilingArgsBuilder::default()
+                let args = self
+                    .base_filing_args_builder()
                     .committees(vec![])
                     .candidates(candidates)
-                    .form_types(self.form_type.clone())
-                    .report_types(self.report_type.clone())
-                    .committee_types(self.committee_type.clone())
                     .cycle(cycle.clone())
-                    .report_year(self.report_year.clone().unwrap_or_default())
-                    .include_amendments(self.include_amendments)
-                    .min_receipt_date(self.received_after.map(|d| d.to_string()))
-                    .max_receipt_date(self.received_before.map(|d| d.to_string()))
                     .build()
                     .unwrap();
                 filings_urls.push(client.filings_url(args).0);
             }
         } else {
-            let args = FilingArgsBuilder::default()
+            let args = self
+                .base_filing_args_builder()
                 .committees(committees.clone())
                 .candidates(candidates)
-                .form_types(self.form_type.clone())
-                .report_types(self.report_type.clone())
-                .committee_types(self.committee_type.clone())
                 .cycle(cycle.clone())
-                .report_year(self.report_year.clone().unwrap_or_default())
-                .include_amendments(self.include_amendments)
-                .min_receipt_date(self.received_after.map(|d| d.to_string()))
-                .max_receipt_date(self.received_before.map(|d| d.to_string()))
                 .build()
                 .unwrap();
             filings_urls.push(client.filings_url(args).0);

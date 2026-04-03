@@ -542,6 +542,8 @@ pub struct IterFilingsX<'a> {
     sourcer: &'a FilingSourcer,
     queue: Vec<Item>,
     filing_progress: Option<ProgressBar>,
+    max_file_size: Option<u64>,
+    pub skipped_size: usize,
 }
 
 impl<'a> IterFilingsX<'a> {
@@ -549,47 +551,105 @@ impl<'a> IterFilingsX<'a> {
         filing_progress: Option<ProgressBar>,
         sourcer: &'a FilingSourcer,
         queue: Vec<Item>,
+        max_file_size: Option<u64>,
     ) -> Self {
         IterFilingsX {
             sourcer,
             queue,
             filing_progress,
+            max_file_size,
+            skipped_size: 0,
         }
     }
+}
+
+/// Check the size of a filing on docquery.fec.gov via a HEAD request.
+fn head_filing_size(filing_id: &FecFilingId) -> Option<u64> {
+    let url = format!(
+        "https://docquery.fec.gov/dcdev/posted/{}.fec",
+        filing_id.to_bare()
+    );
+    let response = ureq::head(&url).call().ok()?;
+    response
+        .headers()
+        .get("Content-Length")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|s| s.parse().ok())
 }
 
 impl<'a> Iterator for IterFilingsX<'a> {
     type Item = anyhow::Result<Filing<Box<dyn Read>>>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some(pb) = &self.filing_progress {
-            pb.inc(1);
-        }
-        match self.queue.pop()? {
-            Item::File(path) => {
-                if let Some(pb) = self.filing_progress.as_ref() {
-                    pb.set_message(format!("{}", path.display()))
-                }
-                Some(resolve_from_path(path))
+        loop {
+            let item = self.queue.pop()?;
+            if let Some(pb) = &self.filing_progress {
+                pb.inc(1);
             }
-            Item::CachedFile(path) => {
-                if let Some(pb) = self.filing_progress.as_ref() {
-                    pb.set_message(format!("{} [cached]", path.display()))
+
+            // Check max file size before resolving
+            if let Some(max_size) = self.max_file_size {
+                let file_size = match &item {
+                    Item::File(path) | Item::CachedFile(path) => {
+                        std::fs::metadata(path).ok().map(|m| m.len())
+                    }
+                    Item::FilingId(id) => {
+                        // Check cache first, then HEAD request
+                        if let Some(cached_path) = self.sourcer.filing_cache_path(id) {
+                            std::fs::metadata(&cached_path).ok().map(|m| m.len())
+                        } else {
+                            head_filing_size(id)
+                        }
+                    }
+                    Item::CustomUrl(_) => None, // can't cheaply check, allow through
+                };
+                if let Some(size) = file_size {
+                    if size > max_size {
+                        let label = match &item {
+                            Item::File(p) | Item::CachedFile(p) => {
+                                format!("{}", p.display())
+                            }
+                            Item::FilingId(id) => id.to_human_readable(),
+                            Item::CustomUrl(url) => url.to_string(),
+                        };
+                        eprintln!(
+                            "⚠ Skipping {} ({}) — exceeds --max-file-size {}",
+                            label,
+                            HumanBytes(size),
+                            HumanBytes(max_size)
+                        );
+                        self.skipped_size += 1;
+                        continue;
+                    }
                 }
-                Some(resolve_from_path(path))
             }
-            Item::CustomUrl(url) => {
-                if let Some(pb) = self.filing_progress.as_ref() {
-                    pb.set_message(format!("{}", url))
+
+            return match item {
+                Item::File(path) => {
+                    if let Some(pb) = self.filing_progress.as_ref() {
+                        pb.set_message(format!("{}", path.display()))
+                    }
+                    Some(resolve_from_path(path))
                 }
-                Some(resolve_filing_from_url(&url))
-            }
-            Item::FilingId(filing_id) => {
-                if let Some(pb) = self.filing_progress.as_ref() {
-                    pb.set_message(filing_id.to_human_readable())
+                Item::CachedFile(path) => {
+                    if let Some(pb) = self.filing_progress.as_ref() {
+                        pb.set_message(format!("{} [cached]", path.display()))
+                    }
+                    Some(resolve_from_path(path))
                 }
-                Some(self.sourcer.resolve_from_fec_id(&filing_id))
-            }
+                Item::CustomUrl(url) => {
+                    if let Some(pb) = self.filing_progress.as_ref() {
+                        pb.set_message(format!("{}", url))
+                    }
+                    Some(resolve_filing_from_url(&url))
+                }
+                Item::FilingId(filing_id) => {
+                    if let Some(pb) = self.filing_progress.as_ref() {
+                        pb.set_message(filing_id.to_human_readable())
+                    }
+                    Some(self.sourcer.resolve_from_fec_id(&filing_id))
+                }
+            };
         }
     }
 }
@@ -711,7 +771,7 @@ impl FilingSourcer {
         Ok((
             result.trace,
             result.input_mappings,
-            IterFilingsX::new(filing_progress, self, result.queue),
+            IterFilingsX::new(filing_progress, self, result.queue, None),
         ))
     }
 
