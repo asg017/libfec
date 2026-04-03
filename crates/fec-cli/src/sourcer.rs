@@ -564,7 +564,7 @@ impl<'a> IterFilingsX<'a> {
 }
 
 /// Check the size of a filing on docquery.fec.gov via a HEAD request.
-fn head_filing_size(filing_id: &FecFilingId) -> Option<u64> {
+pub fn head_filing_size(filing_id: &FecFilingId) -> Option<u64> {
     let url = format!(
         "https://docquery.fec.gov/dcdev/posted/{}.fec",
         filing_id.to_bare()
@@ -760,6 +760,7 @@ impl FilingSourcer {
         api_flags: FilingsApiFlags,
         mb: Option<&MultiProgress>,
     ) -> anyhow::Result<(Trace, Vec<InputMapping>, IterFilingsX<'_>)> {
+        let max_file_size = api_flags.max_file_size;
         let result = process_inputs(&input, api_flags, self, mb)?;
         let filing_progress = if let Some(mb) = mb {
             let pb = mb.add(ProgressBar::new(result.queue.len() as u64));
@@ -771,7 +772,7 @@ impl FilingSourcer {
         Ok((
             result.trace,
             result.input_mappings,
-            IterFilingsX::new(filing_progress, self, result.queue, None),
+            IterFilingsX::new(filing_progress, self, result.queue, max_file_size),
         ))
     }
 

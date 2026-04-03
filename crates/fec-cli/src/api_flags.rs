@@ -110,11 +110,27 @@ pub struct FilingsApiFlags {
     #[arg(long, help = "Include amendments in results", default_value_t = false)]
     pub include_amendments: bool,
 
-    #[arg(long, help = "Exclude filings from these committees")]
-    pub exclude_committee: Option<Vec<CommitteeId>>,
+    #[arg(long, help = "Exclude filings from these committees (accepts committee IDs or aliases: 'actblue', 'winred')", value_parser = parse_exclude_value, value_delimiter = ',')]
+    pub exclude: Option<Vec<CommitteeId>>,
 
     #[arg(long, help = "Skip filings larger than this size (e.g. '50MB', '1GB')", value_parser = parse_file_size)]
     pub max_file_size: Option<u64>,
+}
+
+fn parse_exclude_value(s: &str) -> Result<CommitteeId, String> {
+    match s.to_lowercase().as_str() {
+        "actblue" => CommitteeId::new("C00401224").map_err(|e| e.to_string()),
+        "winred" => CommitteeId::new("C00694323").map_err(|e| e.to_string()),
+        _ => CommitteeId::new(s).map_err(|e| e.to_string()),
+    }
+}
+
+fn format_committee_id(id: &str) -> String {
+    match id {
+        "C00401224" => "C00401224 (ActBlue)".to_string(),
+        "C00694323" => "C00694323 (WinRed)".to_string(),
+        _ => id.to_string(),
+    }
 }
 
 fn parse_file_size(s: &str) -> Result<u64, String> {
@@ -499,7 +515,8 @@ impl FilingsApiFlags {
             });
         }
         // post-filter excluded committees, if provided
-        if let Some(exclude_committees) = &self.exclude_committee {
+        if let Some(exclude_committees) = &self.exclude {
+            let mut matched_committees: Vec<&CommitteeId> = Vec::new();
             let before_count = results.len();
             results.retain(|item| {
                 let committee_id = item
@@ -507,17 +524,36 @@ impl FilingsApiFlags {
                     .get("committee_id")
                     .and_then(|v| v.as_str())
                     .unwrap_or("");
-                !exclude_committees
+                if let Some(ec) = exclude_committees
                     .iter()
-                    .any(|ec| ec.as_str() == committee_id)
+                    .find(|ec| ec.as_str() == committee_id)
+                {
+                    if !matched_committees.iter().any(|m| m.as_str() == ec.as_str()) {
+                        matched_committees.push(ec);
+                    }
+                    false
+                } else {
+                    true
+                }
             });
             let excluded = before_count - results.len();
             if excluded > 0 {
-                let ids: Vec<&str> = exclude_committees.iter().map(|c| c.as_str()).collect();
+                let filing_word = if excluded == 1 { "filing" } else { "filings" };
+                let committee_word = if matched_committees.len() == 1 {
+                    "committee"
+                } else {
+                    "committees"
+                };
+                let labels: Vec<String> = matched_committees
+                    .iter()
+                    .map(|c| format_committee_id(c.as_str()))
+                    .collect();
                 eprintln!(
-                    "⚠ Skipped {} filing(s) from excluded committee(s): {}",
+                    "⚠ Skipped {} {} from excluded {}: {}",
                     excluded,
-                    ids.join(", ")
+                    filing_word,
+                    committee_word,
+                    labels.join(", ")
                 );
             }
         }
@@ -776,5 +812,145 @@ mod tests {
         assert_snapshot!(snapshot_urls(
             "--committee C00401224 --form-type F3 --election 2026"
         ));
+    }
+
+    #[test]
+    fn test_parse_file_size_megabytes() {
+        assert_eq!(parse_file_size("50MB").unwrap(), 50 * 1024 * 1024);
+        assert_eq!(parse_file_size("50M").unwrap(), 50 * 1024 * 1024);
+        assert_eq!(parse_file_size("50mb").unwrap(), 50 * 1024 * 1024);
+    }
+
+    #[test]
+    fn test_parse_file_size_gigabytes() {
+        assert_eq!(parse_file_size("1GB").unwrap(), 1024 * 1024 * 1024);
+        assert_eq!(parse_file_size("1G").unwrap(), 1024 * 1024 * 1024);
+    }
+
+    #[test]
+    fn test_parse_file_size_kilobytes() {
+        assert_eq!(parse_file_size("512KB").unwrap(), 512 * 1024);
+        assert_eq!(parse_file_size("512K").unwrap(), 512 * 1024);
+    }
+
+    #[test]
+    fn test_parse_file_size_bytes() {
+        assert_eq!(parse_file_size("1024").unwrap(), 1024);
+        assert_eq!(parse_file_size("1024B").unwrap(), 1024);
+    }
+
+    #[test]
+    fn test_parse_file_size_fractional() {
+        assert_eq!(
+            parse_file_size("1.5GB").unwrap(),
+            (1.5 * 1024.0 * 1024.0 * 1024.0) as u64
+        );
+        assert_eq!(
+            parse_file_size("2.5MB").unwrap(),
+            (2.5 * 1024.0 * 1024.0) as u64
+        );
+    }
+
+    #[test]
+    fn test_parse_file_size_with_whitespace() {
+        assert_eq!(parse_file_size(" 50MB ").unwrap(), 50 * 1024 * 1024);
+    }
+
+    #[test]
+    fn test_parse_file_size_invalid() {
+        assert!(parse_file_size("abc").is_err());
+        assert!(parse_file_size("50XB").is_err());
+    }
+
+    #[test]
+    fn test_exclude_committee_filters_filings() {
+        let filings = vec![
+            FilingItem {
+                filing_id: "1001".to_string(),
+                value: serde_json::json!({ "committee_id": "C00401224", "fec_file_id": "1001" }),
+            },
+            FilingItem {
+                filing_id: "1002".to_string(),
+                value: serde_json::json!({ "committee_id": "C00694323", "fec_file_id": "1002" }),
+            },
+            FilingItem {
+                filing_id: "1003".to_string(),
+                value: serde_json::json!({ "committee_id": "C00999999", "fec_file_id": "1003" }),
+            },
+        ];
+
+        let exclude = vec![
+            CommitteeId::new("C00401224").unwrap(),
+            CommitteeId::new("C00694323").unwrap(),
+        ];
+
+        let mut filtered = filings;
+        filtered.retain(|item| {
+            let committee_id = item
+                .value
+                .get("committee_id")
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
+            !exclude.iter().any(|ec| ec.as_str() == committee_id)
+        });
+
+        assert_eq!(filtered.len(), 1);
+        assert_eq!(filtered[0].filing_id, "1003");
+    }
+
+    #[test]
+    fn test_exclude_cli_flag_parses() {
+        let flags = parse_flags(
+            "--committee C00999999 --exclude C00401224 --exclude C00694323 --cycle 2024",
+        );
+        let exclude = flags.exclude.unwrap();
+        assert_eq!(exclude.len(), 2);
+        assert_eq!(exclude[0].as_str(), "C00401224");
+        assert_eq!(exclude[1].as_str(), "C00694323");
+    }
+
+    #[test]
+    fn test_exclude_alias_actblue() {
+        let flags = parse_flags("--committee C00999999 --exclude actblue --cycle 2024");
+        let exclude = flags.exclude.unwrap();
+        assert_eq!(exclude.len(), 1);
+        assert_eq!(exclude[0].as_str(), "C00401224");
+    }
+
+    #[test]
+    fn test_exclude_alias_winred() {
+        let flags = parse_flags("--committee C00999999 --exclude winred --cycle 2024");
+        let exclude = flags.exclude.unwrap();
+        assert_eq!(exclude.len(), 1);
+        assert_eq!(exclude[0].as_str(), "C00694323");
+    }
+
+    #[test]
+    fn test_exclude_mixed_aliases_and_ids() {
+        let flags = parse_flags(
+            "--committee C00999999 --exclude actblue --exclude C00694323 --exclude winred --cycle 2024",
+        );
+        let exclude = flags.exclude.unwrap();
+        assert_eq!(exclude.len(), 3);
+        assert_eq!(exclude[0].as_str(), "C00401224");
+        assert_eq!(exclude[1].as_str(), "C00694323");
+        assert_eq!(exclude[2].as_str(), "C00694323");
+    }
+
+    #[test]
+    fn test_exclude_comma_separated() {
+        let flags =
+            parse_flags("--committee C00999999 --exclude winred,actblue,C00123456 --cycle 2024");
+        let exclude = flags.exclude.unwrap();
+        assert_eq!(exclude.len(), 3);
+        assert_eq!(exclude[0].as_str(), "C00694323");
+        assert_eq!(exclude[1].as_str(), "C00401224");
+        assert_eq!(exclude[2].as_str(), "C00123456");
+    }
+
+    #[test]
+    fn test_max_file_size_cli_flag_parses() {
+        let flags = parse_flags("--committee C00999999 --max-file-size 50MB --cycle 2024");
+        assert_eq!(flags.max_file_size, Some(50 * 1024 * 1024));
     }
 }

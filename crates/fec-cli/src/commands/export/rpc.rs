@@ -158,6 +158,9 @@ struct ExportState {
     // Current item being processed
     current_item: Option<String>,
 
+    // Filtering
+    max_file_size: Option<u64>,
+
     // Metadata tracking
     write_metadata: bool,
     /// Database autoincrement ID for this export (only set when write_metadata is true)
@@ -179,6 +182,7 @@ impl ExportState {
             exported_count: 0,
             export_db: None,
             cover_only,
+            max_file_size: None,
             warnings: Vec::new(),
             error_message: None,
             current_item: None,
@@ -417,6 +421,7 @@ fn handle_export_start(
 
     // Create initial state
     let mut new_state = ExportState::new(export_id.clone(), cover_only, write_metadata);
+    new_state.max_file_size = base_args.api.max_file_size;
     new_state.phase = ExportPhase::Sourcing;
 
     // Get output path
@@ -763,6 +768,36 @@ fn process_exports(
         let item = state.export_queue.pop().unwrap();
         let filing_id = item_to_filing_id(&item);
         state.current_item = Some(filing_id.clone());
+
+        // Check max file size before resolving
+        if let Some(max_size) = state.max_file_size {
+            let file_size = match &item {
+                Item::File(path) | Item::CachedFile(path) => {
+                    std::fs::metadata(path).ok().map(|m| m.len())
+                }
+                Item::FilingId(id) => {
+                    if let Some(cached_path) = sourcer.filing_cache_path(id) {
+                        std::fs::metadata(&cached_path).ok().map(|m| m.len())
+                    } else {
+                        crate::sourcer::head_filing_size(id)
+                    }
+                }
+                Item::CustomUrl(_) => None,
+            };
+            if let Some(size) = file_size {
+                if size > max_size {
+                    let warning = format!(
+                        "Skipped filing {} ({}) — exceeds --max-file-size {}",
+                        filing_id,
+                        indicatif::HumanBytes(size),
+                        indicatif::HumanBytes(max_size)
+                    );
+                    state.warnings.push(warning);
+                    processed += 1;
+                    continue;
+                }
+            }
+        }
 
         match resolve_item_to_filing(sourcer, &item) {
             Ok(filing) => {
