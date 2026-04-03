@@ -565,6 +565,7 @@ pub fn cmd_export_sqlite(
     }
 
     let mut nfilings = 0;
+    let mut skipped_existing = 0usize;
 
     mb.println(format!(
         "Exporting filings to SQLite database at {:?}",
@@ -602,10 +603,25 @@ pub fn cmd_export_sqlite(
                 }
             }
             Err(e) => {
-                let _ = mb.println(format!(
-                    "Error inserting filing metadata for FEC-{}: {:?}",
-                    filing.filing_id, e
-                ));
+                // Check if this is a UNIQUE constraint violation (filing already in DB)
+                let is_duplicate = e.chain().any(|cause| {
+                    if let Some(rusqlite::Error::SqliteFailure(err, _)) =
+                        cause.downcast_ref::<rusqlite::Error>()
+                    {
+                        err.code == rusqlite::ErrorCode::ConstraintViolation
+                    } else {
+                        false
+                    }
+                });
+
+                if is_duplicate {
+                    skipped_existing += 1;
+                } else {
+                    let _ = mb.println(format!(
+                        "Error inserting filing metadata for FEC-{}: {:?}",
+                        filing.filing_id, e
+                    ));
+                }
                 // Record failed filing in metadata if enabled
                 if let Some(export_id) = metadata_export_id {
                     tx.commit()
@@ -645,12 +661,23 @@ pub fn cmd_export_sqlite(
     }
 
     let elapsed = Instant::now() - t0;
-    println!(
-        "Finished exporting {} filings into {}, in {}",
-        nfilings,
-        path.to_string_lossy().bold(),
-        HumanDuration(elapsed)
-    );
+    let exported = nfilings - skipped_existing;
+    if skipped_existing > 0 {
+        println!(
+            "Finished exporting {} filings into {} ({} already in DB, skipped), in {}",
+            exported,
+            path.to_string_lossy().bold(),
+            skipped_existing,
+            HumanDuration(elapsed)
+        );
+    } else {
+        println!(
+            "Finished exporting {} filings into {}, in {}",
+            exported,
+            path.to_string_lossy().bold(),
+            HumanDuration(elapsed)
+        );
+    }
     Ok(())
 }
 
