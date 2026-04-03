@@ -599,6 +599,70 @@ impl App {
         }
     }
 
+    /// Check if the input looks like a candidate or committee ID and navigate directly.
+    /// Returns true if navigation occurred.
+    pub(crate) fn try_navigate_to_filer_id(&mut self, sourcer: &mut FilingSourcer) -> bool {
+        let input = self.input.trim().to_uppercase();
+        if !Self::looks_like_filer_id(&input) {
+            return false;
+        }
+
+        if input.starts_with('C') {
+            self.show_committee_detail_by_id(sourcer, &input);
+            self.view_state == ViewState::CommitteeDetail
+        } else {
+            // Candidate (H/S/P prefix)
+            if let Ok(mut db) = sourcer.cache.open_bulk_data_database() {
+                if let Ok(Some(detail)) = crate::cache::bulk::candidates::get_candidate_detail(
+                    &mut db, self.cycle, &input, None,
+                ) {
+                    self.candidate_detail_state = CandidateDetailState::new();
+                    if let Ok(linkages) = crate::cache::bulk::candidate_committee_linkage::get_candidate_committee_linkages(
+                        &mut db, self.cycle, &input, None,
+                    ) {
+                        self.candidate_detail_state.set_linked_committees(linkages);
+                    }
+                    if let Ok(summary) =
+                        crate::cache::bulk::candidate_summary::get_candidate_summary(
+                            &mut db, self.cycle, &input, None,
+                        )
+                    {
+                        self.candidate_detail_state.set_financial_summary(summary);
+                    }
+                    if let Some(ref pcc_id) = detail.principal_campaign_committee {
+                        if let Ok(Some(committee)) =
+                            crate::cache::bulk::committee::get_committee_detail(
+                                &mut db, self.cycle, pcc_id, None,
+                            )
+                        {
+                            self.candidate_detail_state.pcc_name = Some(committee.name);
+                        }
+                    }
+                    self.candidate_detail = Some(detail);
+                    self.view_state = ViewState::CandidateDetail;
+                    return true;
+                }
+            }
+            false
+        }
+    }
+
+    /// Check if a string looks like an FEC filer ID.
+    /// Committee IDs: C + 8 digits (e.g., C00401224)
+    /// Candidate IDs: H/S/P + 8 alphanumeric chars (e.g., H8NY12345)
+    fn looks_like_filer_id(input: &str) -> bool {
+        if input.len() != 9 {
+            return false;
+        }
+        let first = input.as_bytes()[0];
+        let rest = &input[1..];
+        match first {
+            b'C' => rest.bytes().all(|b| b.is_ascii_digit()),
+            b'H' | b'S' | b'P' => rest.bytes().all(|b| b.is_ascii_alphanumeric()),
+            _ => false,
+        }
+    }
+
     pub(crate) fn show_filer_from_filing(&mut self, sourcer: &mut FilingSourcer, filer_id: &str) {
         // Determine if it's a committee or candidate based on first letter
         if filer_id.starts_with('C') {

@@ -33,6 +33,10 @@ pub(crate) fn run_app<B: ratatui::backend::Backend<Error: Send + Sync + 'static>
         app.search(sourcer)?;
 
         app.searching = false;
+
+        // If input looks like a filer ID, navigate directly to detail view
+        app.try_navigate_to_filer_id(sourcer);
+
         Ok(())
     };
 
