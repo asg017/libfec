@@ -220,6 +220,7 @@ pub struct FilingArgs {
     pub report_types: Option<Vec<String>>,
     pub committee_types: Option<Vec<String>>,
     pub cycle: Vec<u16>,
+    pub report_year: Vec<u16>,
 
     #[builder(default = "false")]
     pub include_amendments: bool,
@@ -491,6 +492,9 @@ impl Api {
         }
         for year in &args.cycle {
             qp.append_pair("cycle", &year.to_string());
+        }
+        for year in &args.report_year {
+            qp.append_pair("report_year", &year.to_string());
         }
         if let Some(min_receipt_date) = &args.min_receipt_date {
             qp.append_pair("min_receipt_date", min_receipt_date);

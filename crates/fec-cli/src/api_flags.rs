@@ -49,6 +49,12 @@ pub struct FilingsApiFlags {
     #[arg(long, help = "Election cycle")]
     pub cycle: Option<Vec<u16>>,
 
+    #[arg(
+        long,
+        help = "Filter by report year (coverage end date year, or receipt date year for forms without coverage)"
+    )]
+    pub report_year: Option<Vec<u16>>,
+
     // coverage-before
     #[arg(long, help = "Only filings that cover dates before this date")]
     pub coverage_before: Option<Date>,
@@ -320,6 +326,7 @@ impl FilingsApiFlags {
                 .report_types(self.report_type.clone())
                 .committee_types(self.committee_type.clone())
                 .cycle(vec![election])
+                .report_year(self.report_year.clone().unwrap_or_default())
                 .include_amendments(self.include_amendments)
                 .min_receipt_date(self.received_after.map(|d| d.to_string()))
                 .max_receipt_date(self.received_before.map(|d| d.to_string()))
@@ -365,6 +372,7 @@ impl FilingsApiFlags {
                     .report_types(self.report_type.clone())
                     .committee_types(self.committee_type.clone())
                     .cycle(self.cycle.clone().unwrap_or_default())
+                    .report_year(self.report_year.clone().unwrap_or_default())
                     .include_amendments(self.include_amendments)
                     .min_receipt_date(self.received_after.map(|d| d.to_string()))
                     .max_receipt_date(self.received_before.map(|d| d.to_string()))
@@ -384,6 +392,7 @@ impl FilingsApiFlags {
                     .report_types(self.report_type.clone())
                     .committee_types(self.committee_type.clone())
                     .cycle(self.cycle.clone().unwrap_or_default())
+                    .report_year(self.report_year.clone().unwrap_or_default())
                     .include_amendments(self.include_amendments)
                     .min_receipt_date(self.received_after.map(|d| d.to_string()))
                     .max_receipt_date(self.received_before.map(|d| d.to_string()))
@@ -401,6 +410,7 @@ impl FilingsApiFlags {
                 .report_types(self.report_type.clone())
                 .committee_types(self.committee_type.clone())
                 .cycle(self.cycle.clone().unwrap_or_default())
+                .report_year(self.report_year.clone().unwrap_or_default())
                 .include_amendments(self.include_amendments)
                 .min_receipt_date(self.received_after.map(|d| d.to_string()))
                 .max_receipt_date(self.received_before.map(|d| d.to_string()))
@@ -593,6 +603,7 @@ impl FilingsApiFlags {
                     .report_types(self.report_type.clone())
                     .committee_types(self.committee_type.clone())
                     .cycle(cycle.clone())
+                    .report_year(self.report_year.clone().unwrap_or_default())
                     .include_amendments(self.include_amendments)
                     .min_receipt_date(self.received_after.map(|d| d.to_string()))
                     .max_receipt_date(self.received_before.map(|d| d.to_string()))
@@ -608,6 +619,7 @@ impl FilingsApiFlags {
                     .report_types(self.report_type.clone())
                     .committee_types(self.committee_type.clone())
                     .cycle(cycle.clone())
+                    .report_year(self.report_year.clone().unwrap_or_default())
                     .include_amendments(self.include_amendments)
                     .min_receipt_date(self.received_after.map(|d| d.to_string()))
                     .max_receipt_date(self.received_before.map(|d| d.to_string()))
@@ -623,6 +635,7 @@ impl FilingsApiFlags {
                 .report_types(self.report_type.clone())
                 .committee_types(self.committee_type.clone())
                 .cycle(cycle.clone())
+                .report_year(self.report_year.clone().unwrap_or_default())
                 .include_amendments(self.include_amendments)
                 .min_receipt_date(self.received_after.map(|d| d.to_string()))
                 .max_receipt_date(self.received_before.map(|d| d.to_string()))
