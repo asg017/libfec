@@ -1,0 +1,10 @@
+table: >
+  Schedule A — Itemized receipts (contributions and other receipts)
+  reported on FEC filings.
+
+columns:
+  form_type: The type of FEC form or schedule line.
+  filer_committee_id_number: The unique FEC-assigned committee ID of the filing committee.
+  contributor_name: Full name of the contributor (for organizations) or last name (for individuals).
+  contribution_amount: Dollar amount of this contribution.
+  contribution_date: Date the contribution was received.

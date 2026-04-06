@@ -51,6 +51,10 @@ open = "5"
 time = "0.3.46"
 indexmap = "2"
 
+[build-dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_yaml = "0.9"
+
 [dev-dependencies]
 insta = { version = "1.45.0", features = ["yaml"] }
 #rusqlite = {version="0.32.1", features = ["bundled"] }

@@ -9,6 +9,7 @@ mod fastfec;
 mod info;
 mod landing;
 mod rss;
+mod schemaize;
 mod search;
 
 pub use api::api;
@@ -22,4 +23,5 @@ pub use fastfec::fastfec;
 pub use info::{info, InfoInput};
 pub use landing::landing;
 pub use rss::rss;
+pub use schemaize::schemaize;
 pub use search::search;

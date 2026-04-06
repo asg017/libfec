@@ -1,3 +1,5 @@
+pub mod sqlite_docs;
+
 use crate::{
     cache::bulk::{candidates, committee},
     cli::ExportArgs,
@@ -147,29 +149,52 @@ impl RecordTable {
         })
     }
     fn create_sql(&self) -> String {
-        let columns_defs: Vec<String> = self
-            .column_names
-            .iter()
-            .zip(self.column_types.clone())
-            .map(|(name, format)| {
-                format!(
-                    "{} {}",
-                    name,
-                    match format {
-                        FieldFormat::Date => "date",
-                        FieldFormat::Text => "text",
-                        FieldFormat::Float => "float",
-                    }
-                )
-            })
-            .collect();
+        let docs = sqlite_docs::table_docs(&self.suffix.to_ascii_lowercase());
 
         let mut sql = String::from("CREATE TABLE IF NOT EXISTS [libfec_");
         sql += &self.suffix;
-        sql += "](\n  ";
-        sql += "filing_id text references libfec_filings(filing_id),\n  ";
-        sql += columns_defs.join(",\n  ").as_str();
-        sql += "\n)";
+        sql += "](\n";
+
+        if let Some(table_doc) = docs.as_ref().and_then(|d| d.table) {
+            for line in table_doc.lines() {
+                sql += "  --! ";
+                sql += line;
+                sql += "\n";
+            }
+            sql += "\n";
+        }
+
+        sql += "  filing_id text references libfec_filings(filing_id),\n";
+
+        let last_idx = self.column_names.len() - 1;
+        for (i, (name, col_type)) in self
+            .column_names
+            .iter()
+            .zip(self.column_types.iter())
+            .enumerate()
+        {
+            if let Some(col_doc) = docs.as_ref().and_then(|d| d.column_doc(name)) {
+                for line in col_doc.lines() {
+                    sql += "  --- ";
+                    sql += line;
+                    sql += "\n";
+                }
+            }
+            sql += "  ";
+            sql += name;
+            sql += " ";
+            sql += match col_type {
+                FieldFormat::Date => "date",
+                FieldFormat::Text => "text",
+                FieldFormat::Float => "float",
+            };
+            if i < last_idx {
+                sql += ",";
+            }
+            sql += "\n";
+        }
+
+        sql += ")";
         sql
     }
     fn insert_statement<'a>(&self, tx: &'a Transaction) -> anyhow::Result<Statement<'a>> {
@@ -1190,6 +1215,101 @@ pub fn finalize_rss_sync(
             sync_id,
         ],
     )?;
+    Ok(())
+}
+
+/// All known (row_type, table_suffix) pairs for creating the full schema.
+/// row_type is a representative form type string that matches the mapping regex.
+/// table_suffix is what appears after "libfec_" in the table name.
+pub(crate) const ALL_TABLES: &[(&str, &str)] = &[
+    // Schedules
+    ("SA11", "schedule_a"),
+    ("SB21", "schedule_b"),
+    ("SC10", "schedule_c"),
+    ("SC1", "schedule_c1"),
+    ("SC2", "schedule_c2"),
+    ("SD9", "schedule_d"),
+    ("SE", "schedule_e"),
+    ("SF", "schedule_f"),
+    // Cover/form records
+    ("F1N", "F1N"),
+    ("F1M", "F1M"),
+    ("F1S", "F1S"),
+    ("F2", "F2"),
+    ("F24", "F24"),
+    ("F3N", "F3N"),
+    ("F3LN", "F3LN"),
+    ("F3P", "F3P"),
+    ("F3PS", "F3PS"),
+    ("F3PZ1", "F3PZ1"),
+    ("F3PZ2", "F3PZ2"),
+    ("F3P31", "F3P31"),
+    ("F3S", "F3S"),
+    ("F3X", "F3X"),
+    ("F3Z", "F3Z"),
+    ("F3Z1", "F3Z1"),
+    ("F3Z2", "F3Z2"),
+    ("F4N", "F4N"),
+    ("F5N", "F5N"),
+    ("F56", "F56"),
+    ("F57", "F57"),
+    ("F6", "F6"),
+    ("F65", "F65"),
+    ("F7N", "F7N"),
+    ("F76", "F76"),
+    ("F8", "F8"),
+    ("F8II", "F8II"),
+    ("F8III", "F8III"),
+    ("F9", "F9"),
+    ("F91", "F91"),
+    ("F92", "F92"),
+    ("F93", "F93"),
+    ("F94", "F94"),
+    ("F99", "F99"),
+    ("F10", "F10"),
+    ("F105", "F105"),
+    ("F13N", "F13N"),
+    ("F132", "F132"),
+    ("F133", "F133"),
+    // H schedules
+    ("H1", "H1"),
+    ("H2", "H2"),
+    ("H3", "H3"),
+    ("H4", "H4"),
+    ("H5", "H5"),
+    ("H6", "H6"),
+    // Misc
+    ("SA3L", "SA3L"),
+    ("SI", "SI"),
+    ("SL", "SL"),
+    ("TEXT", "TEXT"),
+];
+
+pub fn cmd_schemaize(path: PathBuf) -> anyhow::Result<()> {
+    let mut db = crate::cache::open_connection(&path)
+        .context(format!("Could not open or create database at {:?}", path))?;
+    let tx = db
+        .transaction()
+        .context("Error starting SQLite transaction")?;
+
+    tx.execute(CREATE_FILINGS_SQL, [])
+        .context("Error creating libfec_filings table")?;
+
+    let mut created = 0;
+    for &(row_type, suffix) in ALL_TABLES {
+        match RecordTable::new(row_type, suffix) {
+            Ok(record_table) => {
+                tx.execute(&record_table.create_sql(), [])?;
+                created += 1;
+            }
+            Err(e) => {
+                eprintln!("warning: skipping table libfec_{suffix}: {e}");
+            }
+        }
+    }
+
+    tx.commit().context("Error committing transaction")?;
+    eprintln!("Created {created} tables in {}", path.to_string_lossy());
     Ok(())
 }
 

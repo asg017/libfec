@@ -35,6 +35,7 @@ fn main() {
                 Commands::Dates(ref args) => commands::dates(sourcer, args),
                 Commands::Api(ref args) => commands::api(sourcer, args),
                 Commands::Datasette(args) => commands::datasette(sourcer, *args),
+                Commands::Schemaize(args) => commands::schemaize(args),
             }
         }
         Err(parse_err) => {

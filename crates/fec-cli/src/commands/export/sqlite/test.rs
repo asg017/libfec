@@ -123,4 +123,38 @@ mod tests {
 
         Ok(())
     }
+
+    #[test]
+    fn test_sqlite_docs_in_schema() {
+        use super::super::{RecordTable, ALL_TABLES};
+
+        let db = rusqlite::Connection::open_in_memory().unwrap();
+
+        for &(row_type, suffix) in ALL_TABLES {
+            match RecordTable::new(row_type, suffix) {
+                Ok(rt) => {
+                    db.execute(&rt.create_sql(), []).unwrap();
+                }
+                Err(_) => continue,
+            }
+        }
+
+        let mut out = String::new();
+        for &(_, suffix) in ALL_TABLES {
+            let table_name = format!("libfec_{suffix}");
+            let sql: Option<String> = db
+                .query_row(
+                    "select sql from sqlite_master where name = ?1",
+                    [&table_name],
+                    |row| row.get(0),
+                )
+                .ok();
+            if let Some(sql) = sql {
+                out.push_str(&sql);
+                out.push_str("\n\n");
+            }
+        }
+
+        insta::assert_snapshot!(out);
+    }
 }

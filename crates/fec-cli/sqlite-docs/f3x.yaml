@@ -1,0 +1,8 @@
+table: >
+  FEC Form 3X — Report of Receipts and Disbursements for political committees
+  other than authorized committees (e.g. PACs, party committees, super PACs).
+
+columns:
+  form_type: The type of FEC form filed.
+  filer_committee_id_number: The unique FEC-assigned committee ID (e.g. C00401224).
+  committee_name: Full registered name of the filing committee.

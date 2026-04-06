@@ -941,6 +941,12 @@ pub struct DatasetteArgs {
     pub api: FilingsApiFlags,
 }
 
+#[derive(Parser, Debug)]
+pub struct SchemaizeArgs {
+    /// Path to the SQLite database to create tables in
+    pub path: PathBuf,
+}
+
 #[derive(Subcommand, Debug)]
 pub enum Commands {
     /// Export data from FEC filings into SQLite, CSV, or JSON
@@ -972,6 +978,10 @@ pub enum Commands {
 
     /// Use Datasette for instant SQLite database browsing and visualizations
     Datasette(Box<DatasetteArgs>),
+
+    /// Create all possible libfec tables in a SQLite database (schema only, no data)
+    #[command(hide = true)]
+    Schemaize(SchemaizeArgs),
 }
 
 #[derive(Parser)]
