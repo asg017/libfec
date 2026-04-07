@@ -110,6 +110,9 @@ pub struct FilingsApiFlags {
     #[arg(long, help = "Include amendments in results", default_value_t = false)]
     pub include_amendments: bool,
 
+    #[arg(long, hide = true, help = "Print API request URLs to stderr")]
+    pub debug: bool,
+
     #[arg(long, help = "Exclude filings from these committees (accepts committee IDs or aliases: 'actblue', 'winred')", value_parser = parse_exclude_value, value_delimiter = ',')]
     pub exclude: Option<Vec<CommitteeId>>,
 
@@ -197,11 +200,15 @@ fn fetch_all_pages(
     stats: &mut FetchStats,
     spinner: &Option<ProgressBar>,
     message_prefix: &str,
+    debug: bool,
 ) -> anyhow::Result<Vec<FilingItem>> {
     let mut results = vec![];
     let mut current = initial_url;
     let offline = sourcer.cache.offline;
     loop {
+        if debug {
+            eprintln!("[debug] GET {}", fec_api::redact_api_key(&current));
+        }
         let (items, response) = filing_items(
             &current,
             sourcer
@@ -243,6 +250,7 @@ fn fetch_efiling_dedup(
     sourcer: &mut FilingSourcer,
     results: &mut Vec<FilingItem>,
     stats: &mut FetchStats,
+    debug: bool,
 ) -> anyhow::Result<()> {
     let offline = sourcer.cache.offline;
     for chunk in committees.chunks(50) {
@@ -253,6 +261,9 @@ fn fetch_efiling_dedup(
         };
         let mut current = client.efiling_filings_url(efiling_filing_args).0;
         loop {
+            if debug {
+                eprintln!("[debug] GET {}", fec_api::redact_api_key(&current));
+            }
             // Note: efile/filings has max-age=0 so caching won't help, but we pass the cache anyway
             let (items, response) = filing_items(
                 &current,
@@ -386,7 +397,7 @@ impl FilingsApiFlags {
                 })?;
             let url = client.filings_url(filing_args).0;
             let prefix = format!("chunk={idx} {} ", committees.len());
-            let items = fetch_all_pages(url, sourcer, &mut stats, spinner, &prefix)?;
+            let items = fetch_all_pages(url, sourcer, &mut stats, spinner, &prefix, self.debug)?;
             results.extend(items);
         }
         fetch_efiling_dedup(
@@ -398,6 +409,7 @@ impl FilingsApiFlags {
             sourcer,
             &mut results,
             &mut stats,
+            self.debug,
         )?;
         Ok(results)
     }
@@ -424,7 +436,8 @@ impl FilingsApiFlags {
                     .with_context(|| "could not build filing args".to_string())?;
                 let url = client.filings_url(args).0;
                 let prefix = format!("chunk={idx} {} ", committees.len());
-                let items = fetch_all_pages(url, sourcer, &mut stats, spinner, &prefix)?;
+                let items =
+                    fetch_all_pages(url, sourcer, &mut stats, spinner, &prefix, self.debug)?;
                 results.extend(items);
             }
             // Fetch candidates separately if any
@@ -437,7 +450,7 @@ impl FilingsApiFlags {
                     .build()
                     .with_context(|| "could not build filing args".to_string())?;
                 let url = client.filings_url(args).0;
-                let items = fetch_all_pages(url, sourcer, &mut stats, spinner, "")?;
+                let items = fetch_all_pages(url, sourcer, &mut stats, spinner, "", self.debug)?;
                 results.extend(items);
             }
         } else {
@@ -449,7 +462,7 @@ impl FilingsApiFlags {
                 .build()
                 .with_context(|| "could not build filing args".to_string())?;
             let url = client.filings_url(args).0;
-            let items = fetch_all_pages(url, sourcer, &mut stats, spinner, "")?;
+            let items = fetch_all_pages(url, sourcer, &mut stats, spinner, "", self.debug)?;
             results.extend(items);
         }
 
@@ -462,6 +475,7 @@ impl FilingsApiFlags {
             sourcer,
             &mut results,
             &mut stats,
+            self.debug,
         )?;
 
         Ok(results)
