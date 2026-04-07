@@ -220,6 +220,7 @@ pub struct FilingArgs {
     pub report_types: Option<Vec<String>>,
     pub committee_types: Option<Vec<String>>,
     pub cycle: Vec<u16>,
+    #[builder(default)]
     pub report_year: Vec<u16>,
 
     #[builder(default = "false")]
