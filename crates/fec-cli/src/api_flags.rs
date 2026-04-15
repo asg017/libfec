@@ -341,79 +341,6 @@ impl FilingsApiFlags {
             || self.bulk_daily_between.is_some()
     }
 
-    /**
-     * We should support:
-     *   - [ ] candidates themselves, no committee (H8VA01233, F2's, etc.)
-     *   - [x] principal campaign commiteees
-     *   - [ ] JFC/Leadership PACs connected to candidates
-     *   - [ ] Independent expenditures (trace) and
-     *
-     */
-    fn resolve_election(
-        &self,
-        client: &Api,
-        sourcer: &mut FilingSourcer,
-        spinner: &Option<ProgressBar>,
-        election: u16,
-        trace: &mut Trace,
-    ) -> anyhow::Result<Vec<FilingItem>> {
-        let params = ResolveCandidateParamsBuilder::default()
-            .cycle(election)
-            .state(self.state.clone())
-            .district(self.district.clone())
-            .office(Some(Office::from_str(
-                self.office.as_deref().unwrap_or("H"),
-            )?))
-            .build()?;
-        trace.resolve_candidate_params.push(params.clone());
-        if let Some(sp) = spinner.as_ref() {
-            sp.set_message(format!("Resolving committees for election {election}…"))
-        }
-        let committee_strings = sourcer
-            .cache
-            .resolve_candidate_principal_campaign_committees(params)?;
-        let committees: Vec<CommitteeId> = committee_strings
-            .into_iter()
-            .map(|s| CommitteeId::new(&s).unwrap())
-            .collect();
-        if committees.is_empty() {
-            panic!("No committees found for election {}", election);
-        }
-
-        if let Some(sp) = spinner.as_ref() {
-            sp.set_message(format!("Found {} candidate committees…", committees.len()))
-        }
-        let mut results = vec![];
-        let mut stats = FetchStats::default();
-        for (idx, chunk) in committees.chunks(50).enumerate() {
-            let filing_args = self
-                .base_filing_args_builder()
-                .committees(chunk)
-                .candidates(vec![])
-                .cycle(vec![election])
-                .build()
-                .with_context(|| {
-                    format!("could not build filing args for election {}", election)
-                })?;
-            let url = client.filings_url(filing_args).0;
-            let prefix = format!("chunk={idx} {} ", committees.len());
-            let items = fetch_all_pages(url, sourcer, &mut stats, spinner, &prefix, self.debug)?;
-            results.extend(items);
-        }
-        fetch_efiling_dedup(
-            client,
-            &committees,
-            &self.form_type,
-            &self.report_type,
-            self.include_amendments,
-            sourcer,
-            &mut results,
-            &mut stats,
-            self.debug,
-        )?;
-        Ok(results)
-    }
-
     fn resolve_normal(
         &self,
         client: &Api,
@@ -491,6 +418,45 @@ impl FilingsApiFlags {
     ) -> anyhow::Result<Vec<FilingItem>> {
         let client = Api::new(self.api_key.as_deref().unwrap_or("DEMO_KEY"));
 
+        // Resolve --state/--district/--office into committee IDs via bulk candidates DB
+        if self.state.is_some() || self.district.is_some() || self.office.is_some() {
+            let cycle = self
+                .election
+                .map(|y| y + (y % 2)) // bulk data is only available for even-year cycles
+                .or_else(|| self.cycle.as_ref().and_then(|c| c.first().copied()))
+                .ok_or_else(|| {
+                    anyhow::anyhow!(
+                        "--cycle or --election is required when using --state, --district, or --office"
+                    )
+                })?;
+            let params = ResolveCandidateParamsBuilder::default()
+                .cycle(cycle)
+                .election_year(self.election)
+                .state(self.state.clone())
+                .district(self.district.clone())
+                .office(self.office.as_deref().map(Office::from_str).transpose()?)
+                .build()?;
+            trace.resolve_candidate_params.push(params.clone());
+            let committee_strings = sourcer
+                .cache
+                .resolve_candidate_principal_campaign_committees(params)?;
+            self.committee.get_or_insert_with(Vec::new).extend(
+                committee_strings
+                    .into_iter()
+                    .map(|s| CommitteeId::new(&s).unwrap()),
+            );
+            // TODO: I tihnk this is wrong?
+            // Don't also pass cycle to the API — the resolved committee IDs
+            // are already scoped to the right candidates. Adding cycle=
+            // over-constrains and can exclude valid filings.
+            //self.cycle = None; // LLM added this, think its wrong, gonna rm temporarily
+        } else if let Some(election) = self.election {
+            // If --election was provided without --state/--office, treat it as --cycle
+            if self.cycle.is_none() {
+                self.cycle = Some(vec![election]);
+            }
+        }
+
         let spinner = mb.as_ref().map(|mb| {
             let sp = mb.add(indicatif::ProgressBar::new_spinner());
             sp.enable_steady_tick(std::time::Duration::from_millis(16));
@@ -498,16 +464,7 @@ impl FilingsApiFlags {
             sp
         });
 
-        let mut results = if let Some(election) = &self.election {
-            if self.office.is_some() || self.state.is_some() {
-                self.resolve_election(&client, sourcer, &spinner, *election, trace)?
-            } else {
-                self.cycle = self.election.map(|v| vec![v]);
-                self.resolve_normal(&client, sourcer, &spinner)?
-            }
-        } else {
-            self.resolve_normal(&client, sourcer, &spinner)?
-        };
+        let mut results = self.resolve_normal(&client, sourcer, &spinner)?;
 
         // post-filter coverage dates, if provided
         if let Some(coverage_before) = self.coverage_before {

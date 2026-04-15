@@ -724,9 +724,12 @@ impl Contest {
         }
         Ok(None)
     }
-    pub fn resolve_candidate_params(&self, cycle: u16) -> ResolveCandidateParams {
+    pub fn resolve_candidate_params(&self, election: u16) -> ResolveCandidateParams {
         let mut b = ResolveCandidateParamsBuilder::default();
-        b.cycle(cycle);
+        // Bulk data is only available for even-year cycles; odd election years
+        // (special elections) are in the next even cycle's file.
+        b.cycle(election + (election % 2))
+            .election_year(Some(election));
         match self {
             Contest::President => {
                 b.office(Some(Office::President)).state(None).district(None);
