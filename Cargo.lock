@@ -867,6 +867,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "derive_builder",
+ "insta",
  "serde",
  "serde_json",
  "ureq",

@@ -321,6 +321,7 @@ fn import_bulk_data(sourcer: &mut FilingSourcer, db: &mut rusqlite::Connection) 
         .context("Could not start export transaction for bulk data")?;
     let params = candidates::ResolveCandidateParams {
         cycle,
+        election_year: None,
         office: None,
         state: None,
         district: None,

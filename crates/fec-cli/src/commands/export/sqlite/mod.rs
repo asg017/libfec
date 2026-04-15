@@ -565,6 +565,7 @@ pub fn cmd_export_sqlite(
         for cycle in cycles {
             let params = candidates::ResolveCandidateParams {
                 cycle,
+                election_year: None,
                 office: None,
                 state: None,
                 district: None,

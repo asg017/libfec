@@ -1,0 +1,6 @@
+---
+source: crates/fec-api/src/lib.rs
+expression: filings_url_snapshot(args)
+snapshot_kind: text
+---
+https://api.open.fec.gov/v1/filings?api_key=REDACTED&per_page=100&most_recent=true&filer_type=e-file&form_type=F3X&cycle=2026&min_receipt_date=2026-01-01&max_receipt_date=2026-06-30&sort=committee_id

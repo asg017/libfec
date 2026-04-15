@@ -216,8 +216,11 @@ pub struct FilingArgs {
     /// In general a committee id begins with the letter C which is followed by eight digits."
     pub committees: Vec<CommitteeId>,
     pub candidates: Vec<CandidateId>,
+    #[builder(default)]
     pub form_types: Option<Vec<String>>,
+    #[builder(default)]
     pub report_types: Option<Vec<String>>,
+    #[builder(default)]
     pub committee_types: Option<Vec<String>>,
     pub cycle: Vec<u16>,
     #[builder(default)]
@@ -226,7 +229,9 @@ pub struct FilingArgs {
     #[builder(default = "false")]
     pub include_amendments: bool,
 
+    #[builder(default)]
     pub min_receipt_date: Option<String>,
+    #[builder(default)]
     pub max_receipt_date: Option<String>,
     // TODO:
     // candidates: Vec<String>,
@@ -975,5 +980,47 @@ mod tests {
         assert_eq!(json, "\"P80000722\"");
         let deserialized: CandidateId = serde_json::from_str(&json).unwrap();
         assert_eq!(deserialized, id);
+    }
+
+    fn filings_url_snapshot(args: FilingArgs) -> String {
+        let api = Api::new("TEST_KEY");
+        redact_api_key(&api.filings_url(args).0)
+    }
+
+    #[test]
+    fn test_filings_url_minimal() {
+        let args = FilingArgsBuilder::default()
+            .committees(vec![CommitteeId::new("C00401224").unwrap()])
+            .candidates(vec![])
+            .cycle(vec![2026])
+            .build()
+            .unwrap();
+        insta::assert_snapshot!(filings_url_snapshot(args));
+    }
+
+    #[test]
+    fn test_filings_url_with_amendments() {
+        let args = FilingArgsBuilder::default()
+            .committees(vec![CommitteeId::new("C00401224").unwrap()])
+            .candidates(vec![])
+            .cycle(vec![2026])
+            .include_amendments(true)
+            .build()
+            .unwrap();
+        insta::assert_snapshot!(filings_url_snapshot(args));
+    }
+
+    #[test]
+    fn test_filings_url_date_filters() {
+        let args = FilingArgsBuilder::default()
+            .committees(vec![])
+            .candidates(vec![])
+            .cycle(vec![2026])
+            .form_types(Some(vec!["F3X".to_string()]))
+            .min_receipt_date(Some("2026-01-01".to_string()))
+            .max_receipt_date(Some("2026-06-30".to_string()))
+            .build()
+            .unwrap();
+        insta::assert_snapshot!(filings_url_snapshot(args));
     }
 }

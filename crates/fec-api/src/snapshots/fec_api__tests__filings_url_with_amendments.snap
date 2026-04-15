@@ -1,0 +1,6 @@
+---
+source: crates/fec-api/src/lib.rs
+expression: filings_url_snapshot(args)
+snapshot_kind: text
+---
+https://api.open.fec.gov/v1/filings?api_key=REDACTED&per_page=100&filer_type=e-file&committee_id=C00401224&cycle=2026&sort=committee_id
