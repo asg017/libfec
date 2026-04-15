@@ -275,16 +275,32 @@ fn fetch_efiling_dedup(
             )?;
             stats.record(&response);
             for item in items {
+                // The efile/filings endpoint does prefix matching on form_type,
+                // so F3 returns F3, F3A, F3N, F3T, etc. Filter client-side by
+                // stripping the amendment indicator (trailing A/N/T) and comparing
+                // against the requested form types.
+                if let Some(ft_filter) = form_types {
+                    let item_ft = item
+                        .value
+                        .get("form_type")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("");
+                    let base_ft = item_ft
+                        .strip_suffix('A')
+                        .or_else(|| item_ft.strip_suffix('N'))
+                        .or_else(|| item_ft.strip_suffix('T'))
+                        .unwrap_or(item_ft);
+                    if !ft_filter.iter().any(|ft| ft == base_ft) {
+                        continue;
+                    }
+                }
                 // The efile/filings endpoint may not support report_type filtering,
                 // so filter client-side as well
                 if let Some(rt_filter) = report_types {
-                    let item_rt = item
-                        .value
-                        .get("report_type")
-                        .and_then(|v| v.as_str())
-                        .unwrap_or("");
-                    if !rt_filter.iter().any(|rt| rt == item_rt) {
-                        continue;
+                    if let Some(item_rt) = item.value.get("report_type").and_then(|v| v.as_str()) {
+                        if !rt_filter.iter().any(|rt| rt == item_rt) {
+                            continue;
+                        }
                     }
                 }
                 // Skip superseded filings when not including amendments.
