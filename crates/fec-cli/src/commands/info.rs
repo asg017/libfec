@@ -348,7 +348,7 @@ fn process_filing<R: Read>(
     }
 
     let mut x: Vec<_> = status.iter().collect();
-    x.sort_by(|a, b| b.1.count.cmp(&a.1.count));
+    x.sort_by_key(|b| std::cmp::Reverse(b.1.count));
     match format {
         CmdInfoFormat::Human => {
             let mut tbl = TableBuilder::new();
