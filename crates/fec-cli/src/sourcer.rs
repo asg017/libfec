@@ -629,25 +629,38 @@ impl<'a> Iterator for IterFilingsX<'a> {
                     if let Some(pb) = self.filing_progress.as_ref() {
                         pb.set_message(format!("{}", path.display()))
                     }
-                    Some(resolve_from_path(path))
+                    Some(resolve_from_path(path.clone()).with_context(|| {
+                        format!("Failed to load filing from `{}`", path.display())
+                    }))
                 }
                 Item::CachedFile(path) => {
                     if let Some(pb) = self.filing_progress.as_ref() {
                         pb.set_message(format!("{} [cached]", path.display()))
                     }
-                    Some(resolve_from_path(path))
+                    Some(resolve_from_path(path.clone()).with_context(|| {
+                        format!("Failed to load cached filing from `{}`", path.display())
+                    }))
                 }
                 Item::CustomUrl(url) => {
                     if let Some(pb) = self.filing_progress.as_ref() {
                         pb.set_message(format!("{}", url))
                     }
-                    Some(resolve_filing_from_url(&url))
+                    Some(
+                        resolve_filing_from_url(&url)
+                            .with_context(|| format!("Failed to load filing from URL {}", url)),
+                    )
                 }
                 Item::FilingId(filing_id) => {
                     if let Some(pb) = self.filing_progress.as_ref() {
                         pb.set_message(filing_id.to_human_readable())
                     }
-                    Some(self.sourcer.resolve_from_fec_id(&filing_id))
+                    Some(
+                        self.sourcer
+                            .resolve_from_fec_id(&filing_id)
+                            .with_context(|| {
+                                format!("Failed to load filing {}", filing_id.to_human_readable())
+                            }),
+                    )
                 }
             };
         }
