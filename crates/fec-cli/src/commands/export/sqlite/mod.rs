@@ -592,6 +592,7 @@ pub fn cmd_export_sqlite(
 
     let mut nfilings = 0;
     let mut skipped_existing = 0usize;
+    let mut skipped_failed = 0usize;
 
     mb.println(format!(
         "Exporting filings to SQLite database at {:?}",
@@ -608,10 +609,13 @@ pub fn cmd_export_sqlite(
                         fec_403.filing_id.to_human_readable(), fec_403.url
                     );
                     // TODO save warning somewhere
+                    skipped_failed += 1;
                     continue;
                 } else {
                     let _ = mb.println(format!("Error fetching filing: {:?}", e));
-                    todo!();
+                    // TODO save warning somewhere
+                    skipped_failed += 1;
+                    continue;
                 }
             }
         };
@@ -688,7 +692,16 @@ pub fn cmd_export_sqlite(
 
     let elapsed = Instant::now() - t0;
     let exported = nfilings - skipped_existing;
-    if skipped_existing > 0 {
+    if skipped_failed > 0 {
+        println!(
+            "Finished exporting {} filings into {} ({} already in DB, skipped; {} failed to fetch, skipped), in {}",
+            exported,
+            path.to_string_lossy().bold(),
+            skipped_existing,
+            skipped_failed,
+            HumanDuration(elapsed)
+        );
+    } else if skipped_existing > 0 {
         println!(
             "Finished exporting {} filings into {} ({} already in DB, skipped), in {}",
             exported,
