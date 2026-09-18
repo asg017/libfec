@@ -197,6 +197,8 @@ The tests look for `.fec` files in the repo's `cache/` and `benchmarks/` directo
 
 Rebuilt wheels keep the same filename, so `uv` will happily reuse a stale cached copy. Pass `--no-cache` whenever you `uv run --with` a wheel from `dist/`, as the Makefile targets do.
 
+**Releasing:** the version is read from `Cargo.toml` (not `pyproject.toml`) — bump it together with `crates/fec-cli/Cargo.toml` so the bindings stay in lockstep with the CLI.
+
 To refresh the notebook's saved outputs after an API change:
 
 ```bash
