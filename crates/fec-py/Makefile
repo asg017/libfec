@@ -1,35 +1,32 @@
-.PHONY: build build-release demo demo-fecfile notebook test-pytest clean
+.PHONY: develop develop-release build build-release test test-network test-slow notebook stubs clean
 
-# Build development wheel
-build:
-	maturin build -m Cargo.toml --out dist
+# One-time: uv venv && uv sync --group dev
 
-# Build release (optimized) wheel
-build-release:
-	maturin build -m Cargo.toml --release --out dist
+develop:                       ## incremental build into .venv (fast, debug)
+	uv run maturin develop --uv
 
-# Run demo.py with sample FEC files from cache2
-demo: build
-	uv run --no-cache --no-project --isolated \
-		--with "$$(ls dist/libfec_parser-*.whl | head -1)" \
-		demo.py ../../cache2/*.fec
+develop-release:               ## same, optimized (for benchmarks / notebook)
+	uv run maturin develop --uv --release
 
-# Run demo-fecfile.py with sample FEC files from cache2
-demo-fecfile: build
-	uv run --no-cache --no-project --isolated \
-		--with "$$(ls dist/libfec_parser-*.whl | head -1)" \
-		demo-fecfile.py ../../cache2/*.fec
+build:                         ## wheel into dist/ (what CI and releases do)
+	uv run maturin build --release --out dist
 
-# Open examples/quickstart.ipynb in JupyterLab with the freshly built wheel installed
-notebook: build
-	uv run --no-cache --no-project --isolated \
-		--with "$$(ls $(CURDIR)/dist/libfec_parser-*.whl | head -1)" \
-		--with pandas \
-		--with jupyterlab \
-		jupyter lab examples/quickstart.ipynb
+build-release: build
 
-test-pytest:
-	uv run --no-cache --no-project --isolated \
-		--with pytest \
-		--with "$$(ls dist/libfec_parser-*.whl | head -1)" \
-		pytest tests/
+test: develop
+	uv run pytest tests
+
+test-network: develop
+	uv run pytest tests -m network
+
+test-slow: develop-release
+	uv run pytest tests -m slow
+
+notebook: develop-release
+	uv run --with jupyterlab jupyter lab examples/quickstart.ipynb
+
+stubs: develop                 ## ticket 09 fills this in
+	@echo "see todos/python/09-type-stubs.md"
+
+clean:
+	rm -rf dist .venv python/libfec_parser/*.so
