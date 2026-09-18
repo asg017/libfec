@@ -4,7 +4,7 @@ use std::io::Cursor;
 use std::path::PathBuf;
 
 /// Python wrapper for FilingHeader
-#[pyclass(skip_from_py_object)]
+#[pyclass(module = "libfec_parser.parser", skip_from_py_object)]
 #[derive(Clone)]
 pub struct Header {
     #[pyo3(get)]
@@ -106,7 +106,7 @@ impl Header {
 }
 
 /// Python wrapper for FilingCover
-#[pyclass(skip_from_py_object)]
+#[pyclass(module = "libfec_parser.parser", skip_from_py_object)]
 #[derive(Clone)]
 pub struct Cover {
     #[pyo3(get)]
@@ -146,7 +146,7 @@ impl Cover {
 }
 
 /// Python wrapper for FilingRow (itemization)
-#[pyclass(skip_from_py_object)]
+#[pyclass(module = "libfec_parser.parser", skip_from_py_object)]
 #[derive(Clone)]
 pub struct Itemization {
     #[pyo3(get)]
@@ -189,7 +189,7 @@ impl Itemization {
 }
 
 /// Main Filing class
-#[pyclass]
+#[pyclass(module = "libfec_parser.parser")]
 pub struct Filing {
     header: Header,
     cover: Cover,
@@ -308,15 +308,4 @@ pub fn fec_header(contents: &[u8]) -> PyResult<String> {
         |e| pyo3::exceptions::PyValueError::new_err(format!("Failed to parse filing: {}", e)),
     )?;
     Ok(f.header.fec_version)
-}
-
-/// Parser submodule for FEC file parsing
-#[pymodule]
-pub fn parser(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(fec_header, m)?)?;
-    m.add_class::<Filing>()?;
-    m.add_class::<Header>()?;
-    m.add_class::<Cover>()?;
-    m.add_class::<Itemization>()?;
-    Ok(())
 }
