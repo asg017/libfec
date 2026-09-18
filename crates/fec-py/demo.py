@@ -1,7 +1,6 @@
 # uv run --no-project --isolated --with 'libfec_parser @ file://../../dist/libfec_parser-0.1.0-cp39-abi3-macosx_11_0_arm64.whl' demo.py <file1.fec> <file2.fec> ...
 
 from libfec_parser.parser import fec_header
-from libfec_parser.foo import bar
 from pathlib import Path
 import sys
 
@@ -15,9 +14,6 @@ for itemization in f.itemizations:
     print(itemization)
 
 def main() -> None:
-    # Test the foo module
-    print(f"bar() returns: {bar()}")
-    
     # Get file paths from command line arguments
     if len(sys.argv) < 2:
         print("Usage: demo.py <fec_file1> [fec_file2] [fec_file3] ...")
