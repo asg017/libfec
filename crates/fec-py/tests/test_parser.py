@@ -1,8 +1,19 @@
 """
 Tests for libfec_parser.parser module
 """
+import errno
+
 import pytest
-from libfec_parser.parser import fec_header, Filing, Header, Cover, Itemization
+from libfec_parser.parser import (
+    fec_header,
+    Filing,
+    Header,
+    Cover,
+    Itemization,
+    FecError,
+    FecParseError,
+    MissingMappingError,
+)
 
 # The fixtures (`sample_fec_file`, `sample_fec_bytes`, `all_fixture_files`, …)
 # live in conftest.py. The primary one is tests/fixtures/1921705.fec:
@@ -258,15 +269,40 @@ class TestFiling:
 
     def test_filing_with_invalid_path(self):
         """Test Filing with non-existent file path"""
-        with pytest.raises(IOError):
+        with pytest.raises(FileNotFoundError):
             Filing("/path/that/does/not/exist.fec")
-    
+
     def test_filing_with_invalid_type(self):
         """Test Filing with invalid input type"""
         with pytest.raises(TypeError):
             Filing(12345)  # type: ignore[arg-type]  # invalid type, on purpose
-    
+
     def test_filing_with_invalid_data(self):
         """Test Filing with invalid FEC data"""
         with pytest.raises(ValueError):
             Filing(b"invalid fec data")
+
+
+class TestErrors:
+    """Tests for the FecError/FecParseError/MissingMappingError hierarchy"""
+
+    def test_missing_file_is_file_not_found(self, tmp_path):
+        missing = tmp_path / "nope.fec"
+        with pytest.raises(FileNotFoundError) as ei:
+            Filing(str(missing))
+        assert ei.value.errno == errno.ENOENT
+        assert ei.value.filename == str(missing)
+
+    def test_garbage_is_parse_error(self):
+        with pytest.raises(FecParseError):
+            Filing(b"invalid fec data")
+
+    def test_hierarchy(self):
+        assert issubclass(FecParseError, FecError) and issubclass(FecError, ValueError)
+        assert issubclass(MissingMappingError, FecError)
+        assert FecError.__module__ == "libfec_parser.parser"
+
+    def test_missing_mapping_error_attributes(self):
+        e = MissingMappingError("ZZZ", "8.4", 7)
+        assert (e.row_type, e.version, e.line) == ("ZZZ", "8.4", 7)
+        assert "ZZZ" in str(e) and "8.4" in str(e)

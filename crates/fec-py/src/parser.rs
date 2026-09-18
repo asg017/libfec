@@ -1,3 +1,4 @@
+use crate::errors::{io_error, parse_error};
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
 use std::io::Cursor;
@@ -136,18 +137,8 @@ impl Filing {
             if let Ok(path_str) = source.extract::<String>() {
                 // It's a file path
                 let path = PathBuf::from(path_str);
-                let file = std::fs::File::open(&path).map_err(|e| {
-                    pyo3::exceptions::PyIOError::new_err(format!("Failed to open file: {}", e))
-                })?;
-                let len = file
-                    .metadata()
-                    .map_err(|e| {
-                        pyo3::exceptions::PyIOError::new_err(format!(
-                            "Failed to get file metadata: {}",
-                            e
-                        ))
-                    })?
-                    .len() as usize;
+                let file = std::fs::File::open(&path).map_err(|e| io_error(e, &path))?;
+                let len = file.metadata().map_err(|e| io_error(e, &path))?.len() as usize;
                 (Box::new(file), len)
             } else if let Ok(bytes) = source.extract::<Vec<u8>>() {
                 // It's bytes
@@ -165,14 +156,9 @@ impl Filing {
             };
 
         // Parse the filing
-        let mut filing = fec_parser::Filing::from_reader(
-            reader,
-            "filing".to_string(),
-            source_length,
-        )
-        .map_err(|e| {
-            pyo3::exceptions::PyValueError::new_err(format!("Failed to parse filing: {}", e))
-        })?;
+        let mut filing =
+            fec_parser::Filing::from_reader(reader, "filing".to_string(), source_length)
+                .map_err(parse_error)?;
 
         // Convert header
         let header = Header {
@@ -199,9 +185,7 @@ impl Filing {
         // Collect all itemizations
         let mut itemizations = Vec::new();
         while let Some(row_result) = filing.next_row() {
-            let row = row_result.map_err(|e| {
-                pyo3::exceptions::PyValueError::new_err(format!("Failed to read row: {}", e))
-            })?;
+            let row = row_result.map_err(parse_error)?;
 
             let fields: Vec<String> = row.record.iter().map(|s| s.to_string()).collect();
             itemizations.push(Itemization {
@@ -244,8 +228,7 @@ impl Filing {
 
 #[pyfunction]
 pub fn fec_header(contents: &[u8]) -> PyResult<String> {
-    let f = fec_parser::Filing::from_reader(contents, "123".to_string(), contents.len()).map_err(
-        |e| pyo3::exceptions::PyValueError::new_err(format!("Failed to parse filing: {}", e)),
-    )?;
+    let f = fec_parser::Filing::from_reader(contents, "123".to_string(), contents.len())
+        .map_err(parse_error)?;
     Ok(f.header.fec_version)
 }

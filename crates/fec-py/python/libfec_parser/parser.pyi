@@ -7,7 +7,16 @@ checked against the built extension by `python -m mypy.stubtest` — see
 
 from typing import Protocol, final
 
-__all__ = ["Cover", "Filing", "Header", "Itemization", "fec_header"]
+__all__ = [
+    "Cover",
+    "Filing",
+    "Header",
+    "Itemization",
+    "fec_header",
+    "FecError",
+    "FecParseError",
+    "MissingMappingError",
+]
 
 class _Readable(Protocol):
     """A binary file-like object: `read()` must return the filing's bytes."""
@@ -89,3 +98,17 @@ class Filing:
 
 def fec_header(contents: bytes) -> str:
     """The `fec_version` of a filing held entirely in memory."""
+
+class FecError(ValueError):
+    """Base class for libfec_parser errors."""
+
+class FecParseError(FecError):
+    """The input is not a parseable .fec filing."""
+
+class MissingMappingError(FecError):
+    """Raised by iteration for a row whose ``(row_type, fec_version)`` has no column mapping."""
+
+    row_type: str
+    version: str
+    line: int
+    def __init__(self, row_type: str, version: str, line: int) -> None: ...
