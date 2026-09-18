@@ -1,5 +1,10 @@
 # libfec_parser
 
+> **Alpha.** Wheels are published on [GitHub Releases](https://github.com/asg017/libfec/releases),
+> not PyPI. The native `Filing` API will change in upcoming releases (see
+> [`plans/python/`](../../plans/python/)); the `fecfile` module is not yet a drop-in
+> replacement.
+
 Python bindings for [libfec](https://github.com/asg017/libfec)'s `.fec` parser. Parse FEC electronic filings from a path, from bytes, or straight from the FEC's website, with the parsing done in Rust.
 
 ```python
@@ -21,25 +26,40 @@ Two APIs are included:
 
 For a guided tour, including loading a filing into pandas, see [`examples/quickstart.ipynb`](examples/quickstart.ipynb).
 
-> **Status:** early and unpublished. The package is not on PyPI yet, and the API may change.
+## Install
 
-## Installation
-
-`libfec_parser` has to be built from source for now. You'll need a [Rust toolchain](https://rustup.rs/) and [uv](https://docs.astral.sh/uv/) (or `pip install maturin`).
+**Python 3.11 or newer.** `libfec_parser` is not on PyPI, so `pip install libfec-parser`
+will not find it. Wheels are attached to every
+[GitHub Release](https://github.com/asg017/libfec/releases); install one by URL with
+[uv](https://docs.astral.sh/uv/):
 
 ```bash
-git clone https://github.com/asg017/libfec
-cd libfec/crates/fec-py
-
-# Install into the active virtualenv
-uvx maturin develop --release
-
-# ...or build a wheel into dist/ and install it wherever you like
-uvx maturin build --release --out dist
-pip install dist/libfec_parser-*.whl
+VERSION=0.0.33   # the release you want, from the releases page
+uv pip install "https://github.com/asg017/libfec/releases/download/$VERSION/libfec_parser-$VERSION-cp311-abi3-macosx_11_0_arm64.whl"
 ```
 
-Wheels use the stable ABI (`abi3`), so one build works on Python 3.11 and up.
+Swap the platform tag at the end for your machine:
+
+| Platform | Filename |
+| --- | --- |
+| Linux x86_64 (glibc 2.17+) | `libfec_parser-$VERSION-cp311-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl` |
+| Linux aarch64 (glibc 2.17+) | `libfec_parser-$VERSION-cp311-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl` |
+| macOS Apple silicon | `libfec_parser-$VERSION-cp311-abi3-macosx_11_0_arm64.whl` |
+| macOS Intel | `libfec_parser-$VERSION-cp311-abi3-macosx_10_12_x86_64.whl` |
+| Windows x64 | `libfec_parser-$VERSION-cp311-abi3-win_amd64.whl` |
+
+One wheel per platform covers every Python from 3.11 up: they are built against the stable
+ABI (`cp311-abi3`). On Python 3.10 and older the install is refused.
+
+Other platforms — musl Linux, armv7, 32-bit, BSD — build from the source distribution on the
+same release page, which needs a [Rust toolchain](https://rustup.rs/):
+
+```bash
+uv pip install "https://github.com/asg017/libfec/releases/download/$VERSION/libfec_parser-$VERSION.tar.gz"
+```
+
+`pip install` works in place of `uv pip install` throughout. To build from a git checkout
+instead, see [Development](#development).
 
 ## `fecfile` API
 
@@ -181,6 +201,22 @@ item.fields()   # all fields as a list[str]
 ### `fec_header(contents)`
 
 Takes the `bytes` of a filing and returns just its FEC format version.
+
+## Known issues
+
+Three known gaps come from the underlying Rust parser (`fec-parser`), not the bindings. They
+are tracked as parser bugs and deliberately **not** worked around here, so `fecfile` output
+differs from the `fecfile` package on exactly these points:
+
+- **`[BEGINTEXT]…[ENDTEXT]` bodies are dropped.** F99 filings parse, but their free-form text
+  never reaches `filing["text"]`.
+- **`_TODO_DUP` cover column names.** A few Form 3P cover-page columns come back with
+  placeholder names such as `_TODO_DUP1` instead of a real column name.
+- **Non-UTF-8 bytes become U+FFFD.** Filings written in cp1252 (curly quotes, en dashes) decode
+  lossily: the offending bytes are replaced with `�` rather than transcoded.
+
+Background and the intended fixes are in [`plans/python/`](../../plans/python/) — see
+[`00-decisions.md`](../../plans/python/00-decisions.md), "Deferred to `fec-parser`".
 
 ## Development
 
