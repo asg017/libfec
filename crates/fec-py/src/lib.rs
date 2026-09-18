@@ -1,7 +1,6 @@
 #![allow(clippy::useless_conversion)]
 
 mod fecfile;
-mod foo;
 mod parser;
 
 use pyo3::prelude::*;
@@ -14,7 +13,6 @@ use pyo3::wrap_pymodule;
 fn libfec_parser(m: &Bound<'_, PyModule>) -> PyResult<()> {
     // Add submodules
     m.add_wrapped(wrap_pymodule!(parser::parser))?;
-    m.add_wrapped(wrap_pymodule!(foo::foo))?;
     m.add_wrapped(wrap_pymodule!(fecfile::fecfile))?;
     Ok(())
 }
