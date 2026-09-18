@@ -8,6 +8,8 @@ authors = [
 ]
 requires-python = ">=3.7"
 dependencies = []
+license = "MIT OR Apache-2.0"
+license-files = ["LICENSE-*"]
 
 [project.optional-dependencies]
 dev = [
@@ -24,5 +26,5 @@ python-packages = ["libfec_parser"]
 python-source = "src"
 
 [build-system]
-requires = ["maturin>=1.0,<2.0"]
+requires = ["maturin>=1.9.4,<2.0"]
 build-backend = "maturin"

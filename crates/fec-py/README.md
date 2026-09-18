@@ -207,3 +207,7 @@ uv run --no-cache --no-project --isolated \
   --with pandas --with nbconvert --with ipykernel \
   jupyter nbconvert --to notebook --execute --inplace quickstart.ipynb
 ```
+
+## License
+
+Dual-licensed under MIT or Apache-2.0, at your option.
