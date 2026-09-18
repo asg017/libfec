@@ -1,1 +1,7 @@
 *.pyc
+__pycache__/
+.pytest_cache/
+*.abi3.so
+python/libfec_parser/*.so
+dist/
+.venv/

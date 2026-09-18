@@ -1,28 +1,40 @@
 [project]
 name = "libfec-parser"
-version = "0.1.0"
-description = "Add your description here"
+dynamic = ["version"]
+description = "Fast parser for FEC electronic filings (.fec), backed by Rust"
 readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT OR Apache-2.0"
+license-files = ["LICENSE-*"]
 authors = [
     { name = "Alex Garcia", email = "alexsebastian.garcia@gmail.com" }
 ]
-requires-python = ">=3.7"
+keywords = ["fec", "campaign-finance", "elections", "parser"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Rust",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+    "Typing :: Typed",
+]
 dependencies = []
 
-[project.optional-dependencies]
-dev = [
-    "pytest>=7.0.0",
-    "pytest-cov>=4.0.0",
-]
+[project.urls]
+Homepage = "https://github.com/asg017/libfec"
+Repository = "https://github.com/asg017/libfec"
+Issues = "https://github.com/asg017/libfec/issues"
+Changelog = "https://github.com/asg017/libfec/releases"
 
-[project.scripts]
-libfec-parser = "libfec_parser:main"
+[dependency-groups]
+dev = ["pytest>=8", "fecfile", "pandas", "nbconvert", "ipykernel", "mypy", "maturin>=1.15,<2"]
 
 [tool.maturin]
-module-name = "libfec_parser"
-python-packages = ["libfec_parser"]
-python-source = "src"
+module-name = "libfec_parser._native"
+python-source = "python"
 
 [build-system]
-requires = ["maturin>=1.0,<2.0"]
+requires = ["maturin>=1.9.4,<2.0"]
 build-backend = "maturin"

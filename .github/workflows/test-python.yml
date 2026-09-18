@@ -1,29 +1,74 @@
 name: "test-python"
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   pull_request:
 permissions:
   contents: read
+concurrency:
+  group: test-python-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   test-python:
     strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest, macos-15-intel, windows-latest]
       fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python: ["3.11", "3.14"]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - run: rustup toolchain install stable --profile minimal
-      - uses: Swatinem/rust-cache@v2
-      - uses: astral-sh/setup-uv@v6
-      - run: uv tool install maturin
-      - name: Build Python wheels
-        run: make build
-        working-directory: crates/fec-py
-      - name: Upload wheels
-        uses: actions/upload-artifact@v4
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
-          name: wheels-${{ matrix.os }}
+          workspaces: ". -> target"
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Build wheel
+        shell: bash
+        run: uvx maturin@1.15.0 build --release --out dist
+        working-directory: crates/fec-py
+      - name: Install wheel + test deps
+        shell: bash
+        working-directory: crates/fec-py
+        run: |
+          # "cpython-${{ matrix.python }}" (not bare "${{ matrix.python }}"): uv can
+          # otherwise resolve "3.14" to the free-threaded (3.14t) build when one happens
+          # to already be installed on the runner. We only build/ship the GIL build (D8),
+          # and free-threaded wheels install fine but crash on import (see ticket 01), so
+          # the assertion below fails loudly instead of leaving a confusing pytest crash.
+          uv venv .venv --python cpython-${{ matrix.python }}
+          uv run --python .venv --no-project python -c "import sysconfig, sys; sys.exit('picked the free-threaded interpreter for .venv; expected the GIL build' if sysconfig.get_config_var('Py_GIL_DISABLED') else 0)"
+          uv pip install --python .venv dist/*.whl pytest
+      - name: pytest
+        shell: bash
+        working-directory: crates/fec-py
+        run: uv run --python .venv --no-project pytest tests -v -rs
+      - name: stubtest
+        # One job is enough: the stubs are platform- and version-independent. This
+        # runs against the *installed wheel*, so it also proves the wheel ships
+        # py.typed and the .pyi files.
+        if: matrix.os == 'ubuntu-latest' && matrix.python == '3.11'
+        shell: bash
+        working-directory: crates/fec-py
+        run: |
+          uv pip install --python .venv mypy
+          uv run --python .venv --no-project python -m mypy.stubtest libfec_parser --allowlist stubtest-allowlist.txt
+          uv run --python .venv --no-project mypy --check-untyped-defs tests
+      - name: Execute quickstart notebook
+        if: matrix.os == 'ubuntu-latest' && matrix.python == '3.11'
+        shell: bash
+        working-directory: crates/fec-py
+        run: |
+          uv pip install --python .venv pandas nbconvert ipykernel
+          uv run --python .venv --no-project jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=120 --output /tmp/quickstart-out.ipynb examples/quickstart.ipynb
+      - name: Smoke test - construct a Filing (guards against the pyo3 0.22 3.14 segfault)
+        shell: bash
+        working-directory: crates/fec-py
+        run: uv run --python .venv --no-project python -c "from libfec_parser.parser import Filing; print(Filing('tests/fixtures/1921705.fec'))"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: matrix.python == '3.11'
+        with:
+          name: wheel-${{ matrix.os }}
           path: crates/fec-py/dist/*.whl

@@ -1,8 +1,11 @@
 """
 Tests for libfec_parser.fecfile module
 """
+import io
+import urllib.error
+import urllib.request
+
 import pytest
-from pathlib import Path
 from libfec_parser.fecfile import (
     loads,
     from_file,
@@ -12,37 +15,9 @@ from libfec_parser.fecfile import (
     print_example
 )
 
-
-@pytest.fixture
-def sample_fec_file():
-    """Get path to a sample FEC file"""
-    # Look for a sample file in the cache or benchmarks directory
-    cache_dir = Path(__file__).parent.parent.parent.parent / "cache"
-    if cache_dir.exists():
-        fec_files = list(cache_dir.glob("*.fec"))
-        if fec_files:
-            return fec_files[0]
-    
-    # Try benchmarks
-    bench_dir = Path(__file__).parent.parent.parent.parent / "benchmarks"
-    if bench_dir.exists():
-        fec_files = list(bench_dir.glob("*.fec"))
-        if fec_files:
-            return fec_files[0]
-    
-    pytest.skip("No sample FEC files found")
-
-
-@pytest.fixture
-def sample_fec_content(sample_fec_file):
-    """Read sample FEC file as string"""
-    return sample_fec_file.read_text(encoding='utf-8', errors='ignore')
-
-
-@pytest.fixture
-def sample_fec_bytes(sample_fec_file):
-    """Read sample FEC file as bytes"""
-    return sample_fec_file.read_bytes()
+# The fixtures (`sample_fec_file`, `sample_fec_content`, `sample_fec_bytes`, …)
+# live in conftest.py. The primary one is tests/fixtures/1921705.fec:
+# v8.5, F3N, filer C00900860, 15 Schedule A + 5 Schedule B rows.
 
 
 class TestLoads:
@@ -94,12 +69,25 @@ class TestLoads:
         assert 'filer_committee_id_number' in filing
     
     def test_loads_itemizations_structure(self, sample_fec_content):
-        """Test that itemizations is a dictionary"""
+        """Test that itemizations is a dictionary, keyed by schedule"""
         result = loads(sample_fec_content)
         itemizations = result['itemizations']
-        
+
         assert isinstance(itemizations, dict)
-    
+        assert {k: len(v) for k, v in itemizations.items()} == {
+            'Schedule A': 15,
+            'Schedule B': 5,
+        }
+
+    def test_loads_known_values(self, sample_fec_content):
+        """Test the parsed values for the known fixture 1921705.fec"""
+        result = loads(sample_fec_content)
+
+        assert result['header']['fec_version'] == '8.5'
+        assert result['filing']['form_type'] == 'F3N'
+        assert result['filing']['filer_committee_id_number'] == 'C00900860'
+        assert result['text'] == []
+
     def test_loads_text_structure(self, sample_fec_content):
         """Test that text is a list"""
         result = loads(sample_fec_content)
@@ -133,7 +121,7 @@ class TestLoads:
     def test_loads_with_invalid_type(self):
         """Test loads() with invalid input type"""
         with pytest.raises(TypeError):
-            loads(12345)
+            loads(12345)  # type: ignore[arg-type]  # invalid type, on purpose
     
     def test_loads_with_empty_string(self):
         """Test loads() with empty string"""
@@ -172,40 +160,69 @@ class TestFromFile:
 
 
 class TestFromHttp:
-    """Tests for from_http function"""
-    
-    @pytest.mark.skip(reason="Requires network access and may be flaky")
-    def test_from_http_with_valid_file_number(self):
-        """Test from_http() with valid file number"""
-        # Using a known valid FEC file number
-        result = from_http(1805249)
-        
-        if result is not None:
-            assert isinstance(result, dict)
-            assert 'header' in result
-    
-    def test_from_http_with_string_file_number(self):
-        """Test from_http() accepts string file number"""
-        # This test just checks that the function accepts strings
-        # without making an actual HTTP request (would need mocking)
-        # We'll let it fail gracefully if network is unavailable
-        try:
-            result = from_http("1805249")
-            if result is not None:
-                assert isinstance(result, dict)
-        except:
-            # Network errors are okay for this test
-            pass
-    
-    def test_from_http_with_options(self):
-        """Test from_http() with options parameter"""
-        try:
-            result = from_http(1805249, options={'filter_itemizations': ['SA']})
-            if result is not None:
-                assert isinstance(result, dict)
-        except:
-            # Network errors are okay for this test
-            pass
+    """Tests for from_http function.
+
+    The Rust side resolves ``urlopen`` at call time via
+    ``py.import("urllib.request").getattr("urlopen")`` (src/fecfile.rs), so
+    monkeypatching ``urllib.request.urlopen`` is enough to intercept the
+    download.
+    """
+
+    def test_from_http_parses_downloaded_bytes(self, monkeypatch, sample_fec_bytes):
+        """Test from_http() parses whatever urlopen() hands back"""
+        urls = []
+
+        def fake_urlopen(url):  # fecfile.rs calls urlopen(url) with one positional arg
+            urls.append(url)
+            return io.BytesIO(sample_fec_bytes)
+
+        monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
+        result = from_http(1921705)
+        assert result is not None
+
+        assert urls == ["https://docquery.fec.gov/dcdev/posted/1921705.fec"]
+        assert result["header"]["fec_version"] == "8.5"
+        assert result["filing"]["filer_committee_id_number"] == "C00900860"
+        assert len(result["itemizations"]["Schedule A"]) == 15
+
+    def test_from_http_accepts_string_file_number(self, monkeypatch, sample_fec_bytes):
+        """Test from_http() accepts a string file number"""
+        urls = []
+
+        def fake_urlopen(url):
+            urls.append(url)
+            return io.BytesIO(sample_fec_bytes)
+
+        monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
+        result = from_http("1921705", options={'filter_itemizations': ['SA']})
+        assert result is not None
+
+        assert urls == ["https://docquery.fec.gov/dcdev/posted/1921705.fec"]
+        assert set(result["itemizations"]) == {"Schedule A"}
+
+    def test_from_http_falls_back_then_returns_none(self, monkeypatch):
+        """Test from_http() tries the paper URL, then returns None"""
+        urls = []
+
+        def failing(url):
+            urls.append(url)
+            raise urllib.error.URLError("nope")
+
+        monkeypatch.setattr(urllib.request, "urlopen", failing)
+
+        assert from_http(1) is None
+        assert urls == [
+            "https://docquery.fec.gov/dcdev/posted/1.fec",
+            "https://docquery.fec.gov/paper/posted/1.fec",
+        ]
+
+    @pytest.mark.network
+    def test_from_http_live(self):
+        """Test from_http() against the real docquery.fec.gov (opt in: -m network)"""
+        result = from_http(1921705)
+
+        assert result is not None
+        assert result["filing"]["filer_committee_id_number"] == "C00900860"
 
 
 class TestParseHeader:
@@ -262,7 +279,7 @@ class TestParseHeader:
     def test_parse_header_with_invalid_type(self):
         """Test parse_header() with invalid type"""
         with pytest.raises(TypeError):
-            parse_header(12345)
+            parse_header(12345)  # type: ignore[arg-type]  # invalid type, on purpose
 
 
 class TestParseLine:
@@ -271,48 +288,46 @@ class TestParseLine:
     def test_parse_line_returns_dict(self, sample_fec_content):
         """Test parse_line() returns a dictionary"""
         lines = sample_fec_content.split('\n')
-        if len(lines) > 1:
-            # Get header first to extract version
-            first_line = lines[0]
-            _, version, _ = parse_header(first_line)
-            
-            # Parse second line (cover record)
-            second_line = lines[1]
-            result = parse_line(second_line, version)
-            
-            assert isinstance(result, dict)
-    
+        # Get header first to extract version
+        _, version, _ = parse_header(lines[0])
+
+        # Parse second line (cover record)
+        result = parse_line(lines[1], version)
+
+        assert isinstance(result, dict)
+        assert result['form_type'] == 'F3N'
+        assert result['filer_committee_id_number'] == 'C00900860'
+
     def test_parse_line_with_line_number(self, sample_fec_content):
         """Test parse_line() with line_num parameter"""
         lines = sample_fec_content.split('\n')
-        if len(lines) > 1:
-            _, version, _ = parse_header(lines[0])
-            result = parse_line(lines[1], version, _line_num=1)
-            
-            assert isinstance(result, dict)
-    
+        _, version, _ = parse_header(lines[0])
+        result = parse_line(lines[1], version, _line_num=1)
+
+        assert isinstance(result, dict)
+        assert result['form_type'] == 'F3N'
+
     def test_parse_line_has_form_type(self, sample_fec_content):
         """Test parse_line() result has form/record type field"""
         lines = sample_fec_content.split('\n')
-        if len(lines) > 1:
-            _, version, _ = parse_header(lines[0])
-            result = parse_line(lines[1], version)
-            
-            # The first field should be the form type
-            assert len(result) > 0
-    
+        _, version, _ = parse_header(lines[0])
+        result = parse_line(lines[1], version)
+
+        # The first field should be the form type
+        assert len(result) > 0
+        assert 'form_type' in result
+
     def test_parse_line_with_empty_line(self):
         """Test parse_line() with empty line"""
         with pytest.raises(ValueError):
             parse_line("", "8.0")
-    
+
     def test_parse_line_with_invalid_version(self, sample_fec_content):
         """Test parse_line() with various versions"""
         lines = sample_fec_content.split('\n')
-        if len(lines) > 1:
-            # Should work with any version string
-            result = parse_line(lines[1], "8.0")
-            assert isinstance(result, dict)
+        # Should work with any version string
+        result = parse_line(lines[1], "8.0")
+        assert isinstance(result, dict)
 
 
 class TestPrintExample:
@@ -336,10 +351,10 @@ class TestPrintExample:
     
     def test_print_example_with_missing_key(self):
         """Test print_example() with invalid dict"""
-        invalid_dict = {'header': {}}
+        invalid_dict: dict[str, dict[str, str]] = {'header': {}}
         
         with pytest.raises(KeyError):
-            print_example(invalid_dict)
+            print_example(invalid_dict)  # type: ignore[arg-type]  # missing keys, on purpose
 
 
 class TestIntegration:

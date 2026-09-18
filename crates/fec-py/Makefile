@@ -1,27 +1,36 @@
-.PHONY: build build-release demo demo-fecfile clean
+.PHONY: develop develop-release build build-release test test-network test-slow notebook notebook-check stubs clean
 
-# Build development wheel
-build:
-	maturin build -m Cargo.toml --out dist
+# One-time: uv venv && uv sync --group dev
 
-# Build release (optimized) wheel
-build-release:
-	maturin build -m Cargo.toml --release --out dist
+develop:                       ## incremental build into .venv (fast, debug)
+	uv run maturin develop --uv
 
-# Run demo.py with sample FEC files from cache2
-demo: build
-	uv run --no-cache --no-project --isolated \
-		--with 'libfec_parser @ file://dist/libfec_parser-0.1.0-cp39-abi3-macosx_11_0_arm64.whl' \
-		demo.py ../../cache2/*.fec
+develop-release:               ## same, optimized (for benchmarks / notebook)
+	uv run maturin develop --uv --release
 
-# Run demo-fecfile.py with sample FEC files from cache2
-demo-fecfile: build
-	uv run --no-cache --no-project --isolated \
-		--with 'libfec_parser @ file://dist/libfec_parser-0.1.0-cp39-abi3-macosx_11_0_arm64.whl' \
-		demo-fecfile.py ../../cache2/*.fec
+build:                         ## wheel into dist/ (what CI and releases do)
+	uv run maturin build --release --out dist
 
-test-pytest:
-	uv run --no-project --isolated \
-		--with pytest \
-		--with 'libfec_parser @ file://dist/libfec_parser-0.1.0-cp39-abi3-macosx_11_0_arm64.whl' \
-		pytest tests/
+build-release: build
+
+test: develop
+	uv run pytest tests
+
+test-network: develop
+	uv run pytest tests -m network
+
+test-slow: develop-release
+	uv run pytest tests -m slow
+
+notebook: develop-release
+	uv run --with jupyterlab jupyter lab examples/quickstart.ipynb
+
+notebook-check: develop-release       ## re-execute the notebook in place, re-recording outputs
+	uv run jupyter nbconvert --to notebook --execute --inplace --ExecutePreprocessor.timeout=120 examples/quickstart.ipynb
+
+stubs: develop                 ## check python/libfec_parser/*.pyi against the built extension
+	uv run python -m mypy.stubtest libfec_parser --allowlist stubtest-allowlist.txt
+	uv run mypy --check-untyped-defs tests
+
+clean:
+	rm -rf dist .venv python/libfec_parser/*.so

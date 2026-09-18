@@ -13,6 +13,8 @@ june/
 *.fec.part
 *.fec.gz
 *.fec.zst
+# committed test fixtures for the Python bindings (see crates/fec-py/tests/README.md)
+!crates/fec-py/tests/fixtures/*.fec
 *.db.gz
 *.csv
 *.zip
