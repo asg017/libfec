@@ -1,4 +1,4 @@
-.PHONY: develop develop-release build build-release test test-network test-slow notebook stubs clean
+.PHONY: develop develop-release build build-release test test-network test-slow notebook notebook-check stubs clean
 
 # One-time: uv venv && uv sync --group dev
 
@@ -24,6 +24,9 @@ test-slow: develop-release
 
 notebook: develop-release
 	uv run --with jupyterlab jupyter lab examples/quickstart.ipynb
+
+notebook-check: develop-release       ## re-execute the notebook in place, re-recording outputs
+	uv run jupyter nbconvert --to notebook --execute --inplace --ExecutePreprocessor.timeout=120 examples/quickstart.ipynb
 
 stubs: develop                 ## check python/libfec_parser/*.pyi against the built extension
 	uv run python -m mypy.stubtest libfec_parser --allowlist stubtest-allowlist.txt

@@ -236,7 +236,7 @@ Tests run against the committed fixtures in [`tests/fixtures/`](tests/fixtures/)
 
 **Releasing:** the version is read from `Cargo.toml` (not `pyproject.toml`) — bump it together with `crates/fec-cli/Cargo.toml` so the bindings stay in lockstep with the CLI.
 
-To refresh the notebook's saved outputs after an API change, see `make notebook`.
+To refresh the notebook's saved outputs after an API change, run `make notebook-check`.
 
 ## License
 
