@@ -2,34 +2,12 @@
 Tests for libfec_parser.parser module
 """
 import pytest
-from pathlib import Path
 from libfec_parser.parser import fec_header, Filing, Header, Cover, Itemization
 
-
-@pytest.fixture
-def sample_fec_file():
-    """Get path to a sample FEC file"""
-    # Look for a sample file in the cache or benchmarks directory
-    cache_dir = Path(__file__).parent.parent.parent.parent / "cache"
-    if cache_dir.exists():
-        fec_files = list(cache_dir.glob("*.fec"))
-        if fec_files:
-            return fec_files[0]
-    
-    # Try benchmarks
-    bench_dir = Path(__file__).parent.parent.parent.parent / "benchmarks"
-    if bench_dir.exists():
-        fec_files = list(bench_dir.glob("*.fec"))
-        if fec_files:
-            return fec_files[0]
-    
-    pytest.skip("No sample FEC files found")
-
-
-@pytest.fixture
-def sample_fec_bytes(sample_fec_file):
-    """Read sample FEC file as bytes"""
-    return sample_fec_file.read_bytes()
+# The fixtures (`sample_fec_file`, `sample_fec_bytes`, `all_fixture_files`, …)
+# live in conftest.py. The primary one is tests/fixtures/1921705.fec:
+# v8.5, F3N, filer C00900860 "Jason Byors for Congress", 20 itemizations
+# (1 SA11AI, 13 SA11C, 1 SA11D, 5 SB17) in that file order.
 
 
 class TestFecHeader:
@@ -69,7 +47,16 @@ class TestHeader:
         assert hasattr(header, 'report_id')
         assert hasattr(header, 'report_number')
         assert hasattr(header, 'comment')
-    
+
+    def test_header_values(self, sample_fec_file):
+        """Test Header values for the known fixture 1921705.fec"""
+        header = Filing(str(sample_fec_file)).header
+
+        assert header.fec_version == "8.5"
+        assert header.record_type == "HDR"
+        assert header.ef_type == "FEC"
+        assert header.software_name == "FECfile"
+
     def test_header_repr(self, sample_fec_file):
         """Test Header __repr__"""
         filing = Filing(str(sample_fec_file))
@@ -96,7 +83,15 @@ class TestCover:
         assert hasattr(cover, 'report_code')
         assert hasattr(cover, 'coverage_from_date')
         assert hasattr(cover, 'coverage_through_date')
-    
+
+    def test_cover_values(self, sample_fec_file):
+        """Test Cover values for the known fixture 1921705.fec"""
+        cover = Filing(str(sample_fec_file)).cover
+
+        assert cover.form_type == "F3N"
+        assert cover.filer_id == "C00900860"
+        assert cover.filer_name == "Jason Byors for Congress"
+
     def test_cover_repr(self, sample_fec_file):
         """Test Cover __repr__"""
         filing = Filing(str(sample_fec_file))
@@ -120,80 +115,66 @@ class TestCover:
 
 
 class TestItemization:
-    """Tests for Itemization class"""
-    
+    """Tests for Itemization class, against the known fixture 1921705.fec"""
+
     def test_itemization_attributes(self, sample_fec_file):
         """Test that Itemization has expected attributes"""
+        itemization = Filing(str(sample_fec_file)).itemizations[0]
+
+        assert isinstance(itemization, Itemization)
+        assert itemization.row_type == "SA11AI"
+
+    def test_itemization_row_type_order(self, sample_fec_file):
+        """Test the exact itemization row types, in file order"""
         filing = Filing(str(sample_fec_file))
-        
-        if len(filing.itemizations) > 0:
-            itemization = filing.itemizations[0]
-            assert isinstance(itemization, Itemization)
-            assert hasattr(itemization, 'row_type')
-            assert isinstance(itemization.row_type, str)
-    
+
+        assert len(filing.itemizations) == 20
+        assert [i.row_type for i in filing.itemizations] == (
+            ["SA11AI"] + ["SA11C"] * 13 + ["SA11D"] + ["SB17"] * 5
+        )
+
     def test_itemization_repr(self, sample_fec_file):
         """Test Itemization __repr__"""
-        filing = Filing(str(sample_fec_file))
-        
-        if len(filing.itemizations) > 0:
-            itemization = filing.itemizations[0]
-            repr_str = repr(itemization)
-            
-            assert isinstance(repr_str, str)
-            assert 'Itemization' in repr_str
-            assert itemization.row_type in repr_str
-    
+        itemization = Filing(str(sample_fec_file)).itemizations[0]
+
+        assert repr(itemization) == "Itemization(row_type='SA11AI', 45 fields)"
+
     def test_itemization_len(self, sample_fec_file):
         """Test Itemization __len__"""
-        filing = Filing(str(sample_fec_file))
-        
-        if len(filing.itemizations) > 0:
-            itemization = filing.itemizations[0]
-            length = len(itemization)
-            
-            assert isinstance(length, int)
-            assert length >= 0
-    
+        itemization = Filing(str(sample_fec_file)).itemizations[0]
+
+        assert len(itemization) == 45
+
     def test_itemization_getitem_positive_index(self, sample_fec_file):
         """Test Itemization __getitem__ with positive index"""
-        filing = Filing(str(sample_fec_file))
-        
-        if len(filing.itemizations) > 0:
-            itemization = filing.itemizations[0]
-            if len(itemization) > 0:
-                field = itemization[0]
-                assert isinstance(field, str)
-    
+        itemization = Filing(str(sample_fec_file)).itemizations[0]
+
+        assert itemization[0] == "SA11AI"
+        assert itemization[1] == "C00900860"
+
     def test_itemization_getitem_negative_index(self, sample_fec_file):
         """Test Itemization __getitem__ with negative index"""
-        filing = Filing(str(sample_fec_file))
-        
-        if len(filing.itemizations) > 0:
-            itemization = filing.itemizations[0]
-            if len(itemization) > 0:
-                field = itemization[-1]
-                assert isinstance(field, str)
-    
+        itemization = Filing(str(sample_fec_file)).itemizations[0]
+
+        assert itemization[-1] == itemization[len(itemization) - 1]
+        assert isinstance(itemization[-1], str)
+
     def test_itemization_getitem_out_of_bounds(self, sample_fec_file):
         """Test Itemization __getitem__ with out of bounds index"""
-        filing = Filing(str(sample_fec_file))
-        
-        if len(filing.itemizations) > 0:
-            itemization = filing.itemizations[0]
-            with pytest.raises(IndexError):
-                _ = itemization[9999]
-    
+        itemization = Filing(str(sample_fec_file)).itemizations[0]
+
+        with pytest.raises(IndexError):
+            _ = itemization[9999]
+
     def test_itemization_fields_method(self, sample_fec_file):
         """Test Itemization.fields() returns a list"""
-        filing = Filing(str(sample_fec_file))
-        
-        if len(filing.itemizations) > 0:
-            itemization = filing.itemizations[0]
-            fields = itemization.fields()
-            
-            assert isinstance(fields, list)
-            assert all(isinstance(f, str) for f in fields)
+        itemization = Filing(str(sample_fec_file)).itemizations[0]
+        fields = itemization.fields()
+
+        assert isinstance(fields, list)
+        assert len(fields) == 45
+        assert all(isinstance(f, str) for f in fields)
+        assert fields[0] == "SA11AI"
 
 
 class TestFiling:
@@ -228,12 +209,11 @@ class TestFiling:
     def test_filing_repr(self, sample_fec_file):
         """Test Filing __repr__"""
         filing = Filing(str(sample_fec_file))
-        repr_str = repr(filing)
-        
-        assert isinstance(repr_str, str)
-        assert 'Filing' in repr_str
-        assert filing.cover.form_type in repr_str
-    
+
+        assert repr(filing) == (
+            "Filing(form_type='F3N', filer_id='C00900860', 20 itemizations)"
+        )
+
     def test_filing_header_property(self, sample_fec_file):
         """Test Filing.header property"""
         filing = Filing(str(sample_fec_file))
@@ -255,10 +235,27 @@ class TestFiling:
         """Test Filing.itemizations property"""
         filing = Filing(str(sample_fec_file))
         itemizations = filing.itemizations
-        
+
         assert isinstance(itemizations, list)
+        assert len(itemizations) == 20
         assert all(isinstance(item, Itemization) for item in itemizations)
-    
+
+    def test_filing_many_itemizations(self, pac_fec_file):
+        """Test a filing with many rows: 1721696.fec, v8.4 F3XN, 1,387 rows"""
+        filing = Filing(str(pac_fec_file))
+
+        assert filing.header.fec_version == "8.4"
+        assert filing.cover.form_type == "F3XN"
+        assert filing.cover.filer_id == "C00016683"
+        assert len(filing.itemizations) == 1387
+
+    def test_filing_with_no_itemizations(self, f99_fec_file):
+        """Test the F99 fixture: a [BEGINTEXT] filing with zero rows"""
+        filing = Filing(str(f99_fec_file))
+
+        assert filing.cover.form_type == "F99"
+        assert filing.itemizations == []
+
     def test_filing_with_invalid_path(self):
         """Test Filing with non-existent file path"""
         with pytest.raises(IOError):
