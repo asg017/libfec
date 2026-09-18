@@ -876,7 +876,7 @@ dependencies = [
 
 [[package]]
 name = "fec-cli"
-version = "0.0.31"
+version = "0.0.32"
 dependencies = [
  "anyhow",
  "arboard",
