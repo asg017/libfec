@@ -1,12 +1,12 @@
 [project]
 name = "libfec-parser"
 version = "0.1.0"
-description = "Add your description here"
+description = "Fast parser for FEC electronic filings (.fec), backed by Rust"
 readme = "README.md"
 authors = [
     { name = "Alex Garcia", email = "alexsebastian.garcia@gmail.com" }
 ]
-requires-python = ">=3.7"
+requires-python = ">=3.11"
 dependencies = []
 license = "MIT OR Apache-2.0"
 license-files = ["LICENSE-*"]
@@ -16,9 +16,6 @@ dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
 ]
-
-[project.scripts]
-libfec-parser = "libfec_parser:main"
 
 [tool.maturin]
 module-name = "libfec_parser"

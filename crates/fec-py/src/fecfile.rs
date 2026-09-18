@@ -44,10 +44,10 @@ pub fn loads<'py>(
             })?;
 
     // Build result dictionary
-    let result = PyDict::new_bound(py);
+    let result = PyDict::new(py);
 
     // Add header
-    let header_dict = PyDict::new_bound(py);
+    let header_dict = PyDict::new(py);
     header_dict.set_item("record_type", &filing.header.record_type)?;
     header_dict.set_item("ef_type", &filing.header.ef_type)?;
     header_dict.set_item("fec_version", &filing.header.fec_version)?;
@@ -65,7 +65,7 @@ pub fn loads<'py>(
     result.set_item("header", header_dict)?;
 
     // Add filing (cover)
-    let filing_dict = PyDict::new_bound(py);
+    let filing_dict = PyDict::new(py);
     filing_dict.set_item("form_type", &filing.cover.form_type)?;
     filing_dict.set_item("filer_committee_id_number", &filing.cover.filer_id)?;
 
@@ -77,7 +77,7 @@ pub fn loads<'py>(
 
     // Add itemizations - grouped by schedule type
     let mut itemizations: HashMap<String, Vec<Bound<PyDict>>> = HashMap::new();
-    let text_list = PyList::empty_bound(py);
+    let text_list = PyList::empty(py);
 
     // Process all rows
     while let Some(row_result) = filing.next_row() {
@@ -102,7 +102,7 @@ pub fn loads<'py>(
 
         // Handle TEXT records specially
         if row_type == "TEXT" {
-            let text_dict = PyDict::new_bound(py);
+            let text_dict = PyDict::new(py);
             text_dict.set_item("form_type", row_type)?;
             for (i, field) in row.record.iter().enumerate() {
                 text_dict.set_item(format!("field_{}", i), field)?;
@@ -134,7 +134,7 @@ pub fn loads<'py>(
         };
 
         // Build row dictionary
-        let row_dict = PyDict::new_bound(py);
+        let row_dict = PyDict::new(py);
         for (column_name, field) in column_names.iter().zip(row.record.iter()) {
             // For now, always return as strings (type conversion would require types.json equivalent)
             row_dict.set_item(column_name.as_str(), field)?;
@@ -145,9 +145,9 @@ pub fn loads<'py>(
     }
 
     // Convert itemizations map to dictionary
-    let itemizations_dict = PyDict::new_bound(py);
+    let itemizations_dict = PyDict::new(py);
     for (schedule, rows) in itemizations {
-        let rows_list = PyList::new_bound(py, rows);
+        let rows_list = PyList::new(py, rows)?;
         itemizations_dict.set_item(schedule, rows_list)?;
     }
     result.set_item("itemizations", itemizations_dict)?;
@@ -190,7 +190,7 @@ pub fn parse_header<'py>(
         .map_err(|e| pyo3::exceptions::PyValueError::new_err(format!("CSV parse error: {}", e)))?;
 
     // Build header dict
-    let header_dict = PyDict::new_bound(py);
+    let header_dict = PyDict::new(py);
 
     let record_type = record.get(0).unwrap_or("HDR");
     let ef_type = record.get(1).unwrap_or("");
@@ -265,7 +265,7 @@ pub fn parse_line<'py>(
         };
 
     // Build dictionary
-    let result = PyDict::new_bound(py);
+    let result = PyDict::new(py);
     for (column_name, field) in column_names.iter().zip(record.iter()) {
         result.set_item(column_name.as_str(), field)?;
     }
@@ -291,7 +291,7 @@ pub fn from_http<'py>(
     let primary_url = format!("https://docquery.fec.gov/dcdev/posted/{}.fec", file_num_str);
 
     // Use Python's requests library
-    let requests = py.import_bound("urllib.request")?;
+    let requests = py.import("urllib.request")?;
     let urlopen = requests.getattr("urlopen")?;
 
     // Try primary URL
@@ -329,7 +329,7 @@ pub fn from_file<'py>(
     let bytes = std::fs::read(&file_path)
         .map_err(|e| pyo3::exceptions::PyIOError::new_err(format!("Failed to read file: {}", e)))?;
 
-    loads(py, bytes.into_py(py).bind(py), options)
+    loads(py, pyo3::types::PyBytes::new(py, &bytes).as_any(), options)
 }
 
 /// Print example output showing first itemization of each type
@@ -338,20 +338,20 @@ pub fn print_example(parsed: &Bound<'_, PyDict>) -> PyResult<()> {
     let itemizations_item = parsed
         .get_item("itemizations")?
         .ok_or_else(|| pyo3::exceptions::PyKeyError::new_err("itemizations"))?;
-    let itemizations: &Bound<PyDict> = itemizations_item.downcast()?;
+    let itemizations: &Bound<PyDict> = itemizations_item.cast()?;
 
-    let example = PyDict::new_bound(parsed.py());
+    let example = PyDict::new(parsed.py());
     example.set_item("header", parsed.get_item("header")?)?;
     example.set_item("filing", parsed.get_item("filing")?)?;
 
-    let example_itemizations = PyDict::new_bound(parsed.py());
+    let example_itemizations = PyDict::new(parsed.py());
 
     for item in itemizations.items() {
         let (key, value): (Bound<PyAny>, Bound<PyAny>) = item.extract()?;
-        let list: &Bound<PyList> = value.downcast()?;
+        let list: &Bound<PyList> = value.cast()?;
         if list.len() > 0 {
             let first_item = list.get_item(0)?;
-            let single_item_list = PyList::new_bound(parsed.py(), [first_item]);
+            let single_item_list = PyList::new(parsed.py(), [first_item])?;
             example_itemizations.set_item(&key, single_item_list)?;
         }
     }
@@ -360,7 +360,7 @@ pub fn print_example(parsed: &Bound<'_, PyDict>) -> PyResult<()> {
     example.set_item("text", parsed.get_item("text")?)?;
 
     // Print as JSON
-    let json = parsed.py().import_bound("json")?;
+    let json = parsed.py().import("json")?;
     let json_str = json.call_method1("dumps", (example,))?;
     println!("{}", json_str);
 

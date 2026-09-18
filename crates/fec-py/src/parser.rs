@@ -4,7 +4,7 @@ use std::io::Cursor;
 use std::path::PathBuf;
 
 /// Python wrapper for FilingHeader
-#[pyclass]
+#[pyclass(skip_from_py_object)]
 #[derive(Clone)]
 pub struct Header {
     #[pyo3(get)]
@@ -36,7 +36,7 @@ impl Header {
 }
 
 /// Python wrapper for FilingCover
-#[pyclass]
+#[pyclass(skip_from_py_object)]
 #[derive(Clone)]
 pub struct Cover {
     #[pyo3(get)]
@@ -64,7 +64,7 @@ impl Cover {
 
     /// Get all cover record fields as a dictionary
     fn fields<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
-        let dict = PyDict::new_bound(py);
+        let dict = PyDict::new(py);
         dict.set_item("form_type", &self.form_type)?;
         dict.set_item("filer_id", &self.filer_id)?;
         dict.set_item("filer_name", &self.filer_name)?;
@@ -76,7 +76,7 @@ impl Cover {
 }
 
 /// Python wrapper for FilingRow (itemization)
-#[pyclass]
+#[pyclass(skip_from_py_object)]
 #[derive(Clone)]
 pub struct Itemization {
     #[pyo3(get)]
