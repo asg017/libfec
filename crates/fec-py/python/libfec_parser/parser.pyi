@@ -5,16 +5,19 @@ checked against the built extension by `python -m mypy.stubtest` — see
 `crates/fec-py/Makefile`'s `stubs` target.  The implementation is `src/parser.rs`.
 """
 
+import os
 from collections.abc import Iterator
 from datetime import date
-from typing import Any, Protocol, TypeAlias, final, overload
+from types import TracebackType
+from typing import Any, Self, TypeAlias, final, overload
 
 __all__ = [
     "Cover",
-    "Filing",
+    "FilingReader",
     "Header",
     "Row",
     "fec_header",
+    "open",
     "FecError",
     "FecParseError",
     "MissingMappingError",
@@ -22,11 +25,6 @@ __all__ = [
 
 Value: TypeAlias = str | float | date | None
 """A column's value: typed if it parses, the raw `str` if it is garbage, `None` if empty."""
-
-class _Readable(Protocol):
-    """A binary file-like object: `read()` must return the filing's bytes."""
-
-    def read(self) -> bytes: ...
 
 @final
 class Header:
@@ -63,10 +61,10 @@ class Cover:
     @property
     def report_code(self) -> str | None: ...
     @property
-    def coverage_from_date(self) -> str | None: ...
+    def coverage_from_date(self) -> date | None: ...
     @property
-    def coverage_through_date(self) -> str | None: ...
-    def fields(self) -> dict[str, str | None]:
+    def coverage_through_date(self) -> date | None: ...
+    def fields(self) -> dict[str, str | date | None]:
         """The six cover attributes above as a dict."""
 
 @final
@@ -115,23 +113,70 @@ def _row_from_parts(
     """Rebuild a `Row` from its pickled parts; named by `Row.__reduce__`."""
 
 @final
-class Filing:
-    """A fully parsed filing: header, cover and every itemization row.
+class FilingReader:
+    """A streaming, single-pass reader over one filing.
 
-    `source` is a file path (`str`), the filing's bytes, or a binary file-like
-    object.  `os.PathLike` is *not* accepted — pass `str(path)`.
+    Built by `open()`.  The `HDR` and cover records are parsed eagerly, so
+    `header`, `cover` and `cover_row` are available before iteration; the
+    itemization rows are pulled lazily, a batch at a time, with the GIL released.
+    There is no `len()` — the row count is unknown without a full pass.
     """
 
-    def __new__(
-        cls, source: str | bytes | bytearray | memoryview | _Readable
-    ) -> Filing: ...
     @property
-    def header(self) -> Header: ...
+    def header(self) -> Header:
+        """The filing's `HDR` record; the same object every time."""
+
     @property
-    def cover(self) -> Cover: ...
+    def cover(self) -> Cover:
+        """The six normalized cover attributes; the same object every time."""
+
     @property
-    def itemizations(self) -> list[Row]: ...
+    def cover_row(self) -> Row:
+        """The full cover line as a `Row`; the same object every time."""
+
+    @property
+    def id(self) -> str | None:
+        """The file stem for a path source (`FEC-` stripped), `None` for bytes."""
+
+    @property
+    def fec_version(self) -> str:
+        """Shortcut for `header.fec_version`."""
+
+    @property
+    def source_length(self) -> int:
+        """The source's size in bytes, `0` if unknown."""
+
+    @property
+    def closed(self) -> bool: ...
+    def rows(self, *prefixes: str) -> Self:
+        """Only yield rows whose type starts with one of `prefixes` (case-insensitive).
+
+        Returns the reader itself.  A second call replaces the filter; `rows()`
+        with no arguments clears it.
+        """
+
+    def close(self) -> None:
+        """Drop the source.  Idempotent; iterating afterwards raises `ValueError`."""
+
+    def __enter__(self) -> Self: ...
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+        /,
+    ) -> None: ...
+    def __iter__(self) -> Self: ...
+    def __next__(self) -> Row: ...
     def __repr__(self) -> str: ...
+
+def open(source: str | os.PathLike[str] | bytes, /) -> FilingReader:
+    """Open a filing for streaming.
+
+    `source` is a filesystem path (`str` or `os.PathLike`) or the filing's bytes.
+    A missing path raises `FileNotFoundError`; unparseable input raises
+    `FecParseError`.
+    """
 
 def fec_header(contents: bytes) -> str:
     """The `fec_version` of a filing held entirely in memory."""
