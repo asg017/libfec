@@ -190,3 +190,7 @@ Below are all the open source FEC file parsers and tools that I could readily fi
 | https://github.com/esonderegger/fecfile   | Python        | ~2018        |
 | https://github.com/washingtonpost/FastFEC | C/Python/WASM | ~2021        |
 | https://github.com/NickCrews/feco3        | Rust          | ~2023        |
+
+## License
+
+Dual-licensed under MIT or Apache-2.0, at your option.
