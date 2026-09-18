@@ -56,6 +56,13 @@ jobs:
           uv pip install --python .venv mypy
           uv run --python .venv --no-project python -m mypy.stubtest libfec_parser --allowlist stubtest-allowlist.txt
           uv run --python .venv --no-project mypy --check-untyped-defs tests
+      - name: Execute quickstart notebook
+        if: matrix.os == 'ubuntu-latest' && matrix.python == '3.11'
+        shell: bash
+        working-directory: crates/fec-py
+        run: |
+          uv pip install --python .venv pandas nbconvert ipykernel
+          uv run --python .venv --no-project jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=120 --output /tmp/quickstart-out.ipynb examples/quickstart.ipynb
       - name: Smoke test - construct a Filing (guards against the pyo3 0.22 3.14 segfault)
         shell: bash
         working-directory: crates/fec-py
