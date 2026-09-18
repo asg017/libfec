@@ -121,7 +121,7 @@ class TestLoads:
     def test_loads_with_invalid_type(self):
         """Test loads() with invalid input type"""
         with pytest.raises(TypeError):
-            loads(12345)
+            loads(12345)  # type: ignore[arg-type]  # invalid type, on purpose
     
     def test_loads_with_empty_string(self):
         """Test loads() with empty string"""
@@ -178,6 +178,7 @@ class TestFromHttp:
 
         monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
         result = from_http(1921705)
+        assert result is not None
 
         assert urls == ["https://docquery.fec.gov/dcdev/posted/1921705.fec"]
         assert result["header"]["fec_version"] == "8.5"
@@ -194,6 +195,7 @@ class TestFromHttp:
 
         monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
         result = from_http("1921705", options={'filter_itemizations': ['SA']})
+        assert result is not None
 
         assert urls == ["https://docquery.fec.gov/dcdev/posted/1921705.fec"]
         assert set(result["itemizations"]) == {"Schedule A"}
@@ -277,7 +279,7 @@ class TestParseHeader:
     def test_parse_header_with_invalid_type(self):
         """Test parse_header() with invalid type"""
         with pytest.raises(TypeError):
-            parse_header(12345)
+            parse_header(12345)  # type: ignore[arg-type]  # invalid type, on purpose
 
 
 class TestParseLine:
@@ -349,10 +351,10 @@ class TestPrintExample:
     
     def test_print_example_with_missing_key(self):
         """Test print_example() with invalid dict"""
-        invalid_dict = {'header': {}}
+        invalid_dict: dict[str, dict[str, str]] = {'header': {}}
         
         with pytest.raises(KeyError):
-            print_example(invalid_dict)
+            print_example(invalid_dict)  # type: ignore[arg-type]  # missing keys, on purpose
 
 
 class TestIntegration:
