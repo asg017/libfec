@@ -18,9 +18,8 @@ dev = [
 ]
 
 [tool.maturin]
-module-name = "libfec_parser"
-python-packages = ["libfec_parser"]
-python-source = "src"
+module-name = "libfec_parser._native"
+python-source = "python"
 
 [build-system]
 requires = ["maturin>=1.9.4,<2.0"]
