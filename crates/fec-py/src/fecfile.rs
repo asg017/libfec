@@ -366,15 +366,3 @@ pub fn print_example(parsed: &Bound<'_, PyDict>) -> PyResult<()> {
 
     Ok(())
 }
-
-/// FecFile compatibility submodule
-#[pymodule]
-pub fn fecfile(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(loads, m)?)?;
-    m.add_function(wrap_pyfunction!(parse_header, m)?)?;
-    m.add_function(wrap_pyfunction!(parse_line, m)?)?;
-    m.add_function(wrap_pyfunction!(from_http, m)?)?;
-    m.add_function(wrap_pyfunction!(from_file, m)?)?;
-    m.add_function(wrap_pyfunction!(print_example, m)?)?;
-    Ok(())
-}

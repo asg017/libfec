@@ -5,7 +5,9 @@ edition = "2021"
 license = "MIT OR Apache-2.0"
 
 [lib]
-name = "libfec_parser"
+# The compiled extension is private: it is imported as `libfec_parser._native`.
+# The public API lives in python/libfec_parser/{parser,fecfile}.py.
+name = "_native"
 # "cdylib" is necessary to produce a shared library for Python to import from.
 crate-type = ["cdylib"]
 
