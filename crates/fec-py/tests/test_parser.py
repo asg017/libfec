@@ -264,7 +264,7 @@ class TestFiling:
     def test_filing_with_invalid_type(self):
         """Test Filing with invalid input type"""
         with pytest.raises(TypeError):
-            Filing(12345)  # Invalid type
+            Filing(12345)  # type: ignore[arg-type]  # invalid type, on purpose
     
     def test_filing_with_invalid_data(self):
         """Test Filing with invalid FEC data"""
