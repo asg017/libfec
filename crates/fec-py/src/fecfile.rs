@@ -298,9 +298,7 @@ pub fn from_http<'py>(
     match urlopen.call1((primary_url,)) {
         Ok(response) => {
             let data = response.call_method0("read")?;
-            let bytes: Vec<u8> = data.extract()?;
-            let input = PyList::new_bound(py, [bytes]);
-            let result = loads(py, input.as_any(), options)?;
+            let result = loads(py, &data, options)?;
             Ok(Some(result))
         }
         Err(_) => {
@@ -310,9 +308,7 @@ pub fn from_http<'py>(
             match urlopen.call1((fallback_url,)) {
                 Ok(response) => {
                     let data = response.call_method0("read")?;
-                    let bytes: Vec<u8> = data.extract()?;
-                    let input = PyList::new_bound(py, [bytes]);
-                    let result = loads(py, input.as_any(), options)?;
+                    let result = loads(py, &data, options)?;
                     Ok(Some(result))
                 }
                 Err(_) => Ok(None), // 404 - return None
