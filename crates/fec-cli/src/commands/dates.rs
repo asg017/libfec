@@ -1424,21 +1424,37 @@ mod tests {
         ]
     }
 
+    /// Row shape for the state filter snapshots. A struct rather than `serde_json::json!`
+    /// so the key order doesn't depend on whether serde_json's `preserve_order` feature
+    /// got unified in (it does under `cargo test --workspace`, via fec-parser-macros).
+    #[derive(serde::Serialize)]
+    struct SnapshotRow<'a> {
+        category: &'a str,
+        location: Option<&'a str>,
+        start_date: Option<String>,
+        summary: &'a str,
+    }
+
+    fn snapshot_rows<'a>(
+        events: &'a [CalendarEvent],
+        state_filter: Option<&str>,
+    ) -> Vec<SnapshotRow<'a>> {
+        events
+            .iter()
+            .filter(|e| e.matches_state_filter(state_filter))
+            .map(|e| SnapshotRow {
+                category: &e.category,
+                location: e.location.as_deref(),
+                start_date: e.start_date.as_ref().map(format_date),
+                summary: &e.summary,
+            })
+            .collect()
+    }
+
     #[test]
     fn test_state_filter_ca_snapshot() {
         let events = create_test_events();
-        let filtered: Vec<_> = events
-            .iter()
-            .filter(|e| e.matches_state_filter(Some("CA")))
-            .map(|e| {
-                serde_json::json!({
-                    "summary": e.summary,
-                    "category": e.category,
-                    "location": e.location,
-                    "start_date": e.start_date.as_ref().map(format_date),
-                })
-            })
-            .collect();
+        let filtered = snapshot_rows(&events, Some("CA"));
 
         assert_yaml_snapshot!(filtered);
     }
@@ -1446,18 +1462,7 @@ mod tests {
     #[test]
     fn test_state_filter_tx_snapshot() {
         let events = create_test_events();
-        let filtered: Vec<_> = events
-            .iter()
-            .filter(|e| e.matches_state_filter(Some("TX")))
-            .map(|e| {
-                serde_json::json!({
-                    "summary": e.summary,
-                    "category": e.category,
-                    "location": e.location,
-                    "start_date": e.start_date.as_ref().map(format_date),
-                })
-            })
-            .collect();
+        let filtered = snapshot_rows(&events, Some("TX"));
 
         assert_yaml_snapshot!(filtered);
     }
@@ -1465,18 +1470,7 @@ mod tests {
     #[test]
     fn test_no_state_filter_snapshot() {
         let events = create_test_events();
-        let filtered: Vec<_> = events
-            .iter()
-            .filter(|e| e.matches_state_filter(None))
-            .map(|e| {
-                serde_json::json!({
-                    "summary": e.summary,
-                    "category": e.category,
-                    "location": e.location,
-                    "start_date": e.start_date.as_ref().map(format_date),
-                })
-            })
-            .collect();
+        let filtered = snapshot_rows(&events, None);
 
         assert_yaml_snapshot!(filtered);
     }
