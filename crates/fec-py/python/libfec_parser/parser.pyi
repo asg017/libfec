@@ -5,18 +5,23 @@ checked against the built extension by `python -m mypy.stubtest` — see
 `crates/fec-py/Makefile`'s `stubs` target.  The implementation is `src/parser.rs`.
 """
 
-from typing import Protocol, final
+from collections.abc import Iterator
+from datetime import date
+from typing import Any, Protocol, TypeAlias, final, overload
 
 __all__ = [
     "Cover",
     "Filing",
     "Header",
-    "Itemization",
+    "Row",
     "fec_header",
     "FecError",
     "FecParseError",
     "MissingMappingError",
 ]
+
+Value: TypeAlias = str | float | date | None
+"""A column's value: typed if it parses, the raw `str` if it is garbage, `None` if empty."""
 
 class _Readable(Protocol):
     """A binary file-like object: `read()` must return the filing's bytes."""
@@ -65,17 +70,49 @@ class Cover:
         """The six cover attributes above as a dict."""
 
 @final
-class Itemization:
-    """One itemization row; a sequence of raw string fields."""
+class Row:
+    """One itemization row: a mapping from column name to typed value.
+
+    By name the value follows the value rule (`Value` above); by position it is
+    the raw `str` exactly as it appears in the file.  `len(row)` is the number of
+    mapped columns — `len(row.fields())` is the raw field count.
+    """
 
     @property
     def row_type(self) -> str: ...
-    def fields(self) -> list[str]:
-        """Every field of the row, in file order."""
+    @property
+    def line(self) -> int:
+        """The row's 1-based physical line in the file."""
 
-    def __len__(self) -> int: ...
+    @property
+    def extra_fields(self) -> list[str]:
+        """Fields past the last mapped column, `[]` unless one of them is non-empty."""
+
+    @overload
+    def __getitem__(self, key: str, /) -> Value: ...
+    @overload
     def __getitem__(self, key: int, /) -> str: ...
+    @overload
+    def __getitem__(self, key: slice, /) -> list[str]: ...
+    def __len__(self) -> int: ...
+    def __iter__(self) -> Iterator[str]: ...
+    def __contains__(self, key: object, /) -> bool: ...
+    def keys(self) -> list[str]: ...
+    def values(self) -> list[Value]: ...
+    def items(self) -> list[tuple[str, Value]]: ...
+    def get(self, key: str, default: Value = None, /) -> Value: ...
+    def fields(self) -> list[str]:
+        """Every raw field of the row, in file order."""
+
+    def __eq__(self, other: object, /) -> bool: ...
+    def __hash__(self) -> int: ...
+    def __reduce__(self) -> tuple[Any, ...]: ...
     def __repr__(self) -> str: ...
+
+def _row_from_parts(
+    row_type: str, version: str, fields: list[str], line: int, /
+) -> Row:
+    """Rebuild a `Row` from its pickled parts; named by `Row.__reduce__`."""
 
 @final
 class Filing:
@@ -93,7 +130,7 @@ class Filing:
     @property
     def cover(self) -> Cover: ...
     @property
-    def itemizations(self) -> list[Itemization]: ...
+    def itemizations(self) -> list[Row]: ...
     def __repr__(self) -> str: ...
 
 def fec_header(contents: bytes) -> str:

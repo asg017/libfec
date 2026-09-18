@@ -1,8 +1,10 @@
-use crate::errors::{io_error, parse_error};
+use crate::errors::{io_error, missing_mapping, parse_error};
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
 use std::io::Cursor;
 use std::path::PathBuf;
+
+use crate::row::{schema_for, Row};
 
 /// Python wrapper for FilingHeader
 #[pyclass(module = "libfec_parser.parser", skip_from_py_object)]
@@ -76,62 +78,19 @@ impl Cover {
     }
 }
 
-/// Python wrapper for FilingRow (itemization)
-#[pyclass(module = "libfec_parser.parser", skip_from_py_object)]
-#[derive(Clone)]
-pub struct Itemization {
-    #[pyo3(get)]
-    pub row_type: String,
-    fields: Vec<String>,
-}
-
-#[pymethods]
-impl Itemization {
-    fn __repr__(&self) -> String {
-        format!(
-            "Itemization(row_type='{}', {} fields)",
-            self.row_type,
-            self.fields.len()
-        )
-    }
-
-    fn __len__(&self) -> usize {
-        self.fields.len()
-    }
-
-    fn __getitem__(&self, idx: isize) -> PyResult<String> {
-        let len = self.fields.len() as isize;
-        let actual_idx = if idx < 0 {
-            (len + idx) as usize
-        } else {
-            idx as usize
-        };
-
-        self.fields
-            .get(actual_idx)
-            .cloned()
-            .ok_or_else(|| pyo3::exceptions::PyIndexError::new_err("Index out of range"))
-    }
-
-    /// Get all fields as a list
-    fn fields(&self) -> Vec<String> {
-        self.fields.clone()
-    }
-}
-
 /// Main Filing class
 #[pyclass(module = "libfec_parser.parser")]
 pub struct Filing {
     header: Header,
     cover: Cover,
-    itemizations: Vec<Itemization>,
+    itemizations: Vec<Py<Row>>,
 }
 
 #[pymethods]
 impl Filing {
     #[new]
     #[pyo3(signature = (source))]
-    pub fn new(source: &Bound<'_, PyAny>) -> PyResult<Self> {
+    pub fn new(py: Python<'_>, source: &Bound<'_, PyAny>) -> PyResult<Self> {
         // Handle different input types: path (str), bytes, or file-like object
         let (reader, source_length): (Box<dyn std::io::Read>, usize) =
             if let Ok(path_str) = source.extract::<String>() {
@@ -183,15 +142,14 @@ impl Filing {
         };
 
         // Collect all itemizations
+        let version = header.fec_version.clone();
         let mut itemizations = Vec::new();
         while let Some(row_result) = filing.next_row() {
             let row = row_result.map_err(parse_error)?;
 
-            let fields: Vec<String> = row.record.iter().map(|s| s.to_string()).collect();
-            itemizations.push(Itemization {
-                row_type: row.row_type,
-                fields,
-            });
+            let schema = schema_for(py, &row.row_type, &version)
+                .ok_or_else(|| missing_mapping(py, &row.row_type, &version, row.line))?;
+            itemizations.push(Py::new(py, Row::new(schema, row.record, row.line))?);
         }
 
         Ok(Filing {
@@ -212,8 +170,8 @@ impl Filing {
     }
 
     #[getter]
-    fn itemizations(&self) -> Vec<Itemization> {
-        self.itemizations.clone()
+    fn itemizations(&self, py: Python<'_>) -> Vec<Py<Row>> {
+        self.itemizations.iter().map(|r| r.clone_ref(py)).collect()
     }
 
     fn __repr__(&self) -> String {

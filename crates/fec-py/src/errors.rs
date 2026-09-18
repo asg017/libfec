@@ -28,13 +28,8 @@ pub fn parse_error(e: impl std::fmt::Display) -> PyErr {
 // lookup; importing `libfec_parser.parser` here is safe because `_native` is only ever loaded
 // from `libfec_parser/__init__.py`, so the package is already importable by the time a row is
 // read.
-//
-// Not called yet: this is the helper the streaming iterator raises from (ticket 14), landed
-// here alongside the exception classes per the ticket 12 "Wiring" note.
-#[allow(dead_code)]
 static MISSING_MAPPING_ERROR: PyOnceLock<Py<PyType>> = PyOnceLock::new();
 
-#[allow(dead_code)]
 fn missing_mapping_class(py: Python<'_>) -> PyResult<&Py<PyType>> {
     MISSING_MAPPING_ERROR.get_or_try_init(py, || -> PyResult<Py<PyType>> {
         Ok(py
@@ -46,7 +41,6 @@ fn missing_mapping_class(py: Python<'_>) -> PyResult<&Py<PyType>> {
 }
 
 /// Raise `libfec_parser.parser.MissingMappingError(row_type, version, line)`.
-#[allow(dead_code)]
 pub fn missing_mapping(py: Python<'_>, row_type: &str, version: &str, line: u64) -> PyErr {
     let class = match missing_mapping_class(py) {
         Ok(class) => class,

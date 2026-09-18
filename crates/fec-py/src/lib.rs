@@ -1,6 +1,7 @@
 mod errors;
 mod fecfile;
 mod parser;
+mod row;
 
 use pyo3::prelude::*;
 
@@ -17,7 +18,9 @@ mod _native {
         #[pymodule_export]
         use crate::errors::{FecError, FecParseError};
         #[pymodule_export]
-        use crate::parser::{fec_header, Cover, Filing, Header, Itemization};
+        use crate::parser::{fec_header, Cover, Filing, Header};
+        #[pymodule_export]
+        use crate::row::{row_from_parts, Row};
     }
 
     #[pymodule]
