@@ -25,8 +25,9 @@ test-slow: develop-release
 notebook: develop-release
 	uv run --with jupyterlab jupyter lab examples/quickstart.ipynb
 
-stubs: develop                 ## ticket 09 fills this in
-	@echo "see todos/python/09-type-stubs.md"
+stubs: develop                 ## check python/libfec_parser/*.pyi against the built extension
+	uv run python -m mypy.stubtest libfec_parser --allowlist stubtest-allowlist.txt
+	uv run mypy --check-untyped-defs tests
 
 clean:
 	rm -rf dist .venv python/libfec_parser/*.so

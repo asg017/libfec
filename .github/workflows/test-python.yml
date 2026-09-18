@@ -45,6 +45,17 @@ jobs:
         shell: bash
         working-directory: crates/fec-py
         run: uv run --python .venv --no-project pytest tests -v -rs
+      - name: stubtest
+        # One job is enough: the stubs are platform- and version-independent. This
+        # runs against the *installed wheel*, so it also proves the wheel ships
+        # py.typed and the .pyi files.
+        if: matrix.os == 'ubuntu-latest' && matrix.python == '3.11'
+        shell: bash
+        working-directory: crates/fec-py
+        run: |
+          uv pip install --python .venv mypy
+          uv run --python .venv --no-project python -m mypy.stubtest libfec_parser --allowlist stubtest-allowlist.txt
+          uv run --python .venv --no-project mypy --check-untyped-defs tests
       - name: Smoke test - construct a Filing (guards against the pyo3 0.22 3.14 segfault)
         shell: bash
         working-directory: crates/fec-py
