@@ -39,7 +39,7 @@ uvx maturin build --release --out dist
 pip install dist/libfec_parser-*.whl
 ```
 
-Wheels use the stable ABI (`abi3`), so one build works on Python 3.9 and up.
+Wheels use the stable ABI (`abi3`), so one build works on Python 3.11 and up.
 
 ## `fecfile` API
 
