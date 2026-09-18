@@ -9,9 +9,6 @@ This directory contains pytest-based tests for the `libfec_parser` Python packag
   - Tests for `Filing` class
   - Tests for `Header`, `Cover`, and `Itemization` classes
 
-- `test_foo.py` - Tests for the `libfec_parser.foo` module
-  - Tests for the example `bar()` function
-
 - `test_fecfile.py` - Tests for the `libfec_parser.fecfile` module
   - Tests for `loads()` function
   - Tests for `from_file()` function
@@ -102,7 +99,6 @@ def test_large_file_parsing(first_fec_file):
 
 Current coverage includes:
 - ✅ Parser module (Filing, Header, Cover, Itemization classes)
-- ✅ Foo module (example module)
 - ✅ Fecfile module (fecfile compatibility layer)
 - ✅ Error handling and edge cases
 - ✅ Integration tests
