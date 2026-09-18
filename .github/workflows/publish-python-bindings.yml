@@ -1,0 +1,58 @@
+# Attach the `libfec_parser` wheels built by build-python-bindings.yml to the GitHub Release.
+#
+# Assumed to run as a subworkflow of .github/workflows/release.yml; specifically, as a publish
+# job within `cargo-dist` (registered in dist-workspace.toml as
+# `publish-jobs = [..., "./publish-python-bindings"]`), hence the `workflow_call` + `plan`
+# input shape. Publish jobs run after `host`, so the Release already exists by now.
+#
+# Why this job exists at all: cargo-dist only puts `artifacts-*` (its own dist-manifest
+# artifacts) on the Release page — verified on 0.0.31, whose assets contain no wheels even
+# though build-pypi.yml runs as a local-artifacts job. Custom-job artifacts have to be
+# uploaded by hand, which is what this does.
+#
+# Nothing here goes to PyPI (plans/python/00-decisions.md D1).
+name: "Attach libfec_parser wheels to the GitHub Release"
+
+on:
+  workflow_call:
+    inputs:
+      plan:
+        required: true
+        type: string
+
+jobs:
+  attach:
+    runs-on: ubuntu-latest
+    permissions:
+      # `gh release upload` needs this. cargo-dist gives custom publish jobs
+      # `id-token: write` + `packages: write` by default, which *replaces* the
+      # workflow-level `contents: write` in release.yml, so dist-workspace.toml carries a
+      # `[dist.github-custom-job-permissions]` override granting `contents = "write"` to
+      # this job. Keep the two in sync.
+      contents: write
+    steps:
+      - name: Download wheels
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          # Deliberately `wheels_libfec_parser-*`, NOT `wheels_libfec-*`.
+          # download-artifact matches `pattern` with minimatch glob semantics, where `*`
+          # matches any run of characters but the literal `-` in `wheels_libfec-*` still has
+          # to be present: `wheels_libfec_parser-linux-x86_64` has `_` at that position, so
+          # publish-pypi.yml's `pattern: wheels_libfec-*` does not match these artifacts and
+          # the bindings can never be pushed to PyPI by that job (D1).
+          pattern: wheels_libfec_parser-*
+          path: wheels
+          merge-multiple: true
+      - name: Upload wheels to the GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          # `announcement_tag` is the key cargo-dist 0.30.3 puts the release tag under in
+          # the `dist plan` / `dist host --steps=create` JSON (verified locally:
+          # `dist plan --output-format=json | jq .announcement_tag` -> "v0.0.32").
+          TAG: ${{ fromJson(inputs.plan).announcement_tag }}
+        run: |
+          set -euo pipefail
+          ls -l wheels
+          # Fail loudly rather than silently "succeeding" with nothing attached.
+          test -n "$(ls -A wheels)"
+          gh release upload "$TAG" wheels/* --clobber --repo "$GITHUB_REPOSITORY"

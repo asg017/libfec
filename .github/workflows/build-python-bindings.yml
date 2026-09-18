@@ -1,0 +1,144 @@
+# Build `libfec_parser` (crates/fec-py) wheels for the five supported platforms + an sdist.
+#
+# Assumed to run as a subworkflow of .github/workflows/release.yml; specifically, as a local
+# artifacts job within `cargo-dist` (registered in dist-workspace.toml as
+# `local-artifacts-jobs = [..., "./build-python-bindings"]`), hence the `workflow_call` +
+# `plan` input shape. `plan` is unused here — the version comes from crates/fec-py/Cargo.toml,
+# which is the same workspace version the tag names (D7).
+#
+# cargo-dist does NOT attach custom-job artifacts to the GitHub Release; the companion
+# .github/workflows/publish-python-bindings.yml does that with `gh release upload`.
+#
+# Platforms are Q10 (plans/python/00-decisions.md): manylinux_2_17 x86_64 + aarch64,
+# macOS x86_64 + arm64, Windows x64, plus an sdist. No musllinux, no armv7, no QEMU, and
+# no free-threaded builds (D8) — one `cp311-abi3` wheel per platform, no interpreter matrix.
+name: "Build libfec_parser wheels"
+
+on:
+  workflow_call:
+    inputs:
+      plan:
+        required: true
+        type: string
+
+jobs:
+  linux:
+    name: linux-${{ matrix.target }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { runner: ubuntu-22.04, target: x86_64 }
+          # Native arm64 runner, so `manylinux: auto` picks quay.io/pypa/manylinux2014_aarch64
+          # rather than a cross image, and there is no QEMU in the loop.
+          - { runner: ubuntu-22.04-arm, target: aarch64 }
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
+      - name: Build wheel
+        uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
+        with:
+          working-directory: crates/fec-py
+          target: ${{ matrix.target }}
+          # `auto` == the manylinux2014 container (glibc 2.17). This is the fix for the CLI
+          # wheel's mistake: building on a bare ubuntu-22.04 host tags the wheel
+          # manylinux_2_34, which will not install on older glibc.
+          manylinux: auto
+          # `--compatibility pypi` makes a mis-tagged wheel fail the *build*. We never upload
+          # to PyPI (D1), but it is the cheapest correctness check for the manylinux tag.
+          args: --release --out dist --compatibility pypi
+          maturin-version: "1.15.0"
+      - name: Smoke test the wheel
+        shell: bash
+        run: |
+          uv venv .venv-smoke --python cpython-3.11
+          uv pip install --python .venv-smoke crates/fec-py/dist/*.whl
+          uv run --python .venv-smoke --no-project python -c "from libfec_parser.parser import Filing; print(Filing('crates/fec-py/tests/fixtures/1921705.fec'))"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: wheels_libfec_parser-linux-${{ matrix.target }}
+          path: crates/fec-py/dist
+
+  macos:
+    name: macos-${{ matrix.target }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # `macos-15-intel` is the current x86_64 macOS label (macos-13 is retired); it is
+          # what `maturin generate-ci github` 1.15 emits — see
+          # plans/python/probes/maturin-1.15-generate-ci.yml.
+          - { runner: macos-15-intel, target: x86_64 }
+          - { runner: macos-latest, target: aarch64 }
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
+      - name: Build wheel
+        uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
+        with:
+          working-directory: crates/fec-py
+          target: ${{ matrix.target }}
+          # No `manylinux:` key here. `--compatibility pypi` is kept: unlike the
+          # `manylinux*`/`musllinux*` values, `pypi` "applies on all platforms"
+          # (`maturin build --help`, 1.15.0), so it also rejects a macOS tag PyPI would.
+          args: --release --out dist --compatibility pypi
+          maturin-version: "1.15.0"
+      - name: Smoke test the wheel
+        shell: bash
+        run: |
+          uv venv .venv-smoke --python cpython-3.11
+          uv pip install --python .venv-smoke crates/fec-py/dist/*.whl
+          uv run --python .venv-smoke --no-project python -c "from libfec_parser.parser import Filing; print(Filing('crates/fec-py/tests/fixtures/1921705.fec'))"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: wheels_libfec_parser-macos-${{ matrix.target }}
+          path: crates/fec-py/dist
+
+  windows:
+    name: windows-${{ matrix.target }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { runner: windows-latest, target: x64 }
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
+      - name: Build wheel
+        uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
+        with:
+          working-directory: crates/fec-py
+          target: ${{ matrix.target }}
+          args: --release --out dist --compatibility pypi
+          maturin-version: "1.15.0"
+      - name: Smoke test the wheel
+        # `shell: bash` (git-bash) so the `dist/*.whl` glob expands here the same way it
+        # does on the other runners; PowerShell would pass the literal string to uv.
+        shell: bash
+        run: |
+          uv venv .venv-smoke --python cpython-3.11
+          uv pip install --python .venv-smoke crates/fec-py/dist/*.whl
+          uv run --python .venv-smoke --no-project python -c "from libfec_parser.parser import Filing; print(Filing('crates/fec-py/tests/fixtures/1921705.fec'))"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: wheels_libfec_parser-windows-${{ matrix.target }}
+          path: crates/fec-py/dist
+
+  sdist:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Build sdist
+        uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
+        with:
+          working-directory: crates/fec-py
+          command: sdist
+          args: --out dist
+          maturin-version: "1.15.0"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: wheels_libfec_parser-sdist
+          path: crates/fec-py/dist
