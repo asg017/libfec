@@ -7,7 +7,7 @@ so dropping a new filing into that directory automatically extends this suite.
 from pathlib import Path
 
 from libfec_parser import fecfile
-from libfec_parser.parser import Filing
+from libfec_parser.parser import open
 
 # name -> (fec_version, form_type, filer_id, itemization row count)
 EXPECTED = {
@@ -25,14 +25,15 @@ def test_all_fixtures_present(all_fixture_files):
 
 
 def test_parser_api_parses_fixture(fec_fixture: Path):
-    """Filing() parses every fixture with the documented shape"""
+    """open() parses every fixture with the documented shape"""
     version, form_type, filer_id, n_rows = EXPECTED[fec_fixture.name]
-    filing = Filing(str(fec_fixture))
+    reader = open(fec_fixture)
 
-    assert filing.header.fec_version == version
-    assert filing.cover.form_type == form_type
-    assert filing.cover.filer_id == filer_id
-    assert len(filing.itemizations) == n_rows
+    assert reader.header.fec_version == version
+    assert reader.cover.form_type == form_type
+    assert reader.cover.filer_id == filer_id
+    assert reader.id == fec_fixture.stem
+    assert sum(1 for _ in reader) == n_rows
 
 
 def test_fecfile_api_parses_fixture(fec_fixture: Path):
@@ -49,17 +50,17 @@ def test_fecfile_api_parses_fixture(fec_fixture: Path):
 
 def test_both_apis_agree_on_row_count(fec_fixture: Path):
     """The parser and fecfile layers see the same number of itemizations"""
-    filing = Filing(str(fec_fixture))
+    n_rows = sum(1 for _ in open(fec_fixture))
     result = fecfile.from_file(str(fec_fixture))
 
-    assert len(filing.itemizations) == sum(
-        len(v) for v in result["itemizations"].values()
-    )
+    assert n_rows == sum(len(v) for v in result["itemizations"].values())
 
 
 def test_bytes_and_path_agree(fec_fixture: Path):
-    """Filing(bytes) and Filing(path) produce the same filing"""
-    from_path = Filing(str(fec_fixture))
-    from_bytes = Filing(fec_fixture.read_bytes())
+    """open(bytes) and open(path) read the same filing (`id` aside)"""
+    from_path = open(fec_fixture)
+    from_bytes = open(fec_fixture.read_bytes())
 
-    assert repr(from_path) == repr(from_bytes)
+    assert from_path.cover.fields() == from_bytes.cover.fields()
+    assert from_path.cover_row.fields() == from_bytes.cover_row.fields()
+    assert [r.fields() for r in from_path] == [r.fields() for r in from_bytes]
