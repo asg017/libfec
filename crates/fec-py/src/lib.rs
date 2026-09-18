@@ -18,7 +18,7 @@ mod _native {
         #[pymodule_export]
         use crate::errors::{FecError, FecParseError};
         #[pymodule_export]
-        use crate::parser::{fec_header, Cover, Filing, Header};
+        use crate::parser::{fec_header, open_filing, Cover, FilingReader, Header};
         #[pymodule_export]
         use crate::row::{row_from_parts, Row};
     }

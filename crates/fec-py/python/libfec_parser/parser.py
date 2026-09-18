@@ -1,5 +1,8 @@
 """Parsing primitives for FEC electronic filings."""
 
+# `open` below shadows the builtin for the rest of this module; reach the real one
+# through `builtins.open`.
+import builtins  # noqa: F401  (kept for modules that need the real `open`)
 from collections.abc import Mapping
 
 # `_native` is a single extension module; `_native.parser` is an attribute of it,
@@ -8,10 +11,11 @@ from collections.abc import Mapping
 from ._native import parser as _parser
 
 Cover = _parser.Cover
-Filing = _parser.Filing
+FilingReader = _parser.FilingReader
 Header = _parser.Header
 Row = _parser.Row
 fec_header = _parser.fec_header
+open = _parser.open
 
 FecError = _parser.FecError
 FecParseError = _parser.FecParseError
@@ -42,10 +46,11 @@ Mapping.register(Row)
 
 __all__ = [
     "Cover",
-    "Filing",
+    "FilingReader",
     "Header",
     "Row",
     "fec_header",
+    "open",
     "FecError",
     "FecParseError",
     "MissingMappingError",
