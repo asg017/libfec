@@ -1,258 +1,209 @@
 # libfec_parser
 
-Python bindings for the FEC parser library.
+Python bindings for [libfec](https://github.com/asg017/libfec)'s `.fec` parser. Parse FEC electronic filings from a path, from bytes, or straight from the FEC's website, with the parsing done in Rust.
+
+```python
+from libfec_parser import fecfile
+
+filing = fecfile.from_file("1721696.fec")
+
+filing["filing"]["committee_name"]          # 'PFIZER INC. PAC'
+filing["filing"]["col_a_total_receipts"]    # '83741.93'
+
+for row in filing["itemizations"]["Schedule A"]:
+    print(row["contributor_last_name"], row["contribution_amount"])
+```
+
+Two APIs are included:
+
+- [`libfec_parser.fecfile`](#fecfile-api): rows as dicts keyed by column name, modeled on the [`fecfile`](https://pypi.org/project/fecfile/) package.
+- [`libfec_parser.parser`](#native-api): a lower-level `Filing` class with positional fields.
+
+For a guided tour, including loading a filing into pandas, see [`examples/quickstart.ipynb`](examples/quickstart.ipynb).
+
+> **Status:** early and unpublished. The package is not on PyPI yet, and the API may change.
 
 ## Installation
 
-```bash
-# Install from wheel (after building)
-pip install dist/libfec_parser-0.1.0-cp39-abi3-macosx_11_0_arm64.whl
-```
-
-## Building
-
-**Note:** Don't use `cargo build` directly - use `maturin` to build PyO3 extension modules.
-
-### Quick Start with Makefile
-
-The easiest way to build is using the Makefile:
+`libfec_parser` has to be built from source for now. You'll need a [Rust toolchain](https://rustup.rs/) and [uv](https://docs.astral.sh/uv/) (or `pip install maturin`).
 
 ```bash
-cd /Users/alex/projects/libfec/crates/fec-py
+git clone https://github.com/asg017/libfec
+cd libfec/crates/fec-py
 
-# Build development wheel
-make build
+# Install into the active virtualenv
+uvx maturin develop --release
 
-# Build release (optimized) wheel
-make build-release
-
-# Run demo scripts
-make demo
-make demo-fecfile
+# ...or build a wheel into dist/ and install it wherever you like
+uvx maturin build --release --out dist
+pip install dist/libfec_parser-*.whl
 ```
 
-### Development Build
+Wheels use the stable ABI (`abi3`), so one build works on Python 3.9 and up.
 
-For local development and testing, use `maturin develop` to build and install in-place:
-
-```bash
-cd /Users/alex/projects/libfec
-maturin develop -m crates/fec-py/Cargo.toml
-```
-
-This installs the package in editable mode in your current Python environment.
-
-### Manual Build
-
-To build a distributable wheel package manually:
-
-```bash
-cd /Users/alex/projects/libfec
-maturin build -m crates/fec-py/Cargo.toml --out dist
-```
-
-For a release (optimized) build:
-
-```bash
-cd /Users/alex/projects/libfec
-maturin build -m crates/fec-py/Cargo.toml --release --out dist
-```
-
-## Usage
-
-### fecfile Compatibility API
-
-The `libfec_parser.fecfile` module provides a compatibility layer that mimics the API of the [fecfile](https://pypi.org/project/fecfile/) PyPI package:
+## `fecfile` API
 
 ```python
-from libfec_parser.fecfile import loads, from_file, parse_header, parse_line, print_example
-
-# Load and parse a filing from a file
-parsed = from_file("./path/to/filing.fec")
-
-# Access parsed data
-print(parsed['header']['fec_version'])
-print(parsed['filing']['form_type'])
-print(parsed['itemizations']['Schedule A'][0])
-
-# Parse from string/bytes
-content = open("filing.fec", "rb").read()
-parsed = loads(content)
-
-# Filter specific schedules
-parsed = loads(content, options={'filter_itemizations': ['SA', 'SB']})
-
-# Parse just the header
-header, version, lines_consumed = parse_header(header_line)
-
-# Parse a single line
-line_dict = parse_line(line, version)
-
-# Print example (first item of each type)
-print_example(parsed)
+from libfec_parser import fecfile
 ```
 
-See [demo-fecfile.py](demo-fecfile.py) for a complete demonstration.
+### Loading a filing
 
-### Native Python API
+| Function | Input |
+| --- | --- |
+| `from_file(path, options=None)` | Path to a `.fec` file, as a `str` |
+| `loads(content, options=None)` | `bytes`, a `str`, or a list of lines |
+| `from_http(filing_id, options=None)` | A filing ID (`int` or `str`), downloaded from `docquery.fec.gov`. Returns `None` if the filing doesn't exist |
+
+All three return a dict with the same shape:
+
+```python
+{
+    "header": {"record_type": "HDR", "fec_version": "8.4", "software_name": "FECFile", ...},
+    "filing": {"form_type": "F3XN", "filer_committee_id_number": "C00016683", "committee_name": ..., ...},
+    "itemizations": {
+        "Schedule A": [{"form_type": "SA11AI", "contributor_last_name": ..., ...}, ...],
+        "Schedule B": [...],
+    },
+    "text": [...],
+}
+```
+
+- `header` is the `HDR` record. `report_id`, `report_number` and `comment` are only present when the filing sets them.
+- `filing` is the cover page, with one key for every column on the form.
+- `itemizations` groups rows by schedule. Row types starting with `S` are keyed `"Schedule A"`, `"Schedule B"`, and so on. Anything else is keyed by its row type, such as `"F1S"`. Each row's exact line number is in its `form_type`.
+- `text` holds free-form `TEXT` records.
+
+Column names come from libfec's mappings for the filing's FEC format version. Rows with no known mapping fall back to `field_0`, `field_1`, ….
+
+### Options
+
+`filter_itemizations` takes a list of row-type prefixes. Rows that don't match are skipped, which saves most of the memory on large filings:
+
+```python
+# Only Schedule A and Schedule B rows
+fecfile.from_file(path, options={"filter_itemizations": ["SA", "SB"]})
+
+# Only line 11(a)(i) of Schedule A
+fecfile.from_file(path, options={"filter_itemizations": ["SA11AI"]})
+
+# Header and cover page only
+fecfile.from_file(path, options={"filter_itemizations": []})
+```
+
+### Parsing single records
+
+```python
+header, version, lines_consumed = fecfile.parse_header(first_line)
+row = fecfile.parse_line(line, version)
+```
+
+`.fec` fields are separated by the ASCII 28 "file separator" character, which `str.splitlines()` treats as a line break. Split on `"\n"` when breaking a filing into lines yourself.
+
+`fecfile.print_example(parsed)` prints the header, cover page, and the first row of each schedule as JSON.
+
+### Differences from `fecfile`
+
+- **Every value is a string.** Amounts are not converted to `float`, and dates stay as `YYYYMMDD`. The `as_strings` option is accepted and ignored.
+- Only the ASCII 28-delimited format (FEC version 6 and later) is supported by `parse_header()` and `parse_line()`.
+- `from_http()` reads the whole response into memory before parsing, and there is no `iter_file()` / `iter_http()` yet.
+
+## Native API
 
 ```python
 from libfec_parser.parser import Filing
 
-# Create a Filing from a file path
-f = Filing("./path/to/filing.fec")
-
-# Access header information
-print(f.header.fec_version)      # FEC file version
-print(f.header.software_name)     # Software used to create filing
-print(f.header.software_version)  # Software version
-
-# Access cover page information
-print(f.cover.form_type)          # Form type (e.g., "F3P")
-print(f.cover.filer_id)           # Committee/filer ID
-print(f.cover.filer_name)         # Committee/filer name
-print(f.cover.report_code)        # Report code (e.g., "Q1", "M10")
-print(f.cover.coverage_from_date) # Coverage period start
-print(f.cover.coverage_through_date) # Coverage period end
-
-# Iterate through itemizations (schedules)
-for itemization in f.itemizations:
-    print(itemization.row_type)    # Row type (e.g., "SA11AI", "SB21B")
-    print(itemization.fields())    # All fields as a list
-    print(itemization[0])          # Access specific field by index
-
-# Alternative: Create from bytes
-with open("./path/to/filing.fec", "rb") as file:
-    f = Filing(file.read())
-
-# Alternative: Create from file-like object
-import urllib.request
-with urllib.request.urlopen("https://example.com/filing.fec") as response:
-    f = Filing(response)
+filing = Filing("1721696.fec")
+# Filing(form_type='F3XN', filer_id='C00016683', 1387 itemizations)
 ```
 
-### Legacy Function
-
-The `fec_header` function is also available for quick header parsing:
+`Filing(source)` accepts a path (`str`), `bytes`, or any object with a `.read()` method that returns bytes:
 
 ```python
-from libfec_parser.parser import fec_header
-from pathlib import Path
+import urllib.request
 
-contents = Path("./filing.fec").read_bytes()
-version = fec_header(contents)  # Returns FEC version string
-print(version)  # e.g., "8.4"
+with urllib.request.urlopen("https://docquery.fec.gov/dcdev/posted/1721696.fec") as response:
+    filing = Filing(response)
 ```
 
-## Running the Demo
+The whole filing is parsed up front. A bad path raises `IOError`, an unparseable filing raises `ValueError`.
 
-The easiest way to run the demos is using the Makefile:
+### `Filing`
 
-```bash
-cd /Users/alex/projects/libfec/crates/fec-py
+| Attribute | Type | |
+| --- | --- | --- |
+| `header` | `Header` | The `HDR` record |
+| `cover` | `Cover` | The cover page |
+| `itemizations` | `list[Itemization]` | Every remaining row, in file order |
 
-# Run demo.py (will build if needed)
-make demo
+Each access to `itemizations` copies the list, so bind it to a variable rather than indexing `filing.itemizations` in a loop.
 
-# Run demo-fecfile.py
-make demo-fecfile
+### `Header`
+
+| Attribute | Type | |
+| --- | --- | --- |
+| `record_type` | `str` | Always `"HDR"` |
+| `ef_type` | `str` | Electronic filing type |
+| `fec_version` | `str` | FEC format version, such as `"8.4"` |
+| `software_name` | `str` | Software that produced the filing |
+| `software_version` | `str` | |
+| `report_id` | `str \| None` | For amendments, the filing being amended |
+| `report_number` | `str \| None` | |
+| `comment` | `str \| None` | |
+
+### `Cover`
+
+| Attribute | Type | |
+| --- | --- | --- |
+| `form_type` | `str` | Such as `"F3XN"` or `"F3PA"` |
+| `filer_id` | `str` | Committee ID |
+| `filer_name` | `str` | |
+| `report_code` | `str \| None` | Such as `"Q1"`, `"M8"`, `"YE"` |
+| `coverage_from_date` | `str \| None` | ISO formatted, `"2023-07-01"` |
+| `coverage_through_date` | `str \| None` | ISO formatted |
+
+`cover.fields()` returns the same six values as a dict. For the rest of the cover page, use the [`fecfile` API](#fecfile-api).
+
+### `Itemization`
+
+A single row: its `row_type` (such as `"SA11AI"`) plus the raw fields, in file order and without column names.
+
+```python
+item = filing.itemizations[0]
+
+item.row_type   # 'SA11AI'
+len(item)       # 45
+item[0]         # 'SA11AI'
+item[-1]        # negative indexes work
+item.fields()   # all fields as a list[str]
 ```
 
-Or run manually with specific files:
+### `fec_header(contents)`
 
-```bash
-# Run with the built wheel using uv
-uv run --no-cache --no-project --isolated \
-  --with 'libfec_parser @ file://dist/libfec_parser-0.1.0-cp39-abi3-macosx_11_0_arm64.whl' \
-  demo.py ../../cache2/1461586.fec ../../cache2/1478292.fec
-
-# Or if installed locally
-python demo.py path/to/filing1.fec path/to/filing2.fec
-```
-
-The demos will parse the provided FEC files and demonstrate the API usage
-
-## API Reference
-
-### Classes
-
-#### `Filing`
-
-Main class for parsing FEC filing files.
-
-**Constructor:** `Filing(source)`
-- `source`: Can be a file path (str), bytes, or file-like object with a `read()` method
-
-**Attributes:**
-- `header`: `Header` object with filing header information
-- `cover`: `Cover` object with cover page information
-- `itemizations`: List of `Itemization` objects representing all schedule rows
-
-#### `Header`
-
-Contains FEC filing header information.
-
-**Attributes:**
-- `record_type`: str - Record type (always "HDR")
-- `ef_type`: str - Electronic filing type
-- `fec_version`: str - FEC version (e.g., "8.4", "8.5")
-- `software_name`: str - Software name used to create filing
-- `software_version`: str - Software version
-- `report_id`: Optional[str] - Report ID if present
-- `report_number`: Optional[str] - Report number if present
-- `comment`: Optional[str] - Comment if present
-
-#### `Cover`
-
-Contains FEC filing cover page information.
-
-**Attributes:**
-- `form_type`: str - Form type (e.g., "F3P", "F3X")
-- `filer_id`: str - Committee or filer ID
-- `filer_name`: str - Committee or filer name
-- `report_code`: Optional[str] - Report code (e.g., "Q1", "M10", "YE")
-- `coverage_from_date`: Optional[str] - Coverage period start date
-- `coverage_through_date`: Optional[str] - Coverage period end date
-
-**Methods:**
-- `fields()`: Returns a dictionary of all cover record fields
-
-#### `Itemization`
-
-Represents a single itemization (schedule) row in the filing.
-
-**Attributes:**
-- `row_type`: str - Row type identifier (e.g., "SA11AI", "SB21B")
-
-**Methods:**
-- `fields()`: Returns list of all field values
-- `__len__()`: Returns number of fields
-- `__getitem__(idx)`: Access field by index (supports negative indexing)
+Takes the `bytes` of a filing and returns just its FEC format version.
 
 ## Development
 
-After making changes to the Rust code:
+Build with `maturin`, not `cargo build`, which can't link a Python extension module on its own.
 
-1. Rebuild and test:
-   ```bash
-   cd /Users/alex/projects/libfec/crates/fec-py
-   make build
-   make demo
-   ```
+```bash
+make build          # debug wheel into dist/
+make build-release  # optimized wheel into dist/
+make test-pytest    # run tests/ against the wheel in dist/
+make notebook       # build, then open examples/quickstart.ipynb in JupyterLab
+```
 
-Or manually:
+The tests look for `.fec` files in the repo's `cache/` and `benchmarks/` directories and skip when none are found. See [`tests/README.md`](tests/README.md).
 
-1. Rebuild the wheel:
-   ```bash
-   cd /Users/alex/projects/libfec/crates/fec-py
-   maturin build -m Cargo.toml --out dist
-   ```
+Rebuilt wheels keep the same filename, so `uv` will happily reuse a stale cached copy. Pass `--no-cache` whenever you `uv run --with` a wheel from `dist/`, as the Makefile targets do.
 
-2. Test with the new wheel:
-   ```bash
-   uv run --no-cache --no-project --isolated \
-     --with 'libfec_parser @ file://dist/libfec_parser-0.1.0-cp39-abi3-macosx_11_0_arm64.whl' \
-     demo.py ../../cache2/*.fec
-   ```
+To refresh the notebook's saved outputs after an API change:
 
-Note: Use `--no-cache` with `uv` to ensure it uses the newly built wheel and doesn't cache an old version.
+```bash
+make build
+cd examples
+uv run --no-cache --no-project --isolated \
+  --with "$(ls ../dist/libfec_parser-*.whl | head -1)" \
+  --with pandas --with nbconvert --with ipykernel \
+  jupyter nbconvert --to notebook --execute --inplace quickstart.ipynb
+```
