@@ -1,3 +1,4 @@
+mod errors;
 mod fecfile;
 mod parser;
 
@@ -13,6 +14,8 @@ mod _native {
 
     #[pymodule]
     mod parser {
+        #[pymodule_export]
+        use crate::errors::{FecError, FecParseError};
         #[pymodule_export]
         use crate::parser::{fec_header, Cover, Filing, Header, Itemization};
     }
