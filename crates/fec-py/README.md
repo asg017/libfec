@@ -187,28 +187,20 @@ Takes the `bytes` of a filing and returns just its FEC format version.
 Build with `maturin`, not `cargo build`, which can't link a Python extension module on its own.
 
 ```bash
-make build          # debug wheel into dist/
-make build-release  # optimized wheel into dist/
-make test-pytest    # run tests/ against the wheel in dist/
-make notebook       # build, then open examples/quickstart.ipynb in JupyterLab
+cd crates/fec-py
+uv venv && uv sync --group dev   # once
+make develop                     # after Rust changes
+make test
+make notebook
 ```
 
-The tests look for `.fec` files in the repo's `cache/` and `benchmarks/` directories and skip when none are found. See [`tests/README.md`](tests/README.md).
+`make build` produces a wheel into `dist/`, which is what CI and releases install.
 
-Rebuilt wheels keep the same filename, so `uv` will happily reuse a stale cached copy. Pass `--no-cache` whenever you `uv run --with` a wheel from `dist/`, as the Makefile targets do.
+Tests run against the committed fixtures in [`tests/fixtures/`](tests/fixtures/) — see [`tests/README.md`](tests/README.md).
 
 **Releasing:** the version is read from `Cargo.toml` (not `pyproject.toml`) — bump it together with `crates/fec-cli/Cargo.toml` so the bindings stay in lockstep with the CLI.
 
-To refresh the notebook's saved outputs after an API change:
-
-```bash
-make build
-cd examples
-uv run --no-cache --no-project --isolated \
-  --with "$(ls ../dist/libfec_parser-*.whl | head -1)" \
-  --with pandas --with nbconvert --with ipykernel \
-  jupyter nbconvert --to notebook --execute --inplace quickstart.ipynb
-```
+To refresh the notebook's saved outputs after an API change, see `make notebook`.
 
 ## License
 
