@@ -32,9 +32,14 @@ This directory contains pytest-based tests for the `libfec_parser` Python packag
 
 - `test_fecfile_differential.py` - `libfec_parser.fecfile` against the real `fecfile` package,
   fixture by fixture: every value compared by key, order, value *and* type. Skipped (via
-  `pytest.importorskip`) if the real `fecfile` package isn't installed. The allowlist of the
-  few differences that survive is documented in the module itself and in the README's
-  [`fecfile` API § Where it differs](../README.md#where-it-differs).
+  `pytest.importorskip`) if the real `fecfile` package isn't installed. Four sections beyond the
+  per-fixture comparison: the whole mapping space (every form in real's `mappings.json` x twelve
+  versions, names and order), the scope boundary (a pre-8.0 filing raises where real parses),
+  time zones (`zoneinfo` against `pytz`, in and out of the range where they agree), and malformed
+  input (the handful of places the two packages treat a broken filing differently). The
+  two-entry allowlist is documented in the module itself and in the README's
+  [`fecfile` API § Where it differs](../README.md#where-it-differs); everything else is compared
+  with nothing excluded.
 
 - `test_fixtures.py` - Smoke tests over every file in `fixtures/`, through both APIs
 
@@ -167,9 +172,10 @@ Current coverage includes:
 - ✅ pandas interop: typed `float64`/`date` columns from `Filing.rows` (`test_pandas.py`)
 - ✅ Fecfile module (fecfile compatibility layer), including `from_http`/`iter_http` over a
   mocked `httpx2` (`test_fecfile.py`)
-- ✅ `fecfile` drop-in claim: exact match against the real package on every fixture
+- ✅ `fecfile` drop-in claim (FEC 8.0–8.5): exact match against the real package on every fixture
   (`test_fecfile_differential.py`) and over a 408,162-item, 91 MB filing
-  (`test_perf.py::test_compat_differential_benchmark_filing`)
+  (`test_perf.py::test_compat_differential_benchmark_filing`), plus column names across the whole
+  mapping space, the scope boundary, time zones and malformed input
 - ✅ `FecError`/`FecParseError`/`MissingMappingError` hierarchy and edge cases
 - ✅ Integration tests
 - ✅ Every committed fixture, through both APIs (`test_fixtures.py`)

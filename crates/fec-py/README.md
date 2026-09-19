@@ -20,7 +20,8 @@ Two APIs are included:
 - [`libfec_parser.parser`](#native-api) (also exported at the top level as `open`/`read`): the
   primary API — a streaming `FilingReader` or an eager `Filing`, both with typed values.
 - [`libfec_parser.fecfile`](#fecfile-api): rows as dicts keyed by column name, a drop-in for the
-  [`fecfile`](https://pypi.org/project/fecfile/) package (0.9.1), typed values included.
+  [`fecfile`](https://pypi.org/project/fecfile/) package (0.9.1) on FEC format versions 8.0–8.5,
+  typed values included.
 
 For a guided tour, including loading a filing into pandas, see [`examples/quickstart.ipynb`](examples/quickstart.ipynb).
 
@@ -65,7 +66,15 @@ instead, see [Development](#development).
 from libfec_parser import fecfile
 ```
 
-`libfec_parser.fecfile` is a **drop-in replacement for [`fecfile`](https://pypi.org/project/fecfile/) 0.9.1**'s public API: the same keys, in the same order, with the same values *and* the same types. This is enforced by a differential test that compares every value against the real package — on every committed fixture, and on a 408,162-item, 91 MB filing (`tests/test_fecfile_differential.py`, `tests/test_perf.py::test_compat_differential_benchmark_filing`). The handful of differences that survive are listed in [Where it differs](#where-it-differs), below.
+`libfec_parser.fecfile` is a **drop-in replacement for [`fecfile`](https://pypi.org/project/fecfile/) 0.9.1**'s public API, **for filings in FEC format versions 8.0–8.5**: the same keys, in the same order, with the same values *and* the same types. This is enforced by a differential test that compares every value against the real package — on every committed fixture, and on a 408,162-item, 91 MB filing (`tests/test_fecfile_differential.py`, `tests/test_perf.py::test_compat_differential_benchmark_filing`). Inside that scope, [Where it differs](#where-it-differs) lists everything that is not identical.
+
+**The scope, precisely.** 8.0–8.5 is what the underlying `fec-parser` reads, so the whole-filing functions — `from_file`, `loads`, `iter_file`, `iter_lines`, `from_http`, `iter_http` — raise `FecParseError` on anything else, where real `fecfile` parses it:
+
+- a v3/v5 comma-delimited filing, a 6.x or 7.x one, or a paper (`P3.x`) filing;
+- a version string outside those six *as spelled* — real matches it by regex prefix, so it also accepts `8.50`, `8.5.1` and the like;
+- a multi-line `/* … */` header (format versions 1 and 2): `parse_header` raises `FecParserMissingMappingError`, and a file starting with one raises `FecParseError`.
+
+`parse_line` and `parse_header` have no such limit. Their column mappings match real's name for name and in order for every form in real's `mappings.json`, across versions 8.5, 8.4, 8.3, 8.2, 8.1, 8.0, 7.0, 6.4, 6.1, 5.3, 5.0 and 3.0 — 1,380 `(form, version)` pairs, 1,156 of which both packages map, checked by `test_column_names_match_real_across_mappings`. The one HDR column real has and these don't is `name_delim` (format versions 3.x–5.x), which always reads `''`, since the native `Header` doesn't carry it.
 
 Public names: `loads`, `from_file`, `from_http`, `iter_file`, `iter_http`, `iter_lines`, `parse_header`, `parse_line`, `print_example`, `FecItem`, `FecParserMissingMappingError`, `FilingUnavailableError`, `FecParserTypeWarning`.
 
@@ -108,7 +117,7 @@ Column names come from libfec's mappings for the filing's FEC format version, th
 Every value is typed from `fecfile`'s own (vendored) type table, exactly as real `fecfile` types it:
 
 - amount columns parse to `float`;
-- date columns parse to a **tz-aware `datetime` in US/Eastern** (via `zoneinfo`, not `pytz` — same instant, same UTC offset as real);
+- date columns parse to a **tz-aware `datetime` in US/Eastern** (via `zoneinfo`, not `pytz` — same instant and same UTC offset as real for every date from 1901-12-14 to 2038-03-14; see [Where it differs](#where-it-differs) for the two windows outside that);
 - an empty amount or date column is `None`;
 - a handful of columns parse to `int`;
 - a value the table types but that doesn't parse (`12,34.5x` in an amount column) is `None`, with a `FecParserTypeWarning` naming the value, column and line;
@@ -176,13 +185,31 @@ row = fecfile.parse_line(line, version)
 
 ### Where it differs
 
-Three differences survive the differential test; nothing is excluded from a comparison without appearing here:
+For a well-formed FEC 8.0–8.5 filing (the [scope](#fecfile-api) above), **two** differences survive the differential test. Nothing is excluded from a comparison without appearing here:
 
-- **`_TODO_DUP` cover columns.** An F3X/F3P cover mapping names a few columns twice; `fec-parser` keeps both copies and suffixes the second `_TODO_DUP` (deferred parser item). Real `fecfile` builds its dict by name, so the second copy just overwrites the first — which is also the value this package has under the unsuffixed name, so dropping the `_TODO_DUP` extras is enough to make the two comparable.
 - **`F99_text` / `[BEGINTEXT]…[ENDTEXT]` bodies are not surfaced.** A form 99's free-form narrative sits between `[BEGINTEXT]` and `[ENDTEXT]` markers that `fec-parser` doesn't parse out (deferred parser item N14), so this package never has an `F99_text` key or item to offer.
-- **Real's own `iter_file` leaves a trailing `\n` in the last field of every row.** It reads a file object a line at a time and never strips the newline (`'20006\n'`, or just `'\n'` for an empty field); `from_file`/`loads` split on `"\n"` first and are clean. This is a bug in the real package, not a difference of this one, and it isn't reproduced here.
+- **Line terminators that real leaves in a row's last field.** Real's `iter_file`/`iter_http` read a line at a time and never strip the `\n` (`'20006\n'`, or just `'\n'` for an empty field); real's `loads`/`iter_lines` split on `"\n"` alone, so CRLF content keeps a `\r` the same way. Both are bugs in the real package, not differences of this one, and neither is reproduced here. (A CRLF filing read from *disk* is clean on both sides — real opens it in text mode — and is compared with no slack at all.)
 
-**Known limitation, not (so far) an observed difference:** a filing with non-UTF-8 bytes (cp1252 curly quotes, en dashes, say) decodes lossily here — the offending bytes become `�` rather than being transcoded the way real `fecfile`'s `ISO-8859-1` fallback would render them. No committed fixture, and not the 408,160-row benchmark filing either, has ever exercised this, so it isn't part of the allowlist above — but a filing that does contain such bytes could show a difference here.
+Everything else about a filing matches, cover page included: a column an FEC layout names twice — an F3X cover's `col_a_total_receipts`, an F2's `candidate_state` — is keyed once and holds the **last** copy's value, exactly as real's dict build leaves it.
+
+**Time zones.** Date columns are localized with `zoneinfo`; real uses `pytz`. The two agree — same instant, same UTC offset, same `str()` — for every date from **1901-12-14 through 2038-03-14**, which is every date a filing can plausibly carry. Outside that window `pytz`'s transition table runs out and the two diverge:
+
+| Date | Real (`pytz`) | Here (`zoneinfo`) |
+| --- | --- | --- |
+| `20380701` (any summer date from 2038-03-15 on) | `-05:00` — no DST rules after 2037 | `-04:00` |
+| `19011213` and earlier back to 1883-11-19 | `-04:56` (LMT) | `-05:00` (EST) |
+| `18830701` and earlier | `-04:56` | `-04:56:02` |
+
+**Malformed input.** Four things a filing has to be broken to hit. None is allowlisted — the differential test excludes nothing for them — and each is pinned by its own test:
+
+- **The first record must be a cover `fec-parser` recognises, with a filer name**, or `FecParseError`. Real takes whatever it parses first as the summary, whatever it is.
+- **A form type with surrounding whitespace is unmapped here** (`FecParserMissingMappingError`); real strips it for the mapping lookup and keeps the unstripped spelling as the `form_type` value, so its itemization group is `' SA11AI '`.
+- **`filter_itemizations` prefixes match the row type, not the raw line** (and case-insensitively, see below). Real tests `line.startswith(prefix)` or `line.startswith('"' + prefix)`, so a prefix that runs past the first field (`"SA11AI\x1cC"`) or carries a quoted row type's quote (`'"SA'`) can match there and never here. Prefixes that stay inside the row type — every documented use — behave identically.
+- **An element of a `loads`/`iter_lines` iterable is text, not one record.** Real parses each element as exactly one line; this package feeds the iterable to the parser as a byte stream, so an element containing `\n` becomes several records.
+
+One more, on well-formed input: **a blank line shifts warning line numbers.** Real counts every line it is handed; `fec-parser` numbers records and skips blank lines, so the `(line N)` a `FecParserTypeWarning` ends on falls behind by one per blank line above it. The warning's text, and every value in the filing, are unaffected.
+
+**Known limitation, not (so far) an observed difference:** a filing with non-UTF-8 bytes (cp1252 curly quotes, en dashes, say) decodes lossily here — the offending bytes become `�` rather than being transcoded the way real `fecfile`'s `ISO-8859-1` fallback would render them. No committed fixture, and not the 408,160-row benchmark filing either, has ever exercised this, so it isn't part of the list above — but a filing that does contain such bytes could show a difference here.
 
 Deliberate supersets — things this package does that real `fecfile` doesn't:
 
@@ -193,11 +220,6 @@ Deliberate supersets — things this package does that real `fecfile` doesn't:
 - `FecParserMissingMappingError` and `FilingUnavailableError` derive from `FecError` (a `ValueError`), so they're catchable alongside the native API's exceptions.
 - `parse_header` on a line that isn't a header raises `ValueError`; real raises `IndexError`.
 - `from_http` raises `FilingUnavailableError` for a non-404 HTTP error rather than trying to parse the error page as a filing.
-
-Two further, honest gaps, not allowlisted because no test currently exercises them:
-
-- Multi-line `/* ... */` headers (FEC format versions 1 and 2) aren't supported: `parse_header` raises `FecParserMissingMappingError`, and a file that starts with one raises `FecParseError` from `from_file`/`loads`/`iter_file`.
-- The HDR `name_delim` column (present in format versions 3.x–5.x) always reads `''` — the native `Header` type doesn't carry it.
 
 ### Use the native API instead when…
 
@@ -435,16 +457,17 @@ pd.to_datetime(df["contribution_date"]).dt.year.min()   # 2023
 ## Known issues
 
 Two gaps come from the underlying Rust parser (`fec-parser`), not the bindings, and are tracked
-as parser bugs, deliberately **not** worked around here. Both show up in the `fecfile` API's
-[differential allowlist](#where-it-differs) too, since `fecfile` inherits whatever the parser
-gives it:
+as parser bugs, deliberately **not** worked around here:
 
-- **`_TODO_DUP` cover column names.** A few Form 3X and Form 3P cover-page columns come back
-  with placeholder names such as `col_a_total_receipts_TODO_DUP`. Shows up in
-  `cover_row.keys()`/`dict(cover_row)` on the native API, and in `filing["filing"]` on the
-  `fecfile` API.
+- **`_TODO_DUP` cover column names, and `TODO_UNKNOWN_BLANK`.** A few Form 2, Form 3X and Form 3P
+  cover-page columns are named twice by the FEC layout, and the parser disambiguates the second
+  copy as `col_a_total_receipts_TODO_DUP` and the like; one Form 3L column that the layout leaves
+  nameless comes back as `TODO_UNKNOWN_BLANK`. Visible in `cover_row.keys()`/`dict(cover_row)` on
+  the native API. The `fecfile` API translates these back to real `fecfile`'s names before it
+  builds a dict, so they never reach `filing["filing"]` there.
 - **`[BEGINTEXT]…[ENDTEXT]` bodies are dropped.** F99 filings parse, but their free-form text
-  never reaches a `Row`, and the `fecfile` API never gets an `F99_text` key to offer.
+  never reaches a `Row`, and the `fecfile` API never gets an `F99_text` key to offer — the one
+  parser gap that is still on the `fecfile` API's [list of differences](#where-it-differs).
 
 One more is a true limitation of both APIs rather than a parser bug as such, and isn't
 allowlisted because no fixture or benchmark filing has triggered it: **non-UTF-8 bytes become

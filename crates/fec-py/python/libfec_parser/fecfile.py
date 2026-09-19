@@ -6,6 +6,14 @@ tz-aware ``datetime``s in US/Eastern.  ``tests/test_fecfile_differential.py``
 holds this module to that claim against the real package on every fixture and
 documents the few differences that survive.
 
+**Scope: FEC format versions 8.0-8.5**, which is what `fec-parser` reads.  The
+whole-filing functions raise `FecParseError` on anything else -- an older
+comma-delimited or 6.x/7.x filing, a paper ``P3.x`` one, a version string spelled
+outside those six, a versions 1-2 ``/* ... */`` header -- where real `fecfile`
+parses it.  :func:`parse_line` and :func:`parse_header` have no such limit; their
+mappings match real's across every version real maps.  The README's "Where it
+differs" is the full list, including how the two packages treat malformed input.
+
 Values come from each row's **raw** fields plus `fecfile`'s own type table
 (vendored as ``_fecfile_types.json``; see ``NOTICE``), never from libfec's typed
 accessors: libfec types a handful of columns `fecfile` does not, and reads a

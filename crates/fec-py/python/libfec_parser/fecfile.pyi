@@ -3,7 +3,9 @@
 Hand-maintained and checked against the built package by `python -m mypy.stubtest`
 — see `crates/fec-py/Makefile`'s `stubs` target.  The implementation is
 `python/libfec_parser/fecfile.py`, pure Python over `libfec_parser.open()`; the
-shapes are `fecfile` 0.9.1's, down to the types inside a parsed row.
+shapes are `fecfile` 0.9.1's, down to the types inside a parsed row.  The
+whole-filing functions read FEC format versions 8.0–8.5 only; see the module
+docstring and the README's "Where it differs".
 """
 
 from collections.abc import Generator, Iterable, Mapping
