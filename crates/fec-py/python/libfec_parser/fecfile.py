@@ -14,6 +14,7 @@ through the vendored table is exact by construction and makes ``as_strings``
 nothing more than "skip the converters".
 """
 
+import contextlib
 import csv
 import json
 import re
@@ -21,7 +22,6 @@ import warnings
 import zoneinfo
 from collections.abc import Callable, Iterable, Iterator, Mapping
 from datetime import datetime
-from importlib.metadata import version as _pkg_version
 from importlib.resources import files
 from typing import TYPE_CHECKING, Any, NamedTuple
 
@@ -518,28 +518,42 @@ def _client() -> "httpx2.Client":
             "libfec_parser.fecfile.from_http needs httpx2: "
             "pip install 'libfec-parser[http]'"
         ) from e
+    from . import __version__
+
     return httpx2.Client(
         timeout=30.0,
         follow_redirects=True,
-        headers={"User-Agent": f"libfec_parser/{_pkg_version('libfec-parser')}"},
+        headers={"User-Agent": f"libfec_parser/{__version__}"},
     )
 
 
-def _stream(client: "httpx2.Client", file_number: int | str) -> "tuple[Any, httpx2.Response]":
-    """Open a streamed response for ``file_number``, retrying on a 404.
+@contextlib.contextmanager
+def _fetch(file_number: int | str) -> "Iterator[httpx2.Response]":
+    """A streamed response for ``file_number``, closed with its client on exit.
 
-    Tries the electronic ("dcdev") URL first; a 404 there closes that response
-    and tries the paper URL. Returns ``(context_manager, response)`` — the
-    caller owns the context manager and must exit it (`__exit__`) to close the
-    response, whichever status code came back.
+    Tries the electronic ("dcdev") URL first and the paper URL if that is a 404.
+    Whatever the second URL answers is handed over as-is: the two callers
+    disagree about what a 404 means.
     """
-    cm = client.stream("GET", _DCDEV_URL.format(n=file_number))
-    response = cm.__enter__()
-    if response.status_code == 404:
-        cm.__exit__(None, None, None)
-        cm = client.stream("GET", _PAPER_URL.format(n=file_number))
-        response = cm.__enter__()
-    return cm, response
+    with _client() as client:
+        for url in (_DCDEV_URL, _PAPER_URL):
+            with client.stream("GET", url.format(n=file_number)) as response:
+                if response.status_code == 404 and url is _DCDEV_URL:
+                    continue
+                yield response
+                return
+
+
+def _iter_response(
+    response: "httpx2.Response", file_number: int | str, opts: _Options
+) -> Iterator[FecItem]:
+    """The items of a 200 response, streamed; `FilingUnavailableError` otherwise."""
+    if response.status_code != 200:
+        raise FilingUnavailableError(
+            {"file_number": file_number, "status_code": response.status_code}
+        )
+    with _open(_IterReader(response.iter_bytes(), lines=False)) as reader:
+        yield from _iter_items(reader, opts)
 
 
 def from_http(
@@ -556,18 +570,10 @@ def from_http(
     for a streaming version that never holds the whole filing in memory.
     """
     opts = _check_options(options)
-    with _client() as client:
-        response = client.get(_DCDEV_URL.format(n=file_number))
-        if response.status_code == 404:
-            response = client.get(_PAPER_URL.format(n=file_number))
+    with _fetch(file_number) as response:
         if response.status_code == 404:
             return None
-        if response.status_code != 200:
-            raise FilingUnavailableError(
-                {"file_number": file_number, "status_code": response.status_code}
-            )
-        with _open(response.content) as reader:
-            return _assemble(_iter_items(reader, opts))
+        return _assemble(_iter_response(response, file_number, opts))
 
 
 def iter_http(
@@ -583,20 +589,8 @@ def iter_http(
     extra (`httpx2`).
     """
     opts = _check_options(options)
-    client = _client()
-    try:
-        cm, response = _stream(client, file_number)
-        try:
-            if response.status_code != 200:
-                raise FilingUnavailableError(
-                    {"file_number": file_number, "status_code": response.status_code}
-                )
-            with _open(_IterReader(response.iter_bytes(), lines=False)) as reader:
-                yield from _iter_items(reader, opts)
-        finally:
-            cm.__exit__(None, None, None)
-    finally:
-        client.close()
+    with _fetch(file_number) as response:
+        yield from _iter_response(response, file_number, opts)
 
 
 def parse_header(hdr: str | list[str]) -> tuple[dict[str, Any] | None, str, int]:
