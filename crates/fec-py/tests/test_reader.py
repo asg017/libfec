@@ -617,6 +617,38 @@ class TestSharedReaderThreading:
         assert not thread.is_alive(), "close() deadlocked against an in-flight pull"
 
 
+def test_shared_reader_across_threads(pac_fec_file):
+    """Four threads pulling from ONE reader: each row is delivered exactly once.
+
+    Unlike ``TestSharedReaderThreading`` above, the source is a path — no
+    Python code runs from inside the reader's locks — so on the GIL build
+    this is a plain concurrency test. On a free-threaded build there is no
+    GIL to serialize `__next__`, so this is the one that actually exercises
+    concurrent Rust-side access to `pending`/`prefixes`.
+    """
+    reader = open(pac_fec_file)
+    seen: list[Row] = []
+    lock = threading.Lock()
+
+    def pull() -> None:
+        for row in reader:
+            with lock:
+                seen.append(row)
+
+    threads = [threading.Thread(target=pull, daemon=True) for _ in range(4)]
+    for t in threads:
+        t.start()
+    stuck = []
+    for t in threads:
+        t.join(timeout=30)
+        if t.is_alive():
+            stuck.append(t.name)
+
+    assert not stuck, f"threads still alive after 30s (deadlock): {stuck}"
+    assert len(seen) == 1387
+    assert len({r.line for r in seen}) == 1387, "a row was delivered to more than one thread"
+
+
 # A source whose `read()` calls back into the reader that is reading it. `inner`
 # is not a reentrant lock, so this has to be refused, not waited on. Run in a
 # subprocess: if the guard ever regresses this must time out, not hang the suite.
