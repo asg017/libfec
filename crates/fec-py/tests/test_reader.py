@@ -488,6 +488,166 @@ class TestSourceErrors:
             open(TooMuch())  # type: ignore[arg-type]  # on purpose
 
 
+class TestSharedReaderThreading:
+    """One reader, many threads — the GIL and the reader's mutexes must not deadlock
+
+    A binary file object is the interesting case: pulling a row runs Python code
+    (`read()`) from inside the reader's own locks, so a thread holding the GIL
+    that blocks on one of those locks closes a cycle.
+    """
+
+    def test_one_file_object_reader_shared_by_threads(self, pac_fec_file):
+        class SlowFile:
+            """A real file whose `read` yields the GIL, to force interleaving."""
+
+            def __init__(self, path):
+                self._f = builtins.open(path, "rb")
+
+            def read(self, n):
+                data = self._f.read(n)
+                time.sleep(0.0005)
+                return data
+
+            def close(self):
+                self._f.close()
+
+        source = SlowFile(pac_fec_file)
+        reader = open(source)  # type: ignore[arg-type]  # a binary file object
+        lines: list[int] = []
+        guard = threading.Lock()
+        failures: list[BaseException] = []
+
+        def drain() -> None:
+            try:
+                while True:
+                    try:
+                        row = next(reader)
+                    except StopIteration:
+                        return
+                    with guard:
+                        lines.append(row.line)
+            except BaseException as e:  # noqa: BLE001  - reported, not swallowed
+                with guard:
+                    failures.append(e)
+
+        threads = [threading.Thread(target=drain, daemon=True) for _ in range(4)]
+        for t in threads:
+            t.start()
+        # Daemon threads plus an explicit timeout: a deadlock must fail the test,
+        # not hang the suite.
+        stuck = []
+        for t in threads:
+            t.join(timeout=30)
+            if t.is_alive():
+                stuck.append(t.name)
+        source.close()
+
+        assert not stuck, f"threads still alive after 30s (deadlock): {stuck}"
+        assert not failures, f"worker raised: {failures!r}"
+        assert len(lines) == 1387
+        assert len(set(lines)) == 1387, "a row was delivered to more than one thread"
+
+    def test_close_from_another_thread_while_reading(self, pac_fec_file):
+        """`close()` holds the GIL and wants `inner`, which a pull may be holding"""
+
+        class SlowFile:
+            def __init__(self, path):
+                self._f = builtins.open(path, "rb")
+
+            def read(self, n):
+                time.sleep(0.001)
+                return self._f.read(n)
+
+        reader = open(SlowFile(pac_fec_file))  # type: ignore[arg-type]  # file object
+        started = threading.Event()
+
+        def drain() -> None:
+            try:
+                for _ in reader:
+                    started.set()
+            except ValueError:
+                pass  # the expected "closed filing" once close() lands
+
+        thread = threading.Thread(target=drain, daemon=True)
+        thread.start()
+        started.wait(timeout=30)
+        reader.close()  # must not deadlock against the in-flight pull
+        thread.join(timeout=30)
+
+        assert not thread.is_alive(), "close() deadlocked against an in-flight pull"
+
+
+# A source whose `read()` calls back into the reader that is reading it. `inner`
+# is not a reentrant lock, so this has to be refused, not waited on. Run in a
+# subprocess: if the guard ever regresses this must time out, not hang the suite.
+_REENTRANT_SCRIPT = """
+import sys
+import libfec_parser
+
+
+class Reentrant:
+    def __init__(self, path, how):
+        self._f = open(path, "rb")
+        self._how = how
+        self.reader = None
+
+    def read(self, n):
+        if self.reader is not None:
+            try:
+                next(self.reader) if self._how == "next" else self.reader.close()
+            except RuntimeError as e:
+                print("REFUSED", type(e).__name__, e)
+            except Exception as e:  # noqa: BLE001
+                print("WRONG", type(e).__name__, e)
+        return self._f.read(n)
+
+
+source = Reentrant(sys.argv[1], sys.argv[2])
+source.reader = libfec_parser.open(source)
+print("ROWS", sum(1 for _ in source.reader))
+"""
+
+
+class TestReentrantSource:
+    @pytest.mark.parametrize("how", ["next", "close"])
+    def test_source_reentering_its_own_reader_is_refused(self, sample_fec_file, how):
+        try:
+            result = subprocess.run(
+                [sys.executable, "-c", _REENTRANT_SCRIPT, str(sample_fec_file), how],
+                capture_output=True,
+                text=True,
+                timeout=60,
+            )
+        except subprocess.TimeoutExpired:
+            pytest.fail(f"re-entrant {how}() deadlocked instead of raising")
+
+        assert result.returncode == 0, result.stderr
+        assert "REFUSED RuntimeError" in result.stdout, result.stdout
+        assert "WRONG" not in result.stdout, result.stdout
+        # The reader survives the refusal and still delivers the filing.
+        assert "ROWS 20" in result.stdout, result.stdout
+
+    def test_closed_is_answerable_during_a_pull(self, sample_fec_file):
+        """`closed` must not block on `inner` when this thread is the puller"""
+
+        class Peeking:
+            def __init__(self, path):
+                self._f = builtins.open(path, "rb")
+                self.reader = None
+                self.seen = []
+
+            def read(self, n):
+                if self.reader is not None:
+                    self.seen.append(self.reader.closed)
+                return self._f.read(n)
+
+        source = Peeking(sample_fec_file)
+        source.reader = open(source)  # type: ignore[arg-type]  # a binary file object
+
+        assert sum(1 for _ in source.reader) == 20
+        assert source.seen and not any(source.seen)
+
+
 @pytest.fixture
 def pac_fec_bytes_source(pac_fec_file):
     """A file object over the 263 KB fixture that records every read size."""
