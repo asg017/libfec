@@ -384,6 +384,8 @@ Measured 2026-09-18 on an Apple M4 Pro, CPython 3.13, release build, parsing the
 | `open()`, streamed | 0.18 s | 31.6 MB |
 | `read()` (eager `Filing`) | 0.30 s | 1,007 MB |
 | `pd.DataFrame(read(p).rows)` | 5.32 s | 2,389 MB |
+| `fecfile.from_file` (this package) | 2.70 s | 1,106 MB |
+| `fecfile.iter_file` (this package) | 2.53 s | 32.6 MB |
 | PyPI `fecfile.from_file` | 7.14 s | 1,403 MB |
 | PyPI `fecfile.iter_file` | 6.87 s | 36.4 MB |
 

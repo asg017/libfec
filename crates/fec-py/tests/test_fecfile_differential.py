@@ -8,6 +8,7 @@ for a ``1.0``.
 
 The differences that survive are listed once, below, each with the reason.
 """
+import warnings
 from datetime import datetime
 from typing import Any
 
@@ -233,6 +234,41 @@ def test_print_example_matches_real(sample_fec_file, capsys):
     theirs = capsys.readouterr().out
     assert mine, "print_example printed nothing (and must be capturable)"
     assert mine == theirs
+
+
+def test_type_warnings_match_real(sample_fec_content):
+    """A value that does not parse warns with real's message, line number and all.
+
+    Both packages number lines from 1 and then print ``line_num + 1`` (real's own
+    off-by-one, `fecparser.py:71-77,219`), so the numbers only agree if ours
+    feeds the warning a 1-based line too -- which is what ``Row.line`` gives.
+    Built by hand rather than measured on a real filing because no committed
+    fixture has a bad value, and neither does the 91 MB benchmark filing: all
+    408,160 of its rows type cleanly, so the lockstep differential's warning
+    assertion compares two empty lists and this is the test with teeth.
+    """
+    lines = sample_fec_content.split("\n")
+    _, version, _ = ours.parse_header(lines[0])
+    # lines[2] is the first SA11AI itemization; break its amount and its date.
+    fields = lines[2].split("\x1c")
+    columns = list(ours.parse_line(lines[2], version) or {})
+    fields[columns.index("contribution_amount")] = "12,34.5x"
+    fields[columns.index("contribution_date")] = "2023-99-99"
+    lines[2] = "\x1c".join(fields)
+    document = "\n".join(lines)
+
+    def messages(parse, source) -> list[str]:
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            parse(source)
+        return [str(w.message) for w in caught]
+
+    mine = messages(ours.loads, document)
+    theirs = messages(real.loads, document)
+    assert len(mine) == 2, mine
+    assert mine == theirs
+    # And the line number really is in there, pointing at the line we broke.
+    assert all(m.endswith("version: 8.5 (line 4)") for m in mine), mine
 
 
 def test_missing_mapping_matches_real(sample_fec_file):
