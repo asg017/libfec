@@ -1,4 +1,4 @@
-.PHONY: develop develop-release build build-release test test-network test-slow notebook notebook-check stubs clean
+.PHONY: develop develop-release build build-release test test-network test-slow bench notebook notebook-check stubs clean
 
 # One-time: uv venv && uv sync --group dev
 
@@ -21,6 +21,9 @@ test-network: develop
 
 test-slow: develop-release
 	uv run pytest tests -m slow
+
+bench: develop-release          ## benchmarks/python/bench.py against the 91 MB filing
+	uv run python ../../benchmarks/python/bench.py
 
 notebook: develop-release
 	uv run --with jupyterlab jupyter lab examples/quickstart.ipynb

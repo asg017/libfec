@@ -40,7 +40,7 @@ jobs:
           # the assertion below fails loudly instead of leaving a confusing pytest crash.
           uv venv .venv --python cpython-${{ matrix.python }}
           uv run --python .venv --no-project python -c "import sysconfig, sys; sys.exit('picked the free-threaded interpreter for .venv; expected the GIL build' if sysconfig.get_config_var('Py_GIL_DISABLED') else 0)"
-          uv pip install --python .venv dist/*.whl pytest
+          uv pip install --python .venv dist/*.whl pytest pandas
       - name: pytest
         shell: bash
         working-directory: crates/fec-py
@@ -72,3 +72,51 @@ jobs:
         with:
           name: wheel-${{ matrix.os }}
           path: crates/fec-py/dist/*.whl
+
+  test-python-freethreaded:
+    # D8 canary: build against the free-threaded interpreter and run the suite.
+    # Non-blocking on purpose — no free-threaded wheel ships until abi3t exists
+    # (see build-python-bindings.yml, which stays 3.11/3.14 GIL-only).
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - run: rustup toolchain install stable --profile minimal
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: ". -> target"
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
+      - name: Build against 3.14t
+        shell: bash
+        working-directory: crates/fec-py
+        run: |
+          uv venv .venv --python cpython-3.14t
+          uv run --python .venv --no-project python -c "import sysconfig, sys; sys.exit(0 if sysconfig.get_config_var('Py_GIL_DISABLED') else 'expected the free-threaded interpreter')"
+          # The crate is abi3-py311 (Cargo.toml), but the limited API doesn't
+          # exist on free-threaded builds, so pyo3-build-config treats abi3 as
+          # a no-op there and maturin warns "abi3 does not yet support CPython
+          # 3.14t ... build artifacts will be version-specific" (verified
+          # locally 2026-09-18). The result is a version-specific cp314-cp314t
+          # wheel, not an abi3 one — expected, and fine since this job never
+          # ships a wheel.
+          uvx maturin@1.15.0 build --release --out dist -i .venv/bin/python
+      - name: Install + import with warnings as errors
+        shell: bash
+        working-directory: crates/fec-py
+        run: |
+          # A module that hasn't declared itself free-threading-safe makes 3.14t
+          # re-enable the GIL and emit a RuntimeWarning; treat that as a failure
+          # of this canary. Verified locally 2026-09-18: the module imports
+          # cleanly under `-W error::RuntimeWarning` on 3.14t as-is (pyo3 >=
+          # 0.28 defaults modules to GIL-not-used), so `#[pymodule(gil_used =
+          # false)]` is NOT added — it would be a no-op here.
+          uv pip install --python .venv dist/*.whl pytest
+          uv run --python .venv --no-project python -W error::RuntimeWarning -c "import libfec_parser; print(libfec_parser.__version__)"
+          # pandas does ship a 3.14t wheel (verified locally 2026-09-18: `uv pip
+          # install pandas` resolves prebuilt numpy/pandas wheels, no compile),
+          # so no fallback/deselect is needed here.
+          uv pip install --python .venv pandas
+      - name: pytest
+        shell: bash
+        working-directory: crates/fec-py
+        run: uv run --python .venv --no-project pytest tests -v -rs
