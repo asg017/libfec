@@ -39,4 +39,8 @@ libfec fastfec 1805248.fec output/
 
 Now, 
 
+## Python bindings
+
+`benchmarks/python/bench.py` benchmarks the `libfec_parser` Python bindings against this
+same 91 MB filing; run it with `make bench` from `crates/fec-py`.
 

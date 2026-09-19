@@ -12,7 +12,6 @@ import mmap
 import shutil
 import subprocess
 import sys
-import textwrap
 import threading
 import time
 from array import array
@@ -733,43 +732,3 @@ def pac_fec_bytes_source(pac_fec_file):
 
     return Recording(), sizes
 
-
-# The subprocess the zero-copy test measures: read the filing into a `bytes`,
-# iterate it through `open()`, report peak RSS alongside the size of the bytes.
-_RSS_SCRIPT = """
-import resource, sys
-import libfec_parser
-
-with open(sys.argv[1], "rb") as f:
-    data = f.read()
-rows = sum(1 for _ in libfec_parser.open(data))
-peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-# ru_maxrss is bytes on macOS, kilobytes on Linux.
-if sys.platform != "darwin":
-    peak *= 1024
-print(peak, len(data), rows)
-"""
-
-
-class TestZeroCopy:
-    @pytest.mark.slow
-    def test_zero_copy_bytes(self, benchmark_fec_file):
-        """Iterating a 91 MB `bytes` costs well under 100 MB on top of the bytes
-
-        The buffer is read in place, so the only per-row cost is the row being
-        handed to Python, which iteration drops again immediately.
-        """
-        result = subprocess.run(
-            [sys.executable, "-c", textwrap.dedent(_RSS_SCRIPT), str(benchmark_fec_file)],
-            capture_output=True,
-            text=True,
-            check=True,
-        )
-        peak, size, rows = (int(v) for v in result.stdout.split())
-
-        assert rows > 0
-        overhead = peak - size
-        assert overhead < 100 * 1024 * 1024, (
-            f"peak RSS {peak / 1e6:.0f} MB over a {size / 1e6:.0f} MB bytes object "
-            f"= {overhead / 1e6:.0f} MB of overhead"
-        )
