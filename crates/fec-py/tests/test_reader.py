@@ -275,6 +275,13 @@ class TestThreading:
     """The GIL is released while rows are pulled"""
 
     def test_gil_released(self, pac_fec_file):
+        """A background thread makes progress while the main thread parses.
+
+        The workload is duration- not count-based: a release build parses the
+        263 KB fixture an order of magnitude faster than a debug one, so a fixed
+        iteration count would finish before the ticker could say anything.
+        """
+        parse_for = 0.25  # seconds of wall time spent parsing
         ticks: list[float] = []
         stop = threading.Event()
 
@@ -287,14 +294,15 @@ class TestThreading:
         thread.start()
         try:
             started = time.monotonic()
-            for _ in range(50):
+            while time.monotonic() - started < parse_for:
                 assert sum(1 for _ in open(pac_fec_file)) == 1387
             elapsed = time.monotonic() - started
         finally:
             stop.set()
             thread.join(timeout=5)
 
-        assert elapsed >= 0.05, "parse was too fast to say anything about the GIL"
+        # Loose on purpose: a smoke test, not a benchmark.  The old eager
+        # binding, which held the GIL for the whole parse, got ~0 ticks here.
         during = [t for t in ticks if t >= started]
         assert len(during) >= 10, f"only {len(during)} ticks in {elapsed:.3f}s"
 
