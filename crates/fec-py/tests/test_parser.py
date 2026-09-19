@@ -459,18 +459,15 @@ class TestFiling:
         assert filing.cover.form_type == "F99"
         assert filing.rows == []
 
-    @pytest.mark.xfail(strict=True, reason="ticket 15: binary file objects")
     def test_filing_from_file_object(self, sample_fec_file):
-        """Test Filing initialization with file-like object.
-
-        Binary file objects are ticket 15's job; until then this stays xfailed.
-        """
+        """Test Filing initialization with a binary file object"""
         with builtins.open(sample_fec_file, "rb") as f:
-            filing = Filing(f)  # type: ignore[arg-type]  # ticket 15: binary file objects
+            filing = Filing(f)
 
             assert isinstance(filing, Filing)
             assert isinstance(filing.header, Header)
             assert isinstance(filing.cover, Cover)
+            assert len(filing.rows) == 20
 
     def test_filing_with_invalid_path(self):
         """Test Filing with non-existent file path"""

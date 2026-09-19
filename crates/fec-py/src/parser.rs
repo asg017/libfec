@@ -5,17 +5,16 @@
 //! [`BATCH`] rows at a time, with the GIL released for the pull.
 
 use std::collections::VecDeque;
-use std::io::{Cursor, Read};
-use std::path::PathBuf;
-use std::sync::{Mutex, MutexGuard};
+use std::io::Read;
+use std::sync::Mutex;
 
-use pyo3::exceptions::{PyTypeError, PyValueError};
+use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
-use pyo3::pybacked::PyBackedBytes;
-use pyo3::types::{PyBytes, PyDict};
+use pyo3::types::PyDict;
 
-use crate::errors::{io_error, missing_mapping, parse_error};
+use crate::errors::{missing_mapping, parse_error};
 use crate::row::{schema_for, Row};
+use crate::source::{lock, raised_or, resolve, ErrorSlot, SourceReader};
 
 /// The filing's `HDR` record.
 #[pyclass(module = "libfec_parser.parser", frozen, get_all)]
@@ -107,6 +106,8 @@ pub struct FilingReader {
     /// `header.fec_version`, needed for every `schema_for` lookup.
     version: String,
     source_length: usize,
+    /// An exception raised by a Python `read()` mid-pull, to re-raise as itself.
+    raised: ErrorSlot,
 }
 
 /// `row_type` matches if it starts with any of `prefixes`, case-insensitively.
@@ -128,13 +129,6 @@ fn matches_prefix(prefixes: Option<&Vec<String>>, row_type: &str) -> bool {
 
 fn closed_error() -> PyErr {
     PyValueError::new_err("I/O operation on closed filing")
-}
-
-/// A `Mutex` here is only ever held by this module's own short critical sections,
-/// so a poisoned lock means a panic mid-pull; take the data anyway rather than
-/// turning every later call into a panic.
-fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
-    m.lock().unwrap_or_else(|e| e.into_inner())
 }
 
 impl FilingReader {
@@ -186,7 +180,8 @@ impl FilingReader {
         self.cover_row.clone_ref(py)
     }
 
-    /// The filing id: a path's file stem (`FEC-` stripped), `None` for bytes.
+    /// The filing id: the file stem of a path, or of a file object's `name`
+    /// (`FEC-` stripped); `None` when the source does not name itself.
     #[getter]
     fn id(&self) -> Option<&str> {
         self.id.as_deref()
@@ -270,7 +265,9 @@ impl FilingReader {
                     },
                     Err(e) => {
                         this.shut();
-                        Err(parse_error(e))
+                        // A `read()` that raised comes back here wrapped in a CSV
+                        // error; hand back the exception the source actually raised.
+                        Err(raised_or(&this.raised, parse_error(e)))
                     }
                 };
             }
@@ -296,36 +293,6 @@ impl FilingReader {
     }
 }
 
-/// Turn a Python source into `(reader, source_length, id)`.
-///
-/// Ticket 14 accepts a path (`str`/`os.PathLike`) and `bytes`; ticket 15 adds branches
-/// here for the rest of the buffer protocol and for binary file objects.
-fn source_to_reader(
-    source: &Bound<'_, PyAny>,
-) -> PyResult<(Box<dyn Read + Send>, usize, Option<String>)> {
-    // `bytes` first: `PathBuf` extraction goes through `os.fspath`, which accepts
-    // `bytes` as a path, so checking the path branch first would swallow `bytes`.
-    if let Ok(bytes) = source.cast::<PyBytes>() {
-        let backed = PyBackedBytes::from(bytes.clone());
-        let len = backed.len();
-        return Ok((Box::new(Cursor::new(backed)), len, None));
-    }
-    if let Ok(path) = source.extract::<PathBuf>() {
-        let file = std::fs::File::open(&path).map_err(|e| io_error(e, &path))?;
-        let len = file.metadata().map_err(|e| io_error(e, &path))?.len() as usize;
-        // Mirrors `fec_parser::Filing::from_path` + `from_reader`'s `FEC-` stripping.
-        let id = path.file_stem().map(|stem| {
-            let stem = stem.to_string_lossy();
-            stem.strip_prefix("FEC-").unwrap_or(&stem).to_owned()
-        });
-        return Ok((Box::new(file), len, id));
-    }
-    Err(PyTypeError::new_err(format!(
-        "source must be a path (str or os.PathLike) or bytes, not {}",
-        source.get_type().name()?
-    )))
-}
-
 /// Open a filing for streaming.
 ///
 /// Parses the `HDR` and cover records eagerly; everything after them is pulled on
@@ -333,12 +300,17 @@ fn source_to_reader(
 #[pyfunction]
 #[pyo3(name = "open", signature = (source, /))]
 pub fn open_filing(py: Python<'_>, source: &Bound<'_, PyAny>) -> PyResult<FilingReader> {
-    let (reader, source_length, id) = source_to_reader(source)?;
+    let SourceReader {
+        reader,
+        length: source_length,
+        id,
+        raised,
+    } = resolve(source)?;
 
     let filing_id = id.clone().unwrap_or_default();
     let filing = py
         .detach(move || fec_parser::Filing::from_reader(reader, filing_id, source_length))
-        .map_err(parse_error)?;
+        .map_err(|e| raised_or(&raised, parse_error(e)))?;
 
     let header = Header {
         record_type: filing.header.record_type.clone(),
@@ -382,12 +354,25 @@ pub fn open_filing(py: Python<'_>, source: &Bound<'_, PyAny>) -> PyResult<Filing
         id,
         version,
         source_length,
+        raised,
     })
 }
 
+/// The `fec_version` of a filing, from any source `open()` accepts.
+///
+/// Still reads far enough to parse the cover record; ticket 17 cuts that down to
+/// the `HDR` record alone.
 #[pyfunction]
-pub fn fec_header(contents: &[u8]) -> PyResult<String> {
-    let f = fec_parser::Filing::from_reader(contents, "123".to_string(), contents.len())
-        .map_err(parse_error)?;
-    Ok(f.header.fec_version)
+#[pyo3(signature = (source, /))]
+pub fn fec_header(py: Python<'_>, source: &Bound<'_, PyAny>) -> PyResult<String> {
+    let SourceReader {
+        reader,
+        length,
+        raised,
+        ..
+    } = resolve(source)?;
+    let filing = py
+        .detach(move || fec_parser::Filing::from_reader(reader, String::new(), length))
+        .map_err(|e| raised_or(&raised, parse_error(e)))?;
+    Ok(filing.header.fec_version)
 }

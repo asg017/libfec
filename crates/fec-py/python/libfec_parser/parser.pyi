@@ -5,11 +5,12 @@ checked against the built extension by `python -m mypy.stubtest` — see
 `crates/fec-py/Makefile`'s `stubs` target.  The implementation is `src/parser.rs`.
 """
 
+import mmap
 import os
 from collections.abc import Iterator
 from datetime import date
 from types import TracebackType
-from typing import Any, Self, TypeAlias, final, overload
+from typing import Any, Protocol, Self, TypeAlias, final, overload
 
 __all__ = [
     "Cover",
@@ -28,8 +29,19 @@ __all__ = [
 Value: TypeAlias = str | float | date | None
 """A column's value: typed if it parses, the raw `str` if it is garbage, `None` if empty."""
 
-Source: TypeAlias = str | os.PathLike[str] | bytes
-"""What `open()`/`read()`/`Filing()` accept as a filing source."""
+class _Readable(Protocol):
+    """A binary file object: anything whose `read(n)` hands back `bytes`."""
+
+    def read(self, n: int, /) -> bytes: ...
+
+Source: TypeAlias = (
+    str | os.PathLike[str] | bytes | bytearray | memoryview | mmap.mmap | _Readable
+)
+"""What `open()`/`read()`/`Filing()`/`fec_header()` accept as a filing source.
+
+A path, any bytes-like object (read without copying), or a binary file object
+(read in chunks).  A text-mode file raises `TypeError`.
+"""
 
 @final
 class Header:
@@ -141,7 +153,8 @@ class FilingReader:
 
     @property
     def id(self) -> str | None:
-        """The file stem for a path source (`FEC-` stripped), `None` for bytes."""
+        """The file stem of a path source, or of a file object's `name`
+        (`FEC-` stripped); `None` when the source does not name itself."""
 
     @property
     def fec_version(self) -> str:
@@ -178,9 +191,12 @@ class FilingReader:
 def open(source: Source, /) -> FilingReader:
     """Open a filing for streaming.
 
-    `source` is a filesystem path (`str` or `os.PathLike`) or the filing's bytes.
-    A missing path raises `FileNotFoundError`; unparseable input raises
-    `FecParseError`.
+    `source` is a filesystem path (`str` or `os.PathLike`), a bytes-like object
+    (`bytes`, `bytearray`, `memoryview`, `mmap` — read without copying), or a
+    binary file object, which is read a chunk at a time.  A missing path raises
+    `FileNotFoundError`, a text-mode file raises `TypeError`, and unparseable
+    input raises `FecParseError`.  An exception raised by the source's own
+    `read()` propagates unchanged.
     """
 
 class Filing:
@@ -210,8 +226,8 @@ class Filing:
 def read(source: Source) -> Filing:
     """Parse `source` eagerly; see `Filing`."""
 
-def fec_header(contents: bytes) -> str:
-    """The `fec_version` of a filing held entirely in memory."""
+def fec_header(source: Source, /) -> str:
+    """The `fec_version` of a filing, from anything `open()` accepts."""
 
 class FecError(ValueError):
     """Base class for libfec_parser errors."""

@@ -6,14 +6,22 @@ The primary one is tests/fixtures/1921705.fec: v8.5, F3N, filer C00900860
 "Jason Byors for Congress", 20 itemizations (1 SA11AI, 13 SA11C, 1 SA11D,
 5 SB17) in that file order, on lines 3-22.
 """
+import builtins
+import io
+import mmap
 import shutil
+import subprocess
+import sys
+import textwrap
 import threading
 import time
+from array import array
 from datetime import date
 
 import pytest
 from libfec_parser.parser import (
     Cover,
+    FecParseError,
     FilingReader,
     Header,
     MissingMappingError,
@@ -323,3 +331,213 @@ class TestThreading:
             t.join(timeout=60)
 
         assert counts == [1387] * 4
+
+
+class TestBufferSources:
+    """Every bytes-like source goes through one zero-copy buffer path"""
+
+    def test_open_bytearray(self, sample_fec_bytes):
+        assert len(list(open(bytearray(sample_fec_bytes)))) == 20
+
+    def test_open_memoryview(self, sample_fec_bytes):
+        assert len(list(open(memoryview(sample_fec_bytes)))) == 20
+
+    def test_open_memoryview_slice(self, sample_fec_bytes):
+        """A strided memoryview is not contiguous: gathered into a Vec, then parsed
+
+        Every other byte is not a filing, so the only sane outcomes are a parse
+        error or a filing-shaped nothing — never a crash.
+        """
+        try:
+            rows = list(open(memoryview(sample_fec_bytes)[::2]))
+        except FecParseError:
+            return
+        assert isinstance(rows, list)
+
+    def test_open_mmap(self, sample_fec_file):
+        with builtins.open(sample_fec_file, "rb") as f:
+            with mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ) as mapped:
+                assert len(list(open(mapped))) == 20
+
+    def test_buffer_source_length(self, sample_fec_bytes):
+        assert open(bytearray(sample_fec_bytes)).source_length == len(sample_fec_bytes)
+
+    def test_buffer_source_has_no_id(self, sample_fec_bytes):
+        """A buffer does not name itself"""
+        assert open(memoryview(sample_fec_bytes)).id is None
+
+    def test_non_byte_buffer_raises_typeerror(self):
+        """`array('i')`, a NumPy float array, `memoryview(...).cast('I')`: not bytes-like"""
+        with pytest.raises(TypeError, match="bytes-like"):
+            open(array("i", [1, 2, 3]))  # type: ignore[arg-type]  # on purpose
+
+
+class TestFileObjectSources:
+    """Binary file objects are pulled a chunk at a time, never `.read()` whole"""
+
+    def test_open_binary_file_object(self, sample_fec_file):
+        with builtins.open(sample_fec_file, "rb") as f:
+            assert len(list(open(f))) == 20
+
+    def test_open_bytesio(self, sample_fec_bytes):
+        assert len(list(open(io.BytesIO(sample_fec_bytes)))) == 20
+
+    def test_open_urlopen_like(self, sample_fec_bytes):
+        """A response object: `read(n)` and nothing else useful"""
+
+        class Response:
+            def __init__(self, data):
+                self._buf = io.BytesIO(data)
+
+            def read(self, n):
+                return self._buf.read(n)
+
+        assert len(list(open(Response(sample_fec_bytes)))) == 20
+
+    def test_read_is_chunked_not_whole(self, pac_fec_bytes_source):
+        """The 263 KB fixture takes several reads, each bounded by the chunk size"""
+        source, sizes = pac_fec_bytes_source
+
+        assert sum(1 for _ in open(source)) == 1387
+        assert len(sizes) > 1
+        assert max(sizes) <= 64 * 1024
+
+    def test_id_from_file_object_name(self, sample_fec_file):
+        with builtins.open(sample_fec_file, "rb") as f:
+            assert open(f).id == "1921705"
+
+    def test_id_none_without_a_name(self, sample_fec_bytes):
+        assert open(io.BytesIO(sample_fec_bytes)).id is None
+
+    def test_source_length_from_fileno(self, sample_fec_file):
+        with builtins.open(sample_fec_file, "rb") as f:
+            assert open(f).source_length == sample_fec_file.stat().st_size
+
+    def test_source_length_unknown_without_fileno(self, sample_fec_bytes):
+        """`BytesIO.fileno()` raises; an unknown length is 0, not an error"""
+        assert open(io.BytesIO(sample_fec_bytes)).source_length == 0
+
+
+class TestSourceErrors:
+    """Text-mode files, and exceptions raised by the source's own `read()`"""
+
+    def test_text_mode_file_raises_typeerror(self, sample_fec_file):
+        with builtins.open(sample_fec_file) as f:
+            with pytest.raises(TypeError, match="'rb'"):
+                open(f)  # type: ignore[arg-type]  # text mode, on purpose
+
+    def test_stringio_raises_typeerror(self, sample_fec_content):
+        with pytest.raises(TypeError, match="'rb'"):
+            open(io.StringIO(sample_fec_content))  # type: ignore[arg-type]  # on purpose
+
+    def test_read_returning_str_raises_typeerror(self, sample_fec_content):
+        """Not an `io.TextIOBase`, but still hands back `str`: same message"""
+
+        class TextLike:
+            def read(self, n):
+                return "HDR\x1cFEC\x1c8.5"
+
+        with pytest.raises(TypeError, match="'rb'"):
+            open(TextLike())  # type: ignore[arg-type]  # on purpose
+
+    def test_read_returning_junk_raises_typeerror(self):
+        class Junk:
+            def read(self, n):
+                return [1, 2, 3]
+
+        with pytest.raises(TypeError, match="must return bytes"):
+            open(Junk())  # type: ignore[arg-type]  # on purpose
+
+    def test_read_error_propagates(self):
+        """The source's exception comes back as itself, not as FecParseError"""
+
+        class Boom:
+            def read(self, n):
+                raise ZeroDivisionError("boom")
+
+        with pytest.raises(ZeroDivisionError, match="boom"):
+            open(Boom())  # type: ignore[arg-type]  # on purpose
+
+    def test_read_error_mid_iteration_propagates(self, sample_fec_bytes):
+        """Same when the source fails after the header and cover are already parsed"""
+
+        # The header and cover records end at byte 599 of the fixture, so 1 KB is
+        # enough for `open()` to succeed and not enough to finish iterating.
+        class BoomLater:
+            def __init__(self, data):
+                self._buf = io.BytesIO(data)
+
+            def read(self, n):
+                if self._buf.tell() >= 1024:
+                    raise ZeroDivisionError("late boom")
+                return self._buf.read(min(n, 512))
+
+        reader = open(BoomLater(sample_fec_bytes))  # type: ignore[arg-type]  # on purpose
+
+        with pytest.raises(ZeroDivisionError, match="late boom"):
+            list(reader)
+
+    def test_read_returning_too_much_raises(self, sample_fec_bytes):
+        """A source that ignores its size argument is a bug, not a buffer overrun"""
+
+        class TooMuch:
+            def read(self, n):
+                return sample_fec_bytes * 100
+
+        with pytest.raises(ValueError, match="more than asked for"):
+            open(TooMuch())  # type: ignore[arg-type]  # on purpose
+
+
+@pytest.fixture
+def pac_fec_bytes_source(pac_fec_file):
+    """A file object over the 263 KB fixture that records every read size."""
+    sizes: list[int] = []
+    buf = io.BytesIO(pac_fec_file.read_bytes())
+
+    class Recording:
+        def read(self, n):
+            sizes.append(n)
+            return buf.read(n)
+
+    return Recording(), sizes
+
+
+# The subprocess the zero-copy test measures: read the filing into a `bytes`,
+# iterate it through `open()`, report peak RSS alongside the size of the bytes.
+_RSS_SCRIPT = """
+import resource, sys
+import libfec_parser
+
+with open(sys.argv[1], "rb") as f:
+    data = f.read()
+rows = sum(1 for _ in libfec_parser.open(data))
+peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+# ru_maxrss is bytes on macOS, kilobytes on Linux.
+if sys.platform != "darwin":
+    peak *= 1024
+print(peak, len(data), rows)
+"""
+
+
+class TestZeroCopy:
+    @pytest.mark.slow
+    def test_zero_copy_bytes(self, benchmark_fec_file):
+        """Iterating a 91 MB `bytes` costs well under 100 MB on top of the bytes
+
+        The buffer is read in place, so the only per-row cost is the row being
+        handed to Python, which iteration drops again immediately.
+        """
+        result = subprocess.run(
+            [sys.executable, "-c", textwrap.dedent(_RSS_SCRIPT), str(benchmark_fec_file)],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        peak, size, rows = (int(v) for v in result.stdout.split())
+
+        assert rows > 0
+        overhead = peak - size
+        assert overhead < 100 * 1024 * 1024, (
+            f"peak RSS {peak / 1e6:.0f} MB over a {size / 1e6:.0f} MB bytes object "
+            f"= {overhead / 1e6:.0f} MB of overhead"
+        )
