@@ -14,6 +14,7 @@ from typing import Any
 
 import pytest
 
+from libfec_parser import FecParseError
 from libfec_parser import fecfile as ours
 
 real = pytest.importorskip("fecfile")
@@ -105,7 +106,11 @@ def assert_parsed_equal(got: dict[str, Any], expected: dict[str, Any], where: st
 
 
 def parsed_pair(fec_fixture, options=None) -> tuple[dict[str, Any], dict[str, Any]]:
-    """``(ours, real)`` for one fixture, with the allowlist applied to each side."""
+    """``(ours, real)`` for one fixture, with the allowlist applied to real's side.
+
+    Nothing is dropped from ours: both allowlist entries are things real has and
+    this package does not.
+    """
     mine = ours.from_file(fec_fixture, options=options)
     theirs = without_f99_text(real.from_file(str(fec_fixture), options=options or {}))
     return mine, theirs
@@ -535,3 +540,212 @@ def test_crlf_in_memory_matches_real(sample_fec_bytes):
     }
     for label, source in [("bytes", crlf), ("str", crlf.decode("utf-8"))]:
         assert_parsed_equal(ours.loads(source), theirs, f"CRLF loads({label})")
+
+
+# --- Scope: which FEC format versions the whole-filing APIs read -----------
+
+
+#: A version real `fecfile` parses a whole filing in and `fec-parser` does not,
+#: with the field separator that generation used (`fecparser.py:36` — versions
+#: 1, 2, 3 and 5 are comma-separated, 6.x on use ASCII 28).
+@pytest.mark.parametrize(
+    ("version", "separator"),
+    [("3.0", ","), ("5.3", ","), ("6.4", "\x1c"), ("7.0", "\x1c"), ("P3.4", "\x1c")],
+)
+def test_pre_8x_filings_are_out_of_scope(version, separator):
+    """The whole-filing APIs read FEC 8.0-8.5 only; real reads every generation.
+
+    `fec-parser` supports 8.0 through 8.5, so `from_file`/`loads`/`iter_file`
+    raise `FecParseError` on anything older (or on a paper filing's ``P3.4``),
+    where real parses it happily.  ``parse_line``/``parse_header`` are not
+    limited this way -- they go straight to the mapping, which covers every
+    version real's does, as `test_column_names_match_real_across_mappings`
+    checks.  Pinned here so the README's scope paragraph and the code cannot
+    drift apart silently.
+    """
+    document = separator.join(["HDR", "FEC", version, "unit-test", "1"]) + "\n"
+    document += separator.join(["F3N", "C00000000", "A COMMITTEE"])
+
+    assert real.loads(document)["filing"]["form_type"] == "F3N"
+    for api in (ours.loads, lambda d: list(ours.iter_lines(d.split("\n")))):
+        with pytest.raises(FecParseError):
+            api(document)
+
+    # But the single-line APIs do read it, and agree with real line for line.
+    for line in document.split("\n"):
+        mine, theirs = ours.parse_line(line, version), real.parse_line(line, version)
+        assert mine is not None
+        assert_record_equal(mine, theirs, f"parse_line({version})")
+
+
+# --- Time zones ------------------------------------------------------------
+
+
+#: Dates `zoneinfo` (ours) and `pytz` (real's) localize identically: every day
+#: from 1901-12-14 (pytz's transition table starts at the 32-bit ``time_t``
+#: minimum, 1901-12-13) through 2038-03-14 (it stops before the 2038 DST
+#: change).  Both boundaries are measured, not assumed -- see
+#: `test_timezone_out_of_range_divergences`.
+IN_RANGE_DATES = [
+    "19011214",  # the first day pytz has a real transition for
+    "19500101",
+    "19700101",
+    "19990404",  # DST starts
+    "20070311",  # DST starts, first year of the current US rule
+    "20071104",  # DST ends
+    "20230701",
+    "20371231",
+    "20380314",  # the last day the two agree
+]
+
+
+def contribution_dates(value: str) -> tuple[datetime, datetime]:
+    """``(ours, real)`` for one ``YYYYMMDD`` in a Schedule A's date column."""
+    columns = list(real.parse_line("SA11AI\x1cC00000000", "8.5"))
+    fields = [""] * len(columns)
+    fields[0] = "SA11AI"
+    fields[columns.index("contribution_date")] = value
+    line = "\x1c".join(fields)
+
+    mine = (ours.parse_line(line, "8.5") or {})["contribution_date"]
+    theirs = real.parse_line(line, "8.5")["contribution_date"]
+    assert isinstance(mine, datetime) and isinstance(theirs, datetime)
+    return mine, theirs
+
+
+@pytest.mark.parametrize("value", IN_RANGE_DATES)
+def test_timezone_matches_real_in_range(value):
+    """Same instant, same offset, same repr, for every date a filing can hold."""
+    mine, theirs = contribution_dates(value)
+    assert mine == theirs
+    assert mine.utcoffset() == theirs.utcoffset()
+    assert str(mine) == str(theirs)
+    assert hash(mine) == hash(theirs)
+
+
+#: The two known windows where `pytz` and `zoneinfo` disagree, as measured on
+#: `pytz` 2026.3: outside them the whole 1901-2038 span agrees day for day.
+OUT_OF_RANGE_DATES = [
+    # pytz has no transition before 1901-12-13, so it reads Local Mean Time
+    # where zoneinfo has had standard time since 1883-11-18.
+    ("18830701", "-04:56", "-04:56:02"),
+    ("19011213", "-04:56", "-05:00"),
+    # …and none after 2037, so every summer date from 2038 on stays on EST.
+    ("20380315", "-05:00", "-04:00"),
+    ("20380701", "-05:00", "-04:00"),
+    ("20490701", "-05:00", "-04:00"),
+]
+
+
+@pytest.mark.parametrize(("value", "real_offset", "our_offset"), OUT_OF_RANGE_DATES)
+def test_timezone_out_of_range_divergences(value, real_offset, our_offset):
+    """The two documented windows where ours and real land on different offsets.
+
+    Not an allowlist entry -- no test excludes these from a comparison -- but a
+    real difference, pinned so that a `pytz` release, a tzdata update or a move
+    off `zoneinfo` shows up here rather than in someone's filing.  No FEC filing
+    carries a date in either window; the README says so in "Where it differs".
+    """
+    mine, theirs = contribution_dates(value)
+    assert str(theirs).endswith(real_offset), str(theirs)
+    assert str(mine).endswith(our_offset), str(mine)
+    assert mine != theirs
+
+
+# --- Malformed input -------------------------------------------------------
+#
+# Four places where a *malformed* filing is treated differently.  None is an
+# allowlist entry -- nothing above excludes them from a comparison -- but each
+# is a real difference, pinned here and listed in the README so it is found on
+# purpose rather than in someone's filing.  Every one of them needs input no
+# valid filing contains.
+
+
+def test_summary_must_be_a_cover_record(sample_fec_content):
+    """The first record has to be a cover `fec-parser` knows, with a filer name.
+
+    Real treats whatever it parses first as the summary, whatever it is; the
+    native reader validates it as a cover before the compat layer sees anything.
+    """
+    header = sample_fec_content.split("\n")[0]
+    for first, message in [
+        ("SA11AI\x1cC00900860", "SA11AI"),  # an itemization as the first record
+        ("F3N\x1cC00900860", "F3N"),  # a cover with no filer name
+    ]:
+        assert real.loads([header, first])["filing"]["form_type"] == message
+        with pytest.raises(FecParseError):
+            ours.loads([header, first])
+
+
+def test_form_type_with_whitespace_is_unmapped(sample_fec_content):
+    """Real strips the form for the mapping lookup; `fec-parser` does not.
+
+    Real keeps the *unstripped* spelling as the ``form_type`` value, so its
+    itemization group is ``' SA11AI '``; ours raises instead.
+    """
+    header, cover = sample_fec_content.split("\n")[:2]
+    lines = [header, cover, " SA11AI \x1cC00900860"]
+    assert list(real.loads(lines)["itemizations"]) == [" SA11AI "]
+    with pytest.raises(ours.FecParserMissingMappingError):
+        ours.loads(lines)
+
+
+def test_filter_prefixes_match_the_row_type_not_the_line(sample_fec_content):
+    """``filter_itemizations`` is matched against the row type, not the raw line.
+
+    Real tests ``line.startswith(prefix)`` or ``line.startswith('"' + prefix)``,
+    so a prefix that runs past the first field, or that carries the quote of a
+    quoted row type, can match there and never here.  Prefixes that stay inside
+    the row type -- every documented use -- behave identically, which
+    `test_filter_itemizations_matches_real` covers.
+    """
+    header, cover = sample_fec_content.split("\n")[:2]
+    for row, prefix in [
+        ("SA11AI\x1cC00900860", "SA11AI\x1cC"),  # runs past the first field
+        ('"SA11AI"\x1cC00900860', '"SA'),  # matches real's quoted-prefix branch
+    ]:
+        lines = [header, cover, row]
+        options = {"filter_itemizations": [prefix]}
+        theirs = real.loads(lines, options=options)["itemizations"]
+        mine = ours.loads(lines, options=options)["itemizations"]
+        assert sum(map(len, theirs.values())) == 1, prefix
+        assert mine == {}, prefix
+
+
+def test_blank_lines_shift_warning_line_numbers(sample_fec_content):
+    """A blank line is not counted, so a later warning names an earlier line.
+
+    Real counts every line it is handed; `fec-parser` numbers the *records* it
+    reads and skips blank lines entirely, so ``Row.line`` -- and with it the
+    ``(line N)`` a `FecParserTypeWarning` ends on -- falls behind by one per
+    blank line above it.  The values, keys and warning text are identical; only
+    the number differs.  `test_type_warnings_match_real` covers the no-blank-line
+    case, which is every committed fixture and the benchmark filing.
+    """
+    lines = sample_fec_content.split("\n")
+    columns = list(ours.parse_line(lines[2], "8.5") or {})
+    fields = lines[2].split("\x1c")
+    fields[columns.index("contribution_amount")] = "12,34.5x"
+    document = "\n".join(lines[:2] + ["", "\x1c".join(fields)])
+
+    def message(parse) -> str:
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            parse(document)
+        return str(caught[0].message)
+
+    assert message(real.loads).endswith("(line 5)")
+    assert message(ours.loads).endswith("(line 4)")
+
+
+def test_iterable_elements_are_not_record_boundaries(sample_fec_content):
+    """An element of a ``loads``/``iter_lines`` iterable is text, not one record.
+
+    Real parses each element as exactly one line; ours feeds the iterable to the
+    parser as a byte stream, so an element containing ``\\n`` becomes two records.
+    """
+    header, cover = sample_fec_content.split("\n")[:2]
+    row = "\x1c".join(["SA11AI", "C00900860"])
+    lines = [header, cover, row + "\n" + row]
+    assert sum(map(len, real.loads(lines)["itemizations"].values())) == 1
+    assert sum(map(len, ours.loads(lines)["itemizations"].values())) == 2
