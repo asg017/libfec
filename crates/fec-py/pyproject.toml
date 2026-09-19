@@ -5,7 +5,7 @@ description = "Fast parser for FEC electronic filings (.fec), backed by Rust"
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT OR Apache-2.0"
-license-files = ["LICENSE-*"]
+license-files = ["LICENSE-*", "NOTICE"]
 authors = [
     { name = "Alex Garcia", email = "alexsebastian.garcia@gmail.com" }
 ]
@@ -22,6 +22,9 @@ classifiers = [
 ]
 dependencies = []
 
+[project.optional-dependencies]
+http = ["httpx2>=2"]
+
 [project.urls]
 Homepage = "https://github.com/asg017/libfec"
 Repository = "https://github.com/asg017/libfec"
@@ -29,7 +32,7 @@ Issues = "https://github.com/asg017/libfec/issues"
 Changelog = "https://github.com/asg017/libfec/releases"
 
 [dependency-groups]
-dev = ["pytest>=8", "fecfile", "pandas", "nbconvert", "ipykernel", "mypy", "maturin>=1.15,<2"]
+dev = ["pytest>=8", "fecfile", "httpx2>=2", "pandas", "nbconvert", "ipykernel", "mypy", "maturin>=1.15,<2"]
 
 [tool.maturin]
 module-name = "libfec_parser._native"

@@ -40,7 +40,11 @@ jobs:
           # the assertion below fails loudly instead of leaving a confusing pytest crash.
           uv venv .venv --python cpython-${{ matrix.python }}
           uv run --python .venv --no-project python -c "import sysconfig, sys; sys.exit('picked the free-threaded interpreter for .venv; expected the GIL build' if sysconfig.get_config_var('Py_GIL_DISABLED') else 0)"
-          uv pip install --python .venv dist/*.whl pytest pandas
+          # `fecfile` is the spec tests/test_fecfile_differential.py compares
+          # against; without it that test skips, which is the same as not having
+          # it. `httpx2` backs the `[http]` extra (`from_http`/`iter_http`); the
+          # MockTransport-based tests importorskip it, same effect.
+          uv pip install --python .venv dist/*.whl pytest pandas fecfile httpx2
       - name: pytest
         shell: bash
         working-directory: crates/fec-py
@@ -114,8 +118,10 @@ jobs:
           uv run --python .venv --no-project python -W error::RuntimeWarning -c "import libfec_parser; print(libfec_parser.__version__)"
           # pandas does ship a 3.14t wheel (verified locally 2026-09-18: `uv pip
           # install pandas` resolves prebuilt numpy/pandas wheels, no compile),
-          # so no fallback/deselect is needed here.
-          uv pip install --python .venv pandas
+          # so no fallback/deselect is needed here. `fecfile` and its pytz/requests
+          # dependencies resolve to prebuilt wheels on 3.14t too (verified the same
+          # day), so the differential test runs in this canary as well.
+          uv pip install --python .venv pandas fecfile
       - name: pytest
         shell: bash
         working-directory: crates/fec-py
