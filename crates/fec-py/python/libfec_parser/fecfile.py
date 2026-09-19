@@ -70,6 +70,20 @@ _VALID_OPTIONS = ("filter_itemizations", "as_strings")
 # column in versions 3.x–5.x), which therefore reads as ''.
 _HEADER_ATTRS = {"soft_name": "software_name", "soft_ver": "software_version"}
 
+#: Placeholder column names `fec-parser` invents, and the name real `fecfile`'s
+#: ``mappings.json`` has in that position.  This module's spec is `fecfile`'s
+#: names, so every native name goes through `_spec_name` before it becomes a
+#: dict key -- which is also what gives a duplicated column real's semantics:
+#: with both copies under one name, `_record`'s plain assignment keeps the *last*
+#: one's value at the *first* one's key position, exactly as real's loop does.
+#: One `_TODO_DUP` suffix (a column the FEC layout names twice, such as an F3X
+#: cover's ``col_a_total_receipts`` or an F2's ``candidate_state``) and one
+#: `TODO_UNKNOWN_BLANK` (the F3L mapping's nameless column, ``''`` in real).
+#: Deferred parser items: this table should shrink to nothing when `fec-parser`
+#: stops inventing the names.
+_DUP_SUFFIX = "_TODO_DUP"
+_NATIVE_NAMES = {"TODO_UNKNOWN_BLANK": ""}
+
 #: A column's converter: the raw field and the line number in, a typed value out.
 _Converter = Callable[[str, "int | None"], Any]
 
@@ -214,6 +228,11 @@ def _eastern() -> zoneinfo.ZoneInfo:
     return _EASTERN
 
 
+def _spec_name(name: str) -> str:
+    """One native column name, as real `fecfile`'s ``mappings.json`` spells it."""
+    return _NATIVE_NAMES.get(name, name.removesuffix(_DUP_SUFFIX))
+
+
 def _type_prop(form: str, version: str, field: str) -> dict[str, str] | None:
     """The type table's entry for one column, or `None` if it has none.
 
@@ -273,19 +292,22 @@ def _converter(form: str, version: str, field: str, prop: dict[str, str]) -> _Co
 def _mapping(form: str, version: str) -> tuple[tuple[str, ...], tuple[_Converter | None, ...]]:
     """``(column names, per-column converters)`` for one ``(form, version)`` pair.
 
-    Cached: the walk over the type table is three levels of regexes, far too slow
-    to repeat per field per row, and the names are interned by the native side so
-    every row's dict shares its keys.  ``None`` in place of a converter is a
-    plain string column.
+    Names are the spec's, not the native side's (`_spec_name`), and the
+    converters are looked up under those same names, which is how a duplicated
+    column ends up typed the way real types it.  Cached: the walk over the type
+    table is three levels of regexes, far too slow to repeat per field per row,
+    and one shared tuple per ``(form, version)`` means every row's dict shares
+    its keys.  ``None`` in place of a converter is a plain string column.
     """
     key = (form, version)
     cached = _MAPPINGS.get(key)
     if cached is not None:
         return cached
 
-    names = _native_parser._column_names(form, version)
-    if names is None:
+    native_names = _native_parser._column_names(form, version)
+    if native_names is None:
         raise FecParserMissingMappingError({"form": form, "version": version})
+    names = [_spec_name(name) for name in native_names]
     converters: list[_Converter | None] = []
     for name in names:
         prop = _type_prop(form, version, name)
@@ -307,7 +329,11 @@ def _record(
     A row shorter than its mapping reads ``''`` for the missing columns and types
     that like any other value; fields past the mapping are dropped, because
     `fecparser.parse_line` loops over the mapping rather than over the fields.
-    ``converters=None`` is ``as_strings``: no typing at all.
+    A column the mapping names twice is written twice, so the last occurrence's
+    value wins at the first occurrence's key position -- real's semantics, and
+    the reason `_mapping` hands back the spec's names rather than the native
+    side's disambiguated ones.  ``converters=None`` is ``as_strings``: no typing
+    at all.
     """
     count = len(fields)
     if converters is None:
