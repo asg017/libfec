@@ -40,7 +40,7 @@ jobs:
           # the assertion below fails loudly instead of leaving a confusing pytest crash.
           uv venv .venv --python cpython-${{ matrix.python }}
           uv run --python .venv --no-project python -c "import sysconfig, sys; sys.exit('picked the free-threaded interpreter for .venv; expected the GIL build' if sysconfig.get_config_var('Py_GIL_DISABLED') else 0)"
-          uv pip install --python .venv dist/*.whl pytest
+          uv pip install --python .venv dist/*.whl pytest pandas
       - name: pytest
         shell: bash
         working-directory: crates/fec-py

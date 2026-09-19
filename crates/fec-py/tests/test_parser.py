@@ -13,10 +13,12 @@ import pytest
 # one through `builtins.open`, exactly as `parser.py` itself has to.
 from libfec_parser.parser import (
     fec_header,
+    Filing,
     Header,
     Cover,
     Row,
     open,
+    read,
     FecError,
     FecParseError,
     MissingMappingError,
@@ -380,33 +382,27 @@ class TestRow:
             assert row.line >= 3
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="the eager `Filing` class is re-created in pure Python by ticket 16",
-)
 class TestFiling:
-    """Tests for the eager `Filing` class.
-
-    `Filing` was deleted with the streaming rewrite and comes back, in pure
-    Python over `open()`, in ticket 16 — which removes these marks.  The import
-    lives inside each test so collecting this module still works.
-    """
+    """Tests for the eager `Filing` class: header, cover and every row, parsed once."""
 
     def test_filing_from_path_string(self, sample_fec_file):
         """Test Filing initialization with file path string"""
-        from libfec_parser.parser import Filing  # type: ignore[attr-defined]
-
         filing = Filing(str(sample_fec_file))
 
         assert isinstance(filing, Filing)
         assert isinstance(filing.header, Header)
         assert isinstance(filing.cover, Cover)
-        assert isinstance(filing.itemizations, list)
+        assert isinstance(filing.rows, list)
+
+    def test_filing_from_pathlib(self, sample_fec_file):
+        """Test Filing initialization with a pathlib.Path"""
+        filing = Filing(sample_fec_file)
+
+        assert isinstance(filing, Filing)
+        assert len(filing.rows) == 20
 
     def test_filing_from_bytes(self, sample_fec_bytes):
         """Test Filing initialization with bytes"""
-        from libfec_parser.parser import Filing  # type: ignore[attr-defined]
-
         filing = Filing(sample_fec_bytes)
 
         assert isinstance(filing, Filing)
@@ -415,18 +411,14 @@ class TestFiling:
 
     def test_filing_repr(self, sample_fec_file):
         """Test Filing __repr__"""
-        from libfec_parser.parser import Filing  # type: ignore[attr-defined]
-
         filing = Filing(str(sample_fec_file))
 
         assert repr(filing) == (
-            "Filing(form_type='F3N', filer_id='C00900860', 20 itemizations)"
+            "Filing(id='1921705', form_type='F3N', filer_id='C00900860', 20 rows)"
         )
 
     def test_filing_header_property(self, sample_fec_file):
         """Test Filing.header property"""
-        from libfec_parser.parser import Filing  # type: ignore[attr-defined]
-
         header = Filing(str(sample_fec_file)).header
 
         assert isinstance(header, Header)
@@ -434,8 +426,6 @@ class TestFiling:
 
     def test_filing_cover_property(self, sample_fec_file):
         """Test Filing.cover property"""
-        from libfec_parser.parser import Filing  # type: ignore[attr-defined]
-
         cover = Filing(str(sample_fec_file)).cover
 
         assert isinstance(cover, Cover)
@@ -443,45 +433,40 @@ class TestFiling:
         assert cover.filer_id
 
     def test_filing_itemizations_property(self, sample_fec_file):
-        """Test Filing.itemizations property"""
-        from libfec_parser.parser import Filing  # type: ignore[attr-defined]
+        """Filing.itemizations is a deprecated alias of Filing.rows"""
+        filing = Filing(str(sample_fec_file))
 
-        itemizations = Filing(str(sample_fec_file)).itemizations
+        with pytest.warns(DeprecationWarning):
+            itemizations = filing.itemizations
 
-        assert isinstance(itemizations, list)
+        assert itemizations is filing.rows
         assert len(itemizations) == 20
         assert all(isinstance(item, Row) for item in itemizations)
 
     def test_filing_many_itemizations(self, pac_fec_file):
         """Test a filing with many rows: 1721696.fec, v8.4 F3XN, 1,387 rows"""
-        from libfec_parser.parser import Filing  # type: ignore[attr-defined]
-
         filing = Filing(str(pac_fec_file))
 
         assert filing.header.fec_version == "8.4"
         assert filing.cover.form_type == "F3XN"
         assert filing.cover.filer_id == "C00016683"
-        assert len(filing.itemizations) == 1387
+        assert len(filing.rows) == 1387
 
     def test_filing_with_no_itemizations(self, f99_fec_file):
         """Test the F99 fixture: a [BEGINTEXT] filing with zero rows"""
-        from libfec_parser.parser import Filing  # type: ignore[attr-defined]
-
         filing = Filing(str(f99_fec_file))
 
         assert filing.cover.form_type == "F99"
-        assert filing.itemizations == []
+        assert filing.rows == []
 
+    @pytest.mark.xfail(strict=True, reason="ticket 15: binary file objects")
     def test_filing_from_file_object(self, sample_fec_file):
         """Test Filing initialization with file-like object.
 
-        Binary file objects are ticket 15's job; until then this stays xfailed
-        even once `Filing` is back.
+        Binary file objects are ticket 15's job; until then this stays xfailed.
         """
-        from libfec_parser.parser import Filing  # type: ignore[attr-defined]
-
         with builtins.open(sample_fec_file, "rb") as f:
-            filing = Filing(f)
+            filing = Filing(f)  # type: ignore[arg-type]  # ticket 15: binary file objects
 
             assert isinstance(filing, Filing)
             assert isinstance(filing.header, Header)
@@ -489,24 +474,48 @@ class TestFiling:
 
     def test_filing_with_invalid_path(self):
         """Test Filing with non-existent file path"""
-        from libfec_parser.parser import Filing  # type: ignore[attr-defined]
-
         with pytest.raises(FileNotFoundError):
             Filing("/path/that/does/not/exist.fec")
 
     def test_filing_with_invalid_type(self):
         """Test Filing with invalid input type"""
-        from libfec_parser.parser import Filing  # type: ignore[attr-defined]
-
         with pytest.raises(TypeError):
             Filing(12345)  # type: ignore[arg-type]  # invalid type, on purpose
 
     def test_filing_with_invalid_data(self):
         """Test Filing with invalid FEC data"""
-        from libfec_parser.parser import Filing  # type: ignore[attr-defined]
-
         with pytest.raises(ValueError):
             Filing(b"invalid fec data")
+
+    def test_rows_identity(self, sample_fec_file):
+        """`rows` is a plain cached attribute; so is `header`"""
+        filing = Filing(sample_fec_file)
+
+        assert filing.rows is filing.rows
+        assert filing.header is filing.header
+
+    def test_filing_is_iterable_and_sized(self, sample_fec_file):
+        """iter(filing) and len(filing) delegate to rows"""
+        filing = Filing(sample_fec_file)
+
+        assert len(filing) == 20
+        assert list(filing) == filing.rows
+
+    def test_read_is_filing(self, sample_fec_file):
+        """read() is a thin function wrapper over Filing"""
+        filing = read(sample_fec_file)
+
+        assert isinstance(filing, Filing)
+        assert len(filing.rows) == 20
+
+    def test_eager_raises_missing_mapping(self, sample_fec_bytes):
+        """An unmapped row type raises out of Filing(...) itself (eager = strict)"""
+        raw = sample_fec_bytes.replace(b"\nSA11C\x1c", b"\nZZZZ\x1c", 1)
+
+        with pytest.raises(MissingMappingError) as ei:
+            Filing(raw)
+
+        assert (ei.value.row_type, ei.value.version, ei.value.line) == ("ZZZZ", "8.5", 4)
 
 
 class TestErrors:

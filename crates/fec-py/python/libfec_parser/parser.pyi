@@ -13,11 +13,13 @@ from typing import Any, Self, TypeAlias, final, overload
 
 __all__ = [
     "Cover",
+    "Filing",
     "FilingReader",
     "Header",
     "Row",
     "fec_header",
     "open",
+    "read",
     "FecError",
     "FecParseError",
     "MissingMappingError",
@@ -25,6 +27,9 @@ __all__ = [
 
 Value: TypeAlias = str | float | date | None
 """A column's value: typed if it parses, the raw `str` if it is garbage, `None` if empty."""
+
+Source: TypeAlias = str | os.PathLike[str] | bytes
+"""What `open()`/`read()`/`Filing()` accept as a filing source."""
 
 @final
 class Header:
@@ -170,13 +175,40 @@ class FilingReader:
     def __next__(self) -> Row: ...
     def __repr__(self) -> str: ...
 
-def open(source: str | os.PathLike[str] | bytes, /) -> FilingReader:
+def open(source: Source, /) -> FilingReader:
     """Open a filing for streaming.
 
     `source` is a filesystem path (`str` or `os.PathLike`) or the filing's bytes.
     A missing path raises `FileNotFoundError`; unparseable input raises
     `FecParseError`.
     """
+
+class Filing:
+    """A whole filing in memory: header, cover and every row, parsed once.
+
+    `read(source)` is the same thing as a function.  For filings too large to
+    hold, use `open()`, which streams.
+    """
+
+    id: str | None
+    header: Header
+    cover: Cover
+    cover_row: Row
+    rows: list[Row]
+
+    def __init__(self, source: Source) -> None: ...
+    @property
+    def fec_version(self) -> str: ...
+    @property
+    def itemizations(self) -> list[Row]:
+        """Deprecated alias of `rows`; warns with `DeprecationWarning`."""
+
+    def __iter__(self) -> Iterator[Row]: ...
+    def __len__(self) -> int: ...
+    def __repr__(self) -> str: ...
+
+def read(source: Source) -> Filing:
+    """Parse `source` eagerly; see `Filing`."""
 
 def fec_header(contents: bytes) -> str:
     """The `fec_version` of a filing held entirely in memory."""

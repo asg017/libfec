@@ -3,7 +3,10 @@
 # `open` below shadows the builtin for the rest of this module; reach the real one
 # through `builtins.open`.
 import builtins  # noqa: F401  (kept for modules that need the real `open`)
-from collections.abc import Mapping
+import os
+import warnings
+from collections.abc import Iterator, Mapping
+from typing import TypeAlias
 
 # `_native` is a single extension module; `_native.parser` is an attribute of it,
 # not an importable submodule, so it is bound by attribute access rather than
@@ -19,6 +22,10 @@ open = _parser.open
 
 FecError = _parser.FecError
 FecParseError = _parser.FecParseError
+
+# The union `open()`/`Filing()` accept. Defined at runtime (not stub-only like
+# `Value`) so it doubles as the annotation on `Filing.__init__` below.
+Source: TypeAlias = str | os.PathLike[str] | bytes
 
 
 class MissingMappingError(FecError):
@@ -44,13 +51,60 @@ _row_from_parts.__module__ = __name__
 # pandas only treats list items as records if `isinstance(x, Mapping)`.
 Mapping.register(Row)
 
+
+class Filing:
+    """A whole filing in memory: header, cover and every row, parsed once.
+
+    ``read(source)`` is the same thing as a function.  For filings too large to hold,
+    use :func:`open`, which streams.
+    """
+
+    __slots__ = ("id", "header", "cover", "cover_row", "rows")
+
+    def __init__(self, source: Source) -> None:
+        with open(source) as reader:  # this module's open(), not builtins.open
+            self.id = reader.id
+            self.header = reader.header
+            self.cover = reader.cover
+            self.cover_row = reader.cover_row
+            self.rows: list[Row] = list(reader)  # MissingMappingError propagates (Q15: eager = strict)
+
+    @property
+    def fec_version(self) -> str:
+        return self.header.fec_version
+
+    @property
+    def itemizations(self) -> list[Row]:
+        warnings.warn("Filing.itemizations is deprecated; use Filing.rows", DeprecationWarning, stacklevel=2)
+        return self.rows
+
+    def __iter__(self) -> Iterator[Row]:
+        return iter(self.rows)
+
+    def __len__(self) -> int:
+        return len(self.rows)
+
+    def __repr__(self) -> str:
+        return (
+            f"Filing(id={self.id!r}, form_type={self.cover.form_type!r}, "
+            f"filer_id={self.cover.filer_id!r}, {len(self.rows)} rows)"
+        )
+
+
+def read(source: Source) -> Filing:
+    """Parse ``source`` eagerly; see :class:`Filing`."""
+    return Filing(source)
+
+
 __all__ = [
     "Cover",
+    "Filing",
     "FilingReader",
     "Header",
     "Row",
     "fec_header",
     "open",
+    "read",
     "FecError",
     "FecParseError",
     "MissingMappingError",
