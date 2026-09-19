@@ -111,7 +111,8 @@ Every value is typed from `fecfile`'s own (vendored) type table, exactly as real
 - date columns parse to a **tz-aware `datetime` in US/Eastern** (via `zoneinfo`, not `pytz` — same instant, same UTC offset as real);
 - an empty amount or date column is `None`;
 - a handful of columns parse to `int`;
-- anything else — or a value the table types but that doesn't parse — comes back as the raw `str` (the latter also raises a `FecParserTypeWarning`);
+- a value the table types but that doesn't parse (`12,34.5x` in an amount column) is `None`, with a `FecParserTypeWarning` naming the value, column and line;
+- anything else comes back as the raw `str`;
 - `options={"as_strings": True}` turns all of the above off: every value is the raw `str`.
 
 ```python
