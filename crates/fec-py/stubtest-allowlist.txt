@@ -1,9 +1,11 @@
 # Stub-only types: they exist for annotations, not at runtime, so stubtest's
 # "is not present at runtime" check cannot pass for them. `Options` describes the
-# `options=` dict `loads`/`from_file`/`from_http` accept and `Parsed` the dict they
-# return; both are plain `dict`s at runtime, by design (see src/fecfile.rs).
+# `options=` dict `loads`/`from_file`/`iter_file`/… accept, `Parsed` the dict the
+# eager ones return, and `Value` the union one column of a parsed row can hold;
+# all three are plain `dict`s/values at runtime, by design.
 libfec_parser.fecfile.Options
 libfec_parser.fecfile.Parsed
-# `Value` is the same kind of stub-only alias: the union a `Row` column can hold
-# (`str | float | date | None`), used in annotations only (see src/row.rs).
+libfec_parser.fecfile.Value
+# `libfec_parser.parser.Value` is the same kind of alias: what a `Row` column can
+# hold (`str | float | date | None`), used in annotations only (see src/row.rs).
 libfec_parser.parser.Value

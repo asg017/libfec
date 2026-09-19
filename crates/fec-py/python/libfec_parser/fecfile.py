@@ -1,22 +1,539 @@
-"""`fecfile`-compatible API backed by libfec."""
+"""A drop-in `fecfile` API, in pure Python over :func:`libfec_parser.open`.
+
+The spec is `fecfile` 0.9.1 (Apache-2.0), and "compatible" here means exact: the
+same keys in the same order, with the same values *and* the same types, down to
+tz-aware ``datetime``s in US/Eastern.  ``tests/test_fecfile_differential.py``
+holds this module to that claim against the real package on every fixture and
+documents the few differences that survive.
+
+Values come from each row's **raw** fields plus `fecfile`'s own type table
+(vendored as ``_fecfile_types.json``; see ``NOTICE``), never from libfec's typed
+accessors: libfec types a handful of columns `fecfile` does not, and reads a
+short row's missing columns as ``None`` where `fecfile` gives ``''``.  Going
+through the vendored table is exact by construction and makes ``as_strings``
+nothing more than "skip the converters".
+"""
+
+import csv
+import json
+import re
+import warnings
+import zoneinfo
+from collections.abc import Callable, Iterable, Iterator, Mapping
+from datetime import datetime
+from importlib.resources import files
+from typing import Any, NamedTuple
 
 # `_native` is a single extension module; `_native.fecfile` is an attribute of it,
 # not an importable submodule, so it is bound by attribute access rather than
-# `from ._native.fecfile import ...`.
+# `from ._native.fecfile import ...`.  `from_http` is the last thing left in there
+# (ticket 22 replaces it and deletes src/fecfile.rs); everything else below is
+# built on the streaming reader.
 from ._native import fecfile as _fecfile
+from ._native import parser as _native_parser
+from .parser import FecError as _FecError
+from .parser import MissingMappingError as _MissingMappingError
+from .parser import open as _open
 
-from_file = _fecfile.from_file
 from_http = _fecfile.from_http
-loads = _fecfile.loads
-parse_header = _fecfile.parse_header
-parse_line = _fecfile.parse_line
-print_example = _fecfile.print_example
 
 __all__ = [
+    "FecItem",
+    "FecParserMissingMappingError",
+    "FecParserTypeWarning",
     "from_file",
     "from_http",
+    "iter_file",
+    "iter_lines",
     "loads",
     "parse_header",
     "parse_line",
     "print_example",
 ]
+
+#: The ASCII 28 field separator every version since 6.x uses.
+_COLUMN_SEPARATOR = "\x1c"
+
+#: Format versions whose lines are comma-separated instead (`fecparser.py:36`).
+_COMMA_VERSIONS = ("1", "2", "3", "5")
+
+#: Spellings of "no value" a float column accepts (`fecparser.py:185`).
+_NONES = ("none", "n/a")
+
+_VALID_OPTIONS = ("filter_itemizations", "as_strings")
+
+# HDR columns whose name differs from the `libfec_parser.Header` attribute holding
+# them; every other column is same-named.  `Header` carries no `name_delim` (an HDR
+# column in versions 3.x–5.x), which therefore reads as ''.
+_HEADER_ATTRS = {"soft_name": "software_name", "soft_ver": "software_version"}
+
+#: A column's converter: the raw field and the line number in, a typed value out.
+_Converter = Callable[[str, "int | None"], Any]
+
+_MAPPINGS: dict[tuple[str, str], tuple[tuple[str, ...], tuple[_Converter | None, ...]]] = {}
+_TYPES: dict[str, Any] | None = None
+_EASTERN: zoneinfo.ZoneInfo | None = None
+
+
+class FecParserTypeWarning(UserWarning):
+    """When a value in a filing does not parse as the type the table claims."""
+
+
+class FecParserMissingMappingError(_FecError):
+    """When a line's ``(form, version)`` pair has no column mapping.
+
+    Constructed from an options dict, like the real package's; a `FecError` (so a
+    `ValueError`) rather than a bare `Exception`, to match the rest of libfec.
+    """
+
+    def __init__(self, opts: Mapping[str, str], msg: str | None = None) -> None:
+        if msg is None:
+            msg = "cannot parse version {v} of form {f} - no mapping found".format(
+                v=opts["version"], f=opts["form"]
+            )
+        super().__init__(msg)
+
+
+class FecItem:
+    """One piece of a filing: ``data_type`` and ``data``.
+
+    ``data_type`` is ``"header"``, ``"summary"``, ``"itemization"``, ``"text"`` or
+    ``"F99_text"``; ``data`` is a dict for everything but ``F99_text``.
+    """
+
+    __slots__ = ("data_type", "data")
+
+    def __init__(self, data_type: str, data: Any) -> None:
+        self.data_type = data_type
+        self.data = data
+
+    def __repr__(self) -> str:
+        return f"FecItem(data_type={self.data_type!r}, ...)"
+
+
+class _Options(NamedTuple):
+    """Validated ``options``.  ``prefixes is None`` means no ``filter_itemizations``."""
+
+    prefixes: tuple[str, ...] | None
+    as_strings: bool
+
+
+class _IterReader:
+    """A minimal binary file object over an iterator of lines or byte chunks.
+
+    `open()` streams from anything whose ``read(n)`` hands back bytes, which is
+    how an iterable of lines — real `fecfile`'s input for ``iter_lines`` and for
+    an HTTP response — reaches the parser.  With ``lines=True`` each piece is
+    normalized into exactly one ``\\n``-terminated line, so lines with or without
+    their own terminators both work; with ``lines=False`` byte chunks pass
+    through untouched.
+    """
+
+    def __init__(self, pieces: Iterable[str | bytes], *, lines: bool = True) -> None:
+        self._pieces = iter(pieces)
+        self._lines = lines
+        self._pending = b""
+
+    def _normalize(self, piece: str | bytes) -> bytes:
+        if isinstance(piece, str):
+            piece = piece.encode("utf-8")
+        elif not isinstance(piece, (bytes, bytearray, memoryview)):
+            raise TypeError(f"lines must be str or bytes, not {type(piece).__name__}")
+        else:
+            piece = bytes(piece)
+        if not self._lines:
+            return piece
+        return piece.removesuffix(b"\n").removesuffix(b"\r") + b"\n"
+
+    def read(self, n: int = -1, /) -> bytes:
+        # Pieces accumulate in a list, not by `+=` on a bytes: a 64 KiB read is
+        # hundreds of lines, and concatenating each one would copy the buffer again.
+        parts = [self._pending]
+        size = len(self._pending)
+        self._pending = b""
+        while n < 0 or size < n:
+            piece = next(self._pieces, None)
+            if piece is None:
+                break
+            normalized = self._normalize(piece)
+            parts.append(normalized)
+            size += len(normalized)
+        buffer = b"".join(parts)
+        if n < 0 or size <= n:
+            return buffer
+        self._pending = buffer[n:]
+        return buffer[:n]
+
+
+def _type_table() -> dict[str, Any]:
+    """`fecfile`'s ``types.json``, read once on first use."""
+    global _TYPES
+    if _TYPES is None:
+        text = files(__package__).joinpath("_fecfile_types.json").read_text(encoding="utf-8")
+        _TYPES = json.loads(text)
+    return _TYPES
+
+
+def _eastern() -> zoneinfo.ZoneInfo:
+    """US/Eastern, the zone every date in a filing is localized to.
+
+    Real `fecfile` uses `pytz`; `zoneinfo` keeps this package dependency-free and
+    gives the same instant, so the two compare equal.  Built on first use, not at
+    import, so a platform without a tz database only fails for filings that
+    actually contain a date.
+    """
+    global _EASTERN
+    if _EASTERN is None:
+        try:
+            _EASTERN = zoneinfo.ZoneInfo("America/New_York")
+        except zoneinfo.ZoneInfoNotFoundError as e:
+            raise ImportError(
+                "libfec_parser.fecfile needs the 'tzdata' package on this platform: "
+                "pip install tzdata"
+            ) from e
+    return _EASTERN
+
+
+def _type_prop(form: str, version: str, field: str) -> dict[str, str] | None:
+    """The type table's entry for one column, or `None` if it has none.
+
+    `getTypeMapping_from_regex` (`fecfile/cache.py:50-63`): first match in dict
+    order at each of the three levels, case-insensitively, and a form that
+    matches but yields no field match does not stop the search.
+    """
+    for form_re, versions in _type_table().items():
+        if re.match(form_re, form, re.IGNORECASE):
+            for version_re, properties in versions.items():
+                if re.match(version_re, version, re.IGNORECASE):
+                    for field_re, prop in properties.items():
+                        if re.match(field_re, field, re.IGNORECASE):
+                            return prop
+    return None
+
+
+def _converter(form: str, version: str, field: str, prop: dict[str, str]) -> _Converter:
+    """One column's `getTyped` (`fecfile/fecparser.py:188-224`), resolved up front."""
+    kind = prop["type"]
+    fmt = prop.get("format")
+
+    def convert(value: str, line_num: int | None) -> Any:
+        try:
+            if kind == "integer":
+                return int(value)
+            if kind == "float":
+                stripped = value.strip()
+                if stripped == "" or stripped.lower() in _NONES:
+                    return None
+                return float(stripped.replace("%", ""))
+            if kind == "date":
+                stripped = value.strip()
+                if stripped == "":
+                    return None
+                return datetime.strptime(stripped, fmt).replace(tzinfo=_eastern())
+        except ValueError:
+            warnings.warn(
+                "cannot parse value: {v}, as type: {t}, for field: {f}, "
+                "in form: {o}, version: {r} (line {n})".format(
+                    v=value,
+                    t=kind,
+                    f=field,
+                    o=form,
+                    r=version,
+                    n="unknown" if line_num is None else line_num + 1,
+                ),
+                FecParserTypeWarning,
+            )
+            return None
+        # A type the table names but `getTyped` has no branch for: the raw string.
+        return value
+
+    return convert
+
+
+def _mapping(form: str, version: str) -> tuple[tuple[str, ...], tuple[_Converter | None, ...]]:
+    """``(column names, per-column converters)`` for one ``(form, version)`` pair.
+
+    Cached: the walk over the type table is three levels of regexes, far too slow
+    to repeat per field per row, and the names are interned by the native side so
+    every row's dict shares its keys.  ``None`` in place of a converter is a
+    plain string column.
+    """
+    key = (form, version)
+    cached = _MAPPINGS.get(key)
+    if cached is not None:
+        return cached
+
+    names = _native_parser._column_names(form, version)
+    if names is None:
+        raise FecParserMissingMappingError({"form": form, "version": version})
+    converters: list[_Converter | None] = []
+    for name in names:
+        prop = _type_prop(form, version, name)
+        converters.append(_converter(form, version, name, prop) if prop else None)
+
+    entry = (tuple(names), tuple(converters))
+    _MAPPINGS[key] = entry
+    return entry
+
+
+def _record(
+    fields: list[str],
+    names: tuple[str, ...],
+    converters: tuple[_Converter | None, ...] | None,
+    line_num: int | None,
+) -> dict[str, Any]:
+    """One line as a dict: every mapped column, in mapping order.
+
+    A row shorter than its mapping reads ``''`` for the missing columns and types
+    that like any other value; fields past the mapping are dropped, because
+    `fecparser.parse_line` loops over the mapping rather than over the fields.
+    ``converters=None`` is ``as_strings``: no typing at all.
+    """
+    count = len(fields)
+    if converters is None:
+        return {name: fields[i] if i < count else "" for i, name in enumerate(names)}
+    out: dict[str, Any] = {}
+    for i, (name, convert) in enumerate(zip(names, converters)):
+        value = fields[i] if i < count else ""
+        out[name] = convert(value, line_num) if convert else value
+    return out
+
+
+def _check_options(options: Mapping[str, Any] | None) -> _Options:
+    """Validate ``options`` up front rather than ignoring what we don't understand."""
+    if options is None:
+        return _Options(None, False)
+    if not isinstance(options, Mapping):
+        raise TypeError(f"options must be a dict, not {type(options).__name__}")
+    for key in options:
+        if key not in _VALID_OPTIONS:
+            raise ValueError(
+                f"unknown option {key!r}; valid options are "
+                f"{' and '.join(repr(k) for k in _VALID_OPTIONS)}"
+            )
+
+    prefixes = options.get("filter_itemizations")
+    if prefixes is not None:
+        if isinstance(prefixes, str) or not isinstance(prefixes, (list, tuple)):
+            raise TypeError(
+                "filter_itemizations must be a list of str, e.g. ['SA', 'SB'], "
+                f"not {type(prefixes).__name__}"
+            )
+        if not all(isinstance(prefix, str) for prefix in prefixes):
+            raise TypeError("filter_itemizations must be a list of str")
+        # Upper-cased so ['sb'] works: libfec's own prefix filter is
+        # case-insensitive, real fecfile's is not, and this is the kinder of the two.
+        prefixes = tuple(prefix.upper() for prefix in prefixes)
+
+    as_strings = options.get("as_strings", False)
+    if not isinstance(as_strings, bool):
+        raise TypeError(f"as_strings must be a bool, not {type(as_strings).__name__}")
+    return _Options(prefixes, as_strings)
+
+
+def _uses_ascii_28(version: str | None) -> bool:
+    """Whether ``version``'s lines are ASCII 28 separated (`fecparser.py:166-168`)."""
+    return version is not None and version[:1] not in _COMMA_VERSIONS
+
+
+def _fields_from_line(line: str, use_ascii_28: bool = False) -> list[str]:
+    """Split one line into raw fields (`fecfile/fecparser.py:119-131`).
+
+    ASCII 28 if the line has any, or if the version says so; comma-separated
+    otherwise.  One layer of surrounding double quotes comes off either way.
+    """
+    if _COLUMN_SEPARATOR in line or use_ascii_28:
+        fields = line.split(_COLUMN_SEPARATOR)
+    else:
+        fields = next(csv.reader([line]), [])
+    return [
+        field[1:-1] if field.startswith('"') and field.endswith('"') else field
+        for field in fields
+    ]
+
+
+def _header_record(header: Any, version: str, options: _Options) -> dict[str, Any]:
+    """The ``header`` item, built from the native `Header`.
+
+    `open()` has already consumed the HDR line, so there are no raw fields to
+    read; the columns the HDR mapping names are filled from `Header`'s attributes
+    instead (see `_HEADER_ATTRS`).  A column `Header` does not carry, and one it
+    carries as `None` because the filing left it empty, both read as ``''`` —
+    which is what real `fecfile` gives for a field a short HDR line omits.
+    """
+    names, converters = _mapping(header.record_type, version)
+    fields = [getattr(header, _HEADER_ATTRS.get(name, name), None) or "" for name in names]
+    return _record(fields, names, None if options.as_strings else converters, 0)
+
+
+def _row_record(row: Any, version: str, options: _Options) -> dict[str, Any]:
+    """One `Row` as a `fecfile` dict, from its raw fields."""
+    fields = row.fields()
+    names, converters = _mapping(fields[0].strip(), version)
+    return _record(fields, names, None if options.as_strings else converters, row.line)
+
+
+def _iter_items(reader: Any, options: _Options) -> Iterator[FecItem]:
+    """Every `FecItem` of an open reader: the header, the summary, then the rows.
+
+    A row is an ``itemization`` if its dict has a ``form_type`` key and ``text``
+    otherwise — real `fecfile`'s own rule (`fecparser.py:109-113`), which works
+    because the ``TEXT`` mapping calls that column ``rec_type``.
+    ``filter_itemizations`` applies from the summary on, to text lines as much as
+    to itemizations, again like real.
+    """
+    version = reader.fec_version
+    yield FecItem("header", _header_record(reader.header, version, options))
+    yield FecItem("summary", _row_record(reader.cover_row, version, options))
+
+    if options.prefixes is not None and not options.prefixes:
+        # `{'filter_itemizations': []}`: the header and the summary, nothing else.
+        # `reader.rows()` with no prefixes would clear the filter, not reject
+        # everything, so this case never reaches the reader.
+        return
+    rows = reader if options.prefixes is None else reader.rows(*options.prefixes)
+    try:
+        for row in rows:
+            record = _row_record(row, version, options)
+            yield FecItem("itemization" if "form_type" in record else "text", record)
+    except _MissingMappingError as e:
+        raise FecParserMissingMappingError({"form": e.row_type, "version": e.version}) from e
+
+
+def _assemble(items: Iterator[FecItem]) -> dict[str, Any]:
+    """Collect items into the dict `fecparser.loads` returns (`:46-66`).
+
+    Key order is real's — ``itemizations``, ``text``, ``header``, ``filing``, then
+    ``F99_text`` if the filing has one — and the itemization groups come out in
+    file order, because a plain dict keeps insertion order.
+    """
+    out: dict[str, Any] = {"itemizations": {}, "text": [], "header": {}, "filing": {}}
+    for item in items:
+        if item.data_type == "header":
+            out["header"] = item.data
+        elif item.data_type == "summary":
+            out["filing"] = item.data
+        elif item.data_type == "F99_text":
+            out["F99_text"] = item.data
+        elif item.data_type == "text":
+            out["text"].append(item.data)
+        elif item.data_type == "itemization":
+            form_type = item.data["form_type"]
+            if form_type[0] == "S":
+                form_type = "Schedule " + form_type[1]
+            out["itemizations"].setdefault(form_type, []).append(item.data)
+    return out
+
+
+def loads(
+    input: str | bytes | bytearray | memoryview | Iterable[str | bytes],
+    options: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Deserialize filing contents held in memory.
+
+    ``input`` is the whole document as a ``str`` or a bytes-like object, or any
+    iterable of lines (with or without their newlines).  ``options`` takes
+    ``filter_itemizations``, a list of row-type prefixes to keep (``[]`` keeps
+    none, so only the header and the filing come back), and ``as_strings``, which
+    turns off type coercion.
+    """
+    opts = _check_options(options)
+    if isinstance(input, str):
+        source: Any = input.encode("utf-8")
+    elif isinstance(input, (bytes, bytearray, memoryview)):
+        source = input
+    elif isinstance(input, Iterable):
+        source = _IterReader(input)
+    else:
+        raise TypeError(
+            "input must be a str, a bytes-like object, or an iterable of lines, "
+            f"not {type(input).__name__}"
+        )
+    with _open(source) as reader:
+        return _assemble(_iter_items(reader, opts))
+
+
+def from_file(file_path: Any, options: Mapping[str, Any] | None = None) -> dict[str, Any]:
+    """Parse the filing at ``file_path``; see :func:`loads` for ``options``."""
+    opts = _check_options(options)
+    with _open(file_path) as reader:
+        return _assemble(_iter_items(reader, opts))
+
+
+def iter_file(file_path: Any, options: Mapping[str, Any] | None = None) -> Iterator[FecItem]:
+    """Stream the filing at ``file_path`` as :class:`FecItem`s.
+
+    Never holds more than a batch of rows, so this is the way to read a filing
+    too large for :func:`from_file`.  Closing the generator closes the file.
+    """
+    opts = _check_options(options)
+    with _open(file_path) as reader:
+        yield from _iter_items(reader, opts)
+
+
+def iter_lines(
+    lines: Iterable[str | bytes], options: Mapping[str, Any] | None = None
+) -> Iterator[FecItem]:
+    """Stream :class:`FecItem`s from an iterable of ``str`` or ``bytes`` lines.
+
+    Each line's trailing newline is optional, and ``str`` and ``bytes`` lines may
+    be mixed; anything else raises `TypeError`.
+    """
+    opts = _check_options(options)
+    with _open(_IterReader(lines)) as reader:
+        yield from _iter_items(reader, opts)
+
+
+def parse_header(hdr: str | list[str]) -> tuple[dict[str, Any] | None, str, int]:
+    """Parse a filing's header into ``(header, version, lines_consumed)``.
+
+    ``hdr`` is the ``HDR`` line, or the file's lines as a list.
+    ``lines_consumed`` only ever tells you anything for versions 1 and 2, whose
+    header was a multi-line ``/* ... /*`` block — a form `fec_parser` does not
+    read, so this raises :class:`FecParserMissingMappingError` for it.
+    """
+    if isinstance(hdr, str):
+        lines = [hdr]
+    elif isinstance(hdr, list):
+        lines = hdr
+    else:
+        raise TypeError(f"hdr must be a str or a list of str, not {type(hdr).__name__}")
+
+    if lines[0].startswith("/*"):
+        raise FecParserMissingMappingError(
+            {"form": "/* ... /* header", "version": "1 or 2"},
+            "the multi-line header of FEC file format versions 1 and 2 is not supported",
+        )
+
+    fields = _fields_from_line(lines[0])
+    if len(fields) < 2:
+        # Real fecfile reaches `fields[1]` and raises IndexError here; say what is
+        # wrong instead.
+        raise ValueError(f"not an FEC header line: {lines[0]!r}")
+    # 'HDR<sep>FEC<sep>3.00...' in the older versions, 'HDR<sep>8.5...' since.
+    version = fields[2] if fields[1] == "FEC" else fields[1]
+    return parse_line(lines[0], version, 0), version, 1
+
+
+def parse_line(line: str, version: str, line_num: int | None = None) -> dict[str, Any] | None:
+    """Parse one line against the column mapping for ``version``.
+
+    ``None`` for a line with fewer than two fields, which is how real `fecfile`
+    says "not a record".  ``line_num`` only shows up in the warning a value that
+    does not parse produces.
+    """
+    fields = _fields_from_line(line, use_ascii_28=_uses_ascii_28(version))
+    if len(fields) < 2:
+        return None
+    form = fields[0].strip()
+    names, converters = _mapping(form, version)
+    return _record(fields, names, converters, line_num)
+
+
+
+def print_example(parsed: Mapping[str, Any]) -> None:
+    """Print ``parsed`` as JSON, keeping only the first row of each schedule."""
+    out: dict[str, Any] = {"filing": parsed["filing"], "itemizations": {}}
+    for k in parsed["itemizations"].keys():
+        out["itemizations"][k] = parsed["itemizations"][k][0]
+    print(json.dumps(out, sort_keys=True, indent=2, default=str))

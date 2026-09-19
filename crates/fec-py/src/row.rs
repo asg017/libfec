@@ -338,6 +338,19 @@ impl Row {
     }
 }
 
+/// Column names for `row_type` under `version`, or `None` if libfec has no mapping.
+///
+/// The `fecfile` compat layer's `parse_line`/`parse_header` have one line and no
+/// filing, so they cannot reach a schema through a `Row`.  Hands back the same
+/// interned strings `Row.keys()` does, so the dicts it builds share their keys.
+/// Private; nothing outside `libfec_parser.fecfile` needs it.
+#[pyfunction]
+#[pyo3(name = "_column_names", signature = (row_type, version, /))]
+pub fn column_names(py: Python<'_>, row_type: &str, version: &str) -> Option<Vec<Py<PyString>>> {
+    let schema = schema_for(py, row_type, version)?;
+    Some(schema.names.iter().map(|name| name.clone_ref(py)).collect())
+}
+
 /// Rebuild a `Row` from its pickled parts.  Private; exists for `Row.__reduce__`.
 #[pyfunction]
 #[pyo3(name = "_row_from_parts", signature = (row_type, version, fields, line, /))]
