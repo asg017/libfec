@@ -140,7 +140,8 @@ impl Cover {
         )
     }
 
-    /// The six cover attributes above as a dict (same keys as before, typed dates).
+    /// The six normalized attributes as a dict; for every column on the cover
+    /// page use `cover_row`.
     fn fields<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
         let dict = PyDict::new(py);
         dict.set_item("form_type", &self.form_type)?;
@@ -515,19 +516,21 @@ pub fn open_filing(py: Python<'_>, source: &Bound<'_, PyAny>) -> PyResult<Filing
 
 /// The `fec_version` of a filing, from any source `open()` accepts.
 ///
-/// Still reads far enough to parse the cover record; ticket 17 cuts that down to
-/// the `HDR` record alone.
+/// Reads only the header — the `HDR` record — so this works even on a
+/// filing whose cover has no column mapping, and never touches the rest of
+/// the file.
 #[pyfunction]
 #[pyo3(signature = (source, /))]
 pub fn fec_header(py: Python<'_>, source: &Bound<'_, PyAny>) -> PyResult<String> {
-    let SourceReader {
-        reader,
-        length,
-        raised,
-        ..
-    } = resolve(source)?;
-    let filing = py
-        .detach(move || fec_parser::Filing::from_reader(reader, String::new(), length))
+    let SourceReader { reader, raised, .. } = resolve(source)?;
+    let fec_version = py
+        .detach(move || -> Result<String, String> {
+            // `read_header` reads only the header (the `HDR` record, or the
+            // `/* Header` block of a 1.x/2.x filing), never the cover.
+            fec_parser::read_header(reader)
+                .map(|(header, _)| header.fec_version)
+                .map_err(|e| format!("{e:#}"))
+        })
         .map_err(|e| raised_or(&raised, parse_error(e)))?;
-    Ok(filing.header.fec_version)
+    Ok(fec_version)
 }
