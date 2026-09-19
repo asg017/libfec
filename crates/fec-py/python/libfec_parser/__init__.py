@@ -7,12 +7,14 @@ from .parser import (
     Cover,
     FecError,
     FecParseError,
+    Filing,
     FilingReader,
     Header,
     MissingMappingError,
     Row,
     fec_header,
     open,
+    read,
 )
 
 __version__ = _version("libfec-parser")
@@ -23,10 +25,12 @@ __all__ = [
     "Cover",
     "FecError",
     "FecParseError",
+    "Filing",
     "FilingReader",
     "Header",
     "MissingMappingError",
     "Row",
     "fec_header",
     "open",
+    "read",
 ]
