@@ -6,8 +6,18 @@ This directory contains pytest-based tests for the `libfec_parser` Python packag
 
 - `test_parser.py` - Tests for the `libfec_parser.parser` module
   - Tests for `fec_header()` function
-  - Tests for `Filing` class
-  - Tests for `Header`, `Cover`, and `Itemization` classes
+  - Tests for `Header`, `Cover`, `Row` and the eager `Filing` class
+  - Tests for the `FecError`/`FecParseError`/`MissingMappingError` hierarchy
+
+- `test_reader.py` - Tests for `open()` and the `FilingReader` it returns
+  - Accepted sources (paths, bytes-like objects, binary file objects) and rejected ones
+  - `rows(*prefixes)` filtering, `close()`/context manager, `id`, `fec_version`
+  - Threading: the GIL released during a pull, one reader shared across threads
+
+- `test_pandas.py` - `pd.DataFrame(read(p).rows)` gets typed (`float64`/`date`) columns
+
+- `test_perf.py` - `@pytest.mark.slow` tests for the Phase 2 done-when numbers (peak RSS,
+  GIL-released thread progress) against the gitignored 91 MB filing
 
 - `test_fecfile.py` - Tests for the `libfec_parser.fecfile` module
   - Tests for `loads()` function
@@ -136,11 +146,14 @@ def test_large_file_parsing(benchmark_fec_file):
 ## Test Coverage
 
 Current coverage includes:
-- ✅ Parser module (Filing, Header, Cover, Itemization classes)
+- ✅ Native `open()`/`FilingReader` streaming API: sources, filtering, threading (`test_reader.py`)
+- ✅ Native `Header`, `Cover`, `Row` and eager `Filing`/`read()` (`test_parser.py`)
+- ✅ pandas interop: typed `float64`/`date` columns from `Filing.rows` (`test_pandas.py`)
 - ✅ Fecfile module (fecfile compatibility layer)
-- ✅ Error handling and edge cases
+- ✅ `FecError`/`FecParseError`/`MissingMappingError` hierarchy and edge cases
 - ✅ Integration tests
 - ✅ Every committed fixture, through both APIs (`test_fixtures.py`)
+- ✅ Phase 2 done-when perf numbers, opt-in via `-m slow` (`test_perf.py`)
 
 ## CI/CD
 
