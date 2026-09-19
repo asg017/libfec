@@ -114,3 +114,9 @@ def parse_line(
 
 def print_example(parsed: Mapping[str, Any]) -> None:
     """Print `parsed` as JSON, keeping only the first row of each schedule."""
+
+# Private, and stubbed only because `tests/test_fecfile_differential.py` compares
+# the column names this hands back against real `fecfile`'s `getMapping` over the
+# whole mapping space.  Not part of the API.
+def _mapping(form: str, version: str) -> tuple[tuple[str, ...], tuple[Any, ...]]:
+    """`(column names, per-column converters)` for one `(form, version)` pair."""

@@ -21,33 +21,14 @@ real = pytest.importorskip("fecfile")
 
 # --- The allowlist --------------------------------------------------------
 #
-# Three differences — (b) needs a helper per API — and nothing is excluded from a
-# comparison without appearing here.  (a) and (b) are deferred parser items the
-# bindings are explicitly not allowed to work around; (c) is a bug in the real
-# package, which we decline to reproduce.
-
-
-def without_todo_dup(record: dict[str, Any]) -> dict[str, Any]:
-    """(a) Drop ours' ``*_TODO_DUP`` cover columns.
-
-    An F3X cover mapping names six columns twice; `fec-parser` keeps both copies
-    and suffixes the second ``_TODO_DUP`` (deferred).  Real `fecfile` builds its
-    dict by name, so the second copy simply overwrites the first — and that
-    surviving value is the one ours has under the unsuffixed name too, which is
-    why dropping the extras is enough to make the two comparable.
-    """
-    return {key: value for key, value in record.items() if not key.endswith("_TODO_DUP")}
-
-
-def parsed_without_todo_dup(parsed: dict[str, Any]) -> dict[str, Any]:
-    """(a) applied to the cover dict of a whole parsed filing."""
-    parsed = dict(parsed)
-    parsed["filing"] = without_todo_dup(parsed["filing"])
-    return parsed
+# Two differences — (a) needs a helper per API — and nothing is excluded from a
+# comparison without appearing here.  (a) is a deferred parser item the bindings
+# are explicitly not allowed to work around; (b) is a bug in the real package,
+# which we decline to reproduce.
 
 
 def without_f99_text(parsed: dict[str, Any]) -> dict[str, Any]:
-    """(b) Drop real's ``F99_text`` key.
+    """(a) Drop real's ``F99_text`` key.
 
     A form 99's narrative sits between ``[BEGINTEXT]`` and ``[ENDTEXT]`` markers
     that `fec-parser` does not surface (deferred item N14), so ours has no
@@ -60,12 +41,12 @@ def without_f99_text(parsed: dict[str, Any]) -> dict[str, Any]:
 
 
 def without_f99_text_items(items: list[Any]) -> list[Any]:
-    """(b) again, as `iter_file` sees it: drop real's ``F99_text`` items."""
+    """(a) again, as `iter_file` sees it: drop real's ``F99_text`` items."""
     return [item for item in items if item.data_type != "F99_text"]
 
 
 def without_trailing_newline(data: Any) -> Any:
-    """(c) Strip the line terminator real's ``iter_file`` leaves in a field.
+    """(b) Strip the line terminator real's ``iter_file`` leaves in a field.
 
     `fecparser.iter_lines` reads a file object a line at a time and never strips
     the ``\\n``, so the last field of every row it parses keeps one (``'20006\\n'``,
@@ -118,9 +99,153 @@ def assert_parsed_equal(got: dict[str, Any], expected: dict[str, Any], where: st
 
 def parsed_pair(fec_fixture, options=None) -> tuple[dict[str, Any], dict[str, Any]]:
     """``(ours, real)`` for one fixture, with the allowlist applied to each side."""
-    mine = parsed_without_todo_dup(ours.from_file(fec_fixture, options=options))
+    mine = ours.from_file(fec_fixture, options=options)
     theirs = without_f99_text(real.from_file(str(fec_fixture), options=options or {}))
     return mine, theirs
+
+
+# --- The whole mapping space ----------------------------------------------
+#
+# The fixtures below exercise five filings' worth of forms.  These two tests
+# exercise the *names*, which is where the compat layer and `fec-parser` are
+# allowed to disagree: every concrete form type real's ``mappings.json``
+# recognises, against every version this module claims to map.
+
+#: A concrete row type for each of the 58 patterns in real's ``mappings.json``,
+#: with the ``N``/``A``/``T`` (new/amended/termination) suffixes the forms that
+#: take them actually appear with, and realistic line numbers on the schedules.
+FORM_TYPES = [
+    "HDR", "TEXT",
+    "F1", "F1N", "F1A", "F1S",
+    "F1M", "F1MN", "F1MA",
+    "F2", "F2N", "F2A",
+    "F24", "F24N", "F24A",
+    "F3", "F3N", "F3A", "F3T",
+    "F3L", "F3LN", "F3LA",
+    "F3P", "F3PN", "F3PA", "F3PT", "F3P31", "F3PS", "F3PZ1", "F3PZ2",
+    "F3S",
+    "F3X", "F3XN", "F3XA", "F3XT",
+    "F3Z", "F3ZT", "F3Z1", "F3Z2",
+    "F4", "F4N", "F4A", "F4T",
+    "F5", "F5N", "F5A", "F56", "F57",
+    "F6", "F6N", "F6A", "F65",
+    "F7", "F7N", "F7A", "F76",
+    "F8", "F8N", "F8A", "F8II", "F8III",
+    "F9", "F9N", "F9A", "F91", "F92", "F93", "F94",
+    "F10", "F105",
+    "F13", "F13N", "F13A", "F132", "F133",
+    "F99",
+    "H1", "H2", "H3", "H4", "H5", "H6",
+    "SA11AI", "SA11AII", "SA11B", "SA11C", "SA12", "SA13", "SA14", "SA15",
+    "SA16", "SA17", "SA3L", "SA3L-A",
+    "SB17", "SB21B", "SB22", "SB23", "SB26", "SB27", "SB28A", "SB28B",
+    "SB28C", "SB29", "SB30B",
+    "SC/9", "SC/10", "SC1/9", "SC2/9",
+    "SD9", "SD10",
+    "SE", "SF", "SI", "SL",
+]
+
+#: The versions `fec-parser` reads a whole filing in.
+VERSIONS_8X = ["8.5", "8.4", "8.3", "8.2", "8.1", "8.0"]
+
+#: Older versions, which only reach this module through `parse_line`/`_mapping`
+#: — `from_file`/`loads` reject the filing (see the README's scope paragraph).
+#: Their mappings are compared all the same, and they match.
+VERSIONS_LEGACY = ["7.0", "6.4", "6.1", "5.3", "5.0", "3.0"]
+
+
+def real_names(form: str, version: str) -> list[str] | None:
+    """Real's column names for one pair, or `None` where it has no mapping."""
+    try:
+        return list(real.fecparser.getMapping(real.fecparser.mappings, form, version))
+    except real.FecParserMissingMappingError:
+        return None
+
+
+def our_names(form: str, version: str) -> list[str] | None:
+    """Ours' column names — the translated ones that become dict keys."""
+    try:
+        return list(ours._mapping(form, version)[0])
+    except ours.FecParserMissingMappingError:
+        return None
+
+
+@pytest.mark.parametrize("version", VERSIONS_8X + VERSIONS_LEGACY)
+def test_column_names_match_real_across_mappings(version):
+    """Same names, same order, same duplicates, for every form real maps.
+
+    The fixtures only reach a dozen or so ``(form, version)`` pairs; this reaches
+    every pattern in real's ``mappings.json``, which is what catches a name
+    `fec-parser` spells differently (``col_a_total_receipts_TODO_DUP``,
+    ``TODO_UNKNOWN_BLANK``) before a filing that uses that form does.  Real
+    raising ``FecParserMissingMappingError`` counts as an answer: ours has to
+    raise it for exactly the same pairs.
+    """
+    mismatches: list[tuple[str, str, Any]] = []
+    mapped = 0
+    for form in FORM_TYPES:
+        want, got = real_names(form, version), our_names(form, version)
+        if want is not None and got is not None and want != got:
+            differing = [(i, a, b) for i, (a, b) in enumerate(zip(want, got)) if a != b]
+            mismatches.append((form, f"{len(want)} vs {len(got)} columns", differing[:4]))
+        elif (want is None) != (got is None):
+            mismatches.append((form, "missing on one side", "real" if got else "ours"))
+        elif want is not None:
+            mapped += 1
+    assert not mismatches, f"version {version}: {mismatches}"
+    # Guard against the test quietly comparing nothing: most forms map in every
+    # version this parametrises, and none of them maps fewer than half.
+    assert mapped > len(FORM_TYPES) // 2, f"version {version}: only {mapped} forms mapped"
+
+
+# The synthetic cover line below numbers every field, so its date columns warn
+# on both sides; `test_type_warnings_match_real` is where the messages are
+# compared, and here they are just noise.
+@pytest.mark.filterwarnings("ignore::UserWarning")
+def test_duplicate_cover_columns_take_the_last_value():
+    """A column the mapping names twice keeps the *last* copy's value, like real.
+
+    An F3X cover names ``col_a_total_receipts`` (and five more) twice, and an F2
+    names ``candidate_state`` twice.  Real's ``out[k] = ...`` loop leaves the last
+    occurrence's value at the first occurrence's key position; `fec-parser`
+    disambiguates the second copy as ``*_TODO_DUP`` instead, so this module has
+    to translate the name back before building the dict, or a filer whose two
+    totals differ reads the wrong one.  Built by hand: every committed fixture
+    happens to repeat the same number in both copies, which hides this entirely.
+    """
+    names = real_names("F3XN", "8.5")
+    assert names is not None
+    assert len(set(names)) < len(names), "F3XN 8.5 is supposed to name a column twice"
+    # One distinct value per position, so the two copies of a column can't agree.
+    fields = ["F3XN"] + [str(i) for i in range(1, len(names))]
+    line = "\x1c".join(fields)
+    document = "\n".join(["\x1c".join(["HDR", "FEC", "8.5", "unit-test", "1"]), line])
+
+    assert_record_equal(
+        ours.parse_line(line, "8.5") or {},
+        real.parse_line(line, "8.5"),
+        "F3XN duplicate columns, typed",
+    )
+    for as_strings in (False, True):
+        options = {"as_strings": as_strings}
+        assert_record_equal(
+            ours.loads(document, options=options)["filing"],
+            real.loads(document, options=options)["filing"],
+            f"F3XN duplicate columns, as_strings={as_strings}",
+        )
+    # And the value really is the last copy's, not the first's.
+    mine = ours.parse_line(line, "8.5") or {}
+    last = len(names) - 1 - names[::-1].index("col_a_total_receipts")
+    assert mine["col_a_total_receipts"] == float(fields[last])
+
+
+def test_blank_column_name_matches_real():
+    """The F3L mapping's nameless column is keyed ``''``, as real keys it."""
+    line = "\x1c".join(["F3LN", "C00000000"])
+    mine, theirs = ours.parse_line(line, "8.5"), real.parse_line(line, "8.5")
+    assert mine is not None
+    assert "" in theirs, "F3LN 8.5 is supposed to have an empty-string column name"
+    assert_record_equal(mine, theirs, "F3LN blank column name")
 
 
 # --- The tests ------------------------------------------------------------
@@ -149,27 +274,21 @@ def test_lowercase_filter_matches_uppercase(fec_fixture):
     """``['sb']`` is ours alone — real is case-sensitive — so compare it to ``['SB']``."""
     lower = ours.from_file(fec_fixture, options={"filter_itemizations": ["sb"]})
     upper = real.from_file(str(fec_fixture), options={"filter_itemizations": ["SB"]})
-    assert_parsed_equal(
-        parsed_without_todo_dup(lower), without_f99_text(upper), fec_fixture.name
-    )
+    assert_parsed_equal(lower, without_f99_text(upper), fec_fixture.name)
 
 
 def test_loads_matches_from_file(fec_fixture):
     """``str``, ``bytes`` and a list of lines all land on the same dict."""
     raw = fec_fixture.read_bytes()
     text = raw.decode("utf-8")
-    from_file = parsed_without_todo_dup(ours.from_file(fec_fixture))
+    from_file = ours.from_file(fec_fixture)
     for label, source in [
         ("str", text),
         ("bytes", raw),
         ("list[str]", text.split("\n")),
         ("list[bytes]", raw.split(b"\n")),
     ]:
-        assert_parsed_equal(
-            parsed_without_todo_dup(ours.loads(source)),
-            from_file,
-            f"{fec_fixture.name} loads({label})",
-        )
+        assert_parsed_equal(ours.loads(source), from_file, f"{fec_fixture.name} loads({label})")
 
 
 def test_iter_file_matches_real(fec_fixture):
@@ -179,9 +298,7 @@ def test_iter_file_matches_real(fec_fixture):
     assert [item.data_type for item in mine] == [item.data_type for item in theirs]
     for i, (have, want) in enumerate(zip(mine, theirs)):
         where = f"{fec_fixture.name} item[{i}] ({want.data_type})"
-        assert_record_equal(
-            without_todo_dup(have.data), without_trailing_newline(want.data), where
-        )
+        assert_record_equal(have.data, without_trailing_newline(want.data), where)
 
 
 def test_iter_file_matches_from_file(fec_fixture):
@@ -295,7 +412,7 @@ def test_text_rows_follow_the_filter(sample_fec_content):
 
     for prefixes in (None, ["SA"], ["TEXT"]):
         options = None if prefixes is None else {"filter_itemizations": prefixes}
-        mine = parsed_without_todo_dup(ours.loads(lines, options=options))
+        mine = ours.loads(lines, options=options)
         theirs = without_f99_text(real.loads(document, options=options or {}))
         assert_parsed_equal(mine, theirs, f"TEXT filter={prefixes}")
 
