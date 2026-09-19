@@ -16,17 +16,25 @@ This directory contains pytest-based tests for the `libfec_parser` Python packag
 
 - `test_pandas.py` - `pd.DataFrame(read(p).rows)` gets typed (`float64`/`date`) columns
 
-- `test_perf.py` - `@pytest.mark.slow` tests for the Phase 2 done-when numbers (peak RSS,
-  GIL-released thread progress) against the gitignored 91 MB filing
+- `test_perf.py` - `@pytest.mark.slow` tests for the Phase 2 and Phase 3 done-when numbers
+  against the gitignored 91 MB filing: peak RSS and GIL-released thread progress for the
+  native API, plus `fecfile.iter_file` peak RSS and a `fecfile` vs. real `fecfile` differential
+  over all 408,162 items (the fixture-scale differential lives in
+  `test_fecfile_differential.py`; this is the same comparison at scale)
 
 - `test_fecfile.py` - Tests for the `libfec_parser.fecfile` module
-  - Tests for `loads()` function
-  - Tests for `from_file()` function
-  - Tests for `from_http()` function
+  - Tests for `loads()`, `from_file()`, `iter_file()`, `iter_lines()` functions
+  - Tests for `from_http()`/`iter_http()` functions, mocked with `httpx2.MockTransport`
   - Tests for `parse_header()` function
   - Tests for `parse_line()` function
   - Tests for `print_example()` function
   - Integration tests
+
+- `test_fecfile_differential.py` - `libfec_parser.fecfile` against the real `fecfile` package,
+  fixture by fixture: every value compared by key, order, value *and* type. Skipped (via
+  `pytest.importorskip`) if the real `fecfile` package isn't installed. The allowlist of the
+  few differences that survive is documented in the module itself and in the README's
+  [`fecfile` API § Where it differs](../README.md#where-it-differs).
 
 - `test_fixtures.py` - Smoke tests over every file in `fixtures/`, through both APIs
 
@@ -46,6 +54,14 @@ uv pip install pytest
 # Or using pip
 pip install pytest
 ```
+
+`uv sync --group dev` (the one-time setup in the crate's [README](../README.md#development))
+installs everything the suite needs, including two deps that exist only to test *against*:
+the real `fecfile` package (for `test_fecfile_differential.py` and the differential half of
+`test_perf.py`) and `httpx2` (for `from_http`/`iter_http`, mocked with `httpx2.MockTransport`
+in `test_fecfile.py`, and for the `[http]` extra's own dependency). Neither is a runtime
+dependency of `libfec_parser` itself. Tests that need one of them and don't find it installed
+skip via `pytest.importorskip`, rather than failing.
 
 Run all tests:
 
@@ -149,11 +165,15 @@ Current coverage includes:
 - ✅ Native `open()`/`FilingReader` streaming API: sources, filtering, threading (`test_reader.py`)
 - ✅ Native `Header`, `Cover`, `Row` and eager `Filing`/`read()` (`test_parser.py`)
 - ✅ pandas interop: typed `float64`/`date` columns from `Filing.rows` (`test_pandas.py`)
-- ✅ Fecfile module (fecfile compatibility layer)
+- ✅ Fecfile module (fecfile compatibility layer), including `from_http`/`iter_http` over a
+  mocked `httpx2` (`test_fecfile.py`)
+- ✅ `fecfile` drop-in claim: exact match against the real package on every fixture
+  (`test_fecfile_differential.py`) and over a 408,162-item, 91 MB filing
+  (`test_perf.py::test_compat_differential_benchmark_filing`)
 - ✅ `FecError`/`FecParseError`/`MissingMappingError` hierarchy and edge cases
 - ✅ Integration tests
 - ✅ Every committed fixture, through both APIs (`test_fixtures.py`)
-- ✅ Phase 2 done-when perf numbers, opt-in via `-m slow` (`test_perf.py`)
+- ✅ Phase 2 and Phase 3 done-when perf numbers, opt-in via `-m slow` (`test_perf.py`)
 
 ## CI/CD
 
