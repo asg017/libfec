@@ -24,6 +24,7 @@ use std::sync::{Arc, Mutex, MutexGuard};
 use pyo3::buffer::{PyBuffer, PyUntypedBuffer};
 use pyo3::exceptions::{PyTypeError, PyValueError};
 use pyo3::prelude::*;
+use pyo3::sync::MutexExt;
 use pyo3::types::{PyBytes, PyString};
 
 use crate::errors::io_error;
@@ -34,8 +35,23 @@ const CHUNK: usize = 64 * 1024;
 /// A `Mutex` here is only ever held by this crate's own short critical sections,
 /// so a poisoned lock means a panic mid-pull; take the data anyway rather than
 /// turning every later call into a panic.
+///
+/// Only for use **without** the GIL, or on a lock no GIL-holder can be waiting
+/// for; see [`lock_attached`] for the other case.
 pub fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
     m.lock().unwrap_or_else(|e| e.into_inner())
+}
+
+/// Lock a mutex whose holder may be waiting for the GIL.
+///
+/// `std::sync::Mutex::lock` keeps the GIL while it blocks, which deadlocks
+/// against a thread that holds the lock and is trying to attach — exactly what a
+/// pull from a Python file object does.  `lock_py_attached` tries once, and on
+/// contention detaches, blocks, then re-attaches
+/// (`pyo3-0.29.2/src/sync.rs:407-436`), so no thread ever waits on one of this
+/// crate's locks while holding the GIL.  Same poison recovery as [`lock`].
+pub fn lock_attached<'a, T>(py: Python<'_>, m: &'a Mutex<T>) -> MutexGuard<'a, T> {
+    m.lock_py_attached(py).unwrap_or_else(|e| e.into_inner())
 }
 
 /// Where an exception raised by a Python `read()` waits to be re-raised.

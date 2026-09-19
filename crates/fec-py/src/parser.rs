@@ -7,14 +7,15 @@
 use std::collections::VecDeque;
 use std::io::Read;
 use std::sync::Mutex;
+use std::thread::ThreadId;
 
-use pyo3::exceptions::PyValueError;
+use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
 
 use crate::errors::{missing_mapping, parse_error};
 use crate::row::{schema_for, Row};
-use crate::source::{lock, raised_or, resolve, ErrorSlot, SourceReader};
+use crate::source::{lock, lock_attached, raised_or, resolve, ErrorSlot, SourceReader};
 
 /// The filing's `HDR` record.
 #[pyclass(module = "libfec_parser.parser", frozen, get_all)]
@@ -91,6 +92,19 @@ const BATCH: usize = 256;
 /// same sketch uses) is `T: PyClass<Frozen = True> + Sync`, and every field here is
 /// already behind a `Mutex` or a `Py<T>`, so `frozen` is both legal and cheaper than
 /// a runtime borrow flag.
+///
+/// # Locking
+///
+/// Pulling a row can run arbitrary Python code (a file object's `read()`), so a
+/// thread can hold `inner` while waiting to attach to the interpreter.  Two rules
+/// keep that from deadlocking, and both are load-bearing:
+///
+/// 1. **Never block on one of these mutexes while attached.**  Every lock taken
+///    with the GIL held goes through [`lock_attached`]; only code running inside
+///    `py.detach` (i.e. [`FilingReader::refill`]) uses the plain [`lock`].
+/// 2. **Lock order is `inner` → `prefixes` → `pending`**, and `inner` is the only
+///    one ever held across another.  `puller` is a leaf, held for a single
+///    assignment or comparison and never across a call into Python.
 #[pyclass(module = "libfec_parser.parser", frozen)]
 pub struct FilingReader {
     /// `None` once closed.
@@ -108,6 +122,29 @@ pub struct FilingReader {
     source_length: usize,
     /// An exception raised by a Python `read()` mid-pull, to re-raise as itself.
     raised: ErrorSlot,
+    /// The thread currently inside a pull, if any.
+    ///
+    /// `inner` is a plain, non-reentrant `Mutex`, so a pathological source whose
+    /// `read()` calls `next()` or `close()` on the very reader reading it would
+    /// deadlock against itself.  Recording the puller turns that into a clean
+    /// `RuntimeError`.
+    puller: Mutex<Option<ThreadId>>,
+}
+
+/// Marks `puller` for the duration of a pull, and clears it however the pull ends.
+struct PullMark<'a>(&'a Mutex<Option<ThreadId>>);
+
+impl<'a> PullMark<'a> {
+    fn set(slot: &'a Mutex<Option<ThreadId>>) -> Self {
+        *lock(slot) = Some(std::thread::current().id());
+        Self(slot)
+    }
+}
+
+impl Drop for PullMark<'_> {
+    fn drop(&mut self) {
+        *lock(self.0) = None;
+    }
 }
 
 /// `row_type` matches if it starts with any of `prefixes`, case-insensitively.
@@ -132,31 +169,71 @@ fn closed_error() -> PyErr {
 }
 
 impl FilingReader {
+    /// Whether this thread is already inside a pull on this reader.
+    fn pulling_here(&self) -> bool {
+        *lock(&self.puller) == Some(std::thread::current().id())
+    }
+
+    /// Reject a re-entrant call before it blocks on a lock this thread holds.
+    fn check_not_reentrant(&self) -> PyResult<()> {
+        if self.pulling_here() {
+            return Err(PyRuntimeError::new_err(
+                "reader is already being read on this thread: a source's read() \
+                 must not call back into the FilingReader reading it",
+            ));
+        }
+        Ok(())
+    }
+
     /// Pull up to [`BATCH`] filter-passing rows into `pending`, **without the GIL**.
     ///
     /// Returns `true` when the source is exhausted.  Rejected rows never leave Rust,
     /// which is the entire point of `rows(*prefixes)`.
     fn refill(&self) -> PyResult<bool> {
+        self.check_not_reentrant()?;
         let mut guard = lock(&self.inner);
         let Some(src) = guard.as_mut() else {
             return Err(closed_error());
         };
+        let _mark = PullMark::set(&self.puller);
         let prefixes = lock(&self.prefixes).clone();
-        let mut pending = lock(&self.pending);
-        while pending.len() < BATCH {
+
+        // Pull into a local queue rather than into `pending` directly: a batch can
+        // mean hundreds of Python `read()` calls, and `pending` is what every other
+        // thread's `next()` pops from.  Holding it throughout would make them all
+        // wait for the whole batch (detached, so not a deadlock — just a stall).
+        let mut batch = VecDeque::with_capacity(BATCH);
+        let mut exhausted = false;
+        while batch.len() < BATCH {
             match src.next_row() {
-                None => return Ok(true),
+                None => {
+                    exhausted = true;
+                    break;
+                }
                 Some(Ok(row)) if !matches_prefix(prefixes.as_ref(), &row.row_type) => continue,
-                Some(item) => pending.push_back(item),
+                Some(item) => batch.push_back(item),
             }
         }
-        Ok(false)
+        // `inner` stays held across this append — it is what serializes two
+        // concurrent refills, so their batches cannot interleave out of file order.
+        lock(&self.pending).extend(batch);
+        Ok(exhausted)
     }
 
     /// Drop the source and any rows already pulled.  Idempotent.
-    fn shut(&self) {
-        *lock(&self.inner) = None;
-        lock(&self.pending).clear();
+    ///
+    /// The caller must not be inside a pull on this thread; the public entry
+    /// points check that first.
+    fn shut(&self, py: Python<'_>) {
+        // `take()`, then drop *after* the guard is gone: dropping the source
+        // releases a `PyBuffer` or a `Py<PyAny>`, and the latter's final decref can
+        // run a `__del__`, i.e. arbitrary Python, which must not happen while we
+        // hold `inner`.  (`PyBuffer`'s own `Drop` is safe either way: it re-attaches
+        // via `Python::try_attach`, which is a no-op on an already-attached thread —
+        // `pyo3-0.29.2/src/internal/state.rs:86-91`.)
+        let source = lock_attached(py, &self.inner).take();
+        lock_attached(py, &self.pending).clear();
+        drop(source);
     }
 }
 
@@ -201,8 +278,10 @@ impl FilingReader {
 
     /// Whether `close()` has been called.
     #[getter]
-    fn closed(&self) -> bool {
-        lock(&self.inner).is_none()
+    fn closed(&self, py: Python<'_>) -> bool {
+        // Inside a pull on this thread we are the ones holding `inner`, and the
+        // source is open by definition; answer without touching the lock.
+        !self.pulling_here() && lock_attached(py, &self.inner).is_none()
     }
 
     /// Only yield rows whose type starts with one of `prefixes` (case-insensitive).
@@ -217,13 +296,15 @@ impl FilingReader {
         } else {
             Some(prefixes)
         };
-        *lock(&slf.get().prefixes) = filter;
+        *lock_attached(slf.py(), &slf.get().prefixes) = filter;
         slf
     }
 
     /// Drop the source.  Idempotent; iterating afterwards raises `ValueError`.
-    fn close(&self) {
-        self.shut();
+    fn close(&self, py: Python<'_>) -> PyResult<()> {
+        self.check_not_reentrant()?;
+        self.shut(py);
+        Ok(())
     }
 
     fn __enter__(slf: Bound<'_, Self>) -> Bound<'_, Self> {
@@ -233,12 +314,15 @@ impl FilingReader {
     #[pyo3(signature = (exc_type, exc_value, traceback, /))]
     fn __exit__(
         &self,
+        py: Python<'_>,
         exc_type: Option<&Bound<'_, PyAny>>,
         exc_value: Option<&Bound<'_, PyAny>>,
         traceback: Option<&Bound<'_, PyAny>>,
-    ) {
+    ) -> PyResult<()> {
         let (_, _, _) = (exc_type, exc_value, traceback);
-        self.shut();
+        self.check_not_reentrant()?;
+        self.shut(py);
+        Ok(())
     }
 
     fn __iter__(slf: Bound<'_, Self>) -> Bound<'_, Self> {
@@ -254,7 +338,7 @@ impl FilingReader {
         let py = slf.py();
         let this = slf.get();
         loop {
-            let queued = lock(&this.pending).pop_front();
+            let queued = lock_attached(py, &this.pending).pop_front();
             if let Some(item) = queued {
                 return match item {
                     Ok(row) => match schema_for(py, &row.row_type, &this.version) {
@@ -264,7 +348,8 @@ impl FilingReader {
                         None => Err(missing_mapping(py, &row.row_type, &this.version, row.line)),
                     },
                     Err(e) => {
-                        this.shut();
+                        // Not inside a pull here: `refill` has already returned.
+                        this.shut(py);
                         // A `read()` that raised comes back here wrapped in a CSV
                         // error; hand back the exception the source actually raised.
                         Err(raised_or(&this.raised, parse_error(e)))
@@ -274,7 +359,7 @@ impl FilingReader {
             // `&FilingReader` is `Send` (every field is behind a `Mutex`/`Py<T>`), which
             // is what `Ungil` asks for; no `PyRef`/`Bound` crosses into the closure.
             let exhausted = py.detach(|| this.refill())?;
-            if exhausted && lock(&this.pending).is_empty() {
+            if exhausted && lock_attached(py, &this.pending).is_empty() {
                 return Ok(None);
             }
         }
@@ -355,6 +440,7 @@ pub fn open_filing(py: Python<'_>, source: &Bound<'_, PyAny>) -> PyResult<Filing
         version,
         source_length,
         raised,
+        puller: Mutex::new(None),
     })
 }
 
