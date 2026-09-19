@@ -259,7 +259,7 @@ def test_compat_differential_benchmark_filing(benchmark_fec_file):
     # Imported here rather than at module scope: that module skips itself when
     # the real package is missing, and it should not take this file's Phase 2
     # tests down with it.
-    from .test_fecfile_differential import without_trailing_newline
+    from .test_fecfile_differential import without_line_terminator
 
     path = str(benchmark_fec_file)
     mismatches: Counter[tuple[str, str, str]] = Counter()
@@ -300,7 +300,7 @@ def test_compat_differential_benchmark_filing(benchmark_fec_file):
                         note((mine.data_type, "<text>", "value"), f"item {count}")
                     continue
                 got = mine.data
-                want = without_trailing_newline(theirs.data)
+                want = without_line_terminator(theirs.data)
                 form = _form_of(got, mine.data_type)
                 if list(got) != list(want):
                     note(

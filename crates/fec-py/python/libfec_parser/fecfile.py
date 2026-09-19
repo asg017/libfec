@@ -412,11 +412,17 @@ def _header_record(header: Any, version: str, options: _Options) -> dict[str, An
     return _record(fields, names, None if options.as_strings else converters, 0)
 
 
+def _fields_record(
+    fields: list[str], version: str, options: _Options, line: int | None
+) -> dict[str, Any]:
+    """One line's raw fields as a `fecfile` dict."""
+    names, converters = _mapping(fields[0].strip(), version)
+    return _record(fields, names, None if options.as_strings else converters, line)
+
+
 def _row_record(row: Any, version: str, options: _Options) -> dict[str, Any]:
     """One `Row` as a `fecfile` dict, from its raw fields."""
-    fields = row.fields()
-    names, converters = _mapping(fields[0].strip(), version)
-    return _record(fields, names, None if options.as_strings else converters, row.line)
+    return _fields_record(row.fields(), version, options, row.line)
 
 
 def _iter_items(reader: Any, options: _Options) -> Iterator[FecItem]:
@@ -427,6 +433,15 @@ def _iter_items(reader: Any, options: _Options) -> Iterator[FecItem]:
     because the ``TEXT`` mapping calls that column ``rec_type``.
     ``filter_itemizations`` applies from the summary on, to text lines as much as
     to itemizations, again like real.
+
+    Two kinds of line are not records at all, and are skipped rather than turned
+    into an item or an error, because that is what real does with them: a line
+    with fewer than two fields (``parse_line`` returns ``None``, `:170-171`), and
+    a whitespace-only line, which reaches the native reader as a
+    `MissingMappingError` for a blank row type.  The reader stays usable after
+    raising, so the loop below pulls rows with `next` rather than ``for``: a
+    ``for`` would hand the exception out through its own ``__next__`` call and
+    end the loop.
     """
     version = reader.fec_version
     yield FecItem("header", _header_record(reader.header, version, options))
@@ -437,13 +452,23 @@ def _iter_items(reader: Any, options: _Options) -> Iterator[FecItem]:
         # `reader.rows()` with no prefixes would clear the filter, not reject
         # everything, so this case never reaches the reader.
         return
-    rows = reader if options.prefixes is None else reader.rows(*options.prefixes)
-    try:
-        for row in rows:
-            record = _row_record(row, version, options)
-            yield FecItem("itemization" if "form_type" in record else "text", record)
-    except _MissingMappingError as e:
-        raise FecParserMissingMappingError({"form": e.row_type, "version": e.version}) from e
+    rows = iter(reader if options.prefixes is None else reader.rows(*options.prefixes))
+    while True:
+        try:
+            row = next(rows)
+        except StopIteration:
+            return
+        except _MissingMappingError as e:
+            if e.row_type.strip() == "":
+                continue  # a whitespace-only line: not a record, skip it
+            raise FecParserMissingMappingError(
+                {"form": e.row_type, "version": e.version}
+            ) from e
+        fields = row.fields()
+        if len(fields) < 2:
+            continue  # fewer than two fields: not a record either
+        record = _fields_record(fields, version, options, row.line)
+        yield FecItem("itemization" if "form_type" in record else "text", record)
 
 
 def _assemble(items: Iterator[FecItem]) -> dict[str, Any]:
