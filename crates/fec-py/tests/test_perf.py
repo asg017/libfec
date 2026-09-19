@@ -249,15 +249,17 @@ def test_compat_differential_benchmark_filing(benchmark_fec_file):
     reports as "this column, 400k times" instead of stopping at the first row.
 
     The allowlist is imported from the fixture differential, not restated here.
-    Only (a) ``_TODO_DUP`` and (c) real's trailing newline apply: this filing has
-    no ``[BEGINTEXT]`` block, so (b) ``F99_text`` never comes up -- and if one
-    ever did, the ``data_type`` comparison below would say so.
+    Only (b) real's trailing newline applies: this filing has no ``[BEGINTEXT]``
+    block, so (a) ``F99_text`` never comes up -- and if one ever did, the
+    ``data_type`` comparison below would say so.  Nothing is dropped from ours'
+    side at all, so the cover page's duplicated columns are compared here like
+    any other, values included.
     """
     real = pytest.importorskip("fecfile")
     # Imported here rather than at module scope: that module skips itself when
     # the real package is missing, and it should not take this file's Phase 2
     # tests down with it.
-    from .test_fecfile_differential import without_todo_dup, without_trailing_newline
+    from .test_fecfile_differential import without_trailing_newline
 
     path = str(benchmark_fec_file)
     mismatches: Counter[tuple[str, str, str]] = Counter()
@@ -297,7 +299,7 @@ def test_compat_differential_benchmark_filing(benchmark_fec_file):
                     if mine.data != theirs.data:
                         note((mine.data_type, "<text>", "value"), f"item {count}")
                     continue
-                got = without_todo_dup(mine.data)
+                got = mine.data
                 want = without_trailing_newline(theirs.data)
                 form = _form_of(got, mine.data_type)
                 if list(got) != list(want):
