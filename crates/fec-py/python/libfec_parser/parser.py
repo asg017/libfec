@@ -3,10 +3,11 @@
 # `open` below shadows the builtin for the rest of this module; reach the real one
 # through `builtins.open`.
 import builtins  # noqa: F401  (kept for modules that need the real `open`)
+import mmap
 import os
 import warnings
 from collections.abc import Iterator, Mapping
-from typing import TypeAlias
+from typing import Protocol, TypeAlias
 
 # `_native` is a single extension module; `_native.parser` is an attribute of it,
 # not an importable submodule, so it is bound by attribute access rather than
@@ -23,9 +24,20 @@ open = _parser.open
 FecError = _parser.FecError
 FecParseError = _parser.FecParseError
 
+
+class _Readable(Protocol):
+    """A binary file object: anything whose ``read(n)`` hands back ``bytes``."""
+
+    def read(self, n: int, /) -> bytes: ...
+
+
 # The union `open()`/`Filing()` accept. Defined at runtime (not stub-only like
-# `Value`) so it doubles as the annotation on `Filing.__init__` below.
-Source: TypeAlias = str | os.PathLike[str] | bytes
+# `Value`) so it doubles as the annotation on `Filing.__init__` below, and so
+# `parser.pyi` can spell it identically. `collections.abc.Buffer` would say
+# "bytes-like" in one word, but it is 3.12+ and the floor here is 3.11.
+Source: TypeAlias = (
+    str | os.PathLike[str] | bytes | bytearray | memoryview | mmap.mmap | _Readable
+)
 
 
 class MissingMappingError(FecError):

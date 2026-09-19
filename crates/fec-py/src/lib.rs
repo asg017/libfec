@@ -2,6 +2,7 @@ mod errors;
 mod fecfile;
 mod parser;
 mod row;
+mod source;
 
 use pyo3::prelude::*;
 
