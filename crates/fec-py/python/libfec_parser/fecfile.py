@@ -21,35 +21,38 @@ import warnings
 import zoneinfo
 from collections.abc import Callable, Iterable, Iterator, Mapping
 from datetime import datetime
+from importlib.metadata import version as _pkg_version
 from importlib.resources import files
-from typing import Any, NamedTuple
+from typing import TYPE_CHECKING, Any, NamedTuple
 
-# `_native` is a single extension module; `_native.fecfile` is an attribute of it,
-# not an importable submodule, so it is bound by attribute access rather than
-# `from ._native.fecfile import ...`.  `from_http` is the last thing left in there
-# (ticket 22 replaces it and deletes src/fecfile.rs); everything else below is
-# built on the streaming reader.
-from ._native import fecfile as _fecfile
+if TYPE_CHECKING:
+    import httpx2
+
 from ._native import parser as _native_parser
 from .parser import FecError as _FecError
 from .parser import MissingMappingError as _MissingMappingError
 from .parser import open as _open
 
-from_http = _fecfile.from_http
-
 __all__ = [
     "FecItem",
     "FecParserMissingMappingError",
     "FecParserTypeWarning",
+    "FilingUnavailableError",
     "from_file",
     "from_http",
     "iter_file",
+    "iter_http",
     "iter_lines",
     "loads",
     "parse_header",
     "parse_line",
     "print_example",
 ]
+
+#: docquery.fec.gov tries the "dcdev" (electronic) URL first, then falls back to
+#: "paper" for filings that were only ever submitted on paper and scanned in.
+_DCDEV_URL = "https://docquery.fec.gov/dcdev/posted/{n}.fec"
+_PAPER_URL = "https://docquery.fec.gov/paper/posted/{n}.fec"
 
 #: The ASCII 28 field separator every version since 6.x uses.
 _COLUMN_SEPARATOR = "\x1c"
@@ -90,6 +93,23 @@ class FecParserMissingMappingError(_FecError):
         if msg is None:
             msg = "cannot parse version {v} of form {f} - no mapping found".format(
                 v=opts["version"], f=opts["form"]
+            )
+        super().__init__(msg)
+
+
+class FilingUnavailableError(_FecError):
+    """When neither the electronic nor the paper URL for a filing returns 200.
+
+    Real `fecfile` doesn't distinguish a 404 (no such filing) from a 500 (the
+    server is unhappy); this doesn't either, per its message
+    (`fecfile/__init__.py:8-19`).
+    """
+
+    def __init__(self, opts: Mapping[str, Any], msg: str | None = None) -> None:
+        if msg is None:
+            msg = (
+                "The requested FEC file number ({}) is unavailable. "
+                "Status code {}.".format(opts["file_number"], opts["status_code"])
             )
         super().__init__(msg)
 
@@ -482,6 +502,101 @@ def iter_lines(
     opts = _check_options(options)
     with _open(_IterReader(lines)) as reader:
         yield from _iter_items(reader, opts)
+
+
+def _client() -> "httpx2.Client":
+    """A configured `httpx2` client, imported lazily.
+
+    `httpx2` backs only `from_http`/`iter_http` and is an optional dependency
+    (the `[http]` extra) — importing it here, rather than at module load, keeps
+    the rest of this module usable without it installed.
+    """
+    try:
+        import httpx2
+    except ImportError as e:
+        raise ImportError(
+            "libfec_parser.fecfile.from_http needs httpx2: "
+            "pip install 'libfec-parser[http]'"
+        ) from e
+    return httpx2.Client(
+        timeout=30.0,
+        follow_redirects=True,
+        headers={"User-Agent": f"libfec_parser/{_pkg_version('libfec-parser')}"},
+    )
+
+
+def _stream(client: "httpx2.Client", file_number: int | str) -> "tuple[Any, httpx2.Response]":
+    """Open a streamed response for ``file_number``, retrying on a 404.
+
+    Tries the electronic ("dcdev") URL first; a 404 there closes that response
+    and tries the paper URL. Returns ``(context_manager, response)`` — the
+    caller owns the context manager and must exit it (`__exit__`) to close the
+    response, whichever status code came back.
+    """
+    cm = client.stream("GET", _DCDEV_URL.format(n=file_number))
+    response = cm.__enter__()
+    if response.status_code == 404:
+        cm.__exit__(None, None, None)
+        cm = client.stream("GET", _PAPER_URL.format(n=file_number))
+        response = cm.__enter__()
+    return cm, response
+
+
+def from_http(
+    file_number: int | str, options: Mapping[str, Any] | None = None
+) -> dict[str, Any] | None:
+    """Download and parse a filing from docquery.fec.gov.
+
+    Tries the electronic URL, then the paper URL on a 404. ``None`` if both are
+    404 (real `fecfile`'s behaviour — the idiom in the wild is
+    ``if fecfile.from_http(n) is None``); any other non-200 raises
+    :class:`FilingUnavailableError` instead of trying to parse an error page as
+    a filing. Network errors (DNS, TLS, timeout, …) propagate as `httpx2`
+    exceptions. Requires the ``[http]`` extra (`httpx2`); see :func:`iter_http`
+    for a streaming version that never holds the whole filing in memory.
+    """
+    opts = _check_options(options)
+    with _client() as client:
+        response = client.get(_DCDEV_URL.format(n=file_number))
+        if response.status_code == 404:
+            response = client.get(_PAPER_URL.format(n=file_number))
+        if response.status_code == 404:
+            return None
+        if response.status_code != 200:
+            raise FilingUnavailableError(
+                {"file_number": file_number, "status_code": response.status_code}
+            )
+        with _open(response.content) as reader:
+            return _assemble(_iter_items(reader, opts))
+
+
+def iter_http(
+    file_number: int | str, options: Mapping[str, Any] | None = None
+) -> Iterator[FecItem]:
+    """Stream a filing from docquery.fec.gov as :class:`FecItem`s.
+
+    Tries the electronic URL, then the paper URL on a 404; any status other
+    than 200 raises :class:`FilingUnavailableError`. Never buffers the
+    response body — the first item can arrive before the download finishes.
+    The response and the client are closed whether the generator runs to
+    completion or is closed early (``gen.close()``). Requires the ``[http]``
+    extra (`httpx2`).
+    """
+    opts = _check_options(options)
+    client = _client()
+    try:
+        cm, response = _stream(client, file_number)
+        try:
+            if response.status_code != 200:
+                raise FilingUnavailableError(
+                    {"file_number": file_number, "status_code": response.status_code}
+                )
+            with _open(_IterReader(response.iter_bytes(), lines=False)) as reader:
+                yield from _iter_items(reader, opts)
+        finally:
+            cm.__exit__(None, None, None)
+    finally:
+        client.close()
 
 
 def parse_header(hdr: str | list[str]) -> tuple[dict[str, Any] | None, str, int]:

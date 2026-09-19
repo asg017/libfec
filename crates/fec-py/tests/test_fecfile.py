@@ -4,9 +4,7 @@ Tests for libfec_parser.fecfile module
 Exactness against the real `fecfile` package is `test_fecfile_differential.py`'s
 job; these are the unit tests for the shapes, the options and the edges.
 """
-import io
-import urllib.error
-import urllib.request
+import sys
 import zoneinfo
 from datetime import datetime
 
@@ -17,10 +15,12 @@ from libfec_parser.fecfile import (
     FecItem,
     FecParserMissingMappingError,
     FecParserTypeWarning,
+    FilingUnavailableError,
     loads,
     from_file,
     from_http,
     iter_file,
+    iter_http,
     iter_lines,
     parse_header,
     parse_line,
@@ -323,62 +323,111 @@ class TestIterLines:
             list(iter_lines([sample_fec_content.split('\n')[0], 12345]))  # type: ignore[list-item]
 
 
-class TestFromHttp:
-    """Tests for from_http function.
+def _mock_client(httpx2mod, handler):
+    """A `fecfile._client()` replacement backed by a `MockTransport`.
 
-    The Rust side resolves ``urlopen`` at call time via
-    ``py.import("urllib.request").getattr("urlopen")`` (src/fecfile.rs), so
-    monkeypatching ``urllib.request.urlopen`` is enough to intercept the
-    download.
+    Real `_client()` also sets a timeout and a User-Agent; those are covered
+    directly against the real function in `TestClient`, not through this mock.
+    """
+    return httpx2mod.Client(transport=httpx2mod.MockTransport(handler))
+
+
+def _padded_fec_bytes(sample_fec_bytes: bytes, repeat: int = 500) -> bytes:
+    """`sample_fec_bytes` with its itemizations repeated, to pad well past a
+    single internal read-buffer's worth — see `test_iter_http_streams_...`."""
+    lines = [line for line in sample_fec_bytes.split(b"\n") if line]
+    header, cover, *rows = lines
+    return b"\n".join([header, cover, *(rows * repeat)]) + b"\n"
+
+
+class TestFromHttp:
+    """Tests for `from_http`, backed by `httpx2.MockTransport`.
+
+    Real network access is opt-in (`test_from_http_live`, `-m network`);
+    everything else injects a transport by monkeypatching `fecfile._client`.
     """
 
-    def test_from_http_parses_downloaded_bytes(self, monkeypatch, sample_fec_bytes):
-        """Test from_http() parses whatever urlopen() hands back"""
+    @pytest.fixture
+    def httpx2mod(self):
+        return pytest.importorskip("httpx2")
+
+    def test_200_on_first_url(self, monkeypatch, httpx2mod, sample_fec_bytes):
         urls = []
 
-        def fake_urlopen(url):  # fecfile.rs calls urlopen(url) with one positional arg
-            urls.append(url)
-            return io.BytesIO(sample_fec_bytes)
+        def handler(request):
+            urls.append(str(request.url))
+            return httpx2mod.Response(200, content=sample_fec_bytes)
 
-        monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
+        monkeypatch.setattr(fecfile, "_client", lambda: _mock_client(httpx2mod, handler))
         result = from_http(1921705)
-        assert result is not None
 
         assert urls == ["https://docquery.fec.gov/dcdev/posted/1921705.fec"]
-        assert result["header"]["fec_version"] == "8.5"
-        assert result["filing"]["filer_committee_id_number"] == "C00900860"
-        assert len(result["itemizations"]["Schedule A"]) == 15
+        assert result == loads(sample_fec_bytes)
 
-    def test_from_http_accepts_string_file_number(self, monkeypatch, sample_fec_bytes):
-        """Test from_http() accepts a string file number"""
+    def test_string_file_number(self, monkeypatch, httpx2mod, sample_fec_bytes):
         urls = []
 
-        def fake_urlopen(url):
-            urls.append(url)
-            return io.BytesIO(sample_fec_bytes)
+        def handler(request):
+            urls.append(str(request.url))
+            return httpx2mod.Response(200, content=sample_fec_bytes)
 
-        monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
-        result = from_http("1921705", options={'filter_itemizations': ['SA']})
-        assert result is not None
+        monkeypatch.setattr(fecfile, "_client", lambda: _mock_client(httpx2mod, handler))
+        result = from_http("1921705")
 
         assert urls == ["https://docquery.fec.gov/dcdev/posted/1921705.fec"]
+        assert result == loads(sample_fec_bytes)
+
+    def test_options_are_honoured(self, monkeypatch, httpx2mod, sample_fec_bytes):
+        def handler(request):
+            return httpx2mod.Response(200, content=sample_fec_bytes)
+
+        monkeypatch.setattr(fecfile, "_client", lambda: _mock_client(httpx2mod, handler))
+        result = from_http(1921705, options={"filter_itemizations": ["SA"]})
+
+        assert result is not None
         assert set(result["itemizations"]) == {"Schedule A"}
 
-    def test_from_http_falls_back_then_returns_none(self, monkeypatch):
-        """Test from_http() tries the paper URL, then returns None"""
+    def test_404_then_200_tries_the_paper_url(self, monkeypatch, httpx2mod, sample_fec_bytes):
         urls = []
 
-        def failing(url):
-            urls.append(url)
-            raise urllib.error.URLError("nope")
+        def handler(request):
+            urls.append(str(request.url))
+            if "dcdev" in str(request.url):
+                return httpx2mod.Response(404)
+            return httpx2mod.Response(200, content=sample_fec_bytes)
 
-        monkeypatch.setattr(urllib.request, "urlopen", failing)
+        monkeypatch.setattr(fecfile, "_client", lambda: _mock_client(httpx2mod, handler))
+        result = from_http(1921705)
+
+        assert urls == [
+            "https://docquery.fec.gov/dcdev/posted/1921705.fec",
+            "https://docquery.fec.gov/paper/posted/1921705.fec",
+        ]
+        assert result == loads(sample_fec_bytes)
+
+    def test_404_404_returns_none(self, monkeypatch, httpx2mod):
+        urls = []
+
+        def handler(request):
+            urls.append(str(request.url))
+            return httpx2mod.Response(404)
+
+        monkeypatch.setattr(fecfile, "_client", lambda: _mock_client(httpx2mod, handler))
 
         assert from_http(1) is None
         assert urls == [
             "https://docquery.fec.gov/dcdev/posted/1.fec",
             "https://docquery.fec.gov/paper/posted/1.fec",
         ]
+
+    def test_500_raises_filing_unavailable(self, monkeypatch, httpx2mod):
+        def handler(request):
+            return httpx2mod.Response(500)
+
+        monkeypatch.setattr(fecfile, "_client", lambda: _mock_client(httpx2mod, handler))
+
+        with pytest.raises(FilingUnavailableError, match=r"1921705.*500|500.*1921705|Status code 500"):
+            from_http(1921705)
 
     @pytest.mark.network
     def test_from_http_live(self):
@@ -387,6 +436,163 @@ class TestFromHttp:
 
         assert result is not None
         assert result["filing"]["filer_committee_id_number"] == "C00900860"
+
+
+class TestIterHttp:
+    """Tests for `iter_http`, backed by `httpx2.MockTransport`."""
+
+    @pytest.fixture
+    def httpx2mod(self):
+        return pytest.importorskip("httpx2")
+
+    def test_yields_the_same_items_as_iter_file(self, monkeypatch, httpx2mod, sample_fec_bytes, sample_fec_file):
+        def handler(request):
+            return httpx2mod.Response(200, content=sample_fec_bytes)
+
+        monkeypatch.setattr(fecfile, "_client", lambda: _mock_client(httpx2mod, handler))
+
+        from_http_items = [(item.data_type, item.data) for item in iter_http(1921705)]
+        from_file_items = [(item.data_type, item.data) for item in iter_file(str(sample_fec_file))]
+
+        assert from_http_items == from_file_items
+
+    def test_404_then_200_tries_the_paper_url(self, monkeypatch, httpx2mod, sample_fec_bytes):
+        urls = []
+
+        def handler(request):
+            urls.append(str(request.url))
+            if "dcdev" in str(request.url):
+                return httpx2mod.Response(404)
+            return httpx2mod.Response(200, content=sample_fec_bytes)
+
+        monkeypatch.setattr(fecfile, "_client", lambda: _mock_client(httpx2mod, handler))
+        items = list(iter_http(1921705))
+
+        assert urls == [
+            "https://docquery.fec.gov/dcdev/posted/1921705.fec",
+            "https://docquery.fec.gov/paper/posted/1921705.fec",
+        ]
+        assert items[0].data_type == "header"
+
+    def test_404_404_raises_filing_unavailable_with_status_code(self, monkeypatch, httpx2mod):
+        def handler(request):
+            return httpx2mod.Response(404)
+
+        monkeypatch.setattr(fecfile, "_client", lambda: _mock_client(httpx2mod, handler))
+
+        with pytest.raises(FilingUnavailableError, match="404"):
+            list(iter_http(1))
+
+    def test_500_raises_filing_unavailable(self, monkeypatch, httpx2mod):
+        def handler(request):
+            return httpx2mod.Response(500)
+
+        monkeypatch.setattr(fecfile, "_client", lambda: _mock_client(httpx2mod, handler))
+
+        with pytest.raises(FilingUnavailableError, match="500"):
+            list(iter_http(1921705))
+
+    def test_streams_the_first_item_before_the_body_is_exhausted(
+        self, monkeypatch, httpx2mod, sample_fec_bytes
+    ):
+        """The proof that `iter_http` never buffers the whole response: a body
+        far bigger than one internal read-buffer's worth, chunked small, whose
+        generator records every chunk pulled from it."""
+        body = _padded_fec_bytes(sample_fec_bytes, repeat=500)
+        chunk_size = 2048
+        chunks = [body[i : i + chunk_size] for i in range(0, len(body), chunk_size)]
+        assert len(chunks) > 100  # or this proves nothing
+
+        pulled = []
+
+        def body_iter():
+            for chunk in chunks:
+                pulled.append(chunk)
+                yield chunk
+
+        def handler(request):
+            return httpx2mod.Response(200, content=body_iter())
+
+        monkeypatch.setattr(fecfile, "_client", lambda: _mock_client(httpx2mod, handler))
+
+        gen = iter_http(1921705)
+        try:
+            first = next(gen)
+            assert first.data_type == "header"
+            assert len(pulled) < len(chunks)
+        finally:
+            gen.close()
+
+    def test_close_before_exhaustion_closes_the_response_and_client(
+        self, monkeypatch, httpx2mod, sample_fec_bytes
+    ):
+        """`gen.close()` must close the transport's response, not just stop
+        iterating — checked by making a second request on the same (closed)
+        client fail if it were somehow reused."""
+        closed = {"count": 0}
+
+        def handler(request):
+            response = httpx2mod.Response(200, content=sample_fec_bytes)
+            original_close = response.close
+
+            def close() -> None:
+                closed["count"] += 1
+                original_close()
+
+            response.close = close
+            return response
+
+        client = httpx2mod.Client(transport=httpx2mod.MockTransport(handler))
+        monkeypatch.setattr(fecfile, "_client", lambda: client)
+
+        gen = iter_http(1921705)
+        next(gen)
+        gen.close()
+
+        assert closed["count"] == 1
+        with pytest.raises(RuntimeError):
+            client.get("https://docquery.fec.gov/dcdev/posted/1921705.fec")
+
+    @pytest.mark.network
+    def test_iter_http_live(self):
+        """Test iter_http() against the real docquery.fec.gov (opt in: -m network)"""
+        items = list(iter_http(1921705))
+
+        assert items[0].data_type == "header"
+        assert items[1].data_type == "summary"
+        assert items[1].data["filer_committee_id_number"] == "C00900860"
+
+
+class TestHttpx2MissingExtra:
+    """`from_http`/`iter_http` need the `[http]` extra; without it, `ImportError`
+    names it — simulated by making `import httpx2` fail regardless of whether
+    it's actually installed in this environment."""
+
+    def test_from_http_raises_import_error_naming_the_extra(self, monkeypatch):
+        monkeypatch.setitem(sys.modules, "httpx2", None)
+
+        with pytest.raises(ImportError, match=r"\[http\]"):
+            from_http(1)
+
+    def test_iter_http_raises_import_error_naming_the_extra(self, monkeypatch):
+        monkeypatch.setitem(sys.modules, "httpx2", None)
+
+        with pytest.raises(ImportError, match=r"\[http\]"):
+            next(iter_http(1))
+
+
+class TestClient:
+    """`fecfile._client()` itself: the real function, not a mock — proof that
+    the User-Agent and timeout the ticket asks for are actually configured."""
+
+    def test_sets_a_user_agent_and_a_timeout(self):
+        pytest.importorskip("httpx2")
+        client = fecfile._client()  # type: ignore[attr-defined]  # private, not in the .pyi
+        try:
+            assert client.headers["user-agent"].startswith("libfec_parser/")
+            assert client.timeout.connect == 30.0
+        finally:
+            client.close()
 
 
 class TestParseHeader:

@@ -16,9 +16,11 @@ __all__ = [
     "FecItem",
     "FecParserMissingMappingError",
     "FecParserTypeWarning",
+    "FilingUnavailableError",
     "from_file",
     "from_http",
     "iter_file",
+    "iter_http",
     "iter_lines",
     "loads",
     "parse_header",
@@ -47,6 +49,11 @@ class FecParserMissingMappingError(FecError):
     """When a line's `(form, version)` pair has no column mapping."""
 
     def __init__(self, opts: Mapping[str, str], msg: str | None = None) -> None: ...
+
+class FilingUnavailableError(FecError):
+    """When neither the electronic nor the paper URL for a filing returns 200."""
+
+    def __init__(self, opts: Mapping[str, Any], msg: str | None = None) -> None: ...
 
 class FecItem:
     """One piece of a filing: `data_type` and `data`."""
@@ -78,10 +85,20 @@ def iter_lines(
 def from_http(
     file_number: int | str, options: Options | None = None
 ) -> Parsed | None:
-    """Download and parse a filing from docquery.fec.gov; `None` if not found.
+    """Download and parse a filing from docquery.fec.gov.
 
-    Still the native implementation, and so still all-`str` values; ticket 22
-    replaces it.
+    `None` if both the electronic and the paper URL 404; raises
+    `FilingUnavailableError` for any other non-200 status. Requires the
+    `[http]` extra (`httpx2`); raises `ImportError` naming it otherwise.
+    """
+
+def iter_http(
+    file_number: int | str, options: Options | None = None
+) -> Generator[FecItem, None, None]:
+    """Stream a filing from docquery.fec.gov as `FecItem`s, never buffering it.
+
+    Raises `FilingUnavailableError` for any non-200 status. Requires the
+    `[http]` extra (`httpx2`); raises `ImportError` naming it otherwise.
     """
 
 def parse_header(hdr: str | list[str]) -> tuple[dict[str, Value] | None, str, int]:
