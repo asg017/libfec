@@ -62,7 +62,8 @@ impl Cover {
         )
     }
 
-    /// The six cover attributes above as a dict (same keys as before, typed dates).
+    /// The six normalized attributes as a dict; for every column on the cover
+    /// page use `cover_row`.
     fn fields<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
         let dict = PyDict::new(py);
         dict.set_item("form_type", &self.form_type)?;
@@ -446,19 +447,32 @@ pub fn open_filing(py: Python<'_>, source: &Bound<'_, PyAny>) -> PyResult<Filing
 
 /// The `fec_version` of a filing, from any source `open()` accepts.
 ///
-/// Still reads far enough to parse the cover record; ticket 17 cuts that down to
-/// the `HDR` record alone.
+/// Reads only the `HDR` record — the first line — so this works even on a
+/// filing whose cover has no column mapping, and never touches the rest of
+/// the file.
 #[pyfunction]
 #[pyo3(signature = (source, /))]
 pub fn fec_header(py: Python<'_>, source: &Bound<'_, PyAny>) -> PyResult<String> {
-    let SourceReader {
-        reader,
-        length,
-        raised,
-        ..
-    } = resolve(source)?;
-    let filing = py
-        .detach(move || fec_parser::Filing::from_reader(reader, String::new(), length))
+    let SourceReader { reader, raised, .. } = resolve(source)?;
+    let fec_version = py
+        .detach(move || -> Result<String, String> {
+            // Same `csv::ReaderBuilder` settings as `fec_parser::Filing::from_reader`
+            // (`crates/fec-parser/src/lib.rs`): delimiter `0x1c`, flexible, no headers.
+            let csv_reader = csv::ReaderBuilder::new()
+                .delimiter(b"\x1c"[0])
+                .flexible(true)
+                .has_headers(false)
+                .from_reader(reader);
+            let hdr = csv_reader
+                .into_byte_records()
+                .next()
+                .ok_or_else(|| "no header record found".to_owned())?
+                .map_err(|e| e.to_string())?;
+            let hdr_record = csv::StringRecord::from_byte_record_lossy(hdr);
+            fec_parser::FilingHeader::from_record(hdr_record)
+                .map(|header| header.fec_version)
+                .map_err(|e| e.to_string())
+        })
         .map_err(|e| raised_or(&raised, parse_error(e)))?;
-    Ok(filing.header.fec_version)
+    Ok(fec_version)
 }

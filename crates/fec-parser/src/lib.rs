@@ -57,7 +57,7 @@ pub struct FilingHeader {
 }
 
 impl FilingHeader {
-    fn from_record(hdr: csv::StringRecord) -> Result<Self, FilingHeaderError> {
+    pub fn from_record(hdr: csv::StringRecord) -> Result<Self, FilingHeaderError> {
         let record_type = header_get_field!(hdr, 0, "record_type");
         let ef_type = header_get_field!(hdr, 1, "ef_type");
         let fec_version = header_get_field!(hdr, 2, "fec_version").trim().to_owned();

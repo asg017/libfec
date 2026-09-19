@@ -49,6 +49,26 @@ class TestFecHeader:
         with pytest.raises(ValueError):
             fec_header(b"")
 
+    def test_fec_header_accepts_path_and_file(self, sample_fec_file, sample_fec_bytes):
+        """`fec_header()` takes every source `open()` does"""
+        assert fec_header(sample_fec_bytes) == "8.5"
+        assert fec_header(str(sample_fec_file)) == "8.5"
+        assert fec_header(sample_fec_file) == "8.5"
+        with builtins.open(sample_fec_file, "rb") as f:
+            assert fec_header(f) == "8.5"
+
+    def test_fec_header_ignores_cover(self):
+        """Reads only the HDR record: a filing whose cover has no mapping still
+        fails `open()` but `fec_header()` reads past it."""
+        hdr = b"HDR\x1cFEC\x1c8.5\x1cFECfile\x1c8.5.0.0(f33)\x1c\x1c\n"
+        garbage_cover = b"ZZZZ\x1cwhatever\n"
+        filing = hdr + garbage_cover
+
+        with pytest.raises(FecParseError):
+            open(filing)
+
+        assert fec_header(filing) == "8.5"
+
 
 class TestHeader:
     """Tests for Header class"""

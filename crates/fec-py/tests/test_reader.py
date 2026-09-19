@@ -166,6 +166,46 @@ class TestHeaderAndCover:
         assert cover_row.line == 2
         assert cover_row["filer_committee_id_number"] == "C00900860"
 
+    def test_cover_row_values(self, pac_fec_file):
+        """`cover_row` follows the same rules as any Row (Q14-Q16, Q6):
+        typed by name, raw by position, `row_type`/`line` from the record."""
+        cover_row = open(pac_fec_file).cover_row
+
+        assert cover_row["col_a_total_receipts"] == 83741.93
+        assert cover_row["coverage_from_date"] == date(2023, 7, 1)
+        assert cover_row[0] == "F3XN"
+        assert cover_row.row_type == "F3XN"
+        assert cover_row.line == 2
+
+    def test_cover_row_is_row_and_identity(self, pac_fec_file):
+        reader = open(pac_fec_file)
+
+        assert isinstance(reader.cover_row, Row)
+        assert reader.cover_row is reader.cover_row
+
+    def test_cover_fields_six_keys_typed(self, sample_fec_file):
+        """`Cover.fields()` keeps its six keys (Q19), typed dates"""
+        fields = open(sample_fec_file).cover.fields()
+
+        assert set(fields) == {
+            "form_type",
+            "filer_id",
+            "filer_name",
+            "report_code",
+            "coverage_from_date",
+            "coverage_through_date",
+        }
+        assert fields["coverage_from_date"] == date(2025, 7, 1)
+
+    def test_cover_row_keys_count(self, pac_fec_file):
+        """pac_fec_file is F3XN/8.4; column_names_for_field("F3XN", "8.4")
+        (checked directly against fec_parser::mappings on this tip) returns
+        123 columns, including the deferred `_TODO_DUP` names."""
+        cover_row = open(pac_fec_file).cover_row
+
+        assert len(cover_row) > 100
+        assert len(cover_row) == 123
+
     def test_header_and_cover_survive_close(self, sample_fec_file):
         """They are parsed up front, so closing the source does not lose them"""
         reader = open(sample_fec_file)
