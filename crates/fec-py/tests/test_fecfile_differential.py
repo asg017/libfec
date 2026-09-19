@@ -45,19 +45,26 @@ def without_f99_text_items(items: list[Any]) -> list[Any]:
     return [item for item in items if item.data_type != "F99_text"]
 
 
-def without_trailing_newline(data: Any) -> Any:
-    """(b) Strip the line terminator real's ``iter_file`` leaves in a field.
+def without_line_terminator(data: Any) -> Any:
+    """(b) Strip the line terminator real leaves in a row's last field.
 
-    `fecparser.iter_lines` reads a file object a line at a time and never strips
-    the ``\\n``, so the last field of every row it parses keeps one (``'20006\\n'``,
-    or just ``'\\n'`` when the field is empty).  ``from_file``/``loads`` split the
-    text on ``'\\n'`` first and are clean, so this is a bug in the real package,
-    not a difference of ours, and reproducing it would be silly.
+    Two shapes of the same bug in the real package, both of which reach the last
+    field of every row it parses:
+
+    * ``\\n`` from ``iter_file``/``iter_http``: `fecparser.iter_lines` reads a file
+      object a line at a time and never strips the newline (``'20006\\n'``, or just
+      ``'\\n'`` when the field is empty).
+    * ``\\r`` from CRLF content handed to ``loads``/``iter_lines``: real splits it
+      on ``'\\n'`` alone.  (``from_file``/``iter_file`` open the file in text mode,
+      so universal newlines have already translated the ``\\r`` away there — a CRLF
+      filing read from disk matches ours exactly, terminator included.)
+
+    Neither is a difference of ours, and reproducing either would be silly.
     """
     if not isinstance(data, dict):
         return data
     return {
-        key: value.removesuffix("\n") if isinstance(value, str) else value
+        key: value.removesuffix("\n").removesuffix("\r") if isinstance(value, str) else value
         for key, value in data.items()
     }
 
@@ -298,7 +305,7 @@ def test_iter_file_matches_real(fec_fixture):
     assert [item.data_type for item in mine] == [item.data_type for item in theirs]
     for i, (have, want) in enumerate(zip(mine, theirs)):
         where = f"{fec_fixture.name} item[{i}] ({want.data_type})"
-        assert_record_equal(have.data, without_trailing_newline(want.data), where)
+        assert_record_equal(have.data, without_line_terminator(want.data), where)
 
 
 def test_iter_file_matches_from_file(fec_fixture):
@@ -419,3 +426,112 @@ def test_text_rows_follow_the_filter(sample_fec_content):
     # And the row really is there to be filtered in the first place.
     assert len(ours.loads(lines)["text"]) == 1
     assert ours.loads(lines, options={"filter_itemizations": ["SA"]})["text"] == []
+
+
+# --- Lines that are not records -------------------------------------------
+
+
+#: Lines real `fecfile` refuses to turn into a record, one per reason.
+NON_RECORD_LINES = [
+    pytest.param("SA11AI", id="one-field"),
+    pytest.param("   ", id="whitespace-only"),
+    pytest.param("", id="empty"),
+    pytest.param("\t", id="tab"),
+]
+
+
+@pytest.mark.parametrize("line", NON_RECORD_LINES)
+def test_non_record_lines_are_skipped(sample_fec_content, line):
+    """A line with no delimiter, or only whitespace, is skipped -- not an item.
+
+    Real's ``parse_line`` returns ``None`` for a line with fewer than two fields
+    and ``iter_lines`` drops it (`fecparser.py:107-108`).  Ours used to hand a
+    delimiter-free ``'SA11AI'`` through as a one-field Schedule A itemization,
+    and to raise `FecParserMissingMappingError` for a whitespace-only line,
+    because the native reader raises `MissingMappingError` for a blank row type.
+    Both now skip, and the native reader is still usable afterwards.
+    """
+    header, cover = sample_fec_content.split("\n")[:2]
+    # A real itemization after the bad line, so "skipped" is distinguishable
+    # from "stopped reading here".
+    tail = "\x1c".join(["SA11AI", "C00900860", "SA11.4000"])
+    lines = [header, cover, line, tail]
+
+    for prefixes in (None, ["SA"]):
+        options = None if prefixes is None else {"filter_itemizations": prefixes}
+        mine = ours.loads(lines, options=options)
+        theirs = without_f99_text(real.loads(lines, options=options or {}))
+        assert_parsed_equal(mine, theirs, f"non-record {line!r} filter={prefixes}")
+        assert len(mine["itemizations"]["Schedule A"]) == 1
+
+    # The streaming path skips it too, and stays in step with the eager one.
+    assert [item.data_type for item in ours.iter_lines(lines)] == [
+        "header",
+        "summary",
+        "itemization",
+    ]
+
+
+def test_missing_mapping_still_raises(sample_fec_content):
+    """Skipping blank row types does not swallow a genuinely unmapped form."""
+    header, cover = sample_fec_content.split("\n")[:2]
+    lines = [header, cover, "\x1c".join(["ZZ99", "C00900860"])]
+    with pytest.raises(ours.FecParserMissingMappingError) as mine:
+        ours.loads(lines)
+    with pytest.raises(real.FecParserMissingMappingError) as theirs:
+        real.loads(lines)
+    assert str(mine.value) == str(theirs.value)
+
+
+# --- CRLF ------------------------------------------------------------------
+
+
+def test_crlf_file_matches_real(fec_fixture, tmp_path):
+    """A CRLF filing read from disk matches real exactly, terminators included.
+
+    Real opens the file in text mode, so universal newlines have already turned
+    ``\\r\\n`` into ``\\n`` before `fecparser` ever sees it; nothing is left in the
+    last field, and neither side is allowed any slack here.  Built from a
+    committed fixture rather than committing a second copy of one.
+    """
+    crlf = tmp_path / fec_fixture.name
+    crlf.write_bytes(fec_fixture.read_bytes().replace(b"\n", b"\r\n"))
+
+    assert_parsed_equal(
+        ours.from_file(crlf),
+        without_f99_text(real.from_file(str(crlf))),
+        f"{fec_fixture.name} CRLF from_file",
+    )
+    # …and the same filing with and without the \r is the same filing.
+    assert_parsed_equal(ours.from_file(crlf), ours.from_file(fec_fixture), fec_fixture.name)
+
+    mine = list(ours.iter_file(crlf))
+    theirs = without_f99_text_items(list(real.iter_file(str(crlf))))
+    assert [i.data_type for i in mine] == [i.data_type for i in theirs]
+    for i, (have, want) in enumerate(zip(mine, theirs)):
+        # Allowlist (b): real's own `iter_file` leaves the \n in the last field.
+        assert_record_equal(
+            have.data, without_line_terminator(want.data), f"{fec_fixture.name} CRLF item[{i}]"
+        )
+
+
+def test_crlf_in_memory_matches_real(sample_fec_bytes):
+    """CRLF content handed to ``loads`` matches real up to allowlist (b).
+
+    Here the ``\\r`` really does survive into real's fields -- it splits on
+    ``'\\n'`` alone -- so it is stripped from real's side before comparing.  Every
+    other value, and the key order, has to match on the nose.
+    """
+    crlf = sample_fec_bytes.replace(b"\n", b"\r\n")
+    theirs = real.loads(crlf.decode("utf-8"))
+    theirs = {
+        "itemizations": {
+            group: [without_line_terminator(row) for row in rows]
+            for group, rows in theirs["itemizations"].items()
+        },
+        "text": [without_line_terminator(row) for row in theirs["text"]],
+        "header": without_line_terminator(theirs["header"]),
+        "filing": without_line_terminator(theirs["filing"]),
+    }
+    for label, source in [("bytes", crlf), ("str", crlf.decode("utf-8"))]:
+        assert_parsed_equal(ours.loads(source), theirs, f"CRLF loads({label})")
