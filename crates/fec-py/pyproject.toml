@@ -5,7 +5,7 @@ description = "Fast parser for FEC electronic filings (.fec), backed by Rust"
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT OR Apache-2.0"
-license-files = ["LICENSE-*"]
+license-files = ["LICENSE-*", "NOTICE"]
 authors = [
     { name = "Alex Garcia", email = "alexsebastian.garcia@gmail.com" }
 ]

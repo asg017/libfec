@@ -1,0 +1,14 @@
+libfec-parser
+Copyright (c) Alex Garcia
+Licensed under MIT OR Apache-2.0 (see LICENSE-MIT and LICENSE-APACHE).
+
+This distribution includes third-party material:
+
+  python/libfec_parser/_fecfile_types.json
+
+    A byte-for-byte copy of `types.json` from the `fecfile` package
+    (https://github.com/esonderegger/fecfile), Copyright (c) Evan Sonderegger,
+    licensed under the Apache License, Version 2.0.  It is the table
+    `libfec_parser.fecfile` reads to decide which columns are floats, dates or
+    integers, and is vendored so that module stays exact to `fecfile` without
+    depending on it.  A copy of the Apache License is in LICENSE-APACHE.
