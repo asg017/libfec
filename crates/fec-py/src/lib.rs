@@ -21,7 +21,7 @@ mod _native {
         #[pymodule_export]
         use crate::parser::{fec_header, open_filing, Cover, FilingReader, Header};
         #[pymodule_export]
-        use crate::row::{row_from_parts, Row};
+        use crate::row::{column_names, row_from_parts, Row};
     }
 
     #[pymodule]
