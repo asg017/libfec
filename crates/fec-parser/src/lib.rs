@@ -338,10 +338,11 @@ impl<R: Read> Filing<R> {
 
     /// Return the next itemization row in the filing, or None if at end of file.
     pub fn next_row(&mut self) -> Option<Result<FilingRow, FilingRowReadError>> {
-        let (record, original_size) = match self.records_iter.next() {
+        let (record, original_size, byte_offset) = match self.records_iter.next() {
             Some(Ok(record)) => {
                 let n = record.as_slice().len();
-                (StringRecord::from_byte_record_lossy(record), n)
+                let byte_offset = record.position().map(|p| p.byte()).unwrap_or(0);
+                (StringRecord::from_byte_record_lossy(record), n, byte_offset)
             }
             Some(Err(err)) => return Some(Err(FilingRowReadError::CsvError(err))),
             None => return None,
@@ -369,6 +370,7 @@ impl<R: Read> Filing<R> {
                                     Err(e) => return Some(Err(FilingRowReadError::CsvError(e))),
                                 };
                                 let original_size = record.as_slice().len();
+                                let byte_offset = record.position().map(|p| p.byte()).unwrap_or(0);
                                 let record = StringRecord::from_byte_record_lossy(record);
                                 let row_type = record
                                     .get(0)
@@ -378,6 +380,7 @@ impl<R: Read> Filing<R> {
                                     row_type,
                                     record,
                                     original_size,
+                                    byte_offset,
                                 }));
                             }
                             None => return None,
@@ -400,6 +403,7 @@ impl<R: Read> Filing<R> {
             row_type,
             record,
             original_size,
+            byte_offset,
         }))
     }
 }
@@ -418,6 +422,8 @@ pub struct FilingRow {
     pub row_type: String,
     pub record: StringRecord,
     pub original_size: usize,
+    /// Byte offset of the start of this record in the source stream.
+    pub byte_offset: u64,
 }
 
 #[cfg(test)]
