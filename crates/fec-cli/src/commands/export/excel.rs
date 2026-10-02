@@ -1,7 +1,7 @@
 use crate::{
     cli::ExportArgs,
     sourcer::FilingSourcer,
-    utils::rows::{legacy_name_delimiter, normalize_fec_date, remap_row, UnmappedRows},
+    utils::rows::{legacy_name_delimiter, normalize_fec_date, remap_row, warn, UnmappedRows},
 };
 use fec_parser::{
     mappings::{column_names_for_field, DATE_COLUMNS, FLOAT_COLUMNS},
@@ -211,10 +211,13 @@ pub fn cmd_export_excel(
         let row = match row {
             Ok(row) => row,
             Err(e) => {
-                let _ = mb.println(format!(
-                    "warning: FEC-{}: skipping unreadable row: {e}",
-                    filing.filing_id
-                ));
+                warn(
+                    Some(&mb),
+                    format!(
+                        "warning: FEC-{}: skipping unreadable row: {e}",
+                        filing.filing_id
+                    ),
+                );
                 continue;
             }
         };

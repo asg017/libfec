@@ -5,8 +5,8 @@ use crate::{
     cli::ExportArgs,
     sourcer::{FilingSourcer, ItemizationProgressBar},
     utils::rows::{
-        export_columns, legacy_name_delimiter, normalize_fec_date, source_index, LegacyNames,
-        UnmappedRows,
+        all_filings_failed, export_columns, legacy_name_delimiter, normalize_fec_date,
+        source_index, warn, LegacyNames, UnmappedRows,
     },
 };
 use anyhow::Context;
@@ -773,7 +773,7 @@ pub fn cmd_export_sqlite(
                     skipped_failed += 1;
                     continue;
                 } else {
-                    let _ = mb.println(format!("Error fetching filing: {:?}", e));
+                    warn(Some(&mb), format!("Error fetching filing: {:?}", e));
                     // TODO save warning somewhere
                     skipped_failed += 1;
                     continue;
@@ -808,10 +808,13 @@ pub fn cmd_export_sqlite(
                 if is_duplicate {
                     skipped_existing += 1;
                 } else {
-                    let _ = mb.println(format!(
-                        "Error inserting filing metadata for FEC-{}: {:?}",
-                        filing.filing_id, e
-                    ));
+                    warn(
+                        Some(&mb),
+                        format!(
+                            "Error inserting filing metadata for FEC-{}: {:?}",
+                            filing.filing_id, e
+                        ),
+                    );
                 }
                 // Record failed filing in metadata if enabled
                 if let Some(export_id) = metadata_export_id {
@@ -844,6 +847,14 @@ pub fn cmd_export_sqlite(
     }
 
     tx.commit().context("Error committing SQLite transaction")?;
+
+    if nfilings == 0 && skipped_failed > 0 {
+        if let Some(export_id) = metadata_export_id {
+            let msg = all_filings_failed(skipped_failed).to_string();
+            let _ = finalize_export(&db, export_id, "failed", 0, Some(&msg));
+        }
+        return Err(all_filings_failed(skipped_failed));
+    }
 
     // Finalize metadata if enabled
     if let Some(export_id) = metadata_export_id {

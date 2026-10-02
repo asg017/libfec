@@ -36,15 +36,31 @@ impl<'a> UnmappedRows<'a> {
             let msg = format!(
                 "warning: FEC-{filing_id}: no column mapping for row type '{row_type}' in version {fec_version}, {what}"
             );
-            // A hidden MultiProgress (stderr not a terminal) drops println.
-            match self.mb.filter(|mb| !mb.is_hidden()) {
-                Some(mb) => {
-                    let _ = mb.println(msg);
-                }
-                None => eprintln!("{msg}"),
-            }
+            warn(self.mb, msg);
         }
     }
+}
+
+/// Print a warning above the progress bars, or straight to stderr when
+/// there are none: a hidden `MultiProgress` (stderr not a terminal, as in
+/// scripts and CI) silently drops `println`.
+pub fn warn(mb: Option<&MultiProgress>, msg: impl AsRef<str>) {
+    match mb.filter(|mb| !mb.is_hidden()) {
+        Some(mb) => {
+            let _ = mb.println(msg.as_ref());
+        }
+        None => eprintln!("{}", msg.as_ref()),
+    }
+}
+
+/// The error for an export in which every input filing failed to open
+/// (each was already reported by [`warn`]), so it exits non-zero instead of
+/// writing an empty result.
+pub fn all_filings_failed(failed: usize) -> anyhow::Error {
+    anyhow::anyhow!(
+        "none of the {failed} input filing{} could be read; nothing exported",
+        if failed == 1 { "" } else { "s" }
+    )
 }
 
 /// `YYYY-MM-DD` from a `YYYYMMDD` or `MM/DD/YYYY` date (the latter as written

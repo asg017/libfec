@@ -12,7 +12,10 @@ use crate::{
     cli::ExportArgs,
     commands::export::sqlite::form_type_parse,
     sourcer::{FilingSourcer, ItemizationProgressBar},
-    utils::rows::{export_columns, file_stem, legacy_name_delimiter, remap_row, UnmappedRows},
+    utils::rows::{
+        all_filings_failed, export_columns, file_stem, legacy_name_delimiter, remap_row, warn,
+        UnmappedRows,
+    },
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -57,14 +60,17 @@ pub fn export(
     let (_trace, _input_mappings, iter) =
         sourcer.resolve_iterator_from_flags(args.filings, args.api, Some(&mb))?;
 
+    let (mut read, mut failed) = (0usize, 0usize);
     for filing in iter {
         let mut filing = match filing {
             Ok(f) => f,
             Err(e) => {
-                let _ = mb.println(format!("Error fetching filing, skipping: {e:?}"));
+                warn(Some(&mb), format!("Error fetching filing, skipping: {e:?}"));
+                failed += 1;
                 continue;
             }
         };
+        read += 1;
         let fec_version = filing.header.fec_version.clone();
 
         {
@@ -96,10 +102,13 @@ pub fn export(
             let row = match r {
                 Ok(row) => row,
                 Err(e) => {
-                    let _ = mb.println(format!(
-                        "warning: FEC-{}: skipping unreadable row: {e}",
-                        filing.filing_id
-                    ));
+                    warn(
+                        Some(&mb),
+                        format!(
+                            "warning: FEC-{}: skipping unreadable row: {e}",
+                            filing.filing_id
+                        ),
+                    );
                     continue;
                 }
             };
@@ -148,6 +157,9 @@ pub fn export(
             );
             entry.writer.write_record(fields.iter().map(|f| f.as_bytes()))?;
         }
+    }
+    if read == 0 && failed > 0 {
+        return Err(all_filings_failed(failed));
     }
     Ok(())
 }

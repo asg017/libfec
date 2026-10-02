@@ -193,3 +193,39 @@ fn fastfec_row_types_sharing_a_file_name() {
         vec![("SC/10", "FIRST"), ("SC-10", "SECOND"), ("SC/10", "THIRD")]
     );
 }
+
+/// Without a terminal (the progress bars are hidden), a filing that can't
+/// be read is still reported on stderr, and an export in which every
+/// filing failed exits non-zero.
+#[test]
+fn unreadable_filings_are_reported_without_a_terminal() {
+    let s = Scratch::new();
+    let bad = s.write("999.fec", "not a filing\n");
+    let good = s.write("500.fec", LEGACY_5_00);
+    let outputs: [(&str, &[&str]); 4] = [
+        ("o.json", &["--target", "schedule-a", "-o"]),
+        ("o.csv", &["--target", "schedule-a", "-o"]),
+        ("o.db", &["-o"]),
+        ("dir", &["-f", "csv", "--output-directory"]),
+    ];
+    for (name, flags) in outputs {
+        let run = |inputs: &[&PathBuf], out: &str| {
+            let out = s.path(out);
+            let mut args: Vec<&dyn AsRef<std::ffi::OsStr>> = vec![&"export"];
+            args.extend(inputs.iter().map(|p| *p as &dyn AsRef<std::ffi::OsStr>));
+            args.extend(flags.iter().map(|f| f as &dyn AsRef<std::ffi::OsStr>));
+            args.push(&out);
+            s.libfec(&args)
+        };
+        let o = run(&[&bad], &format!("bad-{name}"));
+        let stderr = String::from_utf8_lossy(&o.stderr);
+        assert!(!o.status.success(), "{name}: {stderr}");
+        assert!(stderr.contains("999.fec"), "{name}: {stderr}");
+        assert!(stderr.contains("could be read"), "{name}: {stderr}");
+
+        let o = run(&[&bad, &good], &format!("mixed-{name}"));
+        let stderr = String::from_utf8_lossy(&o.stderr);
+        assert!(o.status.success(), "{name}: {stderr}");
+        assert!(stderr.contains("999.fec"), "{name}: {stderr}");
+    }
+}
