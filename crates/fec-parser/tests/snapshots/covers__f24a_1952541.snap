@@ -1,0 +1,30 @@
+---
+source: crates/fec-parser/tests/covers.rs
+expression: "cover(\"F24A_1952541.fec\")"
+snapshot_kind: text
+---
+{
+  "form": "Form24",
+  "data": {
+    "form_type": "F24A",
+    "filer_committee_id": "C00835959",
+    "report_type": "24",
+    "original_amendment_date": "2026-03-06",
+    "committee_name": "Fairshake",
+    "address": {
+      "street_1": "2038 Ford Parkway",
+      "street_2": "#404",
+      "city": "St. Paul",
+      "state": "MN",
+      "zip_code": "55116"
+    },
+    "treasurer": {
+      "first_name": "Brandon",
+      "last_name": "Philipczyk",
+      "middle_name": null,
+      "prefix": null,
+      "suffix": null
+    },
+    "date_signed": "2026-03-10"
+  }
+}
