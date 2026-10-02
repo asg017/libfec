@@ -351,8 +351,12 @@ fn render_content(f: &mut Frame, filing: &FilingDetail, state: &FilingDetailStat
     // Form-specific content
     match &filing.cover_content {
         FilingCoverContent::Form1(data) => f1::append_f1_content_lines(&mut lines, data),
-        FilingCoverContent::Form3(data) => f3::append_f3_content_lines(&mut lines, data),
-        FilingCoverContent::Form3P(data) => f3p::append_f3p_content_lines(&mut lines, data),
+        FilingCoverContent::Form3(data) => {
+            f3::append_f3_content_lines(&mut lines, data, area.width)
+        }
+        FilingCoverContent::Form3P(data) => {
+            f3p::append_f3p_content_lines(&mut lines, data, area.width)
+        }
         FilingCoverContent::Form3L(data) => f3l::append_f3l_content_lines(&mut lines, data),
         FilingCoverContent::Form4(data) => f4::append_f4_content_lines(&mut lines, data),
         FilingCoverContent::Form7(data) => f7::append_f7_content_lines(&mut lines, data),
@@ -654,5 +658,25 @@ pub(crate) mod tests {
     #[test]
     fn filing_detail_f13_narrow() {
         assert_snapshot!(render_fixture("F13N_1904840.fec", 60, 40));
+    }
+
+    #[test]
+    fn filing_detail_f3_narrow() {
+        assert_snapshot!(render_fixture("F3N_1918805.fec", 60, 40));
+    }
+
+    #[test]
+    fn filing_detail_f3_post_general() {
+        assert_snapshot!(render_fixture("F3N_1858438.fec", 100, 90));
+    }
+
+    #[test]
+    fn filing_detail_f3p_narrow() {
+        assert_snapshot!(render_fixture("F3PN_1887806.fec", 60, 40));
+    }
+
+    #[test]
+    fn filing_detail_f3p_state_allocations() {
+        assert_snapshot!(render_fixture("F3PN_1920459.fec", 100, 130));
     }
 }

@@ -154,59 +154,69 @@ fn print_summary(summary: &Form3PSummary) {
 fn print_summary_form3(summary: &Form3Summary) {
     let mut b = Builder::with_capacity(3, 0);
     b.push_record(["Summary"]);
+    b.push_record(["", "This Period", "Election Cycle-to-Date"]);
 
-    let items = vec![
+    let two_column = vec![
         (
-            "6. Total Contributions (Other Than Loans)",
-            summary.line6_total_contributions_no_loans,
+            "6(a). Total Contributions (Other Than Loans)",
+            summary.line6a_total_contributions,
         ),
         (
-            "7. Total Contribution Refunds",
-            summary.line7_total_contribution_refunds,
+            "6(b). Total Contribution Refunds",
+            summary.line6b_total_contribution_refunds,
         ),
         (
-            "8. Net Contributions (Other Than Loans)",
-            summary.line8_net_contributions,
+            "6(c). Net Contributions (Other Than Loans)",
+            summary.line6c_net_contributions,
         ),
         (
-            "9. Total Operating Expenditures",
-            summary.line9_total_operating_expenditures,
+            "7(a). Total Operating Expenditures",
+            summary.line7a_total_operating_expenditures,
         ),
         (
-            "10. Total Offset to Operating Expenditures",
-            summary.line10_total_offset_to_operating_expenditures,
+            "7(b). Total Offsets to Operating Expenditures",
+            summary.line7b_total_offsets_to_operating_expenditures,
         ),
         (
-            "11. Net Operating Expenditures",
-            summary.line11_net_operating_expenditures,
-        ),
-        (
-            "12. Cash on Hand at CLOSE of the Reporting Period",
-            summary.line12_cash_on_hand_close_of_period,
-        ),
-        (
-            "13. Debts and Obligations Owed TO the Committee",
-            summary.line13_debts_owed_to_committee,
-        ),
-        (
-            "14. Debts and Obligations Owed BY the Committee",
-            summary.line14_debts_owed_by_committee,
+            "7(c). Net Operating Expenditures",
+            summary.line7c_net_operating_expenditures,
         ),
     ];
-    for (label, value) in items {
-        b.push_record([label.to_string(), format_usd(value)]);
+    for (label, row) in two_column {
+        b.push_record([
+            label.to_string(),
+            format_usd(row.column_a),
+            format_usd(row.column_b),
+        ]);
+    }
+    let one_column = vec![
+        (
+            "8. Cash on Hand at Close of Reporting Period",
+            summary.line8_cash_on_hand_close_of_period,
+        ),
+        (
+            "9. Debts and Obligations Owed TO the Committee",
+            summary.line9_debts_owed_to_committee,
+        ),
+        (
+            "10. Debts and Obligations Owed BY the Committee",
+            summary.line10_debts_owed_by_committee,
+        ),
+    ];
+    for (label, value) in one_column {
+        b.push_record([label.to_string(), format_usd(value), String::new()]);
     }
 
     let mut table = b.build();
     table.with(Style::modern());
     table.modify(
-        tabled::settings::object::Columns::last(),
+        tabled::settings::object::Columns::new(1..3),
         tabled::settings::Alignment::right(),
     );
 
     // make 1st row (title) span entire width
     table
-        .modify((0, 0), tabled::settings::Span::column(2))
+        .modify((0, 0), tabled::settings::Span::column(3))
         .modify((0, 0), tabled::settings::Alignment::center());
     // border correct bc header row does weird stuff
     table.with(tabled::settings::themes::BorderCorrection::span());
@@ -301,19 +311,23 @@ fn process_filing<R: Read>(
                     println!("Treasurer: {}", form.treasurer.name);
                 }
                 Cover::Form3(form) => {
-                    println!(
-                        "Signed by {} on {}",
-                        form.treasurer.to_string().bold(),
-                        form.signed.to_string().bold()
-                    );
+                    if let Some(date_signed) = form.date_signed {
+                        println!(
+                            "Signed by {} on {}",
+                            form.treasurer.to_string().bold(),
+                            date_signed.to_string().bold()
+                        );
+                    }
                     print_summary_form3(&form.summary);
                 }
                 Cover::Form3P(form) => {
-                    println!(
-                        "Signed by {} on {}",
-                        form.treasurer.to_string().bold(),
-                        form.signed.to_string().bold()
-                    );
+                    if let Some(date_signed) = form.date_signed {
+                        println!(
+                            "Signed by {} on {}",
+                            form.treasurer.to_string().bold(),
+                            date_signed.to_string().bold()
+                        );
+                    }
                     print_summary(&form.summary);
                 }
                 Cover::Form1M(form) => {

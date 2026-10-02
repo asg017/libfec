@@ -58,12 +58,13 @@ mod form7;
 
 pub use crate::covers::form13::Form13;
 pub use crate::covers::form3::{
-    Form3, Form3DetailedSummary, Form3DetailedSummaryDisbursements, Form3DetailedSummaryReceipts,
-    Form3Summary,
+    election_code_label, Form3, Form3CashSummary, Form3DetailedSummary,
+    Form3DetailedSummaryDisbursements, Form3DetailedSummaryReceipts, Form3Summary,
 };
 pub use crate::covers::form3l::Form3L;
 pub use crate::covers::form3p::{
-    Form3P, Form3PDetailedSummary, Form3PDetailedSummaryReceipts, Form3PSummary,
+    Form3P, Form3PDetailedSummary, Form3PDetailedSummaryDisbursements,
+    Form3PDetailedSummaryReceipts, Form3PStateAllocation, Form3PStateAllocations, Form3PSummary,
 };
 pub use crate::covers::form3x::{
     Form3X, Form3XDetailedSummary, Form3XDisbursements,
@@ -119,8 +120,8 @@ impl Cover {
     pub fn date_signed(&self) -> Option<jiff::civil::Date> {
         match self {
             Cover::Form1(f) => f.date_signed,
-            Cover::Form3(f) => Some(f.signed),
-            Cover::Form3P(f) => Some(f.signed),
+            Cover::Form3(f) => f.date_signed,
+            Cover::Form3P(f) => f.date_signed,
             Cover::Form1M(f) => f.date_signed,
             Cover::Form3X(f) => f.date_signed,
             Cover::Form3L(f) => f.date_signed,
