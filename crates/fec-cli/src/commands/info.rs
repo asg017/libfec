@@ -531,6 +531,46 @@ fn process_filing<R: Read>(
                         format_usd(form.total_disbursements)
                     );
                 }
+                Cover::Form2(form) => {
+                    if let Some(date_signed) = form.date_signed {
+                        println!(
+                            "Signed by {} on {}",
+                            form.signer.to_string().bold(),
+                            date_signed.to_string().bold()
+                        );
+                    }
+                    let office = form
+                        .office_label()
+                        .map(str::to_owned)
+                        .or_else(|| form.office.clone())
+                        .unwrap_or_default();
+                    println!(
+                        "Candidate: {} ({}) - {} {} {} {}",
+                        form.candidate.to_string().bold(),
+                        form.candidate_id,
+                        form.party_code.as_deref().unwrap_or(""),
+                        office,
+                        form.office_state.as_deref().unwrap_or(""),
+                        form.district.as_deref().unwrap_or(""),
+                    );
+                    if let Some(year) = form.election_year {
+                        println!("Election year: {year}");
+                    }
+                    if let Some(ref name) = form.principal_committee.name {
+                        println!(
+                            "Principal campaign committee: {} {}",
+                            name.bold(),
+                            form.principal_committee.id.as_deref().unwrap_or("")
+                        );
+                    }
+                    if let Some(ref c) = form.authorized_committee {
+                        println!(
+                            "Other authorized committee: {} {}",
+                            c.name.as_deref().unwrap_or("").bold(),
+                            c.id.as_deref().unwrap_or("")
+                        );
+                    }
+                }
             }
         }
 
