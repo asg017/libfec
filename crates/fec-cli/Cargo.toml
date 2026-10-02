@@ -6,6 +6,7 @@ authors = ["Alex Garcia <alexsebastian.garcia@gmail.com>"]
 description = "A fast FEC filing parser and toolkit"
 repository = "https://github.com/asg017/libfec"
 homepage = "https://github.com/asg017/libfec"
+license = "MIT OR Apache-2.0"
 
 [package.metadata.wix]
 upgrade-guid = "BA74C7A9-7590-48BD-B8B4-E502C5DD79B6"

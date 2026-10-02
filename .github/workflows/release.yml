@@ -174,12 +174,22 @@ jobs:
       plan: ${{ needs.plan.outputs.val }}
     secrets: inherit
 
+  custom-build-python-bindings:
+    needs:
+      - plan
+    if: ${{ needs.plan.outputs.publishing == 'true' || fromJson(needs.plan.outputs.val).ci.github.pr_run_mode == 'upload' }}
+    uses: ./.github/workflows/build-python-bindings.yml
+    with:
+      plan: ${{ needs.plan.outputs.val }}
+    secrets: inherit
+
   # Build and package all the platform-agnostic(ish) things
   build-global-artifacts:
     needs:
       - plan
       - build-local-artifacts
       - custom-build-pypi
+      - custom-build-python-bindings
     runs-on: "ubuntu-latest"
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -227,9 +237,10 @@ jobs:
       - plan
       - build-local-artifacts
       - custom-build-pypi
+      - custom-build-python-bindings
       - build-global-artifacts
     # Only run if we're "publishing", and only if plan, local and global didn't fail (skipped is fine)
-    if: ${{ always() && needs.plan.result == 'success' && needs.plan.outputs.publishing == 'true' && (needs.build-global-artifacts.result == 'skipped' || needs.build-global-artifacts.result == 'success') && (needs.build-local-artifacts.result == 'skipped' || needs.build-local-artifacts.result == 'success') && (needs.custom-build-pypi.result == 'skipped' || needs.custom-build-pypi.result == 'success') }}
+    if: ${{ always() && needs.plan.result == 'success' && needs.plan.outputs.publishing == 'true' && (needs.build-global-artifacts.result == 'skipped' || needs.build-global-artifacts.result == 'success') && (needs.build-local-artifacts.result == 'skipped' || needs.build-local-artifacts.result == 'success') && (needs.custom-build-pypi.result == 'skipped' || needs.custom-build-pypi.result == 'success') && (needs.custom-build-python-bindings.result == 'skipped' || needs.custom-build-python-bindings.result == 'success') }}
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     runs-on: "ubuntu-latest"
@@ -303,15 +314,29 @@ jobs:
       "id-token": "write"
       "packages": "write"
 
+  custom-publish-python-bindings:
+    needs:
+      - plan
+      - host
+    if: ${{ !fromJson(needs.plan.outputs.val).announcement_is_prerelease || fromJson(needs.plan.outputs.val).publish_prereleases }}
+    uses: ./.github/workflows/publish-python-bindings.yml
+    with:
+      plan: ${{ needs.plan.outputs.val }}
+    secrets: inherit
+    # publish jobs get escalated permissions
+    permissions:
+      "contents": "write"
+
   announce:
     needs:
       - plan
       - host
       - custom-publish-pypi
+      - custom-publish-python-bindings
     # use "always() && ..." to allow us to wait for all publish jobs while
     # still allowing individual publish jobs to skip themselves (for prereleases).
     # "host" however must run to completion, no skipping allowed!
-    if: ${{ always() && needs.host.result == 'success' && (needs.custom-publish-pypi.result == 'skipped' || needs.custom-publish-pypi.result == 'success') }}
+    if: ${{ always() && needs.host.result == 'success' && (needs.custom-publish-pypi.result == 'skipped' || needs.custom-publish-pypi.result == 'success') && (needs.custom-publish-python-bindings.result == 'skipped' || needs.custom-publish-python-bindings.result == 'success') }}
     runs-on: "ubuntu-latest"
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

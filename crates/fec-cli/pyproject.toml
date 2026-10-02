@@ -1,7 +1,9 @@
 [build-system]
-requires = ["maturin>=1.0,<2.0"]
+requires = ["maturin>=1.9.4,<2.0"]
 build-backend = "maturin"
 
 [project]
 name = "libfec"
 description = "A command line interface for working with FEC filings"
+license = "MIT OR Apache-2.0"
+license-files = ["LICENSE-*"]

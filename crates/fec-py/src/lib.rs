@@ -1,20 +1,27 @@
-#![allow(clippy::useless_conversion)]
-
 mod fecfile;
-mod foo;
 mod parser;
 
 use pyo3::prelude::*;
-use pyo3::wrap_pymodule;
 
-/// A Python module implemented in Rust. The name of this function must match
-/// the `lib.name` setting in the `Cargo.toml`, else Python will not be able to
-/// import the module.
+/// Native extension backing the `libfec_parser` package.
+///
+/// The public API lives in `python/libfec_parser/{parser,fecfile}.py`, which
+/// re-export from the submodules declared here.
 #[pymodule]
-fn libfec_parser(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    // Add submodules
-    m.add_wrapped(wrap_pymodule!(parser::parser))?;
-    m.add_wrapped(wrap_pymodule!(foo::foo))?;
-    m.add_wrapped(wrap_pymodule!(fecfile::fecfile))?;
-    Ok(())
+mod _native {
+    use pyo3::prelude::*;
+
+    #[pymodule]
+    mod parser {
+        #[pymodule_export]
+        use crate::parser::{fec_header, Cover, Filing, Header, Itemization};
+    }
+
+    #[pymodule]
+    mod fecfile {
+        #[pymodule_export]
+        use crate::fecfile::{
+            from_file, from_http, loads, parse_header, parse_line, print_example,
+        };
+    }
 }
