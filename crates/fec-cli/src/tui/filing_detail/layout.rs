@@ -14,9 +14,10 @@
 //!   the label's last line); below a minimum label width the labels take the
 //!   whole line and the amounts follow on the next.
 //! - [`Doc::cash_flow`]: the start / receipts / disbursements / end block.
+//! - [`Doc::banner`]: the reverse-video "24-HOUR REPORT" style banner.
 
 use super::format_usd;
-use fec_parser::covers::{Address, DetailedSummaryRow};
+use fec_parser::covers::{Address, DetailedSummaryRow, PersonName};
 use ratatui::{
     style::{Color, Modifier, Style},
     text::{Line, Span},
@@ -100,6 +101,20 @@ pub(super) fn election_text(
         parts.push(format!("in {state}"));
     }
     (!parts.is_empty()).then(|| parts.join(" "))
+}
+
+/// Amendment status text for a cover whose form type ends in `A`.
+/// `noun` is what the form calls the amended filing ("report", "notice").
+pub(super) fn amendment_text(
+    is_amendment: bool,
+    original: Option<jiff::civil::Date>,
+    noun: &str,
+) -> Option<String> {
+    match (is_amendment, original) {
+        (true, Some(date)) => Some(format!("AMENDMENT of the {noun} filed {date}")),
+        (true, None) => Some("AMENDMENT".to_string()),
+        (false, _) => None,
+    }
 }
 
 /// Column headings of a money table.
@@ -211,6 +226,13 @@ impl<'a> Doc<'a> {
         self.field_spans(label, spans);
     }
 
+    /// A person's name, unless blank.
+    pub fn person(&mut self, label: &str, name: &PersonName) {
+        if !name.is_empty() {
+            self.field(label, name.to_string());
+        }
+    }
+
     /// An address as street, then city/state/ZIP, both under the value
     /// column; flagged "(changed)" when `is_changed`. Skipped when blank
     /// (unless flagged).
@@ -239,6 +261,32 @@ impl<'a> Doc<'a> {
         }
         for (i, part) in parts.into_iter().enumerate() {
             self.field_spans(if i == 0 { label } else { "" }, part);
+        }
+    }
+
+    /// The reverse-video banner of the notice forms (24/48-hour reports),
+    /// e.g. ` 48-HOUR REPORT  of Independent Expenditures`, then the
+    /// amendment status if any.
+    pub fn banner(
+        &mut self,
+        banner: &str,
+        color: Color,
+        subtitle: &str,
+        amendment: Option<String>,
+    ) {
+        let banner = Span::styled(
+            format!(" {banner} "),
+            Style::default()
+                .fg(Color::Black)
+                .bg(color)
+                .add_modifier(Modifier::BOLD),
+        );
+        self.wrapped(vec![banner, Span::raw(" ")], 0, vec![bold(subtitle)]);
+        if let Some(amendment) = amendment {
+            let style = Style::default()
+                .fg(Color::Magenta)
+                .add_modifier(Modifier::BOLD);
+            self.wrapped(vec![], 0, vec![Span::styled(amendment, style)]);
         }
     }
 

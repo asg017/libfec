@@ -1,0 +1,50 @@
+---
+source: crates/fec-parser/tests/covers.rs
+expression: "cover(\"F5A_1900837.fec\")"
+snapshot_kind: text
+---
+{
+  "form": "Form5",
+  "data": {
+    "form_type": "F5A",
+    "filer_committee_id": "C90011891",
+    "entity_type": "ORG",
+    "organization_name": "AMERICAN MAJORITY ACTION INC.",
+    "individual": {
+      "first_name": "",
+      "last_name": "",
+      "middle_name": null,
+      "prefix": null,
+      "suffix": null
+    },
+    "change_of_address": false,
+    "address": {
+      "street_1": "P.O. Box 309",
+      "street_2": null,
+      "city": "Purcellville",
+      "state": "VA",
+      "zip_code": "20134"
+    },
+    "individual_occupation": null,
+    "individual_employer": null,
+    "qualified_nonprofit": null,
+    "report_code": "YE",
+    "report_type": null,
+    "original_amendment_date": "2025-04-17",
+    "coverage_from_date": "2024-10-01",
+    "coverage_through_date": "2024-12-31",
+    "election_code": null,
+    "election_date": null,
+    "election_state": null,
+    "total_contributions": 200000.0,
+    "total_independent_expenditures": 197091.44,
+    "person_completing": {
+      "first_name": "Kelly",
+      "last_name": "Amorin",
+      "middle_name": null,
+      "prefix": null,
+      "suffix": null
+    },
+    "date_signed": "2025-07-14"
+  }
+}
