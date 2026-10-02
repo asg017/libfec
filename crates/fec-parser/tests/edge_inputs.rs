@@ -60,7 +60,11 @@ fn fs_leading_blank_lines() {
             .unwrap()
             .unwrap();
         let p = plain.position().unwrap();
-        assert_eq!(got.rows, vec![("SA11AI".into(), p.line(), byte)], "{prefix:?}");
+        assert_eq!(
+            got.rows,
+            vec![("SA11AI".into(), p.line(), byte)],
+            "{prefix:?}"
+        );
     }
 }
 
@@ -81,7 +85,12 @@ fn comma_and_legacy_block_leading_blank_lines() {
         b"\n \n/* Header\nFEC_Ver_# = 2.02\n/* End Header\nF3XN,C00000001,Committee\nSA11AI,C00000001,X\n",
     );
     assert_eq!(
-        (got.version.as_str(), got.style, got.filer_id.as_str(), got.rows),
+        (
+            got.version.as_str(),
+            got.style,
+            got.filer_id.as_str(),
+            got.rows
+        ),
         (
             "2.02",
             HeaderStyle::LegacyBlock,
@@ -89,4 +98,22 @@ fn comma_and_legacy_block_leading_blank_lines() {
             vec![("SA11AI".into(), 7, 69)]
         )
     );
+}
+
+/// Comma files with old-Mac CR-only line endings: a lone `\r` ends a line,
+/// as it does for the csv reader of the FS path.
+#[test]
+fn comma_cr_only_line_endings() {
+    let got = parse(b"HDR,FEC,5.3,Test,1,^\rF3XN,C00000001,Committee\rSA11AI,C00000001,X\r");
+    assert_eq!(
+        (got.version.as_str(), got.form_type.as_str(), got.rows),
+        ("5.3", "F3XN", vec![("SA11AI".into(), 3, 46)])
+    );
+
+    let input = b"HDR,FEC,5.3,Test,1,^\rF99,C00000001,Committee\r[BEGINTEXT]\rDear FEC,\r\rThanks\r[ENDTEXT]\rSA11AI,C00000001,X\r";
+    let filing = Filing::from_reader(input.as_slice(), "1".into(), input.len()).expect("parse");
+    let Some(fec_parser::covers::Cover::Form99(f)) = &filing.cover.cover_data else {
+        panic!("expected a typed F99 cover");
+    };
+    assert_eq!(f.text.as_deref(), Some("Dear FEC,\n\nThanks"));
 }
