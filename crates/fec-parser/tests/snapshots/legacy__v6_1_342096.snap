@@ -1,0 +1,173 @@
+---
+source: crates/fec-parser/tests/legacy.rs
+expression: "render(\"6.1_342096.fec\")"
+snapshot_kind: text
+---
+FilingHeader {
+    header_record: StringRecord(["HDR", "FEC", "6.1", "FECfile", "6.1.1.3(f20)", "FEC-291797", "1"]),
+    record_type: "HDR",
+    ef_type: "FEC",
+    fec_version: "6.1",
+    software_name: "FECfile",
+    software_version: "6.1.1.3(f20)",
+    report_id: Some(
+        "FEC-291797",
+    ),
+    report_number: Some(
+        "1",
+    ),
+    comment: None,
+    style: Hdr,
+    delimiter: Fs,
+    name_delimiter: None,
+    batch_number: None,
+    received_date: None,
+    legacy_fields: {},
+    schedule_counts: {},
+}
+cover: form_type="F3XA" filer_id="C00001313" filer_name="REPUBLICAN PARTY OF MINNESOTA" report_code=Some("M6") from=Some(2007-05-01) through=Some(2007-05-31) typed=true
+  form_type = "F3XA"
+  filer_committee_id_number = "C00001313"
+  committee_name = "REPUBLICAN PARTY OF MINNESOTA"
+  change_of_address = ""
+  street_1 = "525 PARK STREET"
+  street_2 = "SUITE 250"
+  city = "ST PAUL"
+  state = "MN"
+  zip_code = "55103"
+  report_code = "M6"
+  election_code = ""
+  date_of_election = ""
+  state_of_election = ""
+  coverage_from_date = "20070501"
+  coverage_through_date = "20070531"
+  qualified_committee = ""
+  treasurer_last_name = "Sutton"
+  treasurer_first_name = "Anthony"
+  treasurer_middle_name = ""
+  treasurer_prefix = ""
+  treasurer_suffix = ""
+  date_signed = "20080523"
+  col_a_cash_on_hand_beginning_period = "92111.09"
+  col_a_total_receipts = "208931.29"
+  col_a_subtotal = "301042.38"
+  col_a_total_disbursements = "255498.88"
+  col_a_cash_on_hand_close_of_period = "45543.50"
+  col_a_debts_to = "0.00"
+  col_a_debts_by = "157824.57"
+  col_a_individuals_itemized = "47000.00"
+  col_a_individuals_unitemized = "92465.29"
+  col_a_individual_contribution_total = "139465.29"
+  col_a_political_party_committees = "0.00"
+  col_a_other_political_committees_pacs = "0.00"
+  col_a_total_contributions = "139465.29"
+  col_a_transfers_from_aff_other_party_cmttees = "0.00"
+  col_a_total_loans = "0.00"
+  col_a_total_loan_repayments_received = "0.00"
+  col_a_offsets_to_expenditures = "2390.39"
+  col_a_federal_refunds = "0.00"
+  col_a_other_federal_receipts = "8911.48"
+  col_a_transfers_from_nonfederal_h3 = "58164.13"
+  col_a_levin_funds = "0.00"
+  col_a_total_nonfederal_transfers = "58164.13"
+  col_a_total_receipts_TODO_DUP = "208931.29"
+  col_a_total_federal_receipts = "150767.16"
+  col_a_shared_operating_expenditures_federal = "9230.02"
+  col_a_shared_operating_expenditures_nonfederal = "27308.07"
+  col_a_other_federal_operating_expenditures = "0.00"
+  col_a_total_operating_expenditures = "36538.09"
+  col_a_transfers_to_affiliated = "7500.00"
+  col_a_contributions_to_candidates = "0.00"
+  col_a_independent_expenditures = "0.00"
+  col_a_coordinated_expenditures_by_party_committees = "0.00"
+  col_a_total_loan_repayments_made = "5496.06"
+  col_a_loans_made = "0.00"
+  col_a_refunds_to_individuals = "0.00"
+  col_a_refunds_to_party_committees = "0.00"
+  col_a_refunds_to_other_committees = "0.00"
+  col_a_total_refunds = "0.00"
+  col_a_other_disbursements = "26179.90"
+  col_a_federal_election_activity_federal_share = "0.00"
+  col_a_federal_election_activity_levin_share = "0.00"
+  col_a_federal_election_activity_all_federal = "179784.83"
+  col_a_federal_election_activity_total = "179784.83"
+  col_a_total_disbursements_TODO_DUP = "255498.88"
+  col_a_total_federal_disbursements = "228190.81"
+  col_a_total_contributions_TODO_DUP = "139465.29"
+  col_a_total_contributions_refunds = "0.00"
+  col_a_net_contributions = "139465.29"
+  col_a_total_federal_operating_expenditures = "9230.02"
+  col_a_total_offsets_to_expenditures = "2390.39"
+  col_a_net_operating_expenditures = "6839.63"
+  col_b_cash_on_hand_jan_1 = "-28325.04"
+  col_b_year = "2007"
+  col_b_total_receipts = "1460904.71"
+  col_b_subtotal = "1432579.67"
+  col_b_total_disbursements = "1387036.17"
+  col_b_cash_on_hand_close_of_period = "45543.50"
+  col_b_individuals_itemized = "87770.00"
+  col_b_individuals_unitemized = "1064781.41"
+  col_b_individual_contribution_total = "1152551.41"
+  col_b_political_party_committees = "0.00"
+  col_b_other_political_committees_pacs = "0.00"
+  col_b_total_contributions = "1152551.41"
+  col_b_transfers_from_aff_other_party_cmttees = "0.00"
+  col_b_total_loans = "0.00"
+  col_b_total_loan_repayments_received = "0.00"
+  col_b_offsets_to_expenditures = "4956.83"
+  col_b_federal_refunds = "0.00"
+  col_b_other_federal_receipts = "21086.33"
+  col_b_transfers_from_nonfederal_h3 = "282310.14"
+  col_b_levin_funds = "0.00"
+  col_b_total_nonfederal_transfers = "282310.14"
+  col_b_total_receipts_TODO_DUP = "1460904.71"
+  col_b_total_federal_receipts = "1178594.57"
+  col_b_shared_operating_expenditures_federal = "103600.95"
+  col_b_shared_operating_expenditures_nonfederal = "251149.84"
+  col_b_other_federal_operating_expenditures = "0.00"
+  col_b_total_operating_expenditures = "354750.79"
+  col_b_transfers_to_affiliated = "77474.82"
+  col_b_contributions_to_candidates = "0.00"
+  col_b_independent_expenditures = "0.00"
+  col_b_coordinated_expenditures_by_party_committees = "0.00"
+  col_b_total_loan_repayments_made = "32227.16"
+  col_b_loans_made = "0.00"
+  col_b_refunds_to_individuals = "1050.00"
+  col_b_refunds_to_party_committees = "0.00"
+  col_b_refunds_to_other_committees = "0.00"
+  col_b_total_refunds = "1050.00"
+  col_b_other_disbursements = "103081.25"
+  col_b_federal_election_activity_federal_share = "0.00"
+  col_b_federal_election_activity_levin_share = "0.00"
+  col_b_federal_election_activity_all_federal = "818452.15"
+  col_b_federal_election_activity_total = "818452.15"
+  col_b_total_disbursements_TODO_DUP = "1387036.17"
+  col_b_total_federal_disbursements = "1135886.33"
+  col_b_total_contributions_TODO_DUP = "1152551.41"
+  col_b_total_contributions_refunds = "1050.00"
+  col_b_net_contributions = "1151501.41"
+  col_b_total_federal_operating_expenditures = "103600.95"
+  col_b_total_offsets_to_expenditures = "4956.83"
+  col_b_net_operating_expenditures = "98644.12"
+row "SA11AI" line=3 byte=983 record=2 fields=["SA11AI", "C00001313", "SA11AI.5404", "", "", "IND", "", "Aplikowski", "Beverly", "", "", "", "1443 Bussard Ct", "", "St. Paul", "MN", "55112", "", "", "20070508", "500.00", "500.00", "15", "", "", "Lakeside Homes Inc", "Owner", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
+row "SA11AI" line=4 byte=1150 record=3 fields=["SA11AI", "C00001313", "SA11AI.5406", "", "", "IND", "", "Brehm", "Ward", "", "", "", "430 Brown Rd S", "55391", "Wayzata", "MN", "55391", "", "", "20070509", "5000.00", "5000.00", "15", "", "", "Brehm Group", "Executive", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
+row "SA15" line=5 byte=1311 record=4 fields=["SA15", "C00001313", "SA15.5437", "", "", "IND", "", "Rueff", "Greg", "", "", "", "3312 Lawrence Rd", "", "Minneapolis", "MN", "55417", "", "", "20070515", "278.46", "928.20", "", "Health Ins Reimbursement", "", "information requested", "Information Requested", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
+row "SA15" line=6 byte=1511 record=5 fields=["SA15", "C00001313", "SA15.5439", "", "", "IND", "", "Ruth's Chris Steakhouse", "International Center", "", "", "", "920 2nd Ave S Ste 100", "", "Minnepaolis", "MN", "55402", "", "", "20070521", "780.68", "780.68", "", "Refund- Facility Rental ", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
+row "SA17" line=7 byte=1708 record=6 fields=["SA17", "C00001313", "SA17.5443", "", "", "ORG", "Alliance Bank", "", "", "", "", "", "444 Cedar St", "", "St Paul", "MN", "55101", "", "", "20070531", "169.51", "630.96", "", "Interest Income", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
+row "SA17" line=8 byte=1853 record=7 fields=["SA17", "C00001313", "SA17.8070", "", "", "ORG", "Alliance Bank", "", "", "", "", "", "444 Cedar St", "", "St Paul", "MN", "55101", "", "", "20070531", "15.57", "646.53", "", "Interest Income", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
+row "SB22" line=9 byte=1997 record=8 fields=["SB22", "C00001313", "SB22.8129", "", "", "CCM", "2ND CONGRESSIONAL DISTRICT REPUBLICAN", "", "", "", "", "", "16030 county Road 51", "", "Norwood", "MN", "55368", "", "", "20070516", "2500.00", "", "Transfer to Affiliate", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
+row "SB22" line=10 byte=2174 record=9 fields=["SB22", "C00001313", "SB22.8131", "", "", "CCM", "3RD. CONGRESSIONAL DISTRICT REPUBLICAN", "", "", "", "", "", "4808 Hibiscus Ave.", "", "Edina", "MN", "55435", "", "", "20070516", "2500.00", "", "Transfer to Affiliate", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
+row "SB26" line=11 byte=2348 record=10 fields=["SB26", "C00001313", "SB26.8119", "", "", "ORG", "Alliance Bank", "", "", "", "", "", "444 Cedar St", "", "St Paul", "MN", "55101", "", "", "20070518", "5496.06", "", "Loan Repayment", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
+row "SB29" line=12 byte=2486 record=11 fields=["SB29", "C00001313", "SB29.8150", "", "", "ORG", "Affordable Buttons", "", "", "", "", "", "5413 Nicklaus Drive NW", "", "Rochester", "MN", "55901", "", "", "20070531", "485.00", "", "State Fair Memorabilia", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
+row "SB29" line=13 byte=2648 record=12 fields=["SB29", "C00001313", "SB29.8139", "", "", "IND", "", "Anderson", "Warren", "", "", "", "1045 Barrett St", "", "St. Paul", "MN", "55103", "", "", "20070517", "500.00", "", "Party Strategic & Coalitions Consulting", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
+row "SB30B" line=14 byte=2815 record=13 fields=["SB30B", "C00001313", "SB30B.5445", "", "", "IND", "", "AirTran Airways", "AirTran", "", "", "", "1800 Phoenix Blvd Ste 104", "", "Atlanta", "GA", "30349", "", "", "20070426", "348.80", "", "Reimburse Tim Gould Airfare", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "X", "", ""]
+row "SB30B" line=15 byte=2990 record=14 fields=["SB30B", "C00001313", "SB30B.5507", "", "", "ORG", "Alliance Bank", "", "", "", "", "", "444 Cedar St", "", "St Paul", "MN", "55101", "", "", "20070502", "6072.26", "", "Payroll Taxes", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
+row "SC/10" line=16 byte=3129 record=15 fields=["SC/10", "C00001313", "SC/10.7667", "13", "ORG", "Alliance Bank", "", "", "", "", "", "444 Cedar St", "", "St Paul", "MN", "55101", "", "", "200000.00", "98398.47", "101601.53", "20060221", "2/22/2009", "5.5", "N", "", "", "", "", "", "", "", "", "", ""]
+row "SD10" line=17 byte=3279 record=16 fields=["SD10", "C00001313", "SD10.8273", "ORG", "Blue Cross Blue Shield of Minnesota", "", "", "", "", "", "P.O. Box 64338", "", "St. Paul", "MN", "551640179", "Health Insurance", "5068.00", "0.00", "5068.00", "0.00"]
+row "SD10" line=18 byte=3430 record=17 fields=["SD10", "C00001313", "SD10.8317", "ORG", "Blue Cross Blue Shield of Minnesota", "", "", "", "", "", "P.O. Box 64338", "", "St. Paul", "MN", "551640179", "Health Insurance", "0.00", "4118.00", "0.00", "4118.00"]
+row "H2" line=19 byte=3581 record=18 fields=["H2", "C00001313", "H2.10040", "Fundraising event 2007 (01/31/2007)", "X", "", "S", ".3600", ".6400"]
+row "H3" line=20 byte=3656 record=19 fields=["H3", "C00001313", "H3.8071", "H3.8071", "REPUBLICAN PARTY OF MINNESOTA", "AD", "", "20070502", "8421.00", "8421.00"]
+row "TEXT" line=21 byte=3744 record=20 fields=["TEXT", "C00001313", "H3.8071.TEXT", "H3.8071", "H3", "Please Note: The activity disclosed by this Committee meets the definition of exempt activity for all purchases of campaign materials. Unless otherwise specified, no disbursements were associated with specific candidates. "]
+row "H3" line=22 byte=4006 record=21 fields=["H3", "C00001313", "H3.8072", "H3.8072", "REPUBLICAN PARTY OF MINNESOTA", "AD", "", "20070506", "5000.00", "5000.00"]
+row "H4" line=23 byte=4094 record=22 fields=["H4", "C00001313", "H4.8089", "", "", "ORG", "Neopost", "", "", "", "", "", "PO Box 73727", "", "Chicago", "IL", "60673", "Administrative", "20070501", "2000.00", "300.00", "1700.00", "243225.29", "", "Party Postage Expense", "", "X", "", "", "", "", "", "", ""]
+row "H4" line=24 byte=4255 record=23 fields=["H4", "C00001313", "H4.5656", "", "", "ORG", "Ace Hardware", "", "", "", "", "", "1214 South Robert St", "", "West St Paul", "MN", "55118", "Administrative", "20070502", "21.19", "3.18", "18.01", "243225.29", "", "Reimb - Barb Linert - Office Supplies", "", "X", "", "", "", "", "", "X", ""]

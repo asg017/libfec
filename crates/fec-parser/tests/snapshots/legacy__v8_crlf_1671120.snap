@@ -1,0 +1,157 @@
+---
+source: crates/fec-parser/tests/legacy.rs
+expression: "render(\"8.x_1671120.fec\")"
+snapshot_kind: text
+---
+FilingHeader {
+    header_record: StringRecord(["HDR", "FEC", "8.4", "Synetech LLC", "", "", "", ""]),
+    record_type: "HDR",
+    ef_type: "FEC",
+    fec_version: "8.4",
+    software_name: "Synetech LLC",
+    software_version: "",
+    report_id: None,
+    report_number: None,
+    comment: None,
+    style: Hdr,
+    delimiter: Fs,
+    name_delimiter: None,
+    batch_number: None,
+    received_date: None,
+    legacy_fields: {},
+    schedule_counts: {},
+}
+cover: form_type="F3XN" filer_id="C00401224" filer_name="ActBlue" report_code=Some("30G") from=Some(2022-10-20) through=Some(2022-11-28) typed=true
+  form_type = "F3XN"
+  filer_committee_id_number = "C00401224"
+  committee_name = "ActBlue"
+  change_of_address = ""
+  street_1 = "PO Box 441146"
+  street_2 = ""
+  city = "Somerville"
+  state = "MA"
+  zip_code = "02144"
+  report_code = "30G"
+  election_code = "G2020"
+  date_of_election = "20201103"
+  state_of_election = ""
+  coverage_from_date = "20221020"
+  coverage_through_date = "20221128"
+  qualified_committee = ""
+  treasurer_last_name = "Hill"
+  treasurer_first_name = "Erin"
+  treasurer_middle_name = ""
+  treasurer_prefix = ""
+  treasurer_suffix = ""
+  date_signed = "20221205"
+  col_a_cash_on_hand_beginning_period = "72954587.20"
+  col_a_total_receipts = "304222962.30"
+  col_a_subtotal = "377177549.50"
+  col_a_total_disbursements = "302440713.13"
+  col_a_cash_on_hand_close_of_period = "74736836.37"
+  col_a_debts_to = "0.00"
+  col_a_debts_by = "0.00"
+  col_a_individuals_itemized = "299514038.32"
+  col_a_individuals_unitemized = "0.00"
+  col_a_individual_contribution_total = "299514038.32"
+  col_a_political_party_committees = "0.00"
+  col_a_other_political_committees_pacs = "0.00"
+  col_a_total_contributions = "299514038.32"
+  col_a_transfers_from_aff_other_party_cmttees = "0.00"
+  col_a_total_loans = "0.00"
+  col_a_total_loan_repayments_received = "0.00"
+  col_a_offsets_to_expenditures = "606709.47"
+  col_a_federal_refunds = "4095908.77"
+  col_a_other_federal_receipts = "6305.74"
+  col_a_transfers_from_nonfederal_h3 = "0.00"
+  col_a_levin_funds = "0.00"
+  col_a_total_nonfederal_transfers = "0.00"
+  col_a_total_receipts_TODO_DUP = "304222962.30"
+  col_a_total_federal_receipts = "304222962.30"
+  col_a_shared_operating_expenditures_federal = "0.00"
+  col_a_shared_operating_expenditures_nonfederal = "0.00"
+  col_a_other_federal_operating_expenditures = "4609233.93"
+  col_a_total_operating_expenditures = "4609233.93"
+  col_a_transfers_to_affiliated = "0.00"
+  col_a_contributions_to_candidates = "290049365.00"
+  col_a_independent_expenditures = "0.00"
+  col_a_coordinated_expenditures_by_party_committees = "0.00"
+  col_a_total_loan_repayments_made = "0.00"
+  col_a_loans_made = "0.00"
+  col_a_refunds_to_individuals = "7433364.20"
+  col_a_refunds_to_party_committees = "0.00"
+  col_a_refunds_to_other_committees = "0.00"
+  col_a_total_refunds = "7433364.20"
+  col_a_other_disbursements = "348750.00"
+  col_a_federal_election_activity_federal_share = "0.00"
+  col_a_federal_election_activity_levin_share = "0.00"
+  col_a_federal_election_activity_all_federal = "0.00"
+  col_a_federal_election_activity_total = "0.00"
+  col_a_total_disbursements_TODO_DUP = "302440713.13"
+  col_a_total_federal_disbursements = "302440713.13"
+  col_a_total_contributions_TODO_DUP = "299514038.32"
+  col_a_total_contributions_refunds = "7433364.20"
+  col_a_net_contributions = "292080674.12"
+  col_a_total_federal_operating_expenditures = "4609233.93"
+  col_a_total_offsets_to_expenditures = "606709.47"
+  col_a_net_operating_expenditures = "4002524.46"
+  col_b_cash_on_hand_jan_1 = "79646714.31"
+  col_b_year = "2022"
+  col_b_total_receipts = "1433065024.97"
+  col_b_subtotal = "1512711739.28"
+  col_b_total_disbursements = "1437974902.91"
+  col_b_cash_on_hand_close_of_period = "74736836.37"
+  col_b_individuals_itemized = "1412219785.12"
+  col_b_individuals_unitemized = "0.00"
+  col_b_individual_contribution_total = "1412219785.12"
+  col_b_political_party_committees = "0.00"
+  col_b_other_political_committees_pacs = "0.00"
+  col_b_total_contributions = "1412219785.12"
+  col_b_transfers_from_aff_other_party_cmttees = "0.00"
+  col_b_total_loans = "0.00"
+  col_b_total_loan_repayments_received = "0.00"
+  col_b_offsets_to_expenditures = "3235768.57"
+  col_b_federal_refunds = "17550250.31"
+  col_b_other_federal_receipts = "59220.97"
+  col_b_transfers_from_nonfederal_h3 = "0.00"
+  col_b_levin_funds = "0.00"
+  col_b_total_nonfederal_transfers = "0.00"
+  col_b_total_receipts_TODO_DUP = "1433065024.97"
+  col_b_total_federal_receipts = "1433065024.97"
+  col_b_shared_operating_expenditures_federal = "0.00"
+  col_b_shared_operating_expenditures_nonfederal = "0.00"
+  col_b_other_federal_operating_expenditures = "31976488.46"
+  col_b_total_operating_expenditures = "31976488.46"
+  col_b_transfers_to_affiliated = "0.00"
+  col_b_contributions_to_candidates = "1372043800.19"
+  col_b_independent_expenditures = "0.00"
+  col_b_coordinated_expenditures_by_party_committees = "0.00"
+  col_b_total_loan_repayments_made = "0.00"
+  col_b_loans_made = "0.00"
+  col_b_refunds_to_individuals = "31739664.26"
+  col_b_refunds_to_party_committees = "2000.00"
+  col_b_refunds_to_other_committees = "0.00"
+  col_b_total_refunds = "31741664.26"
+  col_b_other_disbursements = "2212950.00"
+  col_b_federal_election_activity_federal_share = "0.00"
+  col_b_federal_election_activity_levin_share = "0.00"
+  col_b_federal_election_activity_all_federal = "0.00"
+  col_b_federal_election_activity_total = "0.00"
+  col_b_total_disbursements_TODO_DUP = "1437974902.91"
+  col_b_total_federal_disbursements = "1437974902.91"
+  col_b_total_contributions_TODO_DUP = "1412219785.12"
+  col_b_total_contributions_refunds = "31741664.26"
+  col_b_net_contributions = "1380478120.86"
+  col_b_total_federal_operating_expenditures = "31976488.46"
+  col_b_total_offsets_to_expenditures = "3235768.57"
+  col_b_net_operating_expenditures = "28740719.89"
+row "TEXT" line=2 byte=1051 record=2 fields=["TEXT", "C00401224", "F3XN_001", "", "F3XN", "All contributions on Schedule A with a notation in the form 'Earmark For ST-DI Democratic Nominee Fund' (where ST is a state postal abbreviation and DI is a Congressional District number or the letters 'SEN' to indicate a senate race), are contributions earmarked for the 2020 general election nominee of the Democratic party for that Congressional District (or state).  They are held pursuant to Advisory Opinions 1977-16 and 1982-23 and will be transferred to the eventual nominee's authorized committee within 10 days of the primary election."]
+row "TEXT" line=3 byte=1628 record=3 fields=["TEXT", "C00401224", "F3XN_002", "", "F3XN", "All contributors to ActBlue certify at the time of making their contributions that they are citizens or lawful permanent residents of the United States."]
+row "SA11AI" line=4 byte=1812 record=4 fields=["SA11AI", "C00401224", "SA11AI_001", "", "", "IND", "", "Darnell", "Wayne", "", "", "", "2990 Plaza Blanca", "", "Santa Fe", "NM", "87507", "G2020", "", "20221025", "50.00", "0.00", "", "Edgewater Technical Associates LLC.", "Senior Consultant", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
+row "SA11AI" line=5 byte=2004 record=5 fields=["SA11AI", "C00401224", "SA11AI_002", "", "", "IND", "", "Quintanar", "Lee", "", "", "", "2007 Rhoda St.", "", "Simi Valley", "CA", "93065", "G2020", "", "20221103", "25.00", "0.00", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
+row "SA15" line=6 byte=2144 record=6 fields=["SA15", "C00401224", "SA15_001", "", "", "ORG", "ActBlue Technical Services", "", "", "", "", "", "PO Box 441146", "", "Somerville", "MA", "02144", "G2020", "", "20221031", "9818.57", "0.00", "Offset to administrative fees (09/22)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
+row "SA15" line=7 byte=2331 record=7 fields=["SA15", "C00401224", "SA15_002", "", "", "ORG", "ActBlue Technical Services", "", "", "", "", "", "PO Box 441146", "", "Somerville", "MA", "02144", "G2020", "", "20221031", "1689.08", "0.00", "Offset to computers/computer accessories (09/22)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
+row "SA16" line=8 byte=2529 record=8 fields=["SA16", "C00401224", "SA16_001", "", "", "PAC", "OHIO ARIZONA VICTORY FUND", "", "", "", "", "", "401 2ND AVE S STE 303", "", "SEATTLE", "WA", "98104", "G2020", "", "20221021", "48.02", "0.00", "contribution refund", "", "", "C00816397", "OHIO ARIZONA VICTORY FUND", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "refund of earmarked contributions", ""]
+row "SA16" line=9 byte=2767 record=9 fields=["SA16", "C00401224", "SA16_002", "", "", "CCM", "BEN SMILOWITZ FOR CONGRESS", "", "", "", "", "", "PO BOX 275", "", "GAITHERSBURG", "MD", "20884", "G2020", "", "20221103", "144.07", "0.00", "contribution refund", "", "", "C00791178", "BEN SMILOWITZ FOR CONGRESS", "H2MD06294", "SMILOWITZ", "BENJAMIN", "", "", "", "H", "MD", "06", "", "", "", "", "", "", "", "refund of earmarked contributions", ""]
+row "SA17" line=10 byte=3033 record=10 fields=["SA17", "C00401224", "SA17_001", "", "", "ORG", "The Vanguard Group", "", "", "", "", "", "PO Box 13750", "", "Philadelphia", "PA", "19101", "G2020", "", "20221102", "3587.27", "0.00", "Mutual Fund Interest", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
+row "SA17" line=11 byte=3196 record=11 fields=["SA17", "C00401224", "SA17_002", "", "", "ORG", "The Vanguard Group", "", "", "", "", "", "PO Box 13750", "", "Philadelphia", "PA", "19101", "G2020", "", "20221102", "2718.47", "0.00", "Mutual Fund Interest", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]

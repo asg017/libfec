@@ -1,0 +1,147 @@
+---
+source: crates/fec-parser/tests/legacy.rs
+expression: "render(\"1.02_497.fec\")"
+snapshot_kind: text
+---
+FilingHeader {
+    header_record: StringRecord(["1.02", "DEC", "CCYYMMDD", "F3N", "C00330456", "Duncan for Congress", "P229496Q"]),
+    record_type: "/*",
+    ef_type: "",
+    fec_version: "1.02",
+    software_name: "",
+    software_version: "",
+    report_id: None,
+    report_number: None,
+    comment: None,
+    style: LegacyBlock,
+    delimiter: Comma,
+    name_delimiter: None,
+    batch_number: None,
+    received_date: None,
+    legacy_fields: {
+        "FEC_Ver_#": "1.02",
+        "DEC/NODEC": "DEC",
+        "Date_Fmat": "CCYYMMDD",
+        "Form_Name": "F3N",
+        "FEC_IDnum": "C00330456",
+        "Committee": "Duncan for Congress",
+        "Control_#": "P229496Q",
+    },
+    schedule_counts: {
+        "SA11AI": "00147",
+        "SA11B": "00001",
+        "SA11C": "00009",
+        "SA15": "00003",
+        "SB17": "00150",
+        "SB20B": "00001",
+        "SC/10": "00001",
+        "SD10": "00009",
+    },
+}
+cover: form_type="F3N" filer_id="C00330456" filer_name="Duncan for Congress" report_code=Some("Q2") from=Some(1998-04-01) through=Some(1998-06-30) typed=true
+  form_type = "F3N"
+  filer_committee_id_number = "C00330456"
+  committee_name = "Duncan for Congress"
+  street_1 = "PO Box 91536"
+  street_2 = ""
+  city = "Anchorage"
+  state = "AK"
+  zip_code = "99509"
+  change_of_address = ""
+  election_state = "AK"
+  election_district = ""
+  report_code = "Q2"
+  election_code = ""
+  election_date = ""
+  state_of_election = ""
+  primary_election = "X"
+  general_election = ""
+  special_election = ""
+  runoff_election = ""
+  coverage_from_date = "19980401"
+  coverage_through_date = "19980630"
+  col_a_total_contributions_no_loans = "116917.90"
+  col_a_total_contributions_refunds = "5000.00"
+  col_a_net_contributions = "111917.90"
+  col_a_total_operating_expenditures = "61016.10"
+  col_a_total_offset_to_operating_expenditures = "0.00"
+  col_a_net_operating_expenditures = "61016.10"
+  col_a_cash_on_hand_close_of_period = "182835.50"
+  col_a_debts_to = "0.00"
+  col_a_debts_by = "11308.91"
+  col_a_individual_contributions_itemized = "39775.15"
+  col_a_individual_contributions_unitemized = "56392.75"
+  col_a_total_individual_contributions = "96167.90"
+  col_a_political_party_contributions = "5000.00"
+  col_a_pac_contributions = "15750.00"
+  col_a_candidate_contributions = "0.00"
+  col_a_total_contributions = "116917.90"
+  col_a_transfers_from_authorized = "0.00"
+  col_a_candidate_loans = "0.00"
+  col_a_other_loans = "0.00"
+  col_a_total_loans = "0.00"
+  col_a_offset_to_operating_expenditures = "0.00"
+  col_a_other_receipts = "1406.46"
+  col_a_total_receipts = "118324.36"
+  col_a_operating_expenditures = "61016.10"
+  col_a_transfers_to_authorized = "0.00"
+  col_a_candidate_loan_repayments = "0.00"
+  col_a_other_loan_repayments = "0.00"
+  col_a_total_loan_repayments = "0.00"
+  col_a_refunds_to_individuals = "0.00"
+  col_a_refunds_to_party_committees = "5000.00"
+  col_a_refunds_to_other_committees = "0.00"
+  col_a_total_refunds = "5000.00"
+  col_a_other_disbursements = "0.00"
+  col_a_total_disbursements = "66016.10"
+  col_a_cash_beginning_reporting_period = "130527.24"
+  col_a_total_receipts_period = "118324.36"
+  col_a_subtotals = "248851.60"
+  col_a_total_disbursements_period = "66016.10"
+  col_a_cash_on_hand_close = "182835.50"
+  col_b_total_contributions_no_loans = "199981.61"
+  col_b_total_contributions_refunds = "5300.00"
+  col_b_net_contributions = "194681.61"
+  col_b_total_operating_expenditures = "117890.00"
+  col_b_total_offset_to_operating_expenditures = "5.03"
+  col_b_net_operating_expenditures = "117884.97"
+  col_b_individual_contributions_itemized = "77082.41"
+  col_b_individual_contributions_unitemized = "95149.20"
+  col_b_total_individual_contributions = "172231.61"
+  col_b_political_party_contributions = "5200.00"
+  col_b_pac_contributions = "22550.00"
+  col_b_candidate_contributions = "0.00"
+  col_b_total_contributions = "199981.61"
+  col_b_transfers_from_authorized = "0.00"
+  col_b_candidate_loans = "0.00"
+  col_b_other_loans = "0.00"
+  col_b_total_loans = "0.00"
+  col_b_offset_to_operating_expenditures = "5.03"
+  col_b_other_receipts = "1937.77"
+  col_b_total_receipts = "201924.41"
+  col_b_operating_expenditures = "117890.00"
+  col_b_transfers_to_authorized = "0.00"
+  col_b_candidate_loan_repayments = "0.00"
+  col_b_other_loan_repayments = "0.00"
+  col_b_total_loan_repayments = "0.00"
+  col_b_refunds_to_individuals = "0.00"
+  col_b_refunds_to_party_committees = "5000.00"
+  col_b_refunds_to_other_committees = "300.00"
+  col_b_total_refunds = "5300.00"
+  col_b_other_disbursements = "0.00"
+  col_b_total_disbursements = "123190.00"
+  treasurer_name = "Shaw^Roger"
+  date_signed = "19980715"
+row "SA11AI" line=20 byte=1013 record=1 fields=["SA11AI", "C00330456", "Tileston^Margaret", "4780 Cambridge Way", "", "Anchorage", "AK", "99503", "P", "", "Self", "Researcher", "550.00", "19980406", "300.00", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
+row "SA11AI" line=21 byte=1202 record=2 fields=["SA11AI", "C00330456", "Harris^William", "6 Longfellow Park", "", "Cambridge", "MA", "02138", "P", "", "Self", "Private Investor", "250.00", "19980409", "250.00", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
+row "SA11B" line=22 byte=1393 record=3 fields=["SA11B", "C00330456", "Greater Juneau Democratic Precinct", "PO Box 961", "", "Douglas", "AK", "99824", "P", "", "", "", "5000.00", "19980508", "5000.00", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
+row "SA11C" line=23 byte=1576 record=4 fields=["SA11C", "C00330456", "ATLA PAC", "1050 31st Street NW", "", "Washington", "DC", "20007", "P", "", "", "", "1500.00", "19980430", "1500.00", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
+row "SA11C" line=24 byte=1745 record=5 fields=["SA11C", "C00330456", "Nat'l Comm. for an Effective Congress", "10 E. 39th St.", "", "New York", "NY", "10016", "P", "", "", "", "2500.00", "19980501", "2500.00", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "in-kind of electoral targeting", ""]
+row "SA15" line=25 byte=1966 record=6 fields=["SA15", "C00330456", "Key Bank", "PO Box 100420", "", "Anchorage", "AK", "99510", "P", "", "", "", "1937.77", "19980430", "422.51", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
+row "SA15" line=26 byte=2126 record=7 fields=["SA15", "C00330456", "Key Bank", "PO Box 100420", "", "Anchorage", "AK", "99510", "P", "", "", "", "1937.77", "19980531", "494.42", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
+row "SB17" line=27 byte=2286 record=8 fields=["SB17", "C00330456", "Key Bank", "PO Box 100420", "", "Anchorage", "AK", "99510", "", "bank charges", "P", "", "19980401", "78.03", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
+row "SB17" line=28 byte=2443 record=9 fields=["SB17", "C00330456", "Hilton Hotel", "500 W. Third", "", "Anchorage", "AK", "99501", "", "lodging", "P", "", "19980405", "192.25", "", "", "", "", "", "", "", "", "", "", "", "", "X", "credit card charge", ""]
+row "SB20B" line=29 byte=2618 record=10 fields=["SB20B", "C00330456", "Greater Juneau Democratic Precinct", "PO Box 961", "", "Douglas", "AK", "99824", "", "refund of contribution", "P", "", "19980410", "5000.00", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
+row "SC/10" line=30 byte=2809 record=11 fields=["SC/10", "C00330456", "1641", "Duncan^Jim^Mr.", "PO Box 20690", "", "Juneau", "AK", "99802", "P", "", "1000.00", "0.00", "1000.00", "19971005", "19980801", ".0000", "", "", "", "", "", "", "", "", "", "0.00", "", "", "", "", "", "", "", "", "0.00", "", "", "", "", "", "", "", "", "0.00", ""]
+row "SD10" line=31 byte=3036 record=12 fields=["SD10", "C00330456", "North Mail Inc.", "4504 Spenard Rd", "", "Anchorage", "AK", "99517", "mailing of invites", "0.00", "652.42", "0.00", "652.42", ""]
+row "SD10" line=32 byte=3167 record=13 fields=["SD10", "C00330456", "North Mail Inc.", "4504 Spenard Rd", "", "Anchorage", "AK", "99517", "mailing of letters", "0.00", "508.59", "0.00", "508.59", ""]

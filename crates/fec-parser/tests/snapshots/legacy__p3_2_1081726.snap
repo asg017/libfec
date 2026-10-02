@@ -1,0 +1,55 @@
+---
+source: crates/fec-parser/tests/legacy.rs
+expression: "render(\"P3.2_1081726.fec\")"
+snapshot_kind: text
+---
+FilingHeader {
+    header_record: StringRecord(["HDR", "P3.2", "\"Aurotech/Captricity\"", "1", "20160708"]),
+    record_type: "HDR",
+    ef_type: "",
+    fec_version: "P3.2",
+    software_name: "\"Aurotech/Captricity\"",
+    software_version: "",
+    report_id: None,
+    report_number: None,
+    comment: None,
+    style: Paper,
+    delimiter: Fs,
+    name_delimiter: None,
+    batch_number: Some(
+        "1",
+    ),
+    received_date: Some(
+        "20160708",
+    ),
+    legacy_fields: {},
+    schedule_counts: {},
+}
+cover: form_type="F7N" filer_id="C70003165" filer_name="TEXAS FARM BUREAU" report_code=Some("Q2") from=Some(2016-04-01) through=Some(2016-06-30) typed=true
+  form_type = "F7N"
+  filer_committee_id_number = "C70003165"
+  organization_name = "TEXAS FARM BUREAU"
+  street_1 = "7420 FISH POND ROAD; PO BOX 2689"
+  street_2 = ""
+  city = "WACO"
+  state = "TX"
+  zip_code = "767022689"
+  organization_type = "M"
+  report_code = "Q2"
+  election_date = ""
+  election_state = ""
+  coverage_from_date = "20160401"
+  coverage_through_date = "20160630"
+  total_costs = "     7915.43"
+  person_designated_last_name = "COOK"
+  person_designated_first_name = "SI"
+  person_designated_middle_name = "E"
+  person_designated_prefix = ""
+  person_designated_suffix = ""
+  person_designated_title = "S. E. COOK, EXECUTIV"
+  date_signed = "20160701"
+  beginning_image_number = "201607070300079703"
+  end_image_number = "201607070300079705"
+  receipt_date = "20160701"
+row "F76" line=3 byte=257 record=2 fields=["F76", "C70003165", "O", "APPEARANCE", "M", "20160321", "S", "ARRINGTON", "JODEY", "", "", "", "H", "TX", "19", "P", "      664.03", "201607070300079703"]
+row "F76" line=4 byte=358 record=3 fields=["F76", "C70003165", "DM", "", "M", "20160506", "S", "JODEY ARRINGTON US HOUSE TX H ", "JODEY", "", "", "", "H", "TX", "19", "P", "     7251.40", "201607070300079703"]
