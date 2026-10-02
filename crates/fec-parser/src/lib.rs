@@ -410,54 +410,23 @@ impl<R: Read> Filing<R> {
     /// and on commas if not, and nothing is consumed ahead of the body
     /// reader, so FS files are read exactly as they always have been.
     pub fn from_reader(rdr: R, filing_id: String, source_length: usize) -> anyhow::Result<Self> {
-        let (prefix, source) = reader::peek_first_line(rdr)?;
-        let sniffed = reader::sniff(&prefix);
-        drop(prefix);
-
-        let (header, mut records_iter, cover_record) = match sniffed {
-            Sniffed::LegacyBlock => {
-                let mut buffered = Records::buffered(source);
-                let block = reader::read_legacy_block(&mut buffered)?;
-                let (bytes, lines) = (block.bytes, block.lines);
-                let header = FilingHeader::from_legacy_block(block)?;
-                let mut records_iter = Records::lines(buffered, bytes, lines + 1).peekable();
+        let (raw_header, mut records_iter) = open_header(rdr)?;
+        let (header, cover_record) = match raw_header {
+            RawHeader::Built { header, .. } => {
                 let cover_record = next_non_blank(&mut records_iter).ok_or_else(|| {
                     anyhow::anyhow!("No cover record found after `/* Header` block")
                 })??;
-                (header, records_iter, cover_record)
+                (*header, cover_record)
             }
-            Sniffed::Fs | Sniffed::Comma => {
-                let (delimiter, records) = match sniffed {
-                    Sniffed::Fs => (Delimiter::Fs, Records::fs(source)),
-                    _ => (
-                        Delimiter::Comma,
-                        Records::lines(Records::buffered(source), 0, 1),
-                    ),
-                };
-                let mut records_iter = records.peekable();
-                let hdr = records_iter
-                    .next()
-                    .ok_or_else(|| anyhow::anyhow!("no header record found"))??;
-
-                let hdr_record_type = String::from_utf8(
-                    hdr.get(0)
-                        .ok_or_else(|| anyhow::anyhow!("file missing header"))?
-                        .to_vec(),
-                )
-                .map_err(|e| anyhow::anyhow!("Invalid UTF-8 in header record type: {}", e))?;
-                if !hdr_record_type.trim().eq_ignore_ascii_case("HDR") {
-                    return Err(anyhow::anyhow!(
-                        "Incorrect header record type: {hdr_record_type}"
-                    ));
-                }
-
-                let hdr_record = StringRecord::from_byte_record_lossy(hdr);
+            RawHeader::Record { record, delimiter } => {
                 // Some 3.00 files have an empty line between HDR and the cover.
+                // The cover is read before the HDR record is validated, so
+                // errors come out in the order they always have.
                 let cover_record = next_non_blank(&mut records_iter).ok_or_else(|| {
                     anyhow::anyhow!("No cover record found (2nd record missing)")
                 })??;
-                let header = FilingHeader::from_record(hdr_record, delimiter)?;
-                (header, records_iter, cover_record)
+                let header = FilingHeader::from_record(record, delimiter)?;
+                (header, cover_record)
             }
         };
         let mut cover = FilingCover::from_record(
@@ -571,6 +540,92 @@ impl<R: Read> Filing<R> {
             record,
             original_size,
         }))
+    }
+}
+
+/// The header as read by [`open_header`], before the cover.
+enum RawHeader {
+    /// A `/* Header` block, already parsed; `lines` is how many lines it took.
+    Built {
+        header: Box<FilingHeader>,
+        lines: u64,
+    },
+    /// An `HDR` record, not yet validated.
+    Record {
+        record: StringRecord,
+        delimiter: Delimiter,
+    },
+}
+
+/// Sniff the format and read the header, leaving the record iterator at the
+/// first record after it. Shared by [`Filing::from_reader`] and
+/// [`read_header`].
+fn open_header<R: Read>(rdr: R) -> anyhow::Result<(RawHeader, Peekable<Records<R>>)> {
+    let (prefix, source) = reader::peek_first_line(rdr)?;
+    let sniffed = reader::sniff(&prefix);
+    drop(prefix);
+
+    match sniffed {
+        Sniffed::LegacyBlock => {
+            let mut buffered = Records::buffered(source);
+            let block = reader::read_legacy_block(&mut buffered)?;
+            let (bytes, lines) = (block.bytes, block.lines);
+            let header = FilingHeader::from_legacy_block(block)?;
+            let records_iter = Records::lines(buffered, bytes, lines + 1).peekable();
+            Ok((
+                RawHeader::Built {
+                    header: Box::new(header),
+                    lines,
+                },
+                records_iter,
+            ))
+        }
+        Sniffed::Fs | Sniffed::Comma => {
+            let (delimiter, records) = match sniffed {
+                Sniffed::Fs => (Delimiter::Fs, Records::fs(source)),
+                _ => (
+                    Delimiter::Comma,
+                    Records::lines(Records::buffered(source), 0, 1),
+                ),
+            };
+            let mut records_iter = records.peekable();
+            let hdr = records_iter
+                .next()
+                .ok_or_else(|| anyhow::anyhow!("no header record found"))??;
+
+            let hdr_record_type = String::from_utf8(
+                hdr.get(0)
+                    .ok_or_else(|| anyhow::anyhow!("file missing header"))?
+                    .to_vec(),
+            )
+            .map_err(|e| anyhow::anyhow!("Invalid UTF-8 in header record type: {}", e))?;
+            if !hdr_record_type.trim().eq_ignore_ascii_case("HDR") {
+                return Err(anyhow::anyhow!(
+                    "Incorrect header record type: {hdr_record_type}"
+                ));
+            }
+
+            let record = StringRecord::from_byte_record_lossy(hdr);
+            Ok((RawHeader::Record { record, delimiter }, records_iter))
+        }
+    }
+}
+
+/// Read only the header of a filing in any supported format, without
+/// requiring a cover record after it.
+///
+/// Returns the header and the number of lines it occupies: the whole
+/// `/* Header` ... `/* End Header` block (both `/*` lines included) for
+/// [`HeaderStyle::LegacyBlock`], else 1 (the `HDR` record). Uses the same
+/// sniffing and header parsing as [`Filing::from_reader`]; meant for callers
+/// that parse a filing line by line themselves (e.g. the Python `fecfile`
+/// compatibility layer).
+pub fn read_header<R: Read>(rdr: R) -> anyhow::Result<(FilingHeader, u64)> {
+    match open_header(rdr)?.0 {
+        RawHeader::Built { header, lines } => Ok((*header, lines)),
+        RawHeader::Record { record, delimiter } => {
+            Ok((FilingHeader::from_record(record, delimiter)?, 1))
+        }
     }
 }
 

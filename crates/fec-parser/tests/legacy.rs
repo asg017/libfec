@@ -228,3 +228,36 @@ fn unsupported_versions_are_rejected() {
         .expect("missing FEC_Ver_# is an error");
     assert!(format!("{err:#}").contains("FEC_Ver_#"));
 }
+
+#[test]
+fn read_header_matches_filing_header() {
+    for name in all_fixtures() {
+        let file = std::fs::File::open(fixture_path(&name)).unwrap();
+        let (header, lines) =
+            fec_parser::read_header(file).unwrap_or_else(|e| panic!("{name}: {e:#}"));
+        assert_eq!(
+            format!("{header:#?}"),
+            format!("{:#?}", open(&name).header),
+            "{name}"
+        );
+        let expected = if header.style == HeaderStyle::LegacyBlock {
+            let text = std::fs::read_to_string(fixture_path(&name)).unwrap();
+            1 + text
+                .lines()
+                .skip(1)
+                .position(|l| l.trim_start().starts_with("/*"))
+                .unwrap() as u64
+                + 1
+        } else {
+            1
+        };
+        assert_eq!(lines, expected, "{name}");
+    }
+    // A header alone, with no cover after it, is enough.
+    let (header, lines) =
+        fec_parser::read_header("HDR,FEC,5.00,X,1.0,,FEC-1,1\n".as_bytes()).expect("header only");
+    assert_eq!(
+        (header.fec_version.as_str(), header.delimiter, lines),
+        ("5.00", Delimiter::Comma, 1)
+    );
+}

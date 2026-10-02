@@ -92,6 +92,42 @@ pub fn is_supported_version(version: &str) -> bool {
     )
 }
 
+/// The body delimiter implied by a version string: [`Delimiter::Comma`] for
+/// electronic 1.x, 2.x, 3.x and 5.x, else [`Delimiter::Fs`] (6.x+ and paper).
+///
+/// Mirrors python fecfile's `comma_versions` check (first character of the
+/// version is `1`, `2`, `3` or `5`), after trimming.
+pub fn delimiter_for_version(version: &str) -> Delimiter {
+    match version.trim().as_bytes().first() {
+        Some(b'1' | b'2' | b'3' | b'5') => Delimiter::Comma,
+        _ => Delimiter::Fs,
+    }
+}
+
+/// Split one line of a filing into fields the way [`crate::Filing`] splits
+/// its body, for callers that read a filing line by line themselves.
+///
+/// - [`Delimiter::Fs`]: the first record of a `csv` reader with the options
+///   the FS path uses (flexible, no headers, 0x1C delimiter).
+/// - [`Delimiter::Comma`]: the comma path's per-line rules: csv quoting that
+///   never runs past the end of the line, trailing `\r\n` dropped.
+///
+/// Returns `None` for an empty (or, for comma, blank) line. Row types are
+/// returned as written; trim them as [`crate::Filing::next_row`] does.
+pub fn split_line(line: &[u8], delimiter: Delimiter) -> Option<csv::Result<csv::StringRecord>> {
+    let record = match delimiter {
+        Delimiter::Fs => csv::ReaderBuilder::new()
+            .delimiter(0x1c)
+            .flexible(true)
+            .has_headers(false)
+            .from_reader(line)
+            .into_byte_records()
+            .next()?,
+        Delimiter::Comma => crate::reader::LineRecords::new(line, 0, 1).next()?,
+    };
+    Some(record.map(csv::StringRecord::from_byte_record_lossy))
+}
+
 /// Whether a field is a `[BEGINTEXT]` marker: caseless, optional space
 /// between the words, surrounding whitespace ignored (`[BeginText]`,
 /// `[BEGIN TEXT]`).
@@ -136,6 +172,38 @@ mod tests {
         ] {
             assert!(!is_supported_version(v), "{v:?} should be rejected");
         }
+    }
+
+    #[test]
+    fn version_delimiters() {
+        for v in ["1.00", "2.02", "3.00", "5.3", " 5.1"] {
+            assert_eq!(delimiter_for_version(v), Delimiter::Comma, "{v:?}");
+        }
+        for v in ["6.1", "7.0", "8.4", "P3.4", ""] {
+            assert_eq!(delimiter_for_version(v), Delimiter::Fs, "{v:?}");
+        }
+    }
+
+    #[test]
+    fn split_lines() {
+        let fields = |line: &str, d| -> Vec<String> {
+            split_line(line.as_bytes(), d)
+                .expect("a record")
+                .expect("valid csv")
+                .iter()
+                .map(str::to_owned)
+                .collect()
+        };
+        assert_eq!(
+            fields("SA11AI,\"C00,1\",\"x\"\"y\"\r\n", Delimiter::Comma),
+            ["SA11AI", "C00,1", "x\"y"]
+        );
+        assert_eq!(
+            fields("SA11AI\x1cC001\x1c\"a\"\n", Delimiter::Fs),
+            ["SA11AI", "C001", "a"]
+        );
+        assert!(split_line(b"", Delimiter::Fs).is_none());
+        assert!(split_line(b"  \r\n", Delimiter::Comma).is_none());
     }
 
     #[test]

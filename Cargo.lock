@@ -1534,7 +1534,6 @@ checksum = "bcc35a38544a891a5f7c865aca548a982ccb3b8650a5b06d0fd33a10283c56fc"
 name = "libfec_parser"
 version = "0.1.0"
 dependencies = [
- "csv",
  "fec-parser",
  "pyo3",
 ]

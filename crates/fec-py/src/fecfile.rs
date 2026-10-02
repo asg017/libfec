@@ -1,3 +1,4 @@
+use fec_parser::{Delimiter, FilingHeader, HeaderStyle};
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList};
 use std::collections::HashMap;
@@ -47,21 +48,7 @@ pub fn loads<'py>(
     let result = PyDict::new_bound(py);
 
     // Add header
-    let header_dict = PyDict::new_bound(py);
-    header_dict.set_item("record_type", &filing.header.record_type)?;
-    header_dict.set_item("ef_type", &filing.header.ef_type)?;
-    header_dict.set_item("fec_version", &filing.header.fec_version)?;
-    header_dict.set_item("software_name", &filing.header.software_name)?;
-    header_dict.set_item("software_version", &filing.header.software_version)?;
-    if let Some(ref report_id) = filing.header.report_id {
-        header_dict.set_item("report_id", report_id)?;
-    }
-    if let Some(ref report_number) = filing.header.report_number {
-        header_dict.set_item("report_number", report_number)?;
-    }
-    if let Some(ref comment) = filing.header.comment {
-        header_dict.set_item("comment", comment)?;
-    }
+    let header_dict = header_to_dict(py, &filing.header)?;
     result.set_item("header", header_dict)?;
 
     // Add filing (cover)
@@ -176,54 +163,62 @@ pub fn parse_header<'py>(
         ));
     };
 
-    // Parse just the header line as CSV with ASCII 28 delimiter
-    let mut rdr = csv::ReaderBuilder::new()
-        .delimiter(b"\x1c"[0])
-        .flexible(true)
-        .has_headers(false)
-        .from_reader(hdr_str.as_bytes());
+    let (header, lines_consumed) = fec_parser::read_header(hdr_str.as_bytes())
+        .map_err(|e| pyo3::exceptions::PyValueError::new_err(format!("{e:#}")))?;
+    let header_dict = header_to_dict(py, &header)?;
+    let version = match header.style {
+        // fecfile returns the lowercased `fec_ver_#` value.
+        HeaderStyle::LegacyBlock => header.fec_version.to_lowercase(),
+        _ => header.fec_version.clone(),
+    };
 
-    let record = rdr
-        .records()
-        .next()
-        .ok_or_else(|| pyo3::exceptions::PyValueError::new_err("Empty header"))?
-        .map_err(|e| pyo3::exceptions::PyValueError::new_err(format!("CSV parse error: {}", e)))?;
+    Ok((header_dict, version, lines_consumed as usize))
+}
 
-    // Build header dict
-    let header_dict = PyDict::new_bound(py);
-
-    let record_type = record.get(0).unwrap_or("HDR");
-    let ef_type = record.get(1).unwrap_or("");
-    let fec_version = record.get(2).unwrap_or("");
-    let software_name = record.get(3).unwrap_or("");
-    let software_version = record.get(4).unwrap_or("");
-
-    header_dict.set_item("record_type", record_type)?;
-    header_dict.set_item("ef_type", ef_type)?;
-    header_dict.set_item("fec_version", fec_version)?;
-    header_dict.set_item("software_name", software_name)?;
-    header_dict.set_item("software_version", software_version)?;
-
-    if let Some(report_id) = record.get(5) {
-        if !report_id.trim().is_empty() {
-            header_dict.set_item("report_id", report_id)?;
+/// The `header` dict of the compat layer.
+///
+/// - `/* Header` blocks (electronic 1.x/2.x) follow python fecfile: every
+///   `key = value` line with key and value lowercased, plus a
+///   `schedule_counts` dict whose values are ints where they parse.
+/// - `HDR` headers (3.x+, paper) keep this layer's keys (`record_type`,
+///   `ef_type`, `fec_version`, `software_name`, `software_version`, then
+///   `report_id`, `report_number`, `comment` when present), plus the
+///   mappings' `name_delim`, `batch_number` and `received_date` when present.
+fn header_to_dict<'py>(py: Python<'py>, header: &FilingHeader) -> PyResult<Bound<'py, PyDict>> {
+    let dict = PyDict::new_bound(py);
+    if header.style == HeaderStyle::LegacyBlock {
+        for (k, v) in &header.legacy_fields {
+            dict.set_item(k.to_lowercase(), v.to_lowercase())?;
+        }
+        let counts = PyDict::new_bound(py);
+        for (k, v) in &header.schedule_counts {
+            let k = k.to_lowercase();
+            match v.trim().parse::<i64>() {
+                Ok(n) => counts.set_item(k, n)?,
+                Err(_) => counts.set_item(k, v.to_lowercase())?,
+            }
+        }
+        dict.set_item("schedule_counts", counts)?;
+        return Ok(dict);
+    }
+    dict.set_item("record_type", &header.record_type)?;
+    dict.set_item("ef_type", &header.ef_type)?;
+    dict.set_item("fec_version", &header.fec_version)?;
+    dict.set_item("software_name", &header.software_name)?;
+    dict.set_item("software_version", &header.software_version)?;
+    for (key, value) in [
+        ("report_id", &header.report_id),
+        ("report_number", &header.report_number),
+        ("comment", &header.comment),
+        ("name_delim", &header.name_delimiter),
+        ("batch_number", &header.batch_number),
+        ("received_date", &header.received_date),
+    ] {
+        if let Some(value) = value {
+            dict.set_item(key, value)?;
         }
     }
-    if let Some(report_number) = record.get(6) {
-        if !report_number.trim().is_empty() {
-            header_dict.set_item("report_number", report_number)?;
-        }
-    }
-    if let Some(comment) = record.get(7) {
-        if !comment.trim().is_empty() {
-            header_dict.set_item("comment", comment)?;
-        }
-    }
-
-    let version = fec_version.to_string();
-    let lines_consumed = 1; // In ASCII 28 format, header is always 1 line
-
-    Ok((header_dict, version, lines_consumed))
+    Ok(dict)
 }
 
 /// Parse a single line from FEC document
@@ -235,22 +230,21 @@ pub fn parse_line<'py>(
     version: String,
     _line_num: Option<usize>,
 ) -> PyResult<Bound<'py, PyDict>> {
-    // Parse the line as CSV with ASCII 28 delimiter
-    let mut rdr = csv::ReaderBuilder::new()
-        .delimiter(b"\x1c"[0])
-        .flexible(true)
-        .has_headers(false)
-        .from_reader(line.as_bytes());
-
-    let record = rdr
-        .records()
-        .next()
+    // Like python fecfile: FS if the line has one, else by version (comma
+    // for 1.x, 2.x, 3.x, 5.x).
+    let delimiter = if line.contains('\x1c') {
+        Delimiter::Fs
+    } else {
+        fec_parser::format::delimiter_for_version(&version)
+    };
+    let record = fec_parser::format::split_line(line.as_bytes(), delimiter)
         .ok_or_else(|| pyo3::exceptions::PyValueError::new_err("Empty line"))?
         .map_err(|e| pyo3::exceptions::PyValueError::new_err(format!("CSV parse error: {}", e)))?;
 
     let form_type = record
         .get(0)
-        .ok_or_else(|| pyo3::exceptions::PyValueError::new_err("Line has no fields"))?;
+        .ok_or_else(|| pyo3::exceptions::PyValueError::new_err("Line has no fields"))?
+        .trim();
 
     // Get column names for this form type
     let column_names: Vec<String> =
