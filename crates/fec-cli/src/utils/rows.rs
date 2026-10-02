@@ -60,3 +60,29 @@ pub fn all_filings_failed(failed: usize) -> anyhow::Error {
         if failed == 1 { "" } else { "s" }
     )
 }
+
+/// A row type usable as a file name: `SC/10` → `SC-10` (as FastFEC does).
+pub fn file_stem(row_type: &str) -> String {
+    row_type
+        .chars()
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || c == '_' || c == '-' {
+                c
+            } else {
+                '-'
+            }
+        })
+        .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn file_stems() {
+        assert_eq!(file_stem("SC/10"), "SC-10");
+        assert_eq!(file_stem("SA11AI"), "SA11AI");
+        assert_eq!(file_stem("../x"), "---x");
+    }
+}
