@@ -117,7 +117,8 @@ fn write_schedule_row(
     for (idx, v) in fields.into_iter().enumerate() {
         let c = col(idx)?;
         match state.column_types.get(idx) {
-            Some(FieldFormat::Float) => match v.parse::<f64>() {
+            // Paper filings pad amounts (`        4.70`).
+            Some(FieldFormat::Float) => match v.trim().parse::<f64>() {
                 Ok(num) => {
                     state.worksheet.write_number_with_format(
                         state.row_idx,
