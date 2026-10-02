@@ -14,7 +14,7 @@ use jiff::civil::Date;
 /// fields 1-16). The record is thin: who filed (committee name, address,
 /// treasurer), whether this is a 24- or 48-hour report, the original filing
 /// date when it is an amendment, and the signing date. It carries **no dollar
-/// amounts**; the expenditures themselves are the filing's itemized rows.
+/// amounts**.
 ///
 /// What the two report types mean, per the Schedule E instructions (revised
 /// 05/2016): a political committee files a 48-hour report when independent

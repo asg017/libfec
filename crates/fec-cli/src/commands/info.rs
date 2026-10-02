@@ -288,6 +288,24 @@ fn process_filing<R: Read>(
                     );
                     print_summary(&form.summary);
                 }
+                Cover::Form24(form) => {
+                    println!(
+                        "{}{}",
+                        form.report_type_label()
+                            .unwrap_or("24/48-Hour Report")
+                            .bold(),
+                        form.original_amendment_date
+                            .map(|d| format!(", amends the report filed {d}"))
+                            .unwrap_or_default()
+                    );
+                    if let Some(date_signed) = form.date_signed {
+                        println!(
+                            "Signed by {} on {}",
+                            form.treasurer.to_string().bold(),
+                            date_signed.to_string().bold()
+                        );
+                    }
+                }
             }
         }
 
