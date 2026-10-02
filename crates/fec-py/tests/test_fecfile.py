@@ -11,6 +11,7 @@ from pathlib import Path
 
 import pytest
 from libfec_parser import fecfile
+from libfec_parser.parser import FecParseError
 from libfec_parser.parser import open as open_filing
 from libfec_parser.fecfile import (
     FecItem,
@@ -659,14 +660,15 @@ class TestParseHeader:
         with pytest.raises(TypeError):
             parse_header(12345)  # type: ignore[arg-type]  # invalid type, on purpose
 
-    def test_parse_header_rejects_the_v1_v2_block_header(self):
-        """Test parse_header() on the multi-line '/* ... /*' header of versions 1-2
-
-        fec-parser does not read that form at all, so there is nothing to build a
-        header out of; say so rather than guessing.
-        """
-        with pytest.raises(FecParserMissingMappingError, match="versions 1 and 2"):
-            parse_header(["/* Header", "FEC_VER_# = 2.02", "/* End Header"])
+    def test_parse_header_reads_the_v1_v2_block_header(self):
+        """Test parse_header() on the multi-line '/* ... /*' header of versions 1-2"""
+        header, version, consumed = parse_header(
+            ["/* Header", "FEC_VER_# = 2.02", "Schedule_Counts:", "SA11AI = 3", "/* End Header"]
+        )
+        assert header == {"schedule_counts": {"sa11ai": 3}, "fec_ver_#": "2.02"}
+        assert (version, consumed) == ("2.02", 5)
+        # No closing `/*`: real gives up the same way.
+        assert parse_header(["/* Header", "FEC_VER_# = 2.02"]) == (None, None, None)
 
 
 class TestParseLine:
@@ -852,61 +854,56 @@ def legacy_fixture(name):
 
 
 class TestLegacyFormats:
-    """fecfile compat on pre-6.x electronic and paper filings"""
+    """parse_header/parse_line on pre-8.x electronic and paper filings match real
+    fecfile exactly; the whole-filing functions stay 8.0-8.5 only."""
+
+    @pytest.fixture
+    def real(self):
+        return pytest.importorskip("fecfile")
+
+    @pytest.mark.parametrize(
+        "name",
+        ["1.02_497.fec", "2.02_10665.fec", "3.00_13801.fec", "5.00_102196.fec",
+         "5.3_300707.fec", "6.1_342096.fec", "7.0_730663.fec", "P1.0_236480.fec",
+         "P2.4_391955.fec", "P3.4_1215766.fec"],
+    )
+    def test_header_and_lines_match_real(self, real, name):
+        lines = legacy_fixture(name).split("\n")
+        header, version, consumed = parse_header(lines)
+        assert (header, version, consumed) == real.parse_header(lines)
+        for line in lines[consumed:consumed + 50]:
+            try:
+                theirs = real.parse_line(line, version)
+            except real.FecParserMissingMappingError:
+                # A [BEGINTEXT] body line: no mapping on either side.
+                with pytest.raises(FecParserMissingMappingError):
+                    parse_line(line, version)
+                continue
+            assert parse_line(line, version) == theirs, line
 
     def test_parse_header_v5_comma(self):
-        lines = legacy_fixture("5.00_102196.fec").split("\n")
-        header, version, consumed = parse_header(lines)
-        assert version == "5.00"
-        assert consumed == 1
-        assert header["record_type"] == "HDR"
-        assert header["ef_type"] == "FEC"
-        assert header["fec_version"] == "5.00"
-        assert header["software_name"] == "Patton Technologies LLC"
-        assert header["software_version"] == "2.00"
+        header, version, consumed = parse_header(legacy_fixture("5.00_102196.fec").split("\n"))
+        assert header is not None
+        assert (version, consumed) == ("5.00", 1)
+        assert header["soft_name"] == "Patton Technologies LLC"
         assert header["report_id"] == "FEC-85433"
-        assert header["report_number"] == "1"
-        assert "name_delim" not in header  # empty in this file
 
-    def test_parse_line_v5_comma(self):
-        lines = legacy_fixture("5.00_102196.fec").split("\n")
-        _, version, consumed = parse_header(lines)
-        cover = parse_line(lines[consumed], version)
-        assert cover["form_type"] == "F3XA"
-        assert cover["filer_committee_id_number"] == "C00011197"
-        row = parse_line(lines[consumed + 1], version)
-        assert row["form_type"] == "SA12"
-        # quoted fields are unquoted, as python fecfile's csv.reader does
-        assert "Democratic National Committee" in row.values()
-
-    def test_loads_v5_comma(self):
-        parsed = loads(legacy_fixture("5.00_102196.fec"))
-        assert parsed["header"]["fec_version"] == "5.00"
-        assert parsed["filing"]["form_type"] == "F3XA"
-        assert parsed["itemizations"]["Schedule A"]
-
-    def test_parse_header_paper(self):
-        content = legacy_fixture("P3.4_1215766.fec")
-        header, version, consumed = parse_header(content.split("\n")[0])
-        assert version == "P3.4"
-        assert consumed == 1
-        assert header["record_type"] == "HDR"
-        assert header["ef_type"] == ""
-        assert header["fec_version"] == "P3.4"
-        assert header["batch_number"] == "1"
-        assert header["received_date"] == "20180322"
-
-    def test_parse_header_legacy_block_matches_fecfile(self):
+    def test_parse_header_legacy_block(self):
         """`/* Header` blocks: lowercased keys and values, int schedule counts"""
         lines = legacy_fixture("2.02_10665.fec").split("\n")
         header, version, consumed = parse_header(lines)
         assert version == "2.02"
+        assert header is not None
         assert lines[consumed - 1].startswith("/*")
-        assert header["fec_ver_#"] == "2.02"
         assert header["soft_name"] == "(filer's own software)"
         assert header["form_name"] == "f3pa"
         assert all(isinstance(v, int) for v in header["schedule_counts"].values())
-        assert parse_line(lines[consumed], version)["form_type"] == "F3PA"
+        assert (parse_line(lines[consumed], version) or {})["form_type"] == "F3PA"
+
+    @pytest.mark.parametrize("name", ["5.00_102196.fec", "2.02_10665.fec", "P3.4_1215766.fec"])
+    def test_whole_filing_apis_are_8x_only(self, name):
+        with pytest.raises(FecParseError, match="outside libfec_parser.fecfile's scope"):
+            loads(legacy_fixture(name))
 
 
 class TestLegacyParserHeader:

@@ -157,7 +157,7 @@ FORM_TYPES = [
     "SE", "SF", "SI", "SL",
 ]
 
-#: The versions `fec-parser` reads a whole filing in.
+#: The versions this module reads a whole filing in.
 VERSIONS_8X = ["8.5", "8.4", "8.3", "8.2", "8.1", "8.0"]
 
 #: Older versions, which only reach this module through `parse_line`/`_mapping`
@@ -175,7 +175,7 @@ def real_names(form: str, version: str) -> list[str] | None:
 
 
 def our_names(form: str, version: str) -> list[str] | None:
-    """Ours' column names — the translated ones that become dict keys."""
+    """Ours' column names — the ones that become dict keys."""
     try:
         return list(ours._mapping(form, version)[0])
     except ours.FecParserMissingMappingError:
@@ -187,9 +187,9 @@ def test_column_names_match_real_across_mappings(version):
     """Same names, same order, same duplicates, for every form real maps.
 
     The fixtures only reach a dozen or so ``(form, version)`` pairs; this reaches
-    every pattern in real's ``mappings.json``, which is what catches a name
-    `fec-parser` spells differently (``col_a_total_receipts_TODO_DUP``,
-    ``TODO_UNKNOWN_BLANK``) before a filing that uses that form does.  Real
+    every pattern in real's ``mappings.json``.  Names come from a vendored copy
+    of that file, so this guards the lookup (regex order, case) and the copy
+    itself rather than `fec-parser`'s own, deliberately different, names.  Real
     raising ``FecParserMissingMappingError`` counts as an answer: ours has to
     raise it for exactly the same pairs.
     """
@@ -220,9 +220,8 @@ def test_duplicate_cover_columns_take_the_last_value():
     An F3X cover names ``col_a_total_receipts`` (and five more) twice, and an F2
     names ``candidate_state`` twice.  Real's ``out[k] = ...`` loop leaves the last
     occurrence's value at the first occurrence's key position; `fec-parser`
-    disambiguates the second copy as ``*_TODO_DUP`` instead, so this module has
-    to translate the name back before building the dict, or a filer whose two
-    totals differ reads the wrong one.  Built by hand: every committed fixture
+    disambiguates the second copy instead, so this module has to key the dict
+    by real's names, or a filer whose two totals differ reads the wrong one.  Built by hand: every committed fixture
     happens to repeat the same number in both copies, which hides this entirely.
     """
     names = real_names("F3XN", "8.5")
@@ -555,9 +554,10 @@ def test_crlf_in_memory_matches_real(sample_fec_bytes):
 def test_pre_8x_filings_are_out_of_scope(version, separator):
     """The whole-filing APIs read FEC 8.0-8.5 only; real reads every generation.
 
-    `fec-parser` supports 8.0 through 8.5, so `from_file`/`loads`/`iter_file`
-    raise `FecParseError` on anything older (or on a paper filing's ``P3.4``),
-    where real parses it happily.  ``parse_line``/``parse_header`` are not
+    `fec-parser` reads older filings too, but only 8.x is held to the
+    differential, so `from_file`/`loads`/`iter_file` raise `FecParseError` on
+    anything older (or on a paper filing's ``P3.4``), where real parses it
+    happily.  ``parse_line``/``parse_header`` are not
     limited this way -- they go straight to the mapping, which covers every
     version real's does, as `test_column_names_match_real_across_mappings`
     checks.  Pinned here so the README's scope paragraph and the code cannot
@@ -661,33 +661,25 @@ def test_timezone_out_of_range_divergences(value, real_offset, our_offset):
 # valid filing contains.
 
 
-def test_summary_must_be_a_cover_record(sample_fec_content):
-    """The first record has to be a cover `fec-parser` knows, with a filer name.
+def test_first_record_is_the_summary_whatever_it_is(sample_fec_content):
+    """Real treats whatever it parses first as the summary, whatever it is.
 
-    Real treats whatever it parses first as the summary, whatever it is; the
-    native reader validates it as a cover before the compat layer sees anything.
+    `fec-parser` used to validate it as a cover (an itemization, or a cover with
+    no filer name, raised); since its legacy-format hardening it reads the record
+    as is, so the two now agree.
     """
     header = sample_fec_content.split("\n")[0]
-    for first, message in [
-        ("SA11AI\x1cC00900860", "SA11AI"),  # an itemization as the first record
-        ("F3N\x1cC00900860", "F3N"),  # a cover with no filer name
-    ]:
-        assert real.loads([header, first])["filing"]["form_type"] == message
-        with pytest.raises(FecParseError):
-            ours.loads([header, first])
+    for first in ["SA11AI\x1cC00900860", "F3N\x1cC00900860"]:
+        assert ours.loads([header, first]) == real.loads([header, first])
 
 
-def test_form_type_with_whitespace_is_unmapped(sample_fec_content):
-    """Real strips the form for the mapping lookup; `fec-parser` does not.
-
-    Real keeps the *unstripped* spelling as the ``form_type`` value, so its
-    itemization group is ``' SA11AI '``; ours raises instead.
-    """
+def test_form_type_with_whitespace_matches_real(sample_fec_content):
+    """Real strips the form for the mapping lookup and keeps the unstripped
+    spelling as the ``form_type`` value; so does this module now."""
     header, cover = sample_fec_content.split("\n")[:2]
     lines = [header, cover, " SA11AI \x1cC00900860"]
     assert list(real.loads(lines)["itemizations"]) == [" SA11AI "]
-    with pytest.raises(ours.FecParserMissingMappingError):
-        ours.loads(lines)
+    assert ours.loads(lines) == real.loads(lines)
 
 
 def test_filter_prefixes_match_the_row_type_not_the_line(sample_fec_content):

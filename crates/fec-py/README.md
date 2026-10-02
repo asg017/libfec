@@ -68,11 +68,15 @@ from libfec_parser import fecfile
 
 `libfec_parser.fecfile` is a **drop-in replacement for [`fecfile`](https://pypi.org/project/fecfile/) 0.9.1**'s public API, **for filings in FEC format versions 8.0–8.5**: the same keys, in the same order, with the same values *and* the same types. This is enforced by a differential test that compares every value against the real package — on every committed fixture, and on a 408,162-item, 91 MB filing (`tests/test_fecfile_differential.py`, `tests/test_perf.py::test_compat_differential_benchmark_filing`). Inside that scope, [Where it differs](#where-it-differs) lists everything that is not identical.
 
-**The scope, precisely.** 8.0–8.5 is what the underlying `fec-parser` reads, so the whole-filing functions — `from_file`, `loads`, `iter_file`, `iter_lines`, `from_http`, `iter_http` — raise `FecParseError` on anything else, where real `fecfile` parses it:
+**The scope, precisely.** 8.0–8.5 is what the differential test holds this module to, so the whole-filing functions — `from_file`, `loads`, `iter_file`, `iter_lines`, `from_http`, `iter_http` — raise `FecParseError` on anything else, where real `fecfile` parses it (the native `open()` reads those filings; this module just doesn't promise fecfile's output for them):
 
 - a v3/v5 comma-delimited filing, a 6.x or 7.x one, or a paper (`P3.x`) filing;
 - a version string outside those six *as spelled* — real matches it by regex prefix, so it also accepts `8.50`, `8.5.1` and the like;
-- a multi-line `/* … */` header (format versions 1 and 2): `parse_header` raises `FecParserMissingMappingError`, and a file starting with one raises `FecParseError`.
+- a file starting with a multi-line `/* … */` header (format versions 1 and 2).
+
+`parse_header` and `parse_line` have no such limit: column names come from a vendored copy of real's own `mappings.json` (alongside its `types.json`, see `NOTICE`), so they match real for every version it maps, and `parse_header` reads the `/* … */` block exactly as real does.
+
+Lifting the 8.x limit is now mostly a header question: on the legacy fixtures in `crates/fec-parser/tests/fixtures/legacy/`, every filing reads exactly as real reads it except for header assembly — the 1.x/2.x `/*` block, the 3.00 header's `name_delim`, 5.3's `F99_text`, and an 8.4 `fec_version` written with a trailing space (`fec-parser` trims it; real keeps `'8.4 '`).
 
 `parse_line` and `parse_header` have no such limit. Their column mappings match real's name for name and in order for every form in real's `mappings.json`, across versions 8.5, 8.4, 8.3, 8.2, 8.1, 8.0, 7.0, 6.4, 6.1, 5.3, 5.0 and 3.0 — 1,380 `(form, version)` pairs, 1,156 of which both packages map, checked by `test_column_names_match_real_across_mappings`. The one HDR column real has and these don't is `name_delim` (format versions 3.x–5.x), which always reads `''`, since the native `Header` doesn't carry it.
 
@@ -200,10 +204,8 @@ Everything else about a filing matches, cover page included: a column an FEC lay
 | `19011213` and earlier back to 1883-11-19 | `-04:56` (LMT) | `-05:00` (EST) |
 | `18830701` and earlier | `-04:56` | `-04:56:02` |
 
-**Malformed input.** Four things a filing has to be broken to hit. None is allowlisted — the differential test excludes nothing for them — and each is pinned by its own test:
+**Malformed input.** Two things a filing has to be broken to hit. None is allowlisted — the differential test excludes nothing for them — and each is pinned by its own test:
 
-- **The first record must be a cover `fec-parser` recognises, with a filer name**, or `FecParseError`. Real takes whatever it parses first as the summary, whatever it is.
-- **A form type with surrounding whitespace is unmapped here** (`FecParserMissingMappingError`); real strips it for the mapping lookup and keeps the unstripped spelling as the `form_type` value, so its itemization group is `' SA11AI '`.
 - **`filter_itemizations` prefixes match the row type, not the raw line** (and case-insensitively, see below). Real tests `line.startswith(prefix)` or `line.startswith('"' + prefix)`, so a prefix that runs past the first field (`"SA11AI\x1cC"`) or carries a quoted row type's quote (`'"SA'`) can match there and never here. Prefixes that stay inside the row type — every documented use — behave identically.
 - **An element of a `loads`/`iter_lines` iterable is text, not one record.** Real parses each element as exactly one line; this package feeds the iterable to the parser as a byte stream, so an element containing `\n` becomes several records.
 
@@ -463,8 +465,8 @@ as parser bugs, deliberately **not** worked around here:
   cover-page columns are named twice by the FEC layout, and the parser disambiguates the second
   copy as `col_a_total_receipts_TODO_DUP` and the like; one Form 3L column that the layout leaves
   nameless comes back as `TODO_UNKNOWN_BLANK`. Visible in `cover_row.keys()`/`dict(cover_row)` on
-  the native API. The `fecfile` API translates these back to real `fecfile`'s names before it
-  builds a dict, so they never reach `filing["filing"]` there.
+  the native API. The `fecfile` API keys its dicts by real `fecfile`'s own mappings, so they
+  never reach `filing["filing"]` there.
 - **`[BEGINTEXT]…[ENDTEXT]` bodies are dropped.** F99 filings parse, but their free-form text
   never reaches a `Row`, and the `fecfile` API never gets an `F99_text` key to offer — the one
   parser gap that is still on the `fecfile` API's [list of differences](#where-it-differs).
