@@ -20,10 +20,64 @@ use crate::covers::PersonName;
 use indexmap::IndexMap;
 use jiff::civil::Date;
 
-pub(crate) type Data = IndexMap<String, String>;
+/// A cover record's `column name -> raw string` map. The value helpers
+/// take it; a [`Data`] derefs to it.
+pub(crate) type Kv = IndexMap<String, String>;
+
+/// A cover record's `column name -> raw string` map, plus the filing's
+/// combined-name delimiter: the input of the typed covers' `from_data`.
+/// Derefs to the map; `From` a map gives the default `^` delimiter.
+#[derive(Debug, Clone, Default)]
+pub struct Data {
+    kv: IndexMap<String, String>,
+    /// Sub-delimiter of legacy combined names (`Last^First^...`): the
+    /// header's `name_delim` / `NameDelim`, `^` when unset.
+    name_delimiter: String,
+}
+
+impl Data {
+    /// `name_delimiter`: [`crate::FilingHeader::name_delimiter`]; `None` or
+    /// empty means `^`.
+    pub fn new(kv: IndexMap<String, String>, name_delimiter: Option<&str>) -> Self {
+        Self {
+            kv,
+            name_delimiter: name_delimiter
+                .filter(|d| !d.is_empty())
+                .unwrap_or("^")
+                .to_owned(),
+        }
+    }
+}
+
+impl std::ops::Deref for Data {
+    type Target = IndexMap<String, String>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.kv
+    }
+}
+
+impl std::ops::DerefMut for Data {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.kv
+    }
+}
+
+impl From<IndexMap<String, String>> for Data {
+    fn from(kv: IndexMap<String, String>) -> Self {
+        Self::new(kv, None)
+    }
+}
+
+impl FromIterator<(String, String)> for Data {
+    /// A map with the default `^` name delimiter.
+    fn from_iter<I: IntoIterator<Item = (String, String)>>(iter: I) -> Self {
+        Self::new(iter.into_iter().collect(), None)
+    }
+}
 
 /// Trimmed text value, or `None` if the column is missing or blank.
-pub(crate) fn text(data: &Data, key: &str) -> Option<String> {
+pub(crate) fn text(data: &Kv, key: &str) -> Option<String> {
     data.get(key)
         .map(|s| s.trim())
         .filter(|s| !s.is_empty())
@@ -31,17 +85,17 @@ pub(crate) fn text(data: &Data, key: &str) -> Option<String> {
 }
 
 /// Trimmed text value, or `""` if missing or blank.
-pub(crate) fn text_or_empty(data: &Data, key: &str) -> String {
+pub(crate) fn text_or_empty(data: &Kv, key: &str) -> String {
     text(data, key).unwrap_or_default()
 }
 
 /// Money amount. Blank, missing, or unparsable values are `0.0`.
-pub(crate) fn amount(data: &Data, key: &str) -> f64 {
+pub(crate) fn amount(data: &Kv, key: &str) -> f64 {
     amount_opt(data, key).unwrap_or(0.0)
 }
 
 /// Money amount, or `None` if the column is missing, blank, or unparsable.
-pub(crate) fn amount_opt(data: &Data, key: &str) -> Option<f64> {
+pub(crate) fn amount_opt(data: &Kv, key: &str) -> Option<f64> {
     data.get(key)
         .map(|s| s.trim())
         .filter(|s| !s.is_empty())
@@ -49,7 +103,7 @@ pub(crate) fn amount_opt(data: &Data, key: &str) -> Option<f64> {
 }
 
 /// A date in `YYYYMMDD` (v6+) or `MM/DD/YYYY` (some legacy versions).
-pub(crate) fn date(data: &Data, key: &str) -> Option<Date> {
+pub(crate) fn date(data: &Kv, key: &str) -> Option<Date> {
     let s = data.get(key)?.trim();
     if s.is_empty() {
         return None;
@@ -62,7 +116,7 @@ pub(crate) fn date(data: &Data, key: &str) -> Option<Date> {
 /// A checkbox. The FEC format marks checked boxes with `X`; anything else
 /// (including blank) is unchecked.
 #[allow(dead_code)] // used by the per-form cover modules as they land
-pub(crate) fn flag(data: &Data, key: &str) -> bool {
+pub(crate) fn flag(data: &Kv, key: &str) -> bool {
     data.get(key)
         .map(|s| s.trim().eq_ignore_ascii_case("x"))
         .unwrap_or(false)
@@ -86,24 +140,21 @@ pub(crate) fn person_name_or_legacy(data: &Data, prefix: &str, legacy_key: &str)
         return name;
     }
     text(data, legacy_key)
-        .map(|raw| parse_legacy_name(&raw))
+        .map(|raw| split_legacy_name(&raw, &data.name_delimiter))
         .unwrap_or(name)
 }
 
-/// Read a structured `{prefix}last_name`/… name, splitting a caret-delimited
-/// value found in `{prefix}last_name` (with `{prefix}first_name` blank) the
-/// way [`person_name_or_legacy`] splits a legacy column. For names whose
-/// mappings have no legacy single-name column.
+/// Read a structured `{prefix}last_name`/… name, splitting a combined value
+/// (the filing's name delimiter, `^` by default) found in `{prefix}last_name`
+/// (with `{prefix}first_name` blank) the way [`person_name_or_legacy`]
+/// splits a legacy column. For names whose mappings have no legacy
+/// single-name column.
 pub(crate) fn person_name(data: &Data, prefix: &str) -> PersonName {
     let name = PersonName::from_prefixed(data, prefix);
-    if name.first_name.is_empty() && name.last_name.contains('^') {
-        return parse_legacy_name(&name.last_name);
+    if name.first_name.is_empty() && name.last_name.contains(data.name_delimiter.as_str()) {
+        return split_legacy_name(&name.last_name, &data.name_delimiter);
     }
     name
-}
-
-fn parse_legacy_name(raw: &str) -> PersonName {
-    split_legacy_name(raw, "^")
 }
 
 /// Split a v1–5.x combined name, `Last^First^Prefix^Suffix` with `^` the
@@ -189,5 +240,19 @@ mod tests {
 
         let n = split_legacy_name("Fulton Bank", "^");
         assert_eq!((n.last_name.as_str(), n.first_name.as_str()), ("Fulton Bank", ""));
+    }
+
+    #[test]
+    fn names_use_the_filing_delimiter() {
+        let kv = data(&[("treasurer_name", "Galis|George||"), ("a_last_name", "Doe|Jane")]);
+        let d = Data::new(kv.kv.clone(), Some("|"));
+        let n = person_name_or_legacy(&d, "treasurer_", "treasurer_name");
+        assert_eq!((n.last_name.as_str(), n.first_name.as_str()), ("Galis", "George"));
+        let n = person_name(&d, "a_");
+        assert_eq!((n.last_name.as_str(), n.first_name.as_str()), ("Doe", "Jane"));
+        // Unset or empty: `^`.
+        let d = Data::new(data(&[("treasurer_name", "Doe^Jane")]).kv, Some(""));
+        let n = person_name_or_legacy(&d, "treasurer_", "treasurer_name");
+        assert_eq!((n.last_name.as_str(), n.first_name.as_str()), ("Doe", "Jane"));
     }
 }
