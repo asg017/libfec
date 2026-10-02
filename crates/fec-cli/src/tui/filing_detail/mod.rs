@@ -1,7 +1,7 @@
 //! Filing Detail TUI Component
 //!
 //! This module provides rendering functions for displaying detailed FEC filing information
-//! within a ratatui application. Each typed cover (F1, F1M, F3 and F3P) has its own
+//! within a ratatui application. Each typed cover (F1, F1M, F3, F3P and F3X) has its own
 //! renderer module, all built on the shared line builders in [`layout`], around common
 //! chrome (title, URL, metadata, help bar, yank popup, key handling).
 //!
@@ -17,6 +17,7 @@ pub mod f1;
 pub mod f1m;
 pub mod f3;
 pub mod f3p;
+pub mod f3x;
 mod layout;
 
 use crate::tui::{navigation_popup_help_line, HelpBar};
@@ -55,6 +56,7 @@ pub enum FilingCoverContent {
     Form1M(Box<fec_parser::covers::Form1M>),
     Form3(FilingDetailF3),
     Form3P(FilingDetailF3P),
+    Form3X(Box<fec_parser::covers::Form3X>),
     /// No typed cover (an unsupported form type or an unparsable cover).
     Unknown,
 }
@@ -108,6 +110,7 @@ impl<R: std::io::Read> From<&fec_parser::Filing<R>> for FilingDetail {
             Some(Cover::Form1M(form)) => FilingCoverContent::Form1M(Box::new(form.clone())),
             Some(Cover::Form3(form)) => FilingCoverContent::Form3(FilingDetailF3::from(form)),
             Some(Cover::Form3P(form)) => FilingCoverContent::Form3P(FilingDetailF3P::from(form)),
+            Some(Cover::Form3X(form)) => FilingCoverContent::Form3X(form.clone()),
             None => FilingCoverContent::Unknown,
         };
 
@@ -359,6 +362,7 @@ fn render_content(f: &mut Frame, filing: &FilingDetail, state: &FilingDetailStat
         FilingCoverContent::Form1M(form) => f1m::append_f1m_content_lines(&mut d, form),
         FilingCoverContent::Form3(data) => f3::append_f3_content_lines(&mut d, data),
         FilingCoverContent::Form3P(data) => f3p::append_f3p_content_lines(&mut d, data),
+        FilingCoverContent::Form3X(form) => f3x::append_f3x_content_lines(&mut d, form),
         FilingCoverContent::Unknown => {}
     }
 
@@ -605,6 +609,28 @@ pub(crate) mod tests {
     #[test]
     fn filing_detail_f3p() {
         assert_snapshot!(render_fixture("F3PN_1887806.fec", 100, 50));
+    }
+
+    #[test]
+    fn filing_detail_f3x() {
+        assert_snapshot!(render_fixture("F3XN_1926068.fec", 100, 50));
+    }
+
+    #[test]
+    fn filing_detail_f3x_full() {
+        // Tall enough to show every Detailed Summary line.
+        assert_snapshot!(render_fixture("F3XN_1926068.fec", 100, 120));
+    }
+
+    #[test]
+    fn filing_detail_f3x_amended_narrow() {
+        assert_snapshot!(render_fixture("F3XA_1909193.fec", 60, 40));
+    }
+
+    #[test]
+    fn filing_detail_f3x_40_cols() {
+        // Narrower than a two-column table: labels take their own lines.
+        assert_snapshot!(render_fixture("F3XA_1909193.fec", 40, 130));
     }
 
     #[test]
