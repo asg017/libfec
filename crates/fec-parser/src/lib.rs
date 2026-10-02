@@ -317,59 +317,48 @@ impl FilingCover {
 
         let columns = column_names_for_field(form_type.as_str(), fec_version)
             .map_err(|e| format!("Error getting column names for form type '{form_type}': {e}"))?;
+        // `mappings2.json` names every column uniquely, but if a layout ever
+        // repeats a name, the first column keeps it (the same column the
+        // positional lookups below find).
         let mut cover_record_kv = IndexMap::new();
         for (column_name, field) in columns.iter().zip(cover_record.iter()) {
-            cover_record_kv.insert(column_name.to_owned(), field.to_owned());
+            cover_record_kv
+                .entry(column_name.to_owned())
+                .or_insert_with(|| field.to_owned());
         }
-
-        let id_idx = columns
-            .iter()
-            .position(|v| v == "filer_committee_id_number" || v == "candidate_id_number")
-            .ok_or_else(|| "asdf".to_owned())?;
-
-        let name_idx = columns
-            .iter()
-            .position(|v| v == "committee_name" || v == "organization_name")
-            .ok_or_else(|| "asdf".to_owned())?;
-
-        let report_code = columns
-            .iter()
-            .position(|v| v == "report_code")
-            .and_then(|idx| cover_record.get(idx).map(|s| s.to_owned()));
-
-        // provided as '20240901'
-        let coverage_from_date = match columns
-            .iter()
-            .position(|v| v == "coverage_from_date")
-            .and_then(|idx| cover_record.get(idx).map(|s| s.to_owned()))
-            .map(|s| Date::strptime("%Y%m%d", s))
-        {
-            Some(Ok(date)) => Some(date),
-            None => None,
-            // TODO: F5 forms sometimes have a coverage_from_date column but the value is empty? ex FEC-1917549
-            Some(Err(_)) => None,
+        let field_of = |names: &[&str]| -> Option<&str> {
+            columns
+                .iter()
+                .position(|v| names.contains(&v.as_str()))
+                .and_then(|idx| cover_record.get(idx))
         };
 
-        let coverage_through_date = match columns
-            .iter()
-            .position(|v| v == "coverage_through_date")
-            .and_then(|idx| cover_record.get(idx).map(|s| s.to_owned()))
-            .map(|s| Date::strptime("%Y%m%d", s))
-        {
-            Some(Ok(date)) => Some(date),
-            None => None,
-            // TODO: F5 forms sometimes have a coverage_from_date column but the value is empty? ex FEC-1917549
-            Some(Err(_)) => None,
-        };
+        let filer_id = field_of(&["filer_committee_id_number", "candidate_id_number"])
+            .ok_or_else(|| {
+                format!(
+                    "Cover record '{form_type}' (version {fec_version}) has no filer ID \
+                     column (filer_committee_id_number or candidate_id_number) \
+                     or is too short to contain it"
+                )
+            })?
+            .to_owned();
 
-        let filer_id = cover_record
-            .get(id_idx)
-            .ok_or_else(|| "Cover record missing filer ID field".to_owned())?
+        // Optional: paper Form 99 layouts have no committee name column, and
+        // a record may be cut short before it. Falls back to the typed
+        // cover's filer name (Form 5/9 individuals) below, else empty.
+        let filer_name = field_of(&["committee_name", "organization_name"])
+            .unwrap_or_default()
             .to_owned();
-        let filer_name = cover_record
-            .get(name_idx)
-            .ok_or_else(|| "Cover record missing filer name field".to_owned())?
-            .to_owned();
+
+        let report_code = field_of(&["report_code"]).map(|s| s.to_owned());
+
+        // `YYYYMMDD` (v3+ and paper) or `MM/DD/YYYY`; blank or unparsable
+        // values are `None` (some F5s have the column but leave it empty,
+        // e.g. FEC-1917549).
+        let coverage_from_date = covers::fields::date(&cover_record_kv, "coverage_from_date");
+        let coverage_through_date =
+            covers::fields::date(&cover_record_kv, "coverage_through_date");
+
         let cover_data = covers::cover_from_form_type(&form_type, &cover_record_kv);
         // Individuals filing F5/F9 leave the organization-name column blank.
         let filer_name = match cover_data.as_ref().and_then(|c| c.filer_name()) {

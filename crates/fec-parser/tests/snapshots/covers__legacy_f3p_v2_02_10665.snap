@@ -1,0 +1,566 @@
+---
+source: crates/fec-parser/tests/covers.rs
+expression: "legacy_cover(\"2.02_10665.fec\")"
+snapshot_kind: text
+---
+{
+  "form": "Form3P",
+  "data": {
+    "form_type": "F3PA",
+    "filer_committee_id": "C00329706",
+    "committee_name": "LaRouche's Committee for a New Bretton Woods",
+    "address": {
+      "street_1": "P.O. Box 89",
+      "street_2": null,
+      "city": "Leesburg",
+      "state": "VA",
+      "zip_code": "20178"
+    },
+    "change_of_address": false,
+    "activity_primary": true,
+    "activity_general": false,
+    "report_code": "M2",
+    "election_code": "P",
+    "election_date": null,
+    "state_of_election": null,
+    "coverage_from_date": "2000-01-01",
+    "coverage_through_date": "2000-01-31",
+    "treasurer": {
+      "first_name": "",
+      "last_name": "Kathy A. Magraw",
+      "middle_name": null,
+      "prefix": null,
+      "suffix": null
+    },
+    "date_signed": "2000-12-29",
+    "summary": {
+      "line6_cash_on_hand_beginning_period": 18635.62,
+      "line7_total_receipts": 569482.4,
+      "line8_subtotal": 588118.02,
+      "line9_total_disbursements": 478683.61,
+      "line10_cash_on_hand_end_period": 109434.41,
+      "line11_debts_owed_to_committee": 0.0,
+      "line12_debts_owed_by_committee": 354032.43,
+      "line13_expenditures_subject_to_limits": 2509097.4,
+      "line14_net_contributions_other_than_loans": 200256.64,
+      "line15_net_operating_expenditures": 476947.62
+    },
+    "detailed_summary": {
+      "receipts": {
+        "line16_federal_funds": {
+          "column_a": 367489.77,
+          "column_b": 367489.77
+        },
+        "line17a_i_contributions_from_individuals_itemized": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line17a_ii_contributions_from_individuals_unitemized": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line17a_iii_contributions_from_individuals_total": {
+          "column_a": 201833.68,
+          "column_b": 201833.68
+        },
+        "line17b_political_party_committees": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line17c_other_political_committees": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line17d_the_candidate": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line17e_total_contributions": {
+          "column_a": 201833.68,
+          "column_b": 201833.68
+        },
+        "line18_transfers_from_other_authorized_committee": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line19a_loans_received_from_or_guaranteed_by_candidate": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line19b_other_loans": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line19c_total_loans": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line20a_offsets_to_expenditures_operating": {
+          "column_a": 158.95,
+          "column_b": 158.95
+        },
+        "line20b_offsets_to_expenditures_fundraising": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line20c_offsets_to_expenditures_legal_and_accounting": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line20d_offsets_to_expenditures_total": {
+          "column_a": 158.95,
+          "column_b": 158.95
+        },
+        "line21_other_receipts": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line22_total_receipts": {
+          "column_a": 569482.4,
+          "column_b": 569482.4
+        }
+      },
+      "disbursements": {
+        "line23_operating_expenditures": {
+          "column_a": 477106.57,
+          "column_b": 477106.57
+        },
+        "line24_transfers_to_other_authorized_committees": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line25_fundraising_disbursements": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line26_exempt_legal_and_accounting_disbursements": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line27a_loan_repayments_candidate": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line27b_loan_repayments_other": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line27c_loan_repayments_total": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line28a_refunds_to_individuals": {
+          "column_a": 1577.04,
+          "column_b": 1577.04
+        },
+        "line28b_refunds_to_political_party_committees": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line28c_refunds_to_other_political_committees": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line28d_refunds_total": {
+          "column_a": 1577.04,
+          "column_b": 1577.04
+        },
+        "line29_other_disbursements": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line30_total_disbursements": {
+          "column_a": 478683.61,
+          "column_b": 478683.61
+        }
+      },
+      "line31_items_on_hand_to_be_liquidated": 0.0
+    },
+    "state_allocations": {
+      "states": [
+        {
+          "state": "Alabama",
+          "allocation": {
+            "column_a": 1623.22,
+            "column_b": 15230.55
+          }
+        },
+        {
+          "state": "Alaska",
+          "allocation": {
+            "column_a": 1526.98,
+            "column_b": 4059.32
+          }
+        },
+        {
+          "state": "Arizona",
+          "allocation": {
+            "column_a": 3923.33,
+            "column_b": 17875.4
+          }
+        },
+        {
+          "state": "Arkansas",
+          "allocation": {
+            "column_a": 139.27,
+            "column_b": 2865.78
+          }
+        },
+        {
+          "state": "California",
+          "allocation": {
+            "column_a": 38251.98,
+            "column_b": 255078.27
+          }
+        },
+        {
+          "state": "Colorado",
+          "allocation": {
+            "column_a": 515.63,
+            "column_b": 11445.45
+          }
+        },
+        {
+          "state": "Connecticut",
+          "allocation": {
+            "column_a": 1992.01,
+            "column_b": 3508.46
+          }
+        },
+        {
+          "state": "Delaware",
+          "allocation": {
+            "column_a": 20442.87,
+            "column_b": 29480.17
+          }
+        },
+        {
+          "state": "District of Columbia",
+          "allocation": {
+            "column_a": 2039.96,
+            "column_b": 18560.6
+          }
+        },
+        {
+          "state": "Florida",
+          "allocation": {
+            "column_a": 1105.14,
+            "column_b": 7264.28
+          }
+        },
+        {
+          "state": "Georgia",
+          "allocation": {
+            "column_a": 1377.79,
+            "column_b": 5130.81
+          }
+        },
+        {
+          "state": "Hawaii",
+          "allocation": {
+            "column_a": 1871.39,
+            "column_b": 3721.43
+          }
+        },
+        {
+          "state": "Idaho",
+          "allocation": {
+            "column_a": 852.18,
+            "column_b": 5969.07
+          }
+        },
+        {
+          "state": "Illinois",
+          "allocation": {
+            "column_a": 12392.51,
+            "column_b": 101916.53
+          }
+        },
+        {
+          "state": "Indiana",
+          "allocation": {
+            "column_a": 3427.42,
+            "column_b": 17104.6
+          }
+        },
+        {
+          "state": "Iowa",
+          "allocation": {
+            "column_a": 3971.67,
+            "column_b": 11372.68
+          }
+        },
+        {
+          "state": "Kansas",
+          "allocation": {
+            "column_a": 1778.8,
+            "column_b": 15484.43
+          }
+        },
+        {
+          "state": "Kentucky",
+          "allocation": {
+            "column_a": 1575.65,
+            "column_b": 5725.99
+          }
+        },
+        {
+          "state": "Louisiana",
+          "allocation": {
+            "column_a": 1657.16,
+            "column_b": 7126.15
+          }
+        },
+        {
+          "state": "Maine",
+          "allocation": {
+            "column_a": 137.78,
+            "column_b": 8380.55
+          }
+        },
+        {
+          "state": "Maryland",
+          "allocation": {
+            "column_a": 26722.79,
+            "column_b": 230295.49
+          }
+        },
+        {
+          "state": "Massachusetts",
+          "allocation": {
+            "column_a": 15083.21,
+            "column_b": 37749.01
+          }
+        },
+        {
+          "state": "Michigan",
+          "allocation": {
+            "column_a": 23019.78,
+            "column_b": 64453.65
+          }
+        },
+        {
+          "state": "Minnesota",
+          "allocation": {
+            "column_a": 2767.76,
+            "column_b": 24887.56
+          }
+        },
+        {
+          "state": "Mississippi",
+          "allocation": {
+            "column_a": 2348.99,
+            "column_b": 8289.48
+          }
+        },
+        {
+          "state": "Missouri",
+          "allocation": {
+            "column_a": 1077.92,
+            "column_b": 10765.38
+          }
+        },
+        {
+          "state": "Montana",
+          "allocation": {
+            "column_a": 333.86,
+            "column_b": 4343.56
+          }
+        },
+        {
+          "state": "Nebraska",
+          "allocation": {
+            "column_a": 234.97,
+            "column_b": 4313.06
+          }
+        },
+        {
+          "state": "Nevada",
+          "allocation": {
+            "column_a": 139.46,
+            "column_b": 2450.77
+          }
+        },
+        {
+          "state": "New Hampshire",
+          "allocation": {
+            "column_a": 40714.32,
+            "column_b": 46467.29
+          }
+        },
+        {
+          "state": "New Jersey",
+          "allocation": {
+            "column_a": 35576.1,
+            "column_b": 174918.14
+          }
+        },
+        {
+          "state": "New Mexico",
+          "allocation": {
+            "column_a": 1481.68,
+            "column_b": 9729.34
+          }
+        },
+        {
+          "state": "New York",
+          "allocation": {
+            "column_a": 22471.36,
+            "column_b": 80271.62
+          }
+        },
+        {
+          "state": "North Carolina",
+          "allocation": {
+            "column_a": 131.04,
+            "column_b": 2988.64
+          }
+        },
+        {
+          "state": "North Dakota",
+          "allocation": {
+            "column_a": 784.56,
+            "column_b": 7370.32
+          }
+        },
+        {
+          "state": "Ohio",
+          "allocation": {
+            "column_a": 8948.77,
+            "column_b": 51691.09
+          }
+        },
+        {
+          "state": "Oklahoma",
+          "allocation": {
+            "column_a": 2889.71,
+            "column_b": 5300.27
+          }
+        },
+        {
+          "state": "Oregon",
+          "allocation": {
+            "column_a": 1328.3,
+            "column_b": 8304.83
+          }
+        },
+        {
+          "state": "Pennsylvania",
+          "allocation": {
+            "column_a": 18298.4,
+            "column_b": 137414.76
+          }
+        },
+        {
+          "state": "Rhode Island",
+          "allocation": {
+            "column_a": 413.29,
+            "column_b": 2526.52
+          }
+        },
+        {
+          "state": "South Carolina",
+          "allocation": {
+            "column_a": 5258.02,
+            "column_b": 7371.97
+          }
+        },
+        {
+          "state": "South Dakota",
+          "allocation": {
+            "column_a": 337.08,
+            "column_b": 5397.61
+          }
+        },
+        {
+          "state": "Tennessee",
+          "allocation": {
+            "column_a": 4036.96,
+            "column_b": 13464.75
+          }
+        },
+        {
+          "state": "Texas",
+          "allocation": {
+            "column_a": 4605.22,
+            "column_b": 146272.91
+          }
+        },
+        {
+          "state": "Utah",
+          "allocation": {
+            "column_a": 32.29,
+            "column_b": 563.0
+          }
+        },
+        {
+          "state": "Vermont",
+          "allocation": {
+            "column_a": 113.21,
+            "column_b": 3873.88
+          }
+        },
+        {
+          "state": "Virginia",
+          "allocation": {
+            "column_a": 35560.29,
+            "column_b": 250118.93
+          }
+        },
+        {
+          "state": "Washington",
+          "allocation": {
+            "column_a": 6080.54,
+            "column_b": 58399.28
+          }
+        },
+        {
+          "state": "West Virginia",
+          "allocation": {
+            "column_a": 4798.11,
+            "column_b": 16566.07
+          }
+        },
+        {
+          "state": "Wisconsin",
+          "allocation": {
+            "column_a": 1195.7,
+            "column_b": 8533.08
+          }
+        },
+        {
+          "state": "Wyoming",
+          "allocation": {
+            "column_a": 159.78,
+            "column_b": 3688.8
+          }
+        },
+        {
+          "state": "Puerto Rico",
+          "allocation": {
+            "column_a": 22.79,
+            "column_b": 22.79
+          }
+        },
+        {
+          "state": "Guam",
+          "allocation": {
+            "column_a": 4.93,
+            "column_b": 7.02
+          }
+        },
+        {
+          "state": "Virgin Islands",
+          "allocation": {
+            "column_a": 3.52,
+            "column_b": 32.0
+          }
+        }
+      ],
+      "totals": {
+        "column_a": 367577.45,
+        "column_b": 1976143.39
+      }
+    }
+  }
+}
