@@ -195,6 +195,9 @@ pub struct FilingReader {
     header: Py<Header>,
     cover: Py<Cover>,
     cover_row: Py<Row>,
+    /// The typed cover (`libfec_parser.covers.Form3X`, …), `None` for a form
+    /// `fec-parser` has no struct for.
+    cover_data: Option<Py<PyAny>>,
     id: Option<String>,
     /// `header.fec_version`, needed for every `schema_for` lookup.
     version: String,
@@ -334,6 +337,14 @@ impl FilingReader {
     #[getter]
     fn cover_row(&self, py: Python<'_>) -> Py<Row> {
         self.cover_row.clone_ref(py)
+    }
+
+    /// The typed cover record — `Form3X`, `Form1`, … from `libfec_parser.covers` —
+    /// or `None` when `fec-parser` has no typed struct for the form.  The same
+    /// object every time.
+    #[getter]
+    fn cover_data(&self, py: Python<'_>) -> Option<Py<PyAny>> {
+        self.cover_data.as_ref().map(|c| c.clone_ref(py))
     }
 
     /// The filing id: the file stem of a path, or of a file object's `name`
@@ -498,6 +509,12 @@ pub fn open_filing(py: Python<'_>, source: &Bound<'_, PyAny>) -> PyResult<Filing
     })?;
     // The cover record is always the filing's second line.
     let cover_row = Row::new(cover_schema, filing.cover.record.clone(), 2);
+    let cover_data = filing
+        .cover
+        .cover_data
+        .as_ref()
+        .map(|c| fec_parser::covers::python::cover_to_py(py, c).map(Bound::unbind))
+        .transpose()?;
 
     Ok(FilingReader {
         inner: Mutex::new(Some(filing)),
@@ -506,6 +523,7 @@ pub fn open_filing(py: Python<'_>, source: &Bound<'_, PyAny>) -> PyResult<Filing
         header: Py::new(py, header)?,
         cover: Py::new(py, cover)?,
         cover_row: Py::new(py, cover_row)?,
+        cover_data,
         id,
         version,
         source_length,
