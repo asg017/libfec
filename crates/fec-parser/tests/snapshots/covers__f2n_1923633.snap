@@ -1,0 +1,64 @@
+---
+source: crates/fec-parser/tests/covers.rs
+expression: "cover(\"F2N_1923633.fec\")"
+snapshot_kind: text
+---
+{
+  "form": "Form2",
+  "data": {
+    "form_type": "F2N",
+    "candidate_id": "H6CA24113",
+    "candidate": {
+      "first_name": "Brad",
+      "last_name": "Sherman",
+      "middle_name": null,
+      "prefix": null,
+      "suffix": null
+    },
+    "candidate_address": {
+      "street_1": "445 S Figueroa St.",
+      "street_2": "Suite 2400",
+      "city": "Los Angeles",
+      "state": "CA",
+      "zip_code": "90071"
+    },
+    "change_of_address": true,
+    "party_code": "DEM",
+    "office": "H",
+    "office_state": "CA",
+    "district": "32",
+    "election_year": 2028,
+    "vice_president": null,
+    "principal_committee": {
+      "id": "C00308742",
+      "name": "Sherman for Congress",
+      "address": {
+        "street_1": "445 S Figueroa St.",
+        "street_2": "Suite 2400",
+        "city": "Los Angeles",
+        "state": "CA",
+        "zip_code": "90071"
+      }
+    },
+    "authorized_committee": {
+      "id": "C00361410",
+      "name": "Southern California Fund",
+      "address": {
+        "street_1": "445 S Figueroa St.",
+        "street_2": "Suite 2400",
+        "city": "Los Angeles",
+        "state": "CA",
+        "zip_code": "90071"
+      }
+    },
+    "personal_funds_declaration": null,
+    "signer": {
+      "first_name": "Brad",
+      "last_name": "Sherman",
+      "middle_name": null,
+      "prefix": null,
+      "suffix": null
+    },
+    "date_signed": "2025-10-27"
+  }
+}

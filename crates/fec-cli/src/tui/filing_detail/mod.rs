@@ -15,6 +15,7 @@
 pub mod f1;
 pub mod f13;
 pub mod f1m;
+pub mod f2;
 pub mod f24;
 pub mod f3;
 pub mod f3l;
@@ -25,13 +26,17 @@ pub mod f5;
 pub mod f6;
 pub mod f7;
 pub mod f9;
+pub mod f99;
 mod misc_helpers;
 
 use crate::tui::{navigation_popup_help_line, HelpBar};
 use crossterm::event::{KeyCode, KeyEvent};
 use f3::FilingDetailF3;
 use f3p::FilingDetailF3P;
-use fec_parser::{covers::Cover, report_code_label};
+use fec_parser::{
+    covers::{Cover, Form2, Form99},
+    report_code_label,
+};
 use indicatif::HumanBytes;
 use num_format::{Locale, ToFormattedString};
 use ratatui::{
@@ -72,6 +77,8 @@ pub enum FilingCoverContent {
     Form5(Box<fec_parser::covers::Form5>),
     Form6(Box<fec_parser::covers::Form6>),
     Form9(Box<fec_parser::covers::Form9>),
+    Form2(Box<Form2>),
+    Form99(Box<Form99>),
 }
 
 /// Holds extracted filing information for TUI display
@@ -133,6 +140,8 @@ impl<R: std::io::Read> From<&fec_parser::Filing<R>> for FilingDetail {
             Some(Cover::Form6(form)) => FilingCoverContent::Form6(Box::new(form.clone())),
             Some(Cover::Form9(form)) => FilingCoverContent::Form9(form.clone()),
             None => FilingCoverContent::Unknown,
+            Some(Cover::Form2(form)) => FilingCoverContent::Form2(form.clone()),
+            Some(Cover::Form99(form)) => FilingCoverContent::Form99(Box::new(form.clone())),
         };
 
         FilingDetail {
@@ -399,6 +408,10 @@ fn render_content(f: &mut Frame, filing: &FilingDetail, state: &FilingDetailStat
         FilingCoverContent::Form5(data) => f5::append_f5_content_lines(&mut lines, data),
         FilingCoverContent::Form6(data) => f6::append_f6_content_lines(&mut lines, data),
         FilingCoverContent::Form9(data) => f9::append_f9_content_lines(&mut lines, data),
+        FilingCoverContent::Form2(form) => f2::append_f2_content_lines(&mut lines, form),
+        FilingCoverContent::Form99(form) => {
+            f99::append_f99_content_lines(&mut lines, form, area.width)
+        }
     }
 
     // FEC URL
@@ -771,5 +784,35 @@ pub(crate) mod tests {
     #[test]
     fn filing_detail_f9a_narrow() {
         assert_snapshot!(render_fixture("F9A_2015422.fec", 60, 40));
+    }
+
+    #[test]
+    fn filing_detail_f2() {
+        assert_snapshot!(render_fixture("F2N_1923633.fec", 100, 50));
+    }
+
+    #[test]
+    fn filing_detail_f2_narrow() {
+        assert_snapshot!(render_fixture("F2N_1923633.fec", 60, 40));
+    }
+
+    #[test]
+    fn filing_detail_f2a() {
+        assert_snapshot!(render_fixture("F2A_1902439.fec", 100, 50));
+    }
+
+    #[test]
+    fn filing_detail_f99() {
+        assert_snapshot!(render_fixture("F99_1945322.fec", 100, 50));
+    }
+
+    #[test]
+    fn filing_detail_f99_narrow() {
+        assert_snapshot!(render_fixture("F99_1945322.fec", 60, 40));
+    }
+
+    #[test]
+    fn filing_detail_f99_v84() {
+        assert_snapshot!(render_fixture("F99_1909934.fec", 100, 50));
     }
 }

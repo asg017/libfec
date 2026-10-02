@@ -95,3 +95,9 @@ fn f5_individual_filer_name() {
     let filing = Filing::from_reader(bytes.as_slice(), "1888248".into(), len).unwrap();
     assert_eq!(filing.cover.filer_name, "Jane Doe");
 }
+cover_snapshot!(f2n_1923633, "F2N_1923633.fec");
+cover_snapshot!(f2a_1902439, "F2A_1902439.fec");
+// F99 fixtures are whole filings: the message body is the `[BEGINTEXT]` block
+// after the cover record, which the typed cover reads too.
+cover_snapshot!(f99_1945322, "F99_1945322.fec");
+cover_snapshot!(f99_1909934, "F99_1909934.fec");
