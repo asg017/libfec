@@ -146,3 +146,39 @@ HOLDER / "Unused field" in every version a key covers are named
 | SE | `^2` | 19–23 `payee_candidate_{id_number,name,office,state,district}` (Fec_v2.xls SE seq 20–24) |
 | SF | `^5.3` / `^5.2…` | 35 `unused_36` / `amended_cd` |
 | SL | `^5.3…5.0` | 39 `amended_cd` (label "AMENDED CODE") |
+
+## 3. Version-regex hardening (proc macro, JSON keys unchanged)
+
+The JSON version keys keep their original text. `gen_form_type_version_set!`
+compiles `harden_version_regex(key)` instead: every `.` is escaped and a key
+with a top-level `|` becomes `^(?:a|b|…)` with each alternative's leading `^`
+stripped (`^8.5|8.4` → `^(?:8\.5|8\.4)`; `^(P3.4|P3.3)` → `^(P3\.4|P3\.3)`).
+Before, `^8.5|8.4` meant `(^8.5)|(8.4 anywhere)`. Checked: for all 60 form
+keys × 39 version strings (every version in the samples plus the ticket's
+list) the first matching key is the same before and after. The
+`tests/mappings.rs` resolution snapshot pins the resulting table.
+
+`build.rs` now says `rerun-if-changed=src/mappings2.json` (it pointed at a
+non-existent `mappings2.json`, so JSON edits did not rebuild the macro crate).
+
+## Observed-rows fixture
+
+`crates/fec-parser/tests/fixtures/legacy/observed_row_types.tsv` lists every
+(fec_version, row_type) in `wiki/legacy/samples` with the widest row seen
+(trailing empty/whitespace fields trimmed) and an example file. It was
+generated once with this script (not committed; ~60 lines of Python):
+
+- skip the `/* Header … /*` block of v1/v2 files (up to the second line
+  starting `/*`); HDR lines are row type `HDR` with the version from field 2
+  (paper: field 1);
+- skip blank lines and `[BEGINTEXT]`…`[ENDTEXT]` blocks (case-insensitive,
+  optional space);
+- split each line with Python's `csv.reader` (quote-aware, quoting confined to
+  the line), delimiter 0x1C if the line contains one, else `,`;
+- row type = field 0 stripped and upper-cased; width = index of the last
+  non-blank (whitespace-stripped) field + 1; keep the max per pair.
+
+Mapping misses over the samples (row types with no list or an empty list,
+counted as distinct (version, row type) pairs / files): before 12 pairs in 32
+files (F1S 3.00/5.x, SA3L P2.6–P3.4, F3PZ1 P3.4, SA32 P3.1); after 1 pair in
+1 file (SA32, see above).
