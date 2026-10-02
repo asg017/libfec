@@ -679,7 +679,7 @@ fn run_json_mode(sourcer: &mut FilingSourcer, args: &DatesArgs) -> Result<()> {
     };
 
     let url = api.calendar_dates_url(api_args);
-    eprintln!("URL: {}", url.0);
+    eprintln!("URL: {}", fec_api::redact_api_key(&url.0));
 
     let offline = sourcer.cache.offline;
     let response = fec_api::api_request_cached(
@@ -712,7 +712,7 @@ fn run_json_mode(sourcer: &mut FilingSourcer, args: &DatesArgs) -> Result<()> {
     };
 
     let json = serde_json::json!({
-        "url": url.0.to_string(),
+        "url": fec_api::redact_api_key(&url.0),
         "count": filtered_results.len(),
         "results": filtered_results,
     });
