@@ -400,6 +400,15 @@ def _fields_from_line(line: str, use_ascii_28: bool = False) -> list[str]:
         fields = line.split(_COLUMN_SEPARATOR)
     else:
         fields = next(csv.reader([line]), [])
+    return _unquote(fields)
+
+
+def _unquote(fields: list[str]) -> list[str]:
+    """Take one layer of surrounding double quotes off each field, as real does.
+
+    `fec-parser` keeps quotes verbatim (the format has no quoting), so a native
+    `Row`'s fields still carry them.
+    """
     return [
         field[1:-1] if field.startswith('"') and field.endswith('"') else field
         for field in fields
@@ -424,6 +433,7 @@ def _fields_record(
     fields: list[str], version: str, options: _Options, line: int | None
 ) -> dict[str, Any]:
     """One line's raw fields as a `fecfile` dict."""
+    fields = _unquote(fields)
     names, converters = _mapping(fields[0].strip(), version)
     return _record(fields, names, None if options.as_strings else converters, line)
 
