@@ -306,6 +306,25 @@ fn process_filing<R: Read>(
                         );
                     }
                 }
+                Cover::Form5(form) => {
+                    let kind = form
+                        .report_type_label()
+                        .or(form.report_code_label())
+                        .unwrap_or("Report of Independent Expenditures");
+                    println!("{} by {}", kind.bold(), form.filer_name().bold());
+                    if let Some(date_signed) = form.date_signed {
+                        println!(
+                            "Signed by {} on {}",
+                            form.person_completing.to_string().bold(),
+                            date_signed.to_string().bold()
+                        );
+                    }
+                    println!(
+                        "Total contributions: {}  Total independent expenditures: {}",
+                        format_usd(form.total_contributions),
+                        format_usd(form.total_independent_expenditures)
+                    );
+                }
             }
         }
 

@@ -33,7 +33,6 @@ pub(super) fn field_line(label: &str, value: impl Into<String>) -> Line<'static>
 }
 
 /// Push a `field_line` only when `value` is present.
-#[allow(dead_code)] // used by the Form 5/6/9 renderers
 pub(super) fn push_opt(
     lines: &mut Vec<Line<'static>>,
     label: &str,
@@ -56,6 +55,17 @@ pub(super) fn push_person(lines: &mut Vec<Line<'static>>, label: &str, name: &Pe
     if !name.is_empty() {
         lines.push(field_line(label, name.to_string()));
     }
+}
+
+/// A form-line total: `label` padded to `width`, then the amount right-aligned.
+pub(super) fn amount_line(label: &str, amount: f64, width: usize) -> Line<'static> {
+    Line::from(vec![
+        Span::raw(format!("  {:<width$}", label, width = width)),
+        Span::styled(
+            format!("{:>16}", super::format_usd(amount)),
+            Style::default().add_modifier(Modifier::BOLD),
+        ),
+    ])
 }
 
 /// A dimmed explanatory line.
