@@ -1,7 +1,7 @@
 use crate::{
     cli::ExportArgs,
     sourcer::FilingSourcer,
-    utils::rows::{legacy_name_delimiter, normalize_fec_date, remap_row, UnmappedRows},
+    utils::rows::{legacy_name_delimiter, normalize_fec_date, remap_row, warn, UnmappedRows},
 };
 use fec_parser::{
     mappings::{column_names_for_field, DATE_COLUMNS, FLOAT_COLUMNS},
@@ -117,7 +117,8 @@ fn write_schedule_row(
     for (idx, v) in fields.into_iter().enumerate() {
         let c = col(idx)?;
         match state.column_types.get(idx) {
-            Some(FieldFormat::Float) => match v.parse::<f64>() {
+            // Paper filings pad amounts (`        4.70`).
+            Some(FieldFormat::Float) => match v.trim().parse::<f64>() {
                 Ok(num) => {
                     state.worksheet.write_number_with_format(
                         state.row_idx,
@@ -211,10 +212,13 @@ pub fn cmd_export_excel(
         let row = match row {
             Ok(row) => row,
             Err(e) => {
-                let _ = mb.println(format!(
-                    "warning: FEC-{}: skipping unreadable row: {e}",
-                    filing.filing_id
-                ));
+                warn(
+                    Some(&mb),
+                    format!(
+                        "warning: FEC-{}: skipping unreadable row: {e}",
+                        filing.filing_id
+                    ),
+                );
                 continue;
             }
         };

@@ -36,15 +36,31 @@ impl<'a> UnmappedRows<'a> {
             let msg = format!(
                 "warning: FEC-{filing_id}: no column mapping for row type '{row_type}' in version {fec_version}, {what}"
             );
-            // A hidden MultiProgress (stderr not a terminal) drops println.
-            match self.mb.filter(|mb| !mb.is_hidden()) {
-                Some(mb) => {
-                    let _ = mb.println(msg);
-                }
-                None => eprintln!("{msg}"),
-            }
+            warn(self.mb, msg);
         }
     }
+}
+
+/// Print a warning above the progress bars, or straight to stderr when
+/// there are none: a hidden `MultiProgress` (stderr not a terminal, as in
+/// scripts and CI) silently drops `println`.
+pub fn warn(mb: Option<&MultiProgress>, msg: impl AsRef<str>) {
+    match mb.filter(|mb| !mb.is_hidden()) {
+        Some(mb) => {
+            let _ = mb.println(msg.as_ref());
+        }
+        None => eprintln!("{}", msg.as_ref()),
+    }
+}
+
+/// The error for an export in which every input filing failed to open
+/// (each was already reported by [`warn`]), so it exits non-zero instead of
+/// writing an empty result.
+pub fn all_filings_failed(failed: usize) -> anyhow::Error {
+    anyhow::anyhow!(
+        "none of the {failed} input filing{} could be read; nothing exported",
+        if failed == 1 { "" } else { "s" }
+    )
 }
 
 /// `YYYY-MM-DD` from a `YYYYMMDD` or `MM/DD/YYYY` date (the latter as written
@@ -86,6 +102,20 @@ pub fn file_stem(row_type: &str) -> String {
         .collect()
 }
 
+/// The columns a row type is exported with, whatever the filing's version:
+/// its 8.5 layout, else its 8.4 one (forms removed in 8.5, like F3Z1), else
+/// `fec_version`'s own layout (legacy-only row types, e.g. paper `F3Z`: the
+/// first filing with one then fixes the columns and rows of other legacy
+/// versions are rearranged by name).
+pub fn export_columns(row_type: &str, fec_version: &str) -> Option<&'static [String]> {
+    use fec_parser::mappings::column_names_for_field;
+    column_names_for_field(row_type, "8.5")
+        .or_else(|_| column_names_for_field(row_type, "8.4"))
+        .or_else(|_| column_names_for_field(row_type, fec_version))
+        .ok()
+        .map(Vec::as_slice)
+}
+
 /// The fields of `record` (laid out as `source` columns) rearranged into the
 /// `target` columns by name; missing columns are empty. When the layouts are
 /// identical, the record's fields as they are (possibly fewer or more than
@@ -101,13 +131,35 @@ pub fn remap_by_name<'r>(
     target
         .iter()
         .map(|name| {
-            source
-                .iter()
-                .position(|c| c == name)
+            source_index(source, name)
                 .and_then(|i| record.get(i))
                 .unwrap_or("")
         })
         .collect()
+}
+
+/// Index in a `source` layout of the column that fills target column
+/// `name`: the column of that name, else its counterpart in an 8.x SA3L
+/// (lobbyist bundling) layout. SA3L rows are filed under Schedule A, whose
+/// 45 columns their 8.5 rows fill positionally (sqlite), so other versions
+/// map by name the same way: `lobbyist_registrant_*` → `contributor_*`,
+/// `bundled_amount_period` → `contribution_amount`,
+/// `bundled_amount_semi_annual` → `contribution_aggregate`, `memo_text` →
+/// `memo_text_description`.
+pub fn source_index(source: &[String], name: &str) -> Option<usize> {
+    source.iter().position(|c| c == name).or_else(|| {
+        let alias: Cow<str> = match name {
+            "contribution_amount" => "bundled_amount_period".into(),
+            "contribution_aggregate" => "bundled_amount_semi_annual".into(),
+            "memo_text_description" => "memo_text".into(),
+            _ => format!(
+                "lobbyist_registrant_{}",
+                name.strip_prefix("contributor_")?
+            )
+            .into(),
+        };
+        source.iter().position(|c| *c == alias)
+    })
 }
 
 /// [`remap_by_name`], then [`LegacyNames::fill`] when `name_delimiter` is

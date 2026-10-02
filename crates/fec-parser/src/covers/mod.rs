@@ -73,6 +73,7 @@
 //! matches on the base.
 
 pub(crate) mod fields;
+pub use fields::Data as CoverData;
 pub use crate::covers::fields::split_legacy_name;
 mod form1;
 mod form13;

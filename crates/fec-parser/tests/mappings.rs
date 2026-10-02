@@ -126,3 +126,32 @@ fn legacy_column_names_unique_and_named() {
     }
     assert!(problems.is_empty(), "{}", problems.join("\n"));
 }
+
+/// Legacy columns that exports remap into 8.x layouts by name must carry
+/// the 8.x name of the same field (see MAPPINGS_CHANGES.md): Schedule L's
+/// column A line 10/11 (8.x mislabels them `col_b_*`) and TEXT's
+/// back-reference form.
+#[test]
+fn legacy_names_match_8x_by_meaning() {
+    use fec_parser::mappings::column_names_for_field;
+    let at = |row_type: &str, version: &str, idx: usize| {
+        column_names_for_field(row_type, version).unwrap()[idx].clone()
+    };
+    // 8.x, unchanged: index 22 is column A line 10.
+    assert_eq!(at("SL", "8.5", 22), "col_b_disbursements_period");
+    assert_eq!(at("SL", "8.5", 39), "col_b_disbursements_period_TODO_DUP");
+    assert_eq!(at("SL", "5.1", 21), "col_b_disbursements_period");
+    assert_eq!(at("SL", "5.1", 37), "col_b_disbursements_period_TODO_DUP");
+    assert_eq!(at("SL", "5.1", 38), "col_b_cash_on_hand_close_of_period_TODO_DUP");
+    assert_eq!(at("SL", "P3.4", 18), "col_b_disbursements_period");
+    assert_eq!(at("SL", "P3.4", 19), "col_b_cash_on_hand_close_of_period");
+    assert_eq!(at("SL", "P3.4", 36), "col_b_cash_on_hand_close_of_period_TODO_DUP");
+    for version in ["3.00", "5.00", "5.3", "8.5"] {
+        let cols = column_names_for_field("TEXT", version).unwrap();
+        assert!(
+            cols.iter().any(|c| c == "back_reference_sched_form_name")
+                && !cols.iter().any(|c| c == "form_type"),
+            "{version}: {cols:?}"
+        );
+    }
+}

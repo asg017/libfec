@@ -12,7 +12,10 @@ use crate::{
     cli::ExportArgs,
     commands::export::sqlite::form_type_parse,
     sourcer::{FilingSourcer, ItemizationProgressBar},
-    utils::rows::{file_stem, legacy_name_delimiter, remap_row, UnmappedRows},
+    utils::rows::{
+        all_filings_failed, export_columns, file_stem, legacy_name_delimiter, remap_row, warn,
+        UnmappedRows,
+    },
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -38,10 +41,13 @@ fn new_writer(path: PathBuf, header: &[String]) -> anyhow::Result<csv::Writer<Fi
     Ok(w)
 }
 
-/// One CSV per cover form and per schedule (or other row type). A file's
-/// columns are those of the first row written to it; rows of other versions
-/// are rearranged by column name, and rows with no known layout are skipped
-/// with a warning.
+/// One CSV per cover form and per schedule (or other row type), in the 8.5
+/// layout whatever the filings' versions and order: a schedule's file has
+/// the columns of its ordinary itemizations
+/// ([`ScheduleType::column_names`]), a cover's or other row type's file
+/// those of [`export_columns`]. Rows of other versions are rearranged by
+/// column name (legacy combined names split, see [`remap_row`]); rows with no
+/// known layout are skipped with a warning.
 pub fn export(
     mut sourcer: FilingSourcer,
     args: ExportArgs,
@@ -54,14 +60,17 @@ pub fn export(
     let (_trace, _input_mappings, iter) =
         sourcer.resolve_iterator_from_flags(args.filings, args.api, Some(&mb))?;
 
+    let (mut read, mut failed) = (0usize, 0usize);
     for filing in iter {
         let mut filing = match filing {
             Ok(f) => f,
             Err(e) => {
-                let _ = mb.println(format!("Error fetching filing, skipping: {e:?}"));
+                warn(Some(&mb), format!("Error fetching filing, skipping: {e:?}"));
+                failed += 1;
                 continue;
             }
         };
+        read += 1;
         let fec_version = filing.header.fec_version.clone();
 
         {
@@ -70,7 +79,9 @@ pub fn export(
             let entry = match cover_writers.entry(form_type.clone()) {
                 Entry::Occupied(e) => e.into_mut(),
                 Entry::Vacant(e) => {
-                    let columns = filing.cover.record_column_names.clone();
+                    let columns = export_columns(&filing.cover.form_type, &fec_version)
+                        .map(<[String]>::to_vec)
+                        .unwrap_or_else(|| filing.cover.record_column_names.clone());
                     let path =
                         output_directory.join(format!("cover_{}.csv", file_stem(&form_type)));
                     let writer = new_writer(path, &columns)?;
@@ -91,10 +102,13 @@ pub fn export(
             let row = match r {
                 Ok(row) => row,
                 Err(e) => {
-                    let _ = mb.println(format!(
-                        "warning: FEC-{}: skipping unreadable row: {e}",
-                        filing.filing_id
-                    ));
+                    warn(
+                        Some(&mb),
+                        format!(
+                            "warning: FEC-{}: skipping unreadable row: {e}",
+                            filing.filing_id
+                        ),
+                    );
                     continue;
                 }
             };
@@ -114,14 +128,19 @@ pub fn export(
             let entry = match itemization_writers.entry(key) {
                 Entry::Occupied(e) => e.into_mut(),
                 Entry::Vacant(e) => {
-                    let path = match e.key() {
-                        ItemizationKey::Schedule(schedule_type) => output_directory
-                            .join(format!("{}.csv", schedule_type.to_sqlite_tablename())),
-                        ItemizationKey::FormType(form_type) => {
-                            output_directory.join(format!("form_{}.csv", file_stem(form_type)))
-                        }
+                    let (path, columns) = match e.key() {
+                        ItemizationKey::Schedule(schedule_type) => (
+                            output_directory
+                                .join(format!("{}.csv", schedule_type.to_sqlite_tablename())),
+                            schedule_type.column_names("8.5")?,
+                        ),
+                        ItemizationKey::FormType(form_type) => (
+                            output_directory.join(format!("form_{}.csv", file_stem(form_type))),
+                            export_columns(form_type, &fec_version)
+                                .unwrap_or(row_columns.as_slice())
+                                .to_vec(),
+                        ),
                     };
-                    let columns = row_columns.clone();
                     let mut header = columns.clone();
                     header.insert(0, "filing_id".to_owned());
                     let writer = new_writer(path, &header)?;
@@ -138,6 +157,9 @@ pub fn export(
             );
             entry.writer.write_record(fields.iter().map(|f| f.as_bytes()))?;
         }
+    }
+    if read == 0 && failed > 0 {
+        return Err(all_filings_failed(failed));
     }
     Ok(())
 }

@@ -306,7 +306,7 @@ pub(crate) fn process_inputs(
     // process positional user arguments, which should resolve to a UserArgument
     for item in input {
         match sourcer.resolve_user_argument(item) {
-            Err(error) => todo!("{}", error),
+            Err(error) => return Err(error),
             Ok(UserArgument::Filing(resolved_item)) => {
                 let filing_id = match &resolved_item {
                     Item::FilingId(id) => id.to_bare(),
@@ -697,7 +697,7 @@ impl Contest {
                     state: parts[1].to_uppercase(),
                 }));
             }
-            todo!("Invalid senate contest format");
+            anyhow::bail!("Invalid senate contest format: {input}");
         }
         if input.ends_with("-S") || input.to_lowercase().ends_with("-senate") {
             let parts: Vec<&str> = input.split('-').collect();
@@ -706,13 +706,14 @@ impl Contest {
                     state: parts[0].to_uppercase(),
                 }));
             }
-            todo!("Invalid senate contest format");
+            anyhow::bail!("Invalid senate contest format: {input}");
         }
         if input.starts_with("H-") || input.to_lowercase().starts_with("house-") {
             let parts: Vec<&str> = input.split('-').collect();
-            if parts.len() == 2 {
-                let state = &parts[1][0..2].to_uppercase();
-                let district = &parts[1][2..];
+            if let (2, Some(state), Some(district)) =
+                (parts.len(), parts[1].get(0..2), parts[1].get(2..))
+            {
+                let state = &state.to_uppercase();
                 if district.parse::<u8>().is_ok() {
                     return Ok(Some(Contest::House {
                         state: state.to_string(),
@@ -720,7 +721,7 @@ impl Contest {
                     }));
                 }
             }
-            todo!("Invalid house contest format");
+            anyhow::bail!("Invalid house contest format: {input}");
         }
         if input.len() == 4 {
             let b = input.as_bytes();
@@ -812,10 +813,9 @@ impl FilingSourcer {
             else if let Some(filing_path) =
                 self.cache.resolve_filing(&FecFilingId::from_str(input)?)
             {
-                match resolve_from_file(File::open(&filing_path).unwrap(), filing_path) {
-                    Ok(filing) => filing,
-                    Err(_) => todo!(),
-                }
+                let file = File::open(&filing_path)
+                    .with_context(|| format!("Could not open {}", filing_path.display()))?;
+                resolve_from_file(file, filing_path)?
             } else {
                 resolve_from_filing_id(input)?
             }
@@ -857,7 +857,10 @@ impl FilingSourcer {
             return Ok(UserArgument::InputFile(PathBuf::from(input)));
         }
 
-        Err(anyhow::anyhow!("Could not resolve input: {}", input))
+        Err(anyhow::anyhow!(
+            "Could not resolve input `{input}`: not an existing file, a URL, a filing ID, \
+             a committee or candidate ID, or a contest"
+        ))
     }
 
     pub fn filing_cache_path(&self, filing_id: &FecFilingId) -> Option<PathBuf> {
@@ -869,10 +872,9 @@ impl FilingSourcer {
         filing_id: &FecFilingId,
     ) -> anyhow::Result<Filing<Box<dyn Read>>> {
         let resolved = if let Some(filing_path) = self.cache.resolve_filing(filing_id) {
-            match resolve_from_file(File::open(&filing_path).unwrap(), filing_path) {
-                Ok(filing) => filing,
-                Err(_) => todo!(),
-            }
+            let file = File::open(&filing_path)
+                .with_context(|| format!("Could not open {}", filing_path.display()))?;
+            resolve_from_file(file, filing_path)?
         } else {
             resolve_from_filing_id(&filing_id.to_bare())?
         };

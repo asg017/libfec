@@ -1,3 +1,37 @@
+//! Parser for FEC electronic and paper filings (`.fec`) of every format
+//! family: see [`mod@format`].
+//!
+//! # Behaviour changes for 8.x
+//!
+//! Reading the legacy families (v1–v7, paper) changed a few things that 8.x
+//! filings can hit. None occurs in the 48,063 cached 8.x filings (full
+//! `wiki/legacy/tools/regress_8x.sh --all` against b1abe2e: 0 diffs), but
+//! hand-made or unusual 8.x files see them:
+//!
+//! - Row types are trimmed: `SA11AI ` → `SA11AI` ([`FilingRow::row_type`];
+//!   the record itself is unchanged). Paper P2.3–P3.1 pads them.
+//! - `[BEGIN TEXT]`, `[BeginText]` and the other spellings of the text-block
+//!   markers start/end text blocks like `[BEGINTEXT]`/`[ENDTEXT]`; before,
+//!   only the exact spellings did and the others came back as rows.
+//! - A cover record without a committee-name column, or cut short before it,
+//!   no longer fails to parse: [`FilingCover::filer_name`] is then the typed
+//!   cover's filer name, else empty.
+//! - F2S rows get the F2S layout (9 columns) instead of F2's
+//!   (`crates/fec-parser-macros/MAPPINGS_CHANGES.md`).
+//! - Schedule row types are classified case-insensitively
+//!   ([`schedules::form_type_schedule_type`]: `sa11ai` is Schedule A).
+//!
+//! An 8.x file that starts with blank lines parses as it did before the
+//! legacy work (the format sniffer skips them, as the csv reader always did).
+//!
+//! In fec-cli's exports, 8.x rows of a schedule are now always written in
+//! the schedule's 8.5 layout, matched by column name: the single CSV/JSON
+//! export (8.0 SE and 8.4 SC2 rows were misaligned positionally), the
+//! directory CSV export (whose files took the first row's layout) and the
+//! sqlite `libfec_schedule_*` tables (which took the first row type's 8.5
+//! layout, e.g. SA3L's in an F3L-only export; SA3L rows now fill the
+//! contributor columns, as their 8.5 rows always did positionally).
+
 #![deny(clippy::unwrap_used)]
 
 pub mod covers;
@@ -307,7 +341,13 @@ pub struct FilingCover {
 }
 
 impl FilingCover {
-    fn from_record(fec_version: &str, cover_record: StringRecord) -> Result<Self, String> {
+    /// `name_delimiter`: the header's, for splitting legacy combined names
+    /// in the typed cover.
+    fn from_record(
+        fec_version: &str,
+        name_delimiter: Option<&str>,
+        cover_record: StringRecord,
+    ) -> Result<Self, String> {
         // Trimmed: paper P2.3–P3.1 pads row types (`F7N     `).
         let form_type = cover_record
             .get(0)
@@ -355,11 +395,11 @@ impl FilingCover {
         // `YYYYMMDD` (v3+ and paper) or `MM/DD/YYYY`; blank or unparsable
         // values are `None` (some F5s have the column but leave it empty,
         // e.g. FEC-1917549).
-        let coverage_from_date = covers::fields::date(&cover_record_kv, "coverage_from_date");
-        let coverage_through_date =
-            covers::fields::date(&cover_record_kv, "coverage_through_date");
+        let data = covers::fields::Data::new(cover_record_kv.clone(), name_delimiter);
+        let coverage_from_date = covers::fields::date(&data, "coverage_from_date");
+        let coverage_through_date = covers::fields::date(&data, "coverage_through_date");
 
-        let cover_data = covers::cover_from_form_type(&form_type, &cover_record_kv);
+        let cover_data = covers::cover_from_form_type(&form_type, &data);
         // Individuals filing F5/F9 leave the organization-name column blank.
         let filer_name = match cover_data.as_ref().and_then(|c| c.filer_name()) {
             Some(name) if filer_name.trim().is_empty() => name,
@@ -420,6 +460,7 @@ impl<R: Read> Filing<R> {
         };
         let mut cover = FilingCover::from_record(
             &header.fec_version,
+            header.name_delimiter.as_deref(),
             StringRecord::from_byte_record_lossy(cover_record),
         )
         .map_err(|e| anyhow::anyhow!("Error parsing cover record: {}", e))?;
