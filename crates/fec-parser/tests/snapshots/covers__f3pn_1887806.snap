@@ -1,0 +1,107 @@
+---
+source: crates/fec-parser/tests/covers.rs
+expression: "cover(\"F3PN_1887806.fec\")"
+snapshot_kind: text
+---
+{
+  "form": "Form3P",
+  "data": {
+    "treasurer": {
+      "first_name": "Ellie",
+      "last_name": "Cox",
+      "middle_name": null,
+      "prefix": null,
+      "suffix": null
+    },
+    "signed": "2025-04-15",
+    "summary": {
+      "line6_cash_on_hand_beginning_period": 739177.91,
+      "line7_total_receipts": 2530324.52,
+      "line8_subtotal": 3269502.43,
+      "line9_total_disbursements": 2735930.4,
+      "line10_cash_on_hand_end_period": 533572.03,
+      "line11_debts_owed_to_committee": 0.0,
+      "line12_debts_owed_by_committee": 338739.16,
+      "line13_expenditures_subject_to_limits": 0.0,
+      "line14_net_contributions_other_than_loans": 3384487.41,
+      "line15_net_operating_expenditures": 5174984.22
+    },
+    "detailed_summary": {
+      "receipts": {
+        "line16_federal_funds": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line17a_i_contributions_from_individuals_itemized": {
+          "column_a": 349195.32,
+          "column_b": 1050492.82
+        },
+        "line17a_ii_contributions_from_individuals_unitemized": {
+          "column_a": 712646.97,
+          "column_b": 2395622.0
+        },
+        "line17a_iii_contributions_from_individuals_total": {
+          "column_a": 1061842.29,
+          "column_b": 3446114.82
+        },
+        "line17b_political_party_committees": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line17c_other_political_committees": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line17d_the_candidate": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line17e_total_contributions": {
+          "column_a": 1061842.29,
+          "column_b": 3446114.82
+        },
+        "line18_transfers_from_other_authorized_committee": {
+          "column_a": 67697.0,
+          "column_b": 238147.0
+        },
+        "line19a_loans_received_from_or_guaranteed_by_candidate": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line19b_other_loans": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line19c_total_loans": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line20a_offsets_to_expenditures_operating": {
+          "column_a": 40366.34,
+          "column_b": 58064.12
+        },
+        "line20b_offsets_to_expenditures_fundraising": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line20c_offsets_to_expenditures_legal_and_accounting": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line20d_offsets_to_expenditures_total": {
+          "column_a": 40366.34,
+          "column_b": 58064.12
+        },
+        "line21_other_receipts": {
+          "column_a": 1360418.89,
+          "column_b": 1360427.14
+        },
+        "line22_total_receipts": {
+          "column_a": 2530324.52,
+          "column_b": 5102753.08
+        }
+      },
+      "items_on_hand_to_be_liquidated": 0.0
+    }
+  }
+}
