@@ -1,11 +1,14 @@
 use std::{fs::File, io::Write, path::PathBuf};
 
-use fec_parser::schedules::{form_type_schedule_type, ScheduleType};
+use fec_parser::{
+    mappings::column_names_for_field,
+    schedules::{form_type_schedule_type, ScheduleType},
+};
 
 use crate::{
     cli::{ExportArgs, ExportTarget},
     sourcer::{FilingSourcer, ItemizationProgressBar},
-    utils::rows::{all_filings_failed, warn},
+    utils::rows::{all_filings_failed, remap_by_name, warn, UnmappedRows},
 };
 
 pub enum SingleOutput {
@@ -22,14 +25,8 @@ fn target_matches_form_type(target: &ExportTarget, form_type: &str) -> bool {
 }
 
 enum Writer {
-    Csv {
-        writer: Box<csv::Writer<File>>,
-        nrecords: usize,
-    },
-    Json {
-        file: File,
-        column_names: Vec<String>,
-    },
+    Csv { writer: Box<csv::Writer<File>> },
+    Json { file: File },
 }
 pub fn cmd_export_single(
     mut sourcer: FilingSourcer,
@@ -39,32 +36,25 @@ pub fn cmd_export_single(
     output_type: SingleOutput,
 ) -> anyhow::Result<()> {
     let t0 = jiff::Timestamp::now();
+    // Every row is written in the 8.5 layout; rows of other versions are
+    // rearranged by column name (see `remap_by_name`).
+    let columns: Vec<String> = Into::<ScheduleType>::into(target).column_names("8.5")?;
     let mut output = match output_type {
         SingleOutput::Csv => {
             let mut writer = csv::WriterBuilder::new()
                 .flexible(true)
                 .has_headers(true)
                 .from_writer(std::fs::File::create_new(&output_path)?);
-            let mut columns: Vec<String> =
-                Into::<ScheduleType>::into(target).column_names("8.5")?;
-            columns.insert(0, "filing_id".to_owned());
-            let nrecords = columns.len();
-            writer.write_record(columns).expect("Writing CSV header");
+            writer.write_field("filing_id")?;
+            writer.write_record(&columns)?;
             Writer::Csv {
                 writer: Box::new(writer),
-                nrecords,
             }
         }
         SingleOutput::Json => {
             let mut f = File::create_new(&output_path)?;
             f.write_all(b"[")?;
-            let mut columns: Vec<String> =
-                Into::<ScheduleType>::into(target).column_names("8.5")?;
-            columns.insert(0, "filing_id".to_owned());
-            Writer::Json {
-                file: f,
-                column_names: columns,
-            }
+            Writer::Json { file: f }
         }
     };
 
@@ -72,6 +62,7 @@ pub fn cmd_export_single(
     let (_trace, _input_mappings, iter) =
         sourcer.resolve_iterator_from_flags(args.filings, args.api, Some(&mb))?;
     let mut nrows = 0;
+    let mut unmapped = UnmappedRows::new(Some(&mb));
     // Shared across filings: every row after the first needs a comma.
     let mut first = true;
     let (mut read, mut failed) = (0usize, 0usize);
@@ -104,17 +95,26 @@ pub fn cmd_export_single(
             pb.update(&row);
 
             if target_matches_form_type(&target, row.row_type.as_str()) {
+                let fec_version = &filing.header.fec_version;
+                let Ok(row_columns) = column_names_for_field(&row.row_type, fec_version) else {
+                    unmapped.warn(
+                        &filing.filing_id,
+                        &row.row_type,
+                        fec_version,
+                        "skipping them",
+                    );
+                    continue;
+                };
+                let fields = remap_by_name(&columns, row_columns, &row.record);
                 nrows += 1;
                 match &mut output {
-                    Writer::Csv { writer, nrecords } => {
+                    Writer::Csv { writer } => {
                         writer.write_field(&filing.filing_id)?;
-                        // TODO: check if theres non-empty rows beyond nrecords - 1
-                        for field in row.record.iter().take(*nrecords - 1) {
-                            writer.write_field(field)?;
-                        }
-                        writer.write_record(None::<&[u8]>)?;
+                        writer.write_record(
+                            fields.iter().take(columns.len()).map(|f| f.as_bytes()),
+                        )?;
                     }
-                    Writer::Json { file, column_names } => {
+                    Writer::Json { file } => {
                         if first {
                             first = false;
                         } else {
@@ -125,10 +125,11 @@ pub fn cmd_export_single(
                             "filing_id".to_owned(),
                             serde_json::Value::String(filing.filing_id.clone()),
                         );
-                        // Like the CSV writer, drop fields beyond the 8.5 layout.
-                        for (name, field) in column_names.iter().skip(1).zip(row.record.iter()) {
-                            record
-                                .insert(name.clone(), serde_json::Value::String(field.to_string()));
+                        for (name, field) in columns.iter().zip(fields) {
+                            record.insert(
+                                name.clone(),
+                                serde_json::Value::String(String::from(field)),
+                            );
                         }
                         let value = serde_json::Value::Object(record);
                         let s = serde_json::to_string(&value)?;

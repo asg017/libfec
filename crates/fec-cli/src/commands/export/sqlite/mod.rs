@@ -4,7 +4,9 @@ use crate::{
     cache::bulk::{candidates, committee},
     cli::ExportArgs,
     sourcer::{FilingSourcer, ItemizationProgressBar},
-    utils::rows::{all_filings_failed, normalize_fec_date, warn, UnmappedRows},
+    utils::rows::{
+        all_filings_failed, export_columns, normalize_fec_date, source_index, warn, UnmappedRows,
+    },
 };
 use anyhow::Context;
 use colored::Colorize;
@@ -129,23 +131,39 @@ struct RecordTable {
     column_types: Vec<FieldFormat>,
     suffix: String,
     current_mapping: Vec<String>,
-    legacy_field_mapping: HashMap<String, Vec<Option<usize>>>,
+    /// Per (row type, version): index in the row of each table column.
+    legacy_field_mapping: HashMap<(String, String), LegacyMapping>,
+    /// Whether 8.5 rows may be inserted positionally: false when the table
+    /// already existed with other columns (see [`RecordTable::create_or_adopt`]).
+    positional_ok: bool,
 }
+
+/// A legacy row layout's index of each table column.
+type LegacyMapping = Vec<Option<usize>>;
 
 const LATEST_FEC_VERSION: &str = "8.5";
 impl RecordTable {
-    fn new(row_type: &str, suffix: &str) -> anyhow::Result<Self> {
-        let column_names =
-            fec_parser::mappings::column_names_for_field(row_type, LATEST_FEC_VERSION)
-                // some forms were *removed* in  8.5, like F3Z1, ex FEC-1890921. TODO Need a better fallback strategy
-                .or_else(|_| fec_parser::mappings::column_names_for_field(row_type, "8.4"))
-                .with_context(|| {
-                    format!(
-                        "Error getting mapping column names for field '{}' and fec version '{}'",
-                        row_type, LATEST_FEC_VERSION
-                    )
-                })?
-                .to_owned();
+    /// A table for one row type: its columns are the row type's 8.5 layout,
+    /// else its 8.4 one (some forms were *removed* in 8.5, like F3Z1, ex
+    /// FEC-1890921), else the layout of the version being exported
+    /// (legacy-only row types). See [`export_columns`].
+    fn new(row_type: &str, suffix: &str, fec_version: &str) -> anyhow::Result<Self> {
+        let column_names = export_columns(row_type, fec_version)
+            .with_context(|| {
+                format!(
+                    "Error getting mapping column names for field '{}' and fec version '{}'",
+                    row_type, fec_version
+                )
+            })?
+            .to_owned();
+        Self::with_columns(column_names, suffix)
+    }
+
+    /// A table with the given columns (e.g. a schedule's 8.5 layout).
+    fn with_columns(column_names: Vec<String>, suffix: &str) -> anyhow::Result<Self> {
+        if column_names.is_empty() {
+            anyhow::bail!("Empty column mapping for table '{suffix}'");
+        }
         let current_mapping = column_names.clone();
         let column_types: Vec<FieldFormat> = column_names
             .iter()
@@ -166,7 +184,38 @@ impl RecordTable {
             suffix: suffix.to_owned(),
             current_mapping,
             legacy_field_mapping: HashMap::new(),
+            positional_ok: true,
         })
+    }
+
+    /// Create the table, or if it already exists (made earlier in this
+    /// export, or by a previous one) with other columns, adopt those so rows
+    /// are remapped by name into it. Different legacy versions of a
+    /// legacy-only row type (F3Z P1.0 vs P2.x) have different layouts.
+    fn create_or_adopt(&mut self, tx: &Transaction) -> anyhow::Result<()> {
+        tx.execute(&self.create_sql(), [])?;
+        let existing: Vec<(String, String)> = tx
+            .prepare("SELECT name, type FROM pragma_table_info(?)")?
+            .query_map([format!("libfec_{}", self.suffix)], |r| {
+                Ok((r.get(0)?, r.get(1)?))
+            })?
+            .collect::<Result<_, _>>()?;
+        let (names, types): (Vec<String>, Vec<String>) = existing.into_iter().skip(1).unzip();
+        if names != self.column_names {
+            self.column_types = types
+                .iter()
+                .map(|t| match t.to_ascii_lowercase().as_str() {
+                    "date" => FieldFormat::Date,
+                    "float" => FieldFormat::Float,
+                    _ => FieldFormat::Text,
+                })
+                .collect();
+            self.column_names = names.clone();
+            self.current_mapping = names;
+            self.legacy_field_mapping.clear();
+            self.positional_ok = false;
+        }
+        Ok(())
     }
     fn create_sql(&self) -> String {
         let docs = sqlite_docs::table_docs(&self.suffix.to_ascii_lowercase());
@@ -237,11 +286,13 @@ impl RecordTable {
         &mut self,
         insert_stmt: &mut Statement,
         filing_id: &str,
+        row_type: &str,
         record: &StringRecord,
         fec_version: &str,
     ) -> anyhow::Result<()> {
         let params = self.prep_row(
             filing_id,
+            row_type,
             record,
             insert_stmt.parameter_count(),
             fec_version,
@@ -252,12 +303,14 @@ impl RecordTable {
     fn prep_row(
         &mut self,
         filing_id: &str,
+        row_type: &str,
         record: &StringRecord,
         n_params: usize,
         fec_version: &str,
     ) -> anyhow::Result<Vec<FieldValue>> {
         let mut warnings = Vec::new();
-        let mut values: Vec<FieldValue> = if fec_version == LATEST_FEC_VERSION {
+        let mut values: Vec<FieldValue> = if fec_version == LATEST_FEC_VERSION && self.positional_ok
+        {
             record
                 .iter()
                 .enumerate()
@@ -272,24 +325,22 @@ impl RecordTable {
                 })
                 .collect()
         } else {
-            if !self.legacy_field_mapping.contains_key(fec_version) {
+            let key = (row_type.to_owned(), fec_version.to_owned());
+            if !self.legacy_field_mapping.contains_key(&key) {
                 let legacy_columns =
-                    fec_parser::mappings::column_names_for_field(&record[0], fec_version)?;
+                    fec_parser::mappings::column_names_for_field(row_type, fec_version)?;
                 let mapping = self
                     .current_mapping
                     .iter()
-                    .map(|col_name| legacy_columns.iter().position(|c| c == col_name))
+                    .map(|col_name| source_index(legacy_columns, col_name))
                     .collect::<Vec<Option<usize>>>();
-                self.legacy_field_mapping
-                    .insert(fec_version.to_owned(), mapping);
+                self.legacy_field_mapping.insert(key.clone(), mapping);
             }
-            self.legacy_field_mapping[fec_version]
+            self.legacy_field_mapping[&key]
                 .iter()
                 .enumerate()
                 .map(|(idx, &record_idx)| {
-                    let field = record_idx
-                        .map(|i| record.get(i).unwrap_or(""))
-                        .unwrap_or("");
+                    let field = record_idx.and_then(|i| record.get(i)).unwrap_or("");
                     match self.column_types.get(idx) {
                         Some(FieldFormat::Text) => FieldValue::Text(field.to_owned()),
                         Some(FieldFormat::Date) => date_value(field),
@@ -338,14 +389,20 @@ fn date_value(field: &str) -> FieldValue {
     }
 }
 
+/// A schedule's table has the schedule's 8.5 layout
+/// ([`ScheduleType::column_names`]), whichever row type comes first: a
+/// variant such as SA3L (8.x lobbyist bundling, whose 8.5 rows go in
+/// positionally, as they always have) or a paper-only type must not define
+/// it, or later rows remapped by name into it lose their names and amounts.
 fn prepare_schedule_statement<'a>(
-    row: &FilingRow,
     schedule_type: &ScheduleType,
     tx: &'a Transaction,
 ) -> anyhow::Result<ItemizationValue<'a>> {
-    let record_table: RecordTable =
-        RecordTable::new(&row.row_type, schedule_type.to_sqlite_tablename().as_str())?;
-    tx.execute(&record_table.create_sql(), [])?;
+    let mut record_table = RecordTable::with_columns(
+        schedule_type.column_names(LATEST_FEC_VERSION)?,
+        schedule_type.to_sqlite_tablename().as_str(),
+    )?;
+    record_table.create_or_adopt(tx)?;
     let insert_statement = record_table.insert_statement(tx)?;
     Ok(ItemizationValue {
         record_table,
@@ -355,11 +412,12 @@ fn prepare_schedule_statement<'a>(
 
 fn prepare_form_type_statement<'a>(
     row: &FilingRow,
+    fec_version: &str,
     form_type: &str,
     tx: &'a Transaction,
 ) -> anyhow::Result<ItemizationValue<'a>> {
-    let record_table: RecordTable = RecordTable::new(&row.row_type, form_type)?;
-    tx.execute(&record_table.create_sql(), [])?;
+    let mut record_table: RecordTable = RecordTable::new(&row.row_type, form_type, fec_version)?;
+    record_table.create_or_adopt(tx)?;
     let insert_statement = record_table.insert_statement(tx)?;
     Ok(ItemizationValue {
         record_table,
@@ -410,7 +468,7 @@ fn export_itemizations<R: Read>(
             }
             let value = match &key {
                 ItemizationKey::Schedule(schedule_type) => {
-                    prepare_schedule_statement(&r, schedule_type, tx).with_context(|| {
+                    prepare_schedule_statement(schedule_type, tx).with_context(|| {
                         format!(
                             "Error preparing statement for schedule type {:?}",
                             schedule_type
@@ -418,9 +476,9 @@ fn export_itemizations<R: Read>(
                     })?
                 }
                 ItemizationKey::FormType(form_type) => {
-                    prepare_form_type_statement(&r, form_type, tx).with_context(|| {
-                        format!("Error preparing statement for form type {}", form_type)
-                    })?
+                    prepare_form_type_statement(&r, &fec_version, form_type, tx).with_context(
+                        || format!("Error preparing statement for form type {}", form_type),
+                    )?
                 }
             };
             itemizations_statements.insert(key.clone(), value);
@@ -444,6 +502,7 @@ fn export_itemizations<R: Read>(
             .insert(
                 &mut v.insert_statement,
                 &filing.filing_id,
+                &r.row_type,
                 &r.record,
                 &fec_version,
             )
@@ -458,15 +517,20 @@ fn export_itemizations<R: Read>(
     Ok(count)
 }
 
+/// Split a cover form type into its form and amendment indicator:
+/// `F3XN` → (`F3X`, `N`). Case-insensitive (`f3xa` → (`f3x`, `A`)).
 pub(crate) fn form_type_parse(form_type: &str) -> (&str, Option<&str>) {
-    if let Some(stripped) = form_type.strip_suffix('A') {
-        (stripped, Some("A"))
-    } else if let Some(stripped) = form_type.strip_suffix('N') {
-        (stripped, Some("N"))
-    } else if let Some(stripped) = form_type.strip_suffix('T') {
-        (stripped, Some("T"))
-    } else {
-        (form_type, None)
+    let form_type = form_type.trim();
+    match form_type.chars().last().map(|c| c.to_ascii_uppercase()) {
+        Some(indicator @ ('A' | 'N' | 'T')) => (
+            &form_type[..form_type.len() - 1],
+            Some(match indicator {
+                'A' => "A",
+                'N' => "N",
+                _ => "T",
+            }),
+        ),
+        _ => (form_type, None),
     }
 }
 
@@ -518,6 +582,7 @@ fn insert_filing_metadata(tx: &mut Transaction, filing: &Filing<impl Read>) -> a
         &filing.cover.form_type,
         // strip any lagging "A", "N", or "T", or return form_type
         form_type,
+        fec_version,
     )
     .with_context(|| {
         format!(
@@ -525,11 +590,12 @@ fn insert_filing_metadata(tx: &mut Transaction, filing: &Filing<impl Read>) -> a
             &filing.cover.form_type, &filing.filing_id
         )
     })?;
-    tx.execute(&rt.create_sql(), [])?;
+    rt.create_or_adopt(tx)?;
     let mut stmt = rt.insert_statement(tx)?;
     rt.insert(
         &mut stmt,
         &filing.filing_id,
+        &filing.cover.form_type,
         &filing.cover.record,
         fec_version,
     )?;
@@ -1409,7 +1475,7 @@ pub fn cmd_schemaize(path: PathBuf) -> anyhow::Result<()> {
 
     let mut created = 0;
     for &(row_type, suffix) in ALL_TABLES {
-        match RecordTable::new(row_type, suffix) {
+        match RecordTable::new(row_type, suffix, LATEST_FEC_VERSION) {
             Ok(record_table) => {
                 tx.execute(&record_table.create_sql(), [])?;
                 created += 1;
