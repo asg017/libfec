@@ -1,0 +1,30 @@
+---
+source: crates/fec-parser/tests/covers.rs
+expression: "cover(\"F24N_1946204.fec\")"
+snapshot_kind: text
+---
+{
+  "form": "Form24",
+  "data": {
+    "form_type": "F24N",
+    "filer_committee_id": "C00799031",
+    "report_type": "48",
+    "original_amendment_date": null,
+    "committee_name": "UNITED DEMOCRACY PROJECT (\"UDP\")",
+    "address": {
+      "street_1": "712 H ST NE",
+      "street_2": "STE 2691",
+      "city": "WASHINGTON",
+      "state": "DC",
+      "zip_code": "200023627"
+    },
+    "treasurer": {
+      "first_name": "CHRISTOPHER",
+      "last_name": "D'ALESSIO",
+      "middle_name": null,
+      "prefix": null,
+      "suffix": null
+    },
+    "date_signed": "2026-02-12"
+  }
+}
