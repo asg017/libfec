@@ -58,7 +58,9 @@ pub enum FilingCoverContent {
 pub struct FilingDetail {
     pub filing_id: String,
     pub form_type: String,
-    pub report_code: Option<String>,
+    /// Human label for the report shown in the title: the report code's
+    /// label, if it has one.
+    pub report_label: Option<String>,
     pub filer_name: String,
     pub filer_id: String,
     pub coverage_from: Option<String>,
@@ -116,7 +118,7 @@ impl<R: std::io::Read> From<&fec_parser::Filing<R>> for FilingDetail {
         FilingDetail {
             filing_id: filing.filing_id.clone(),
             form_type: filing.cover.form_type.clone(),
-            report_code: filing.cover.report_code.clone(),
+            report_label: report_label(filing.cover.report_code.as_deref()),
             filer_name: filing.cover.filer_name.clone(),
             filer_id: filing.cover.filer_id.clone(),
             coverage_from: filing.cover.coverage_from_date.map(|d| d.to_string()),
@@ -135,11 +137,17 @@ impl<R: std::io::Read> From<&fec_parser::Filing<R>> for FilingDetail {
     }
 }
 
+/// `$1,234.56`, or `-$1,234.56` for negative amounts (including those
+/// between -1 and 0, which would otherwise lose their sign).
 pub fn format_usd(amount: f64) -> String {
     let rounded = (amount * 100.0).round() as i64;
-    let dollars = rounded / 100;
-    let cents = (rounded % 100).abs();
-    format!("${}.{:02}", dollars.to_formatted_string(&Locale::en), cents)
+    let sign = if rounded < 0 { "-" } else { "" };
+    let abs = rounded.unsigned_abs();
+    format!(
+        "{sign}${}.{:02}",
+        (abs / 100).to_formatted_string(&Locale::en),
+        abs % 100
+    )
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -287,16 +295,24 @@ impl Default for FilingDetailState {
     }
 }
 
+fn report_label(report_code: Option<&str>) -> Option<String> {
+    match report_code_label(report_code?) {
+        "[Unknown report code]" => None,
+        label => Some(label.to_owned()),
+    }
+}
+
 fn render_title(f: &mut Frame, filing: &FilingDetail, area: Rect) {
-    let report_label = filing
-        .report_code
-        .as_ref()
-        .map(|rc| report_code_label(rc.as_str()))
-        .unwrap_or("");
-    let title_text = format!(
-        "FEC-{} {} {} by {} ({})",
-        filing.filing_id, filing.form_type, report_label, filing.filer_name, filing.filer_id
-    );
+    let title_text = [
+        Some(format!("FEC-{}", filing.filing_id)),
+        Some(filing.form_type.clone()),
+        filing.report_label.clone(),
+        Some(format!("by {} ({})", filing.filer_name, filing.filer_id)),
+    ]
+    .into_iter()
+    .flatten()
+    .collect::<Vec<_>>()
+    .join(" ");
     let title = Paragraph::new(title_text).style(Style::default().add_modifier(Modifier::BOLD));
     f.render_widget(title, area);
 }
@@ -529,4 +545,18 @@ fn render_yank_popup(f: &mut Frame, area: Rect, filing: &FilingDetail, state: &F
 
     let paragraph = Paragraph::new(lines).wrap(Wrap { trim: false });
     f.render_widget(paragraph, inner_area);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn format_usd_signs() {
+        assert_eq!(format_usd(1234.5), "$1,234.50");
+        assert_eq!(format_usd(-5307.63), "-$5,307.63");
+        assert_eq!(format_usd(-0.5), "-$0.50");
+        assert_eq!(format_usd(0.0), "$0.00");
+        assert_eq!(format_usd(-0.001), "$0.00");
+    }
 }

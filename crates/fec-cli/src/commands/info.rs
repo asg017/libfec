@@ -77,16 +77,8 @@ fn form_name(form_type: &str) -> &str {
     _ => "",
   }
 }
-use num_format::{Locale, ToFormattedString};
+use crate::tui::filing_detail::format_usd;
 use tabled::{builder::Builder, settings::Style};
-
-fn format_usd(amount: f64) -> String {
-    let rounded = (amount * 100.0).round() as i64; // convert to cents
-    let dollars = rounded / 100;
-    let cents = (rounded % 100).abs(); // handle negative cents correctly
-
-    format!("${}.{:02}", dollars.to_formatted_string(&Locale::en), cents)
-}
 
 fn print_summary(summary: &Form3PSummary) {
     let mut b = Builder::with_capacity(3, 0);
@@ -226,16 +218,19 @@ fn process_filing<R: Read>(
             }
         }
 
+        let report_label = filing
+            .cover
+            .report_code
+            .as_deref()
+            .map(report_code_label)
+            .filter(|label| *label != "[Unknown report code]")
+            .map(|label| format!(" {label}"))
+            .unwrap_or_default();
         println!(
-            "{} {} {} by {} ({})",
+            "{} {}{} by {} ({})",
             format!("FEC-{}", filing.filing_id).bold(),
             filing.cover.form_type,
-            filing
-                .cover
-                .report_code
-                .as_ref()
-                .map(|report_code| report_code_label(report_code.as_str()))
-                .unwrap_or(""),
+            report_label,
             filing.cover.filer_name.bold(),
             filing.cover.filer_id,
         );
