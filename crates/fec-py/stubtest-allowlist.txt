@@ -4,3 +4,6 @@
 # return; both are plain `dict`s at runtime, by design (see src/fecfile.rs).
 libfec_parser.fecfile.Options
 libfec_parser.fecfile.Parsed
+# `Value` is the same kind of stub-only alias: the union a `Row` column can hold
+# (`str | float | date | None`), used in annotations only (see src/row.rs).
+libfec_parser.parser.Value
