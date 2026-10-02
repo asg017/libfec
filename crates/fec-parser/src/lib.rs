@@ -1,10 +1,32 @@
+//! # Behaviour changes for 8.x
+//!
+//! Reading the legacy families (v1–v7, paper) changed a few things that 8.x
+//! filings can hit. None occurs in the 48,063 cached 8.x filings (full
+//! `wiki/legacy/tools/regress_8x.sh --all` against b1abe2e: 0 diffs), but
+//! hand-made or unusual 8.x files see them:
+//!
+//! - Row types are trimmed: `SA11AI ` → `SA11AI` ([`FilingRow::row_type`];
+//!   the record itself is unchanged). Paper P2.3–P3.1 pads them.
+//! - `[BEGIN TEXT]`, `[BeginText]` and the other spellings of the text-block
+//!   markers start/end text blocks like `[BEGINTEXT]`/`[ENDTEXT]`; before,
+//!   only the exact spellings did and the others came back as rows.
+//! - A cover record without a committee-name column, or cut short before it,
+//!   no longer fails to parse: [`FilingCover::filer_name`] is then the typed
+//!   cover's filer name, else empty.
+//! - F2S rows get the F2S layout (9 columns) instead of F2's
+//!   (`crates/fec-parser-macros/MAPPINGS_CHANGES.md`).
+//! - Schedule row types are classified case-insensitively
+//!   ([`schedules::form_type_schedule_type`]: `sa11ai` is Schedule A).
+
 #![deny(clippy::unwrap_used)]
 
 pub mod covers;
+mod format;
 pub mod mappings;
 pub mod schedules;
 
 use crate::covers::Cover;
+use crate::format::{is_begin_text, is_end_text};
 use csv::{ByteRecord, ByteRecordsIntoIter, StringRecord};
 use indexmap::IndexMap;
 use jiff::civil::Date;
@@ -187,66 +209,56 @@ pub struct FilingCover {
 
 impl FilingCover {
     fn from_record(fec_version: &str, cover_record: StringRecord) -> Result<Self, String> {
+        // Trimmed: paper P2.3–P3.1 pads row types (`F7N     `).
         let form_type = cover_record
             .get(0)
             .ok_or_else(|| "Cover record row contains 0 fields".to_owned())?
+            .trim()
             .to_owned();
 
         let columns = column_names_for_field(form_type.as_str(), fec_version)
             .map_err(|e| format!("Error getting column names for form type '{form_type}': {e}"))?;
+        // `mappings2.json` names every column uniquely, but if a layout ever
+        // repeats a name, the first column keeps it (the same column the
+        // positional lookups below find).
         let mut cover_record_kv = IndexMap::new();
         for (column_name, field) in columns.iter().zip(cover_record.iter()) {
-            cover_record_kv.insert(column_name.to_owned(), field.to_owned());
+            cover_record_kv
+                .entry(column_name.to_owned())
+                .or_insert_with(|| field.to_owned());
         }
-
-        let id_idx = columns
-            .iter()
-            .position(|v| v == "filer_committee_id_number" || v == "candidate_id_number")
-            .ok_or_else(|| "asdf".to_owned())?;
-
-        let name_idx = columns
-            .iter()
-            .position(|v| v == "committee_name" || v == "organization_name")
-            .ok_or_else(|| "asdf".to_owned())?;
-
-        let report_code = columns
-            .iter()
-            .position(|v| v == "report_code")
-            .and_then(|idx| cover_record.get(idx).map(|s| s.to_owned()));
-
-        // provided as '20240901'
-        let coverage_from_date = match columns
-            .iter()
-            .position(|v| v == "coverage_from_date")
-            .and_then(|idx| cover_record.get(idx).map(|s| s.to_owned()))
-            .map(|s| Date::strptime("%Y%m%d", s))
-        {
-            Some(Ok(date)) => Some(date),
-            None => None,
-            // TODO: F5 forms sometimes have a coverage_from_date column but the value is empty? ex FEC-1917549
-            Some(Err(_)) => None,
+        let field_of = |names: &[&str]| -> Option<&str> {
+            columns
+                .iter()
+                .position(|v| names.contains(&v.as_str()))
+                .and_then(|idx| cover_record.get(idx))
         };
 
-        let coverage_through_date = match columns
-            .iter()
-            .position(|v| v == "coverage_through_date")
-            .and_then(|idx| cover_record.get(idx).map(|s| s.to_owned()))
-            .map(|s| Date::strptime("%Y%m%d", s))
-        {
-            Some(Ok(date)) => Some(date),
-            None => None,
-            // TODO: F5 forms sometimes have a coverage_from_date column but the value is empty? ex FEC-1917549
-            Some(Err(_)) => None,
-        };
+        let filer_id = field_of(&["filer_committee_id_number", "candidate_id_number"])
+            .ok_or_else(|| {
+                format!(
+                    "Cover record '{form_type}' (version {fec_version}) has no filer ID \
+                     column (filer_committee_id_number or candidate_id_number) \
+                     or is too short to contain it"
+                )
+            })?
+            .to_owned();
 
-        let filer_id = cover_record
-            .get(id_idx)
-            .ok_or_else(|| "Cover record missing filer ID field".to_owned())?
+        // Optional: paper Form 99 layouts have no committee name column, and
+        // a record may be cut short before it. Falls back to the typed
+        // cover's filer name (Form 5/9 individuals) below, else empty.
+        let filer_name = field_of(&["committee_name", "organization_name"])
+            .unwrap_or_default()
             .to_owned();
-        let filer_name = cover_record
-            .get(name_idx)
-            .ok_or_else(|| "Cover record missing filer name field".to_owned())?
-            .to_owned();
+
+        let report_code = field_of(&["report_code"]).map(|s| s.to_owned());
+
+        // `YYYYMMDD` (v3+ and paper) or `MM/DD/YYYY`; blank or unparsable
+        // values are `None` (some F5s have the column but leave it empty,
+        // e.g. FEC-1917549).
+        let coverage_from_date = covers::fields::date(&cover_record_kv, "coverage_from_date");
+        let coverage_through_date = covers::fields::date(&cover_record_kv, "coverage_through_date");
+
         let cover_data = covers::cover_from_form_type(&form_type, &cover_record_kv);
         // Individuals filing F5/F9 leave the organization-name column blank.
         let filer_name = match cover_data.as_ref().and_then(|c| c.filer_name()) {
@@ -323,7 +335,7 @@ impl<R: Read> Filing<R> {
         if let Some(Cover::Form99(form)) = cover.cover_data.as_mut() {
             let next_is_text = matches!(
                 records_iter.peek(),
-                Some(Ok(r)) if r.get(0) == Some(b"[BEGINTEXT]".as_slice())
+                Some(Ok(r)) if r.get(0).is_some_and(is_begin_text)
             );
             if form.text.is_none() && next_is_text {
                 records_iter.next();
@@ -367,8 +379,9 @@ impl<R: Read> Filing<R> {
             None => return None,
         };
 
+        // Trimmed: paper P2.3–P3.1 pads row types (`SB23 `).
         let row_type = match record.get(0) {
-            Some(field) => field.to_owned(),
+            Some(field) => field.trim().to_owned(),
             None => {
                 return Some(Err(FilingRowReadError::EmptyRecord(
                     record.position().map(|p| p.line()).unwrap_or(0),
@@ -376,13 +389,13 @@ impl<R: Read> Filing<R> {
             }
         };
 
-        if row_type == "[BEGINTEXT]" {
+        if is_begin_text(row_type.as_bytes()) {
             let mut contents = String::new();
             loop {
                 match self.records_iter.next() {
                     Some(Err(e)) => return Some(Err(FilingRowReadError::TextRecordError(e))),
                     Some(Ok(record)) => match record.get(0) {
-                        Some(b"[ENDTEXT]") => match self.records_iter.next() {
+                        Some(f) if is_end_text(f) => match self.records_iter.next() {
                             Some(record) => {
                                 let record = match record {
                                     Ok(r) => r,
@@ -393,7 +406,7 @@ impl<R: Read> Filing<R> {
                                 let record = unquote_record(record);
                                 let row_type = record
                                     .get(0)
-                                    .map(|s| s.to_owned())
+                                    .map(|s| s.trim().to_owned())
                                     .unwrap_or_else(|| String::from(""));
                                 return Some(Ok(FilingRow {
                                     row_type,
@@ -461,7 +474,7 @@ where
         if let Some(prev) = pending.take() {
             push(&prev, Some(&record));
         }
-        if record.get(0) == Some(b"[ENDTEXT]".as_slice()) {
+        if record.get(0).is_some_and(is_end_text) {
             break;
         }
         pending = Some(record);
