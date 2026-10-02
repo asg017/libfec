@@ -1,3 +1,37 @@
+//! Parser for FEC electronic and paper filings (`.fec`) of every format
+//! family: see [`mod@format`].
+//!
+//! # Behaviour changes for 8.x
+//!
+//! Reading the legacy families (v1–v7, paper) changed a few things that 8.x
+//! filings can hit. None occurs in the 48,063 cached 8.x filings (full
+//! `wiki/legacy/tools/regress_8x.sh --all` against b1abe2e: 0 diffs), but
+//! hand-made or unusual 8.x files see them:
+//!
+//! - Row types are trimmed: `SA11AI ` → `SA11AI` ([`FilingRow::row_type`];
+//!   the record itself is unchanged). Paper P2.3–P3.1 pads them.
+//! - `[BEGIN TEXT]`, `[BeginText]` and the other spellings of the text-block
+//!   markers start/end text blocks like `[BEGINTEXT]`/`[ENDTEXT]`; before,
+//!   only the exact spellings did and the others came back as rows.
+//! - A cover record without a committee-name column, or cut short before it,
+//!   no longer fails to parse: [`FilingCover::filer_name`] is then the typed
+//!   cover's filer name, else empty.
+//! - F2S rows get the F2S layout (9 columns) instead of F2's
+//!   (`crates/fec-parser-macros/MAPPINGS_CHANGES.md`).
+//! - Schedule row types are classified case-insensitively
+//!   ([`schedules::form_type_schedule_type`]: `sa11ai` is Schedule A).
+//!
+//! An 8.x file that starts with blank lines parses as it did before the
+//! legacy work (the format sniffer skips them, as the csv reader always did).
+//!
+//! In fec-cli's exports, 8.x rows of a schedule are now always written in
+//! the schedule's 8.5 layout, matched by column name: the single CSV/JSON
+//! export (8.0 SE and 8.4 SC2 rows were misaligned positionally), the
+//! directory CSV export (whose files took the first row's layout) and the
+//! sqlite `libfec_schedule_*` tables (which took the first row type's 8.5
+//! layout, e.g. SA3L's in an F3L-only export; SA3L rows now fill the
+//! contributor columns, as their 8.5 rows always did positionally).
+
 #![deny(clippy::unwrap_used)]
 
 pub mod covers;
