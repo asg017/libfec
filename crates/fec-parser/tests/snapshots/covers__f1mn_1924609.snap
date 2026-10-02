@@ -6,6 +6,7 @@ snapshot_kind: text
 {
   "form": "Form1M",
   "data": {
+    "form_type": "F1MN",
     "committee_name": "Fight for a Democratic Majority PAC",
     "address": {
       "street_1": "600 Pennsylvania Ave SE",
@@ -14,7 +15,7 @@ snapshot_kind: text
       "state": "DC",
       "zip_code": "20003"
     },
-    "filer_committee_id_number": "C00914424",
+    "filer_committee_id": "C00914424",
     "committee_type": "N",
     "affiliation": {
       "date_form1_filed": "2025-08-01",

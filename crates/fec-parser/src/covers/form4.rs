@@ -1,7 +1,7 @@
 //! Form 4: Report of Receipts and Disbursements for a Committee or
 //! Organization Supporting a Nominating Convention.
 
-use crate::covers::fields::{amount, date, text, text_or_empty, Data};
+use crate::covers::fields::{amount, date, person_name_or_legacy, text, text_or_empty, Data};
 use crate::covers::{Address, DetailedSummaryRow, PersonName};
 use jiff::civil::Date;
 use serde::Serialize;
@@ -43,19 +43,23 @@ use serde::Serialize;
 /// plain `f64` fields here.
 ///
 /// **Versions.** v6.1–v8.5 share one layout. The legacy v3/v5 layouts lack the
-/// split treasurer name (one `treasurer_name` column, read into
-/// [`PersonName::last_name`]) and name Lines 20/25 without the
+/// split treasurer name (one caret-delimited `treasurer_name` column, split
+/// into parts) and name Lines 20/25 without the
 /// `_TODO_DUP` suffix, so the Line 6(c)/7 and 20/25 columns collide and both
 /// read the Line 20/25 value, which the instructions require to be equal
 /// anyway.
 #[derive(Debug, Clone, Serialize)]
 pub struct Form4 {
+    /// Form type as filed, e.g. `F4N`: the base form plus the
+    /// amendment-indicator suffix (see [`crate::covers::base_form_type`]).
+    /// Column `form_type` (FEC format workbook v8.4, sheet `F4`, field 1).
+    pub form_type: String,
     /// Line 1(a), name of the committee (`committee_name`)
     /// ([fecfrm4.pdf p1](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm4.pdf#page=1)).
     pub committee_name: String,
     /// Line 2, FEC identification number (`filer_committee_id_number`)
     /// ([fecfrm4.pdf p1](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm4.pdf#page=1)).
-    pub committee_id: String,
+    pub filer_committee_id: String,
     /// Line 1(b)–(c), mailing address (`street_1`, `street_2`, `city`,
     /// `state`, `zip_code`)
     /// ([fecfrm4.pdf p1](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm4.pdf#page=1)).
@@ -71,12 +75,13 @@ pub struct Form4 {
     pub report_code: Option<String>,
     /// Line 5, first day of the covering period (`coverage_from_date`)
     /// ([fecfrm4.pdf p1](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm4.pdf#page=1)).
-    pub coverage_from: Option<Date>,
+    pub coverage_from_date: Option<Date>,
     /// Line 5, last day of the covering period (`coverage_through_date`).
-    pub coverage_through: Option<Date>,
+    pub coverage_through_date: Option<Date>,
     /// The treasurer who signed the certification (`treasurer_last_name`,
     /// `treasurer_first_name`, `treasurer_middle_name`, `treasurer_prefix`,
-    /// `treasurer_suffix`; legacy `treasurer_name` into `last_name`)
+    /// `treasurer_suffix`; legacy caret-delimited `treasurer_name` split into
+    /// parts)
     /// ([fecfrm4.pdf p1](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm4.pdf#page=1)).
     pub treasurer: PersonName,
     /// Date signed (`date_signed`).
@@ -95,11 +100,11 @@ pub struct Form4Summary {
     /// Line 6(a), cash on hand January 1 of the year — Column B only
     /// (`col_b_cash_on_hand_beginning_year`)
     /// ([fecfrm4i.pdf p1](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm4i.pdf#page=1)).
-    pub line6a_cash_on_hand_january_1: f64,
+    pub line6a_cash_on_hand_jan_1: f64,
     /// Line 6(a), the year printed after "January 1, 20__"
     /// (`col_b_beginning_year`) (FEC format workbook v8.4, sheet `F4`,
     /// field 61).
-    pub line6a_year: Option<String>,
+    pub line6a_year: Option<i16>,
     /// Line 6(b), cash on hand at the beginning of the reporting period —
     /// Column A only (`col_a_cash_on_hand_beginning_reporting_period`)
     /// ([fecfrm4i.pdf p1](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm4i.pdf#page=1)).
@@ -307,16 +312,11 @@ impl Form4 {
     pub fn from_data(data: &Data) -> Option<Self> {
         data.get("committee_name")?;
 
-        let mut treasurer = PersonName::from_data(data);
-        if treasurer.is_empty() {
-            if let Some(name) = text(data, "treasurer_name") {
-                treasurer.last_name = name;
-            }
-        }
+        let treasurer = person_name_or_legacy(data, "treasurer_", "treasurer_name");
 
         let summary = Form4Summary {
-            line6a_cash_on_hand_january_1: amount(data, "col_b_cash_on_hand_beginning_year"),
-            line6a_year: text(data, "col_b_beginning_year"),
+            line6a_cash_on_hand_jan_1: amount(data, "col_b_cash_on_hand_beginning_year"),
+            line6a_year: text(data, "col_b_beginning_year").and_then(|y| y.parse().ok()),
             line6b_cash_on_hand_beginning_period: amount(
                 data,
                 "col_a_cash_on_hand_beginning_reporting_period",
@@ -377,14 +377,15 @@ impl Form4 {
         };
 
         Some(Self {
+            form_type: text_or_empty(data, "form_type"),
             committee_name: text_or_empty(data, "committee_name"),
-            committee_id: text_or_empty(data, "filer_committee_id_number"),
+            filer_committee_id: text_or_empty(data, "filer_committee_id_number"),
             address: Address::from_prefixed(data, ""),
             committee_type: text(data, "committee_type"),
             committee_type_description: text(data, "committee_type_description"),
             report_code: text(data, "report_code"),
-            coverage_from: date(data, "coverage_from_date"),
-            coverage_through: date(data, "coverage_through_date"),
+            coverage_from_date: date(data, "coverage_from_date"),
+            coverage_through_date: date(data, "coverage_through_date"),
             treasurer,
             date_signed: date(data, "date_signed"),
             summary,
@@ -393,6 +394,11 @@ impl Form4 {
                 disbursements,
             },
         })
+    }
+
+    /// True for an amended report (`F4A`); see [`Form4::form_type`].
+    pub fn is_amendment(&self) -> bool {
+        crate::covers::is_amendment_form_type(&self.form_type)
     }
 
     /// The FEC's description of [`Form4::committee_type`]. The record codes

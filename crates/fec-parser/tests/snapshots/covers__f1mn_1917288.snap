@@ -6,6 +6,7 @@ snapshot_kind: text
 {
   "form": "Form1M",
   "data": {
+    "form_type": "F1MN",
     "committee_name": "MORE JOBS, LESS GOVERNMENT",
     "address": {
       "street_1": "C/O BULLDOG COMPLIANCE",
@@ -14,7 +15,7 @@ snapshot_kind: text
       "state": "MA",
       "zip_code": "01915"
     },
-    "filer_committee_id_number": "C00693838",
+    "filer_committee_id": "C00693838",
     "committee_type": "N",
     "affiliation": null,
     "qualification": {

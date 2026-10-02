@@ -6,8 +6,9 @@ snapshot_kind: text
 {
   "form": "Form4",
   "data": {
+    "form_type": "F4A",
     "committee_name": "170 FREEDOM MILWAUKEE 2024 HOST COMMITTEE INC",
-    "committee_id": "C00834978",
+    "filer_committee_id": "C00834978",
     "address": {
       "street_1": "790 N Water Street",
       "street_2": "Suite 2500",
@@ -18,8 +19,8 @@ snapshot_kind: text
     "committee_type": "H",
     "committee_type_description": null,
     "report_code": "60D",
-    "coverage_from": "2022-04-27",
-    "coverage_through": "2024-09-01",
+    "coverage_from_date": "2022-04-27",
+    "coverage_through_date": "2024-09-01",
     "treasurer": {
       "first_name": "Tim",
       "last_name": "Sheehy",
@@ -29,8 +30,8 @@ snapshot_kind: text
     },
     "date_signed": "2025-10-15",
     "summary": {
-      "line6a_cash_on_hand_january_1": 0.0,
-      "line6a_year": "2024",
+      "line6a_cash_on_hand_jan_1": 0.0,
+      "line6a_year": 2024,
       "line6b_cash_on_hand_beginning_period": 0.0,
       "line6c_total_receipts": {
         "column_a": 91142234.32,

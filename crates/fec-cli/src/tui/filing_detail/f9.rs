@@ -48,7 +48,7 @@ pub(super) fn append_f9_content_lines(d: &mut Doc, form: &Form9) {
     d.address("Address", &form.address, form.change_of_address);
     d.field_opt("Occupation", form.individual_occupation.clone());
     d.field_opt("Employer", form.individual_employer.clone());
-    d.field_opt("Qualified NPO", form.qualified_non_profit.clone());
+    d.field_opt("Qualified NPO", form.qualified_nonprofit.clone());
     d.field_opt(
         "Segregated acct",
         form.used_segregated_bank_account()

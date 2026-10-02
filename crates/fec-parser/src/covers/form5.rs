@@ -47,8 +47,10 @@ use jiff::civil::Date;
 /// all are read here where present (FEC format workbook v5.2, sheet F5).
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct Form5 {
-    /// Form type as filed: `F5N`, `F5A` (or `F5T`, allowed by the workbook).
-    /// Column `form_type` (FEC format workbook v8.4, sheet F5, field 1).
+    /// Form type as filed, e.g. `F5N`: the base form plus the
+    /// amendment-indicator suffix (see [`crate::covers::base_form_type`]).
+    /// Column `form_type` (FEC format workbook v8.4, sheet `F5`, field 1),
+    /// which allows `F5N`, `F5A` and `F5T`.
     pub form_type: String,
     /// The filer's FEC identification number, Line 3 ("First time filers—leave
     /// this line blank",
@@ -187,9 +189,9 @@ impl Form5 {
         })
     }
 
-    /// True for an amendment (`F5A`).
+    /// True for an amended report (`F5A`); see [`Form5::form_type`].
     pub fn is_amendment(&self) -> bool {
-        self.form_type.to_ascii_uppercase().ends_with('A')
+        crate::covers::is_amendment_form_type(&self.form_type)
     }
 
     /// True when the filer is an individual (`entity_type` `IND`).
@@ -259,7 +261,7 @@ mod tests {
             .into_iter()
             .map(|(k, v)| (k.to_owned(), v.to_owned()))
             .collect();
-        let name = person_name_or_legacy(&data, "custodian_", "custodian_name");
+        let name = crate::covers::fields::person_name(&data, "custodian_");
         assert_eq!(name.to_string(), "Jane Doe");
     }
 }

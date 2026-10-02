@@ -7,7 +7,7 @@ snapshot_kind: text
   "form": "Form3P",
   "data": {
     "form_type": "F3PN",
-    "filer_committee_id_number": "C00836916",
+    "filer_committee_id": "C00836916",
     "committee_name": "Team Kennedy",
     "address": {
       "street_1": "PO Box 147",

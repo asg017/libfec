@@ -1,7 +1,6 @@
 //! Form 6: 48-hour notice of contributions/loans received.
 
-use crate::covers::fields::person_name_or_legacy;
-use crate::covers::fields::{date, text, text_or_empty, Data};
+use crate::covers::fields::{date, person_name_or_legacy, text, text_or_empty, Data};
 use crate::covers::{Address, PersonName};
 use jiff::civil::Date;
 
@@ -38,8 +37,9 @@ use jiff::civil::Date;
 /// into [`Form6Candidate::name`]) and have no signer name columns.
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct Form6 {
-    /// Form type as filed: `F6N` or `F6A`. Column `form_type` (FEC format
-    /// workbook v8.4, sheet F6, field 1).
+    /// Form type as filed, e.g. `F6N`: the base form plus the
+    /// amendment-indicator suffix (see [`crate::covers::base_form_type`]).
+    /// Column `form_type` (FEC format workbook v8.4, sheet `F6`, field 1).
     pub form_type: String,
     /// Line 4, the committee's FEC identification number. Column
     /// `filer_committee_id_number` (FEC format workbook v8.4, sheet F6,
@@ -117,9 +117,9 @@ impl Form6 {
         })
     }
 
-    /// True for an amendment (`F6A`).
+    /// True for an amended notice (`F6A`); see [`Form6::form_type`].
     pub fn is_amendment(&self) -> bool {
-        self.form_type.to_ascii_uppercase().ends_with('A')
+        crate::covers::is_amendment_form_type(&self.form_type)
     }
 }
 
@@ -131,16 +131,6 @@ impl Form6Candidate {
     /// boxes FEC forms print, "House", "Senate", "President"
     /// ([fecfrm1.pdf p2](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm1.pdf#page=2)).
     pub fn office_label(&self) -> Option<&'static str> {
-        office_label(self.office.as_deref()?)
-    }
-}
-
-/// Office-sought label for `H` / `S` / `P` (see [`Form6Candidate::office_label`]).
-pub(crate) fn office_label(code: &str) -> Option<&'static str> {
-    match code.trim().to_ascii_uppercase().as_str() {
-        "H" => Some("House"),
-        "S" => Some("Senate"),
-        "P" => Some("President"),
-        _ => None,
+        crate::covers::office_label(self.office.as_deref()?)
     }
 }

@@ -1,6 +1,8 @@
 //! Form 2, the Statement of Candidacy (`F2N` / `F2A` cover records).
 
-use crate::covers::fields::{amount_opt, date, flag, text, text_or_empty, Data};
+use crate::covers::fields::{
+    amount_opt, date, flag, person_name_or_legacy, text, text_or_empty, Data,
+};
 use crate::covers::{Address, PersonName};
 use jiff::civil::Date;
 
@@ -43,11 +45,12 @@ use jiff::civil::Date;
 /// [`office_state`](Self::office_state).
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct Form2 {
-    /// Record form type: `F2N` for a new statement or `F2A` for an amendment
-    /// — Line 3, "Is This Statement New (N) OR Amended (A)". Column
-    /// `form_type` (FEC format workbook v8.4, sheet F2, field 1, value
-    /// reference `F2+[N|A]`;
-    /// [fecfrm2.pdf p1](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm2.pdf#page=1)).
+    /// Form type as filed, e.g. `F2N`: the base form plus the
+    /// amendment-indicator suffix (see [`crate::covers::base_form_type`]).
+    /// Column `form_type` (FEC format workbook v8.4, sheet `F2`, field 1,
+    /// value reference `F2+[N|A]`). The suffix is Line 3, "Is This Statement
+    /// New (N) OR Amended (A)"
+    /// ([fecfrm2.pdf p1](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm2.pdf#page=1)).
     pub form_type: String,
 
     /// FEC candidate identification number — Line 2. Column
@@ -61,7 +64,8 @@ pub struct Form2 {
     /// Candidate's name — Line 1(a), "Name of Candidate (in full)". Columns
     /// `candidate_last_name`, `candidate_first_name`, `candidate_middle_name`,
     /// `candidate_prefix`, `candidate_suffix` (FEC format workbook v8.4,
-    /// sheet F2, fields 3–7).
+    /// sheet F2, fields 3–7). The single caret-delimited `candidate_name`
+    /// column of v3/v5.x formats is split into parts.
     pub candidate: PersonName,
 
     /// Candidate's mailing address — Line 1(b)–(c). Columns
@@ -79,7 +83,7 @@ pub struct Form2 {
 
     /// Party affiliation code — Line 4, "Party Affiliation". Column
     /// `candidate_party_code` (FEC format workbook v8.4, sheet F2, field 19,
-    /// e.g. `DEM`, `REP`, `IND`). See [`party_label`](Self::party_label).
+    /// e.g. `DEM`, `REP`, `IND`). See [`party_code_label`](Self::party_code_label).
     pub party_code: Option<String>,
 
     /// Office sought — Line 5. Column `candidate_office`: `H`, `S` or `P`
@@ -148,7 +152,8 @@ pub struct Form2 {
     /// `candidate_signature_middle_name`, `candidate_signature_prefix`,
     /// `candidate_signature_suffix` (FEC format workbook v8.4, sheet F2,
     /// fields 38–42). The workbook notes the candidate normally signs and these
-    /// "ought to match" the candidate name fields.
+    /// "ought to match" the candidate name fields. v3/v5.x formats' single
+    /// caret-delimited `candidate_signature_name` column is split into parts.
     pub signer: PersonName,
 
     /// Date signed — "Date" beside the candidate's signature. Column
@@ -212,7 +217,7 @@ impl Form2 {
     /// is not a usable Form 2.
     pub fn from_data(data: &Data) -> Option<Self> {
         let candidate_id = text_or_empty(data, "candidate_id_number");
-        let candidate = PersonName::from_prefixed(data, "candidate_");
+        let candidate = person_name_or_legacy(data, "candidate_", "candidate_name");
         if candidate_id.is_empty() && candidate.is_empty() {
             return None;
         }
@@ -243,7 +248,7 @@ impl Form2 {
             principal_committee: Form2Committee::from_prefixed(data, "committee_"),
             authorized_committee,
             personal_funds_declaration,
-            signer: PersonName::from_prefixed(data, "candidate_signature_"),
+            signer: person_name_or_legacy(data, "candidate_signature_", "candidate_signature_name"),
             date_signed: date(data, "date_signed"),
         })
     }
@@ -253,7 +258,7 @@ impl Form2 {
     /// ([fecfrm2i.pdf p1](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm2i.pdf#page=1):
     /// check "New" if filing Form 2 for the first time, otherwise "Amended").
     pub fn is_amendment(&self) -> bool {
-        self.form_type.trim().to_ascii_uppercase().ends_with('A')
+        crate::covers::is_amendment_form_type(&self.form_type)
     }
 
     /// Office sought: `H` = House, `S` = Senate, `P` = President. The codes
@@ -261,38 +266,17 @@ impl Form2 {
     /// field 20, `H,S,P`); the names are the matching "Office Sought"
     /// checkboxes on Form 1
     /// ([fecfrm1.pdf p2](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm1.pdf#page=2)).
+    /// See [`crate::covers::office_label`].
     pub fn office_label(&self) -> Option<&'static str> {
-        office_label(self.office.as_deref()?)
+        crate::covers::office_label(self.office.as_deref()?)
     }
 
     /// Party name for the abbreviations the FEC spells out in its
     /// instructions: DEM, REP, REF, GRE and IND
     /// ([fecfrm1i.pdf p2](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm1i.pdf#page=2),
     /// Line 5). Other codes (the workbook's list is only "AIC,AIP,...") return
-    /// `None`. Case-insensitive.
-    pub fn party_label(&self) -> Option<&'static str> {
-        party_label(self.party_code.as_deref()?)
-    }
-}
-
-/// See [`Form2::office_label`].
-fn office_label(code: &str) -> Option<&'static str> {
-    match code.trim().to_ascii_uppercase().as_str() {
-        "H" => Some("House"),
-        "S" => Some("Senate"),
-        "P" => Some("President"),
-        _ => None,
-    }
-}
-
-/// See [`Form2::party_label`].
-fn party_label(code: &str) -> Option<&'static str> {
-    match code.trim().to_ascii_uppercase().as_str() {
-        "DEM" => Some("Democratic Party"),
-        "REP" => Some("Republican Party"),
-        "REF" => Some("Reform Party"),
-        "GRE" => Some("Green Party"),
-        "IND" => Some("Independent"),
-        _ => None,
+    /// `None`. Case-insensitive. See [`crate::covers::party_label`].
+    pub fn party_code_label(&self) -> Option<&'static str> {
+        crate::covers::party_label(self.party_code.as_deref()?)
     }
 }

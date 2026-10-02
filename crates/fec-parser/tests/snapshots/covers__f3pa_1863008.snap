@@ -7,7 +7,7 @@ snapshot_kind: text
   "form": "Form3P",
   "data": {
     "form_type": "F3PA",
-    "filer_committee_id_number": "C00828541",
+    "filer_committee_id": "C00828541",
     "committee_name": "DONALD J. TRUMP FOR PRESIDENT 2024, INC.",
     "address": {
       "street_1": "P.O. BOX 509",

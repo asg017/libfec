@@ -10,8 +10,7 @@
 //! - the FEC e-filing format workbook v8.4, sheet `F1M`, whose field numbers
 //!   (1–71) are cited as "field N".
 
-use crate::covers::fields::{date, text, text_or_empty, Data};
-use crate::covers::form1::{office_label, person_name};
+use crate::covers::fields::{date, person_name_or_legacy, text, text_or_empty, Data};
 use crate::covers::{Address, PersonName};
 use jiff::civil::Date;
 
@@ -43,13 +42,17 @@ use jiff::civil::Date;
 /// `None`. Real filings occasionally populate both; both are kept.
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct Form1M {
+    /// Form type as filed, e.g. `F1MN`: the base form plus the
+    /// amendment-indicator suffix (see [`crate::covers::base_form_type`]).
+    /// Column `form_type` (FEC format workbook v8.4, sheet `F1M`, field 1).
+    pub form_type: String,
     /// Line 1(a) "Name of Committee in Full" (`committee_name`, field 3).
     pub committee_name: String,
     /// Line 1(b)–(c) mailing address (`street_1`, `street_2`, `city`, `state`,
     /// `zip_code`, fields 4–8).
     pub address: Address,
     /// Line 2 FEC identification number (`filer_committee_id_number`, field 2).
-    pub filer_committee_id_number: String,
+    pub filer_committee_id: String,
     /// Line 3 "Type of Committee (check one)": `X` = State party, `N` = other
     /// (`committee_type`, field 9). This is *not* the Form 1 committee type.
     /// See [`Form1M::committee_type_label`].
@@ -61,8 +64,8 @@ pub struct Form1M {
     /// candidate column and all three dates are blank.
     pub qualification: Option<Form1MQualification>,
     /// "Type or Print Name of Treasurer" (`treasurer_*`, fields 66–70; the
-    /// single `treasurer_name` column of pre-v6 formats is read whole into
-    /// `last_name`).
+    /// single caret-delimited `treasurer_name` column of pre-v6 formats is
+    /// split into parts).
     pub treasurer: PersonName,
     /// Date next to the treasurer's signature (`date_signed`, field 71).
     pub date_signed: Option<Date>,
@@ -123,8 +126,8 @@ pub struct Form1MCandidate {
     /// committee ID (`C…`) here; it is kept as filed.
     pub candidate_id: Option<String>,
     /// "Name" (`first_candidate_last_name` … `first_candidate_suffix`,
-    /// fields 14–18; `first_candidate_name` in pre-v6 formats, read whole into
-    /// `last_name`). Some filers enter a committee name here.
+    /// fields 14–18; the caret-delimited `first_candidate_name` of pre-v6
+    /// formats is split into parts). Some filers enter a committee name here.
     pub name: PersonName,
     /// "Office Sought": `H`, `S` or `P` (`first_candidate_office`, field 19).
     /// See [`Form1MCandidate::office_label`].
@@ -143,7 +146,7 @@ impl Form1MCandidate {
     fn from_prefixed(data: &Data, prefix: &str) -> Option<Self> {
         let c = Self {
             candidate_id: text(data, &format!("{prefix}id_number")),
-            name: person_name(data, prefix),
+            name: person_name_or_legacy(data, prefix, &format!("{prefix}name")),
             office: text(data, &format!("{prefix}office")),
             state: text(data, &format!("{prefix}state")),
             district: text(data, &format!("{prefix}district")),
@@ -162,7 +165,7 @@ impl Form1MCandidate {
     /// (FEC format workbook v8.4, sheet `F1M`, field 19), named as on the Form
     /// 1 "Office Sought" boxes; see [`crate::covers::Form1Candidate::office_label`].
     pub fn office_label(&self) -> Option<&'static str> {
-        self.office.as_deref().and_then(office_label)
+        self.office.as_deref().and_then(crate::covers::office_label)
     }
 }
 
@@ -200,15 +203,21 @@ impl Form1M {
         .then_some(qualification);
 
         Some(Self {
+            form_type: text_or_empty(data, "form_type"),
             committee_name: text_or_empty(data, "committee_name"),
             address: Address::from_prefixed(data, ""),
-            filer_committee_id_number: text_or_empty(data, "filer_committee_id_number"),
+            filer_committee_id: text_or_empty(data, "filer_committee_id_number"),
             committee_type: text(data, "committee_type"),
             affiliation,
             qualification,
-            treasurer: person_name(data, "treasurer_"),
+            treasurer: person_name_or_legacy(data, "treasurer_", "treasurer_name"),
             date_signed: date(data, "date_signed"),
         })
+    }
+
+    /// True for an amended notification (`F1MA`); see [`Form1M::form_type`].
+    pub fn is_amendment(&self) -> bool {
+        crate::covers::is_amendment_form_type(&self.form_type)
     }
 
     /// The workbook's description of [`Form1M::committee_type`]: `X` "State
@@ -272,7 +281,7 @@ mod tests {
         ]);
         let q = Form1M::from_data(&d).unwrap().qualification.unwrap();
         assert_eq!(q.candidates.len(), 1);
-        assert_eq!(q.candidates[0].name.last_name, "SMITH^JOHN");
+        assert_eq!(q.candidates[0].name.to_string(), "JOHN SMITH");
         assert_eq!(q.candidates[0].office_label(), Some("Senate"));
     }
 }

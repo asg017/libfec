@@ -41,9 +41,10 @@ use jiff::civil::Date;
 /// [`Form24::treasurer`] is empty there; v3 also lacks `report_type`.
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct Form24 {
-    /// Form type as filed: `F24N` (new) or `F24A` (amendment). Column
-    /// `form_type` (FEC format workbook v8.4, sheet F24, field 1; values
-    /// `F24+[N|A]`).
+    /// Form type as filed, e.g. `F24N`: the base form plus the
+    /// amendment-indicator suffix (see [`crate::covers::base_form_type`]).
+    /// Column `form_type` (FEC format workbook v8.4, sheet `F24`, field 1;
+    /// values `F24+[N|A]`).
     pub form_type: String,
     /// The filing committee's FEC ID. Column `filer_committee_id_number`
     /// (FEC format workbook v8.4, sheet F24, field 2).
@@ -91,9 +92,9 @@ impl Form24 {
         })
     }
 
-    /// True for an amendment (`F24A`).
+    /// True for an amended report (`F24A`); see [`Form24::form_type`].
     pub fn is_amendment(&self) -> bool {
-        self.form_type.to_ascii_uppercase().ends_with('A')
+        crate::covers::is_amendment_form_type(&self.form_type)
     }
 
     /// "24-Hour Report" or "48-Hour Report" for the codes `24` / `48`

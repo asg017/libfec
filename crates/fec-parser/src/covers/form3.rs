@@ -2,7 +2,7 @@
 //!
 //! See [`Form3`].
 
-use crate::covers::fields::{amount, date, flag, text, text_or_empty, Data};
+use crate::covers::fields::{amount, date, flag, person_name_or_legacy, text, text_or_empty, Data};
 use crate::covers::{Address, DetailedSummaryRow, PersonName};
 use jiff::civil::Date;
 
@@ -47,16 +47,18 @@ use jiff::civil::Date;
 /// column the record's Column B holds on such a report.
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct Form3 {
-    /// The record's form type: `F3` plus `N` (new) or `A` (amended), matching
-    /// Line 3 "Is this report New (N) or Amended (A)"
-    /// ([fecfrm3.pdf p1](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm3.pdf#page=1)),
-    /// or `T`, which the workbook lists without defining (`form_type`; FEC
-    /// format workbook v8.4, sheet `F3`, field 1).
+    /// Form type as filed, e.g. `F3N`: the base form plus the
+    /// amendment-indicator suffix (see [`crate::covers::base_form_type`]).
+    /// Column `form_type` (FEC format workbook v8.4, sheet `F3`, field 1).
+    /// `N` (new) or `A` (amended) match Line 3 "Is this report New (N) or
+    /// Amended (A)"
+    /// ([fecfrm3.pdf p1](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm3.pdf#page=1));
+    /// the workbook also lists `T` without defining it.
     pub form_type: String,
     /// Line 2, the committee's FEC identification number
     /// (`filer_committee_id_number`;
     /// [fecfrm3.pdf p1](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm3.pdf#page=1)).
-    pub filer_committee_id_number: String,
+    pub filer_committee_id: String,
     /// Line 1, the committee's full name (`committee_name`;
     /// [fecfrm3.pdf p1](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm3.pdf#page=1)).
     pub committee_name: String,
@@ -108,7 +110,8 @@ pub struct Form3 {
     /// All activity since the last report's ending date must be included
     /// ([fecfrm3i.pdf p3](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm3i.pdf#page=3)).
     pub coverage_through_date: Option<Date>,
-    /// "Type or Print Name of Treasurer" (`treasurer_*`;
+    /// "Type or Print Name of Treasurer" (`treasurer_*`; the single
+    /// caret-delimited `treasurer_name` of v1–v5.x formats is split into parts;
     /// [fecfrm3.pdf p1](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm3.pdf#page=1)).
     pub treasurer: PersonName,
     /// Date the treasurer signed the certification (`date_signed`;
@@ -124,7 +127,7 @@ impl Form3 {
     pub fn from_data(data: &Data) -> Option<Self> {
         Some(Self {
             form_type: text_or_empty(data, "form_type"),
-            filer_committee_id_number: text_or_empty(data, "filer_committee_id_number"),
+            filer_committee_id: text_or_empty(data, "filer_committee_id_number"),
             committee_name: text_or_empty(data, "committee_name"),
             address: Address::from_prefixed(data, ""),
             change_of_address: flag(data, "change_of_address"),
@@ -136,11 +139,16 @@ impl Form3 {
             state_of_election: text(data, "state_of_election"),
             coverage_from_date: date(data, "coverage_from_date"),
             coverage_through_date: date(data, "coverage_through_date"),
-            treasurer: PersonName::from_data(data),
+            treasurer: person_name_or_legacy(data, "treasurer_", "treasurer_name"),
             date_signed: date(data, "date_signed"),
             summary: Form3Summary::from_data(data),
             detailed_summary: Form3DetailedSummary::from_data(data),
         })
+    }
+
+    /// True for an amended report (`F3A`); see [`Form3::form_type`].
+    pub fn is_amendment(&self) -> bool {
+        crate::covers::is_amendment_form_type(&self.form_type)
     }
 
     /// Description of [`Form3::report_code`] (see [`crate::report_code_label`]).

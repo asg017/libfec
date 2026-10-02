@@ -33,6 +33,38 @@
 //! - All structs derive `Debug`, `Clone` and `serde::Serialize`, so frontends
 //!   (the TUI, the desktop viewer, Python/JS bindings) can consume them as-is.
 //!
+//! # Field names
+//!
+//! Field names are public API (they are the JSON keys of `libfec info -f json`
+//! and of every binding), so the same thing has the same name on every form:
+//!
+//! - `form_type: String` — the cover's raw form type as filed (`"F3XN"`),
+//!   first field of every top-level `FormN`, with an `is_amendment()` method
+//!   (via [`is_amendment_form_type`]). Form 99 has no suffix, so its
+//!   `is_amendment()` is always false.
+//! - `filer_committee_id: String` — the filer's own FEC ID (column
+//!   `filer_committee_id_number`), whatever kind of filer it is. Other IDs keep
+//!   their role in the name (`candidate_id`, `committee_id` on a nested
+//!   affiliated committee).
+//! - `coverage_from_date` / `coverage_through_date: Option<Date>` — the
+//!   covering period, named like the columns and [`crate::FilingCover`].
+//! - `election_date: Option<Date>` — the date of the election a report is for
+//!   (whether the column is `election_date` or `date_of_election`).
+//! - `original_amendment_date: Option<Date>` — on an amendment, the date of
+//!   the report it amends.
+//! - `date_signed: Option<Date>` — the signature date.
+//! - `line6a_year: Option<i16>` — a year printed on the form, parsed.
+//! - The signer keeps the form's own role name: `treasurer` where the form says
+//!   treasurer, otherwise `signer`, `person_completing`, `person_designated`
+//!   or `designated_officer`. [`Cover::signer`] gives a uniform view.
+//! - Summary-page amounts are `lineN_<description>`, numbered as on the form.
+//! - Label helpers are `<field>_label()`; labels shared by several forms come
+//!   from one function here ([`office_label`], [`party_label`],
+//!   [`election_code_label`]).
+//! - Names come from `fields::person_name_or_legacy` wherever the mapping has a
+//!   legacy (v1–v5.x) single-column name, which splits its `^` parts the same
+//!   way on every form.
+//!
 //! # Form types
 //!
 //! A cover record's form type is the base form plus an optional suffix: `N`
@@ -208,6 +240,51 @@ pub fn base_form_type(form_type: &str) -> String {
     match upper.as_bytes().last() {
         Some(b'N' | b'A' | b'T') if upper.len() > 2 => upper[..upper.len() - 1].to_owned(),
         _ => upper,
+    }
+}
+
+/// True when a cover form type carries the `A` (amendment) suffix: `"F3XA"`
+/// → `true`; `"F3XN"`, `"F3XT"` and the suffix-less `"F99"` → `false`.
+/// Case-insensitive. Backs every `FormN::is_amendment`.
+pub fn is_amendment_form_type(form_type: &str) -> bool {
+    let upper = form_type.trim().to_ascii_uppercase();
+    upper.ends_with('A') && base_form_type(&upper) != upper
+}
+
+/// "House", "Senate" or "President" for the office-sought codes `H`, `S`,
+/// `P` (case-insensitive; other codes return `None`).
+///
+/// The format workbook lists the codes `H,S,P` without descriptions (FEC
+/// format workbook v8.4, sheet `F1` field 29, sheet `F2` field 20, sheet `F6`
+/// field 16); the names are Form 1's "Office Sought" boxes, which read
+/// "House", "Senate", "President"
+/// ([fecfrm1.pdf p2](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm1.pdf#page=2)).
+pub fn office_label(code: &str) -> Option<&'static str> {
+    match code.trim().to_ascii_uppercase().as_str() {
+        "H" => Some("House"),
+        "S" => Some("Senate"),
+        "P" => Some("President"),
+        _ => None,
+    }
+}
+
+/// Party name for the five party abbreviations the FEC spells out: the Form
+/// 1 Line 5 instructions say "for Democratic party, list “DEM,” for
+/// Republican party, list “REP,” for Reform party, list “REF,” for Green
+/// party, list “GRE” or for Independent, list “IND.”"
+/// ([fecfrm1i.pdf p2](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm1i.pdf#page=2)).
+/// Labels use that wording, capitalised as names ("Democratic Party").
+/// Other codes return `None`: the workbook's list is only `AIC,AIP,...` /
+/// `Edit: PTY` (FEC format workbook v8.4, sheet `F1`, field 32) with no
+/// descriptions. Case-insensitive.
+pub fn party_label(code: &str) -> Option<&'static str> {
+    match code.trim().to_ascii_uppercase().as_str() {
+        "DEM" => Some("Democratic Party"),
+        "REP" => Some("Republican Party"),
+        "REF" => Some("Reform Party"),
+        "GRE" => Some("Green Party"),
+        "IND" => Some("Independent"),
+        _ => None,
     }
 }
 
@@ -394,6 +471,26 @@ mod tests {
         assert_eq!(base_form_type("F24N"), "F24");
         assert_eq!(base_form_type("F3P"), "F3P");
         assert_eq!(base_form_type("F3PN"), "F3P");
+    }
+
+    #[test]
+    fn amendment_form_types() {
+        assert!(is_amendment_form_type("F3XA"));
+        assert!(is_amendment_form_type("f1ma"));
+        assert!(is_amendment_form_type("F3PA"));
+        assert!(!is_amendment_form_type("F3XN"));
+        assert!(!is_amendment_form_type("F3XT"));
+        assert!(!is_amendment_form_type("F99"));
+        assert!(!is_amendment_form_type(""));
+    }
+
+    #[test]
+    fn shared_labels() {
+        assert_eq!(office_label(" s "), Some("Senate"));
+        assert_eq!(office_label("X"), None);
+        assert_eq!(party_label("dem"), Some("Democratic Party"));
+        assert_eq!(party_label("IND"), Some("Independent"));
+        assert_eq!(party_label("LIB"), None);
     }
 
     #[test]

@@ -7,7 +7,7 @@ snapshot_kind: text
   "form": "Form3P",
   "data": {
     "form_type": "F3PN",
-    "filer_committee_id_number": "C00384073",
+    "filer_committee_id": "C00384073",
     "committee_name": "EDWARDS FOR PRESIDENT",
     "address": {
       "street_1": "C/O 29 BRIARWOOD DRIVE",

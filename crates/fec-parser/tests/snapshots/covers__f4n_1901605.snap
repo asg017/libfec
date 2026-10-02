@@ -6,8 +6,9 @@ snapshot_kind: text
 {
   "form": "Form4",
   "data": {
+    "form_type": "F4N",
     "committee_name": "Development Now for Chicago",
-    "committee_id": "C00838862",
+    "filer_committee_id": "C00838862",
     "address": {
       "street_1": "2045 West Grant Ave",
       "street_2": "Suite B",
@@ -18,8 +19,8 @@ snapshot_kind: text
     "committee_type": "H",
     "committee_type_description": null,
     "report_code": "Q2",
-    "coverage_from": "2025-04-01",
-    "coverage_through": "2025-06-30",
+    "coverage_from_date": "2025-04-01",
+    "coverage_through_date": "2025-06-30",
     "treasurer": {
       "first_name": "Michelle",
       "last_name": "Harris",
@@ -29,8 +30,8 @@ snapshot_kind: text
     },
     "date_signed": "2025-07-15",
     "summary": {
-      "line6a_cash_on_hand_january_1": 6348148.24,
-      "line6a_year": "2025",
+      "line6a_cash_on_hand_jan_1": 6348148.24,
+      "line6a_year": 2025,
       "line6b_cash_on_hand_beginning_period": 6589793.13,
       "line6c_total_receipts": {
         "column_a": 453030.27,

@@ -6,8 +6,9 @@ snapshot_kind: text
 {
   "form": "Form3L",
   "data": {
+    "form_type": "F3LN",
     "committee_name": "Bell for Missouri",
-    "committee_id": "C00842336",
+    "filer_committee_id": "C00842336",
     "address": {
       "street_1": "PO Box 33079",
       "street_2": null,
@@ -22,8 +23,8 @@ snapshot_kind: text
     "election_date": null,
     "election_held_in_state": null,
     "also_covers_semi_annual_period": false,
-    "coverage_from": "2025-04-01",
-    "coverage_through": "2025-06-30",
+    "coverage_from_date": "2025-04-01",
+    "coverage_through_date": "2025-06-30",
     "semi_annual_january_june": false,
     "semi_annual_july_december": false,
     "line7a_quarterly_monthly_bundled_contributions": 150930.0,

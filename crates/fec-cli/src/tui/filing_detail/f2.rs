@@ -36,7 +36,7 @@ pub(super) fn append_f2_content_lines(d: &mut Doc, form: &Form2) {
     }
     d.address("Address", &form.candidate_address, form.change_of_address);
     if let Some(ref party) = form.party_code {
-        d.field("Party", code_with_label(party, form.party_label()));
+        d.field("Party", code_with_label(party, form.party_code_label()));
     }
     d.field_opt(
         "Running mate",

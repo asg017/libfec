@@ -1,6 +1,6 @@
 //! Form 99, the Miscellaneous Electronic Submission (`F99` cover records).
 
-use crate::covers::fields::{date, flag, text, text_or_empty, Data};
+use crate::covers::fields::{date, flag, person_name_or_legacy, text, text_or_empty, Data};
 use crate::covers::{Address, PersonName};
 use jiff::civil::Date;
 
@@ -36,9 +36,15 @@ use jiff::civil::Date;
 /// [`text`](Self::text).
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct Form99 {
+    /// Form type as filed: `F99`. Other covers carry an amendment-indicator
+    /// suffix here (see [`crate::covers::base_form_type`]); Form 99 has
+    /// none, so [`is_amendment`](Self::is_amendment) is always false. Column
+    /// `form_type` (FEC format workbook v8.4, sheet `F99`, field 1).
+    pub form_type: String,
+
     /// Filer's FEC committee ID. Column `filer_committee_id_number` (FEC
     /// format workbook v8.4, sheet F99, field 2).
-    pub committee_id: String,
+    pub filer_committee_id: String,
 
     /// Filer's committee name. Column `committee_name` (FEC format workbook
     /// v8.4, sheet F99, field 3).
@@ -51,8 +57,9 @@ pub struct Form99 {
     /// Treasurer's name. Columns `treasurer_last_name`,
     /// `treasurer_first_name`, `treasurer_middle_name`, `treasurer_prefix`,
     /// `treasurer_suffix` (FEC format workbook v8.4, sheet F99, fields 9–13).
-    /// For format 5.x and earlier, whose single `treasurer_name` column holds
-    /// the whole name, that value is put in `last_name`.
+    /// For format 5.x and earlier, whose single caret-delimited
+    /// `treasurer_name` column holds the whole name, that value is split into
+    /// parts.
     pub treasurer: PersonName,
 
     /// Date signed, `YYYYMMDD`. Column `date_signed` (FEC format workbook
@@ -98,28 +105,30 @@ impl Form99 {
     /// filled in by [`crate::Filing::from_reader`]. Returns `None` if the
     /// record has neither a committee ID nor a committee name.
     pub fn from_data(data: &Data) -> Option<Self> {
-        let committee_id = text_or_empty(data, "filer_committee_id_number");
+        let filer_committee_id = text_or_empty(data, "filer_committee_id_number");
         let committee_name = text_or_empty(data, "committee_name");
-        if committee_id.is_empty() && committee_name.is_empty() {
+        if filer_committee_id.is_empty() && committee_name.is_empty() {
             return None;
         }
-        let mut treasurer = PersonName::from_data(data);
-        if treasurer.is_empty() {
-            if let Some(name) = text(data, "treasurer_name") {
-                treasurer.last_name = name;
-            }
-        }
         Some(Self {
-            committee_id,
+            form_type: text_or_empty(data, "form_type"),
+            filer_committee_id,
             committee_name,
             address: Address::from_prefixed(data, ""),
-            treasurer,
+            treasurer: person_name_or_legacy(data, "treasurer_", "treasurer_name"),
             date_signed: date(data, "date_signed"),
             text_code: text(data, "text_code"),
             filing_frequency: text(data, "filing_frequency"),
             pdf_attachment: flag(data, "pdf_attachment"),
             text: text(data, "text"),
         })
+    }
+
+    /// Always false: Form 99 has no amendment indicator (`F99` takes no
+    /// suffix). Present so every cover struct answers the question the same
+    /// way.
+    pub fn is_amendment(&self) -> bool {
+        crate::covers::is_amendment_form_type(&self.form_type)
     }
 
     /// The FEC's description of [`text_code`](Self::text_code):

@@ -32,6 +32,10 @@ use serde::Serialize;
 /// address.
 #[derive(Debug, Clone, Serialize)]
 pub struct Form13 {
+    /// Form type as filed, e.g. `F13N`: the base form plus the
+    /// amendment-indicator suffix (see [`crate::covers::base_form_type`]).
+    /// Column `form_type` (FEC format workbook v8.4, sheet `F13`, field 1).
+    pub form_type: String,
     /// Line 1, name of the inaugural committee (`committee_name`)
     /// ([fecfrm13.pdf p1](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm13.pdf#page=1)).
     pub committee_name: String,
@@ -39,7 +43,7 @@ pub struct Form13 {
     /// response to the letter-filing required by 11 CFR 104.21(b)"
     /// (`filer_committee_id_number`)
     /// ([fecfrm13i.pdf p1](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm13i.pdf#page=1)).
-    pub committee_id: String,
+    pub filer_committee_id: String,
     /// Line 1, mailing address (`street_1`, `street_2`, `city`, `state`,
     /// `zip_code`)
     /// ([fecfrm13.pdf p1](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm13.pdf#page=1)).
@@ -56,17 +60,17 @@ pub struct Form13 {
     /// form type is `F13A`
     /// ([fecfrm13i.pdf p1](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm13i.pdf#page=1);
     /// FEC format workbook v8.4, sheet `F13`, field 11).
-    pub amendment_date: Option<Date>,
+    pub original_amendment_date: Option<Date>,
     /// Line 4, first date of financial activity covered
     /// (`coverage_from_date`). A report starts with the date of appointment by
     /// the President-elect; a supplement, the day after the previous closing
     /// date; an amendment repeats the original filing's period
     /// ([fecfrm13i.pdf p1](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm13i.pdf#page=1)).
-    pub coverage_from: Option<Date>,
+    pub coverage_from_date: Option<Date>,
     /// Line 4, closing date of the report — "a date 15 days or less from the
     /// date the report is filed" (`coverage_through_date`)
     /// ([fecfrm13i.pdf p1](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm13i.pdf#page=1)).
-    pub coverage_through: Option<Date>,
+    pub coverage_through_date: Option<Date>,
     /// Line 5, total donations accepted: "the total donations itemized on all
     /// Schedules 13-A filed since the committee's inception"
     /// (`total_donations_accepted`)
@@ -99,20 +103,26 @@ impl Form13 {
     pub fn from_data(data: &Data) -> Option<Self> {
         data.get("committee_name")?;
         Some(Self {
+            form_type: text_or_empty(data, "form_type"),
             committee_name: text_or_empty(data, "committee_name"),
-            committee_id: text_or_empty(data, "filer_committee_id_number"),
+            filer_committee_id: text_or_empty(data, "filer_committee_id_number"),
             address: Address::from_prefixed(data, ""),
             change_of_address: flag(data, "change_of_address"),
             report_code: text(data, "report_code"),
-            amendment_date: date(data, "amendment_date"),
-            coverage_from: date(data, "coverage_from_date"),
-            coverage_through: date(data, "coverage_through_date"),
+            original_amendment_date: date(data, "amendment_date"),
+            coverage_from_date: date(data, "coverage_from_date"),
+            coverage_through_date: date(data, "coverage_through_date"),
             line5_total_donations_accepted: amount(data, "total_donations_accepted"),
             line6_total_donations_refunded: amount(data, "total_donations_refunded"),
             line7_net_donations: amount(data, "net_donations"),
             designated_officer: PersonName::from_prefixed(data, "designated_"),
             date_signed: date(data, "date_signed"),
         })
+    }
+
+    /// True for an amended report (`F13A`); see [`Form13::form_type`].
+    pub fn is_amendment(&self) -> bool {
+        crate::covers::is_amendment_form_type(&self.form_type)
     }
 
     /// The FEC's description of [`Form13::report_code`]: "90D = 90 Day Post

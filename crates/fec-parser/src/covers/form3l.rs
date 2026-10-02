@@ -39,13 +39,19 @@ use jiff::civil::Date;
 /// of election and [`Form3L::election_held_in_state`] is `None`.
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct Form3L {
+    /// Form type as filed, e.g. `F3LN`: the base form plus the
+    /// amendment-indicator suffix (see [`crate::covers::base_form_type`]).
+    /// Column `form_type` (FEC format workbook v8.4, sheet `F3L`, field 1).
+    /// The suffix is Line 3, "Is this report New (N) or Amended (A)"
+    /// ([fecfrm3l.pdf p1](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm3l.pdf#page=1)).
+    pub form_type: String,
     /// Line 1, name of the reporting committee (`committee_name`)
     /// ([fecfrm3l.pdf p1](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm3l.pdf#page=1)).
     pub committee_name: String,
     /// Line 2, FEC identification number of the reporting committee
     /// (`filer_committee_id_number`)
     /// ([fecfrm3li.pdf p4](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm3li.pdf#page=4)).
-    pub committee_id: String,
+    pub filer_committee_id: String,
     /// Line 1, the committee's mailing address (`street_1`, `street_2`,
     /// `city`, `state`, `zip_code`)
     /// ([fecfrm3l.pdf p1](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm3l.pdf#page=1)).
@@ -89,9 +95,9 @@ pub struct Form3L {
     /// `QYE`, `MSA`, `MSY`) as having "no coverage dates" (FEC e-filing
     /// specifications v8.4, p15), but real filings with those codes usually
     /// still carry the quarter's dates here.
-    pub coverage_from: Option<Date>,
+    pub coverage_from_date: Option<Date>,
     /// Line 6(a), last day of that covered period (`coverage_through_date`).
-    pub coverage_through: Option<Date>,
+    pub coverage_through_date: Option<Date>,
     /// Line 6(b) box "January 1 – June 30": the report covers that
     /// semi-annual period (`semi_annual_period_jan_june`)
     /// ([fecfrm3l.pdf p1](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm3l.pdf#page=1);
@@ -132,8 +138,9 @@ impl Form3L {
     pub fn from_data(data: &Data) -> Option<Self> {
         data.get("committee_name")?;
         Some(Self {
+            form_type: text_or_empty(data, "form_type"),
             committee_name: text_or_empty(data, "committee_name"),
-            committee_id: text_or_empty(data, "filer_committee_id_number"),
+            filer_committee_id: text_or_empty(data, "filer_committee_id_number"),
             address: Address::from_prefixed(data, ""),
             change_of_address: flag(data, "change_of_address"),
             election_state: text(data, "election_state"),
@@ -142,8 +149,8 @@ impl Form3L {
             election_date: date(data, "election_date"),
             election_held_in_state: text(data, "TODO_UNKNOWN_BLANK"),
             also_covers_semi_annual_period: flag(data, "semi_annual_period"),
-            coverage_from: date(data, "coverage_from_date"),
-            coverage_through: date(data, "coverage_through_date"),
+            coverage_from_date: date(data, "coverage_from_date"),
+            coverage_through_date: date(data, "coverage_through_date"),
             semi_annual_january_june: flag(data, "semi_annual_period_jan_june"),
             semi_annual_july_december: flag(data, "semi_annual_period_jul_dec"),
             line7a_quarterly_monthly_bundled_contributions: amount(
@@ -157,6 +164,11 @@ impl Form3L {
             treasurer: PersonName::from_data(data),
             date_signed: date(data, "date_signed"),
         })
+    }
+
+    /// True for an amended report (`F3LA`); see [`Form3L::form_type`].
+    pub fn is_amendment(&self) -> bool {
+        crate::covers::is_amendment_form_type(&self.form_type)
     }
 
     /// The FEC's description of [`Form3L::report_code`], for the codes Form

@@ -47,7 +47,7 @@ fn append_identification(d: &mut Doc, data: &Form3X) {
         election_text(
             data.election_code.as_deref(),
             data.election_code_label(),
-            data.date_of_election,
+            data.election_date,
             data.state_of_election.as_deref(),
         ),
     );

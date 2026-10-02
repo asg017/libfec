@@ -19,10 +19,10 @@ snapshot_kind: text
     "change_of_address": false,
     "report_code": "M11",
     "election_code": null,
-    "date_of_election": null,
+    "election_date": null,
     "state_of_election": null,
-    "coverage_from": "2025-10-01",
-    "coverage_through": "2025-10-31",
+    "coverage_from_date": "2025-10-01",
+    "coverage_through_date": "2025-10-31",
     "qualified_committee": false,
     "treasurer": {
       "first_name": "Patricia",

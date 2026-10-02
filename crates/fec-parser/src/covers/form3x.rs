@@ -59,9 +59,11 @@ use serde::Serialize;
 /// Those are plain `f64`s, not rows.
 #[derive(Debug, Clone, Serialize)]
 pub struct Form3X {
-    /// Form type as filed: `F3XN` (new), `F3XA` (amended) or `F3XT`
-    /// (workbook field 1, `form_type`; allowed values "F3X+[N|A|T]"). The form
-    /// prints Line 3 "IS THIS REPORT NEW (N) OR AMENDED (A)"
+    /// Form type as filed, e.g. `F3XN`: the base form plus the
+    /// amendment-indicator suffix (see [`crate::covers::base_form_type`]).
+    /// Column `form_type` (FEC format workbook v8.4, sheet `F3X`, field 1;
+    /// allowed values "F3X+[N|A|T]"). The form prints Line 3 "IS THIS REPORT
+    /// NEW (N) OR AMENDED (A)"
     /// ([fecfrm3x.pdf p1](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm3x.pdf#page=1));
     /// neither the form nor the workbook defines the `T` suffix.
     pub form_type: String,
@@ -97,18 +99,18 @@ pub struct Form3X {
     /// pre-election or 30-day post-election report is for
     /// (`date_of_election`, workbook field 12;
     /// [fecfrm3x.pdf p1](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm3x.pdf#page=1)).
-    pub date_of_election: Option<Date>,
+    pub election_date: Option<Date>,
     /// Line 4(c)/(d) "in the State of" for that election
     /// (`state_of_election`, workbook field 13;
     /// [fecfrm3x.pdf p1](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm3x.pdf#page=1)).
     pub state_of_election: Option<String>,
     /// Line 5, "Covering Period" start date (`coverage_from_date`, workbook
     /// field 14; [fecfrm3x.pdf p1](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm3x.pdf#page=1)).
-    pub coverage_from: Option<Date>,
+    pub coverage_from_date: Option<Date>,
     /// Line 5, "Covering Period ... through" end date
     /// (`coverage_through_date`, workbook field 15;
     /// [fecfrm3x.pdf p1](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm3x.pdf#page=1)).
-    pub coverage_through: Option<Date>,
+    pub coverage_through_date: Option<Date>,
     /// Summary Page checkbox "This committee has qualified as a multicandidate
     /// committee. (see FEC FORM 1M)" (`qualified_committee`, workbook field 16,
     /// "X = Yes"; [fecfrm3x.pdf p2](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm3x.pdf#page=2)).
@@ -151,10 +153,10 @@ impl Form3X {
             change_of_address: flag(data, "change_of_address"),
             report_code: text(data, "report_code"),
             election_code: text(data, "election_code"),
-            date_of_election: date(data, "date_of_election"),
+            election_date: date(data, "date_of_election"),
             state_of_election: text(data, "state_of_election"),
-            coverage_from: date(data, "coverage_from_date"),
-            coverage_through: date(data, "coverage_through_date"),
+            coverage_from_date: date(data, "coverage_from_date"),
+            coverage_through_date: date(data, "coverage_through_date"),
             qualified_committee: flag(data, "qualified_committee"),
             treasurer: treasurer(data),
             date_signed: date(data, "date_signed"),
@@ -165,7 +167,7 @@ impl Form3X {
 
     /// True for an amended report (`F3XA`); see [`Form3X::form_type`].
     pub fn is_amendment(&self) -> bool {
-        self.form_type.to_ascii_uppercase().ends_with('A')
+        crate::covers::is_amendment_form_type(&self.form_type)
     }
 
     /// Description of [`Form3X::report_code`], e.g. `Q1` → "April Quarterly".

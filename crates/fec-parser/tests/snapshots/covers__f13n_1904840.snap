@@ -6,8 +6,9 @@ snapshot_kind: text
 {
   "form": "Form13",
   "data": {
+    "form_type": "F13N",
     "committee_name": "TRUMP VANCE INAUGURAL COMMITTEE, INC.",
-    "committee_id": "C00894162",
+    "filer_committee_id": "C00894162",
     "address": {
       "street_1": "C/O RED CURVE SOLUTIONS",
       "street_2": "138 CONANT ST STE 401",
@@ -17,9 +18,9 @@ snapshot_kind: text
     },
     "change_of_address": false,
     "report_code": "90S",
-    "amendment_date": null,
-    "coverage_from": "2025-04-21",
-    "coverage_through": "2025-07-18",
+    "original_amendment_date": null,
+    "coverage_from_date": "2025-04-21",
+    "coverage_through_date": "2025-07-18",
     "line5_total_donations_accepted": 246275355.58,
     "line6_total_donations_refunded": 6230697.38,
     "line7_net_donations": 240044658.2,

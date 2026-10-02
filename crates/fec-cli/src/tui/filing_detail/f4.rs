@@ -31,11 +31,11 @@ fn append_summary(d: &mut Doc, data: &Form4) {
 
     d.heading("SECTION A - CASH BALANCE SUMMARY");
     d.table(COLUMNS);
-    let jan_1 = match s.line6a_year.as_deref() {
+    let jan_1 = match s.line6a_year {
         Some(year) => format!("6(a) Cash on hand Jan 1, {year}"),
         None => "6(a) Cash on hand Jan 1".to_string(),
     };
-    d.row_ab(&jan_1, None, Some(s.line6a_cash_on_hand_january_1), false);
+    d.row_ab(&jan_1, None, Some(s.line6a_cash_on_hand_jan_1), false);
     d.row_ab(
         "6(b) Cash on hand, beginning",
         Some(s.line6b_cash_on_hand_beginning_period),

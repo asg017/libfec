@@ -77,17 +77,29 @@ pub(crate) fn flag(data: &Data, key: &str) -> bool {
 /// carets is kept whole as the last name. Some legacy layouts put that
 /// caret-delimited name in the `{prefix}last_name` column itself (Form 9's
 /// custodian in v5.x); that is split the same way.
+///
+/// Every cover reads a name this way when its mapping has a legacy
+/// single-column name; the legacy key is almost always `{prefix}name`.
 pub(crate) fn person_name_or_legacy(data: &Data, prefix: &str, legacy_key: &str) -> PersonName {
-    let name = PersonName::from_prefixed(data, prefix);
-    if name.first_name.is_empty() && name.last_name.contains('^') {
-        return parse_legacy_name(&name.last_name);
-    }
+    let name = person_name(data, prefix);
     if !name.is_empty() {
         return name;
     }
     text(data, legacy_key)
         .map(|raw| parse_legacy_name(&raw))
         .unwrap_or(name)
+}
+
+/// Read a structured `{prefix}last_name`/… name, splitting a caret-delimited
+/// value found in `{prefix}last_name` (with `{prefix}first_name` blank) the
+/// way [`person_name_or_legacy`] splits a legacy column. For names whose
+/// mappings have no legacy single-name column.
+pub(crate) fn person_name(data: &Data, prefix: &str) -> PersonName {
+    let name = PersonName::from_prefixed(data, prefix);
+    if name.first_name.is_empty() && name.last_name.contains('^') {
+        return parse_legacy_name(&name.last_name);
+    }
+    name
 }
 
 fn parse_legacy_name(raw: &str) -> PersonName {

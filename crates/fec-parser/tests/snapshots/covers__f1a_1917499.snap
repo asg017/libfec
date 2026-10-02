@@ -6,6 +6,7 @@ snapshot_kind: text
 {
   "form": "Form1",
   "data": {
+    "form_type": "F1A",
     "committee_name": "SAVE AMERICA STOP SOCIALISM PAC",
     "change_of_committee_name": false,
     "address": {
@@ -21,7 +22,7 @@ snapshot_kind: text
     "committee_url": "HTTPS://SAVEAMERICASTOPSOCIALISM.COM",
     "change_of_committee_url": false,
     "effective_date": "2024-04-26",
-    "filer_committee_id_number": "C00755199",
+    "filer_committee_id": "C00755199",
     "committee_type": "F",
     "candidate": null,
     "party_code": null,

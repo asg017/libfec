@@ -6,7 +6,8 @@ snapshot_kind: text
 {
   "form": "Form99",
   "data": {
-    "committee_id": "C00880856",
+    "form_type": "F99",
+    "filer_committee_id": "C00880856",
     "committee_name": "ARIZONA MOVEMENT LABS",
     "address": {
       "street_1": "1110 N VIRGIL AVE",

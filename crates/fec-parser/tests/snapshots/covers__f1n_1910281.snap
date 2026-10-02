@@ -6,6 +6,7 @@ snapshot_kind: text
 {
   "form": "Form1",
   "data": {
+    "form_type": "F1N",
     "committee_name": "Pete Barlow for Congress",
     "change_of_committee_name": false,
     "address": {
@@ -21,7 +22,7 @@ snapshot_kind: text
     "committee_url": null,
     "change_of_committee_url": false,
     "effective_date": "2025-08-05",
-    "filer_committee_id_number": "C00914911",
+    "filer_committee_id": "C00914911",
     "committee_type": "A",
     "candidate": {
       "candidate_id": null,

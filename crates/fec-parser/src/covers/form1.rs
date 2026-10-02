@@ -9,7 +9,7 @@
 //! - the FEC e-filing format workbook v8.4, sheet `F1`, whose field numbers
 //!   (1–101) are cited as "field N".
 
-use crate::covers::fields::{date, flag, text, text_or_empty, Data};
+use crate::covers::fields::{date, flag, person_name_or_legacy, text, text_or_empty, Data};
 use crate::covers::{Address, PersonName};
 use jiff::civil::Date;
 
@@ -29,8 +29,8 @@ use jiff::civil::Date;
 /// connected organization / affiliated committee (6), custodian of records
 /// (7), treasurer and designated agent (8) and banks or depositories (9)
 /// ([fecfrm1.pdf p1–4](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm1.pdf#page=1)).
-/// Line 4 is not a field of this struct: it is the `N`/`A` suffix of the form
-/// type (`F1N`/`F1A`, field 1), available as [`crate::FilingCover::form_type`].
+/// Line 4 (new or amended) is the `N`/`A` suffix of [`Form1::form_type`]
+/// (`F1N`/`F1A`, field 1); see [`Form1::is_amendment`].
 ///
 /// **Amendments.** The paper instructions ask amended statements to include
 /// only the changes on Lines 5–9
@@ -54,6 +54,13 @@ use jiff::civil::Date;
 /// so they are not here.
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct Form1 {
+    /// Form type as filed, e.g. `F1N`: the base form plus the
+    /// amendment-indicator suffix (see [`crate::covers::base_form_type`]).
+    /// Column `form_type` (FEC format workbook v8.4, sheet `F1`, field 1).
+    /// The suffix is Line 4, "Is this Statement New (N) or Amended (A)"
+    /// ([fecfrm1.pdf p1](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm1.pdf#page=1)).
+    pub form_type: String,
+
     // ---- Line 1 -------------------------------------------------------------
     /// Line 1, the committee's full name (`committee_name`, field 4).
     /// An authorized committee's name must include the candidate's name; a
@@ -92,7 +99,7 @@ pub struct Form1 {
     /// ([fecfrm1i.pdf p1](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm1i.pdf#page=1)).
     pub effective_date: Option<Date>,
     /// Line 3 FEC identification number (`filer_committee_id_number`, field 2).
-    pub filer_committee_id_number: String,
+    pub filer_committee_id: String,
 
     // ---- Line 5: type of committee -----------------------------------------
     /// Line 5 type of committee, one letter `A`–`J` for boxes 5(a)–5(j)
@@ -210,8 +217,8 @@ pub struct Form1Candidate {
     /// on the paper form; often blank for new candidates.
     pub candidate_id: Option<String>,
     /// "Name of Candidate" (`candidate_last_name` … `candidate_suffix`,
-    /// fields 24–28; the single `candidate_name` column of pre-v6 formats is
-    /// read whole into `last_name`).
+    /// fields 24–28; the single caret-delimited `candidate_name` column of
+    /// pre-v6 formats is split into parts).
     pub name: PersonName,
     /// "Office Sought": `H`, `S` or `P` (`candidate_office`, field 29). See
     /// [`Form1Candidate::office_label`].
@@ -226,7 +233,7 @@ impl Form1Candidate {
     fn from_data(data: &Data) -> Option<Self> {
         let candidate = Self {
             candidate_id: text(data, "candidate_id_number"),
-            name: person_name(data, "candidate_"),
+            name: person_name_or_legacy(data, "candidate_", "candidate_name"),
             office: text(data, "candidate_office"),
             state: text(data, "candidate_state"),
             district: text(data, "candidate_district"),
@@ -249,7 +256,7 @@ impl Form1Candidate {
     /// "Office Sought" boxes read "House", "Senate", "President"
     /// ([fecfrm1.pdf p2](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm1.pdf#page=2)).
     pub fn office_label(&self) -> Option<&'static str> {
-        self.office.as_deref().and_then(office_label)
+        self.office.as_deref().and_then(crate::covers::office_label)
     }
 }
 
@@ -345,7 +352,8 @@ impl Form1Affiliated {
 #[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize)]
 pub struct Form1Contact {
     /// Full name (`{role}_last_name` … `{role}_suffix`; the single
-    /// `{role}_name` column of pre-v6 formats is read whole into `last_name`).
+    /// caret-delimited `{role}_name` column of pre-v6 formats is split into
+    /// parts).
     pub name: PersonName,
     /// Mailing address (`{role}_street_1` … `{role}_zip_code`).
     pub address: Address,
@@ -358,7 +366,7 @@ pub struct Form1Contact {
 impl Form1Contact {
     fn from_prefixed(data: &Data, prefix: &str) -> Self {
         Self {
-            name: person_name(data, prefix),
+            name: person_name_or_legacy(data, prefix, &format!("{prefix}name")),
             address: Address::from_prefixed(data, prefix),
             title: text(data, &format!("{prefix}title")),
             telephone: text(data, &format!("{prefix}telephone")),
@@ -407,6 +415,7 @@ impl Form1 {
             return None;
         }
         Some(Self {
+            form_type: text_or_empty(data, "form_type"),
             committee_name: text_or_empty(data, "committee_name"),
             change_of_committee_name: flag(data, "change_of_committee_name"),
             address: Address::from_prefixed(data, ""),
@@ -416,7 +425,7 @@ impl Form1 {
             committee_url: text(data, "committee_url"),
             change_of_committee_url: flag(data, "change_of_committee_url"),
             effective_date: date(data, "effective_date"),
-            filer_committee_id_number: text_or_empty(data, "filer_committee_id_number"),
+            filer_committee_id: text_or_empty(data, "filer_committee_id_number"),
             committee_type: text(data, "committee_type"),
             candidate: Form1Candidate::from_data(data),
             party_code: text(data, "party_code"),
@@ -437,9 +446,14 @@ impl Form1 {
                 .into_iter()
                 .filter_map(|p| Form1Bank::from_prefixed(data, p))
                 .collect(),
-            signer: person_name(data, "signature_"),
+            signer: person_name_or_legacy(data, "signature_", "signature_name"),
             date_signed: date(data, "date_signed"),
         })
+    }
+
+    /// True for an amended statement (`F1A`); see [`Form1::form_type`].
+    pub fn is_amendment(&self) -> bool {
+        crate::covers::is_amendment_form_type(&self.form_type)
     }
 
     /// The workbook's description of [`Form1::committee_type`] (FEC format
@@ -520,20 +534,15 @@ impl Form1 {
     }
 
     /// Party name for [`Form1::party_code`], only for the five abbreviations
-    /// the Line 5 instructions spell out: `DEM` Democratic, `REP` Republican,
-    /// `REF` Reform, `GRE` Green, `IND` Independent
+    /// the Line 5 instructions spell out: `DEM` Democratic Party, `REP`
+    /// Republican Party, `REF` Reform Party, `GRE` Green Party, `IND`
+    /// Independent
     /// ([fecfrm1i.pdf p2](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm1i.pdf#page=2)).
     /// Other codes return `None`: the workbook only says `AIC,AIP,...` /
-    /// `Edit: PTY` (field 32) without listing descriptions.
+    /// `Edit: PTY` (field 32) without listing descriptions. See
+    /// [`crate::covers::party_label`].
     pub fn party_code_label(&self) -> Option<&'static str> {
-        match self.party_code.as_deref()?.to_ascii_uppercase().as_str() {
-            "DEM" => Some("Democratic"),
-            "REP" => Some("Republican"),
-            "REF" => Some("Reform"),
-            "GRE" => Some("Green"),
-            "IND" => Some("Independent"),
-            _ => None,
-        }
+        crate::covers::party_label(self.party_code.as_deref()?)
     }
 }
 
@@ -554,33 +563,6 @@ pub(crate) fn committee_type_label(code: &str) -> Option<&'static str> {
         "J" => "Joint Fundraising Representative {None are authorized}",
         _ => return None,
     })
-}
-
-/// See [`Form1Candidate::office_label`].
-pub(crate) fn office_label(code: &str) -> Option<&'static str> {
-    match code.trim().to_ascii_uppercase().as_str() {
-        "H" => Some("House"),
-        "S" => Some("Senate"),
-        "P" => Some("President"),
-        _ => None,
-    }
-}
-
-/// [`PersonName::from_prefixed`], falling back to the single `{prefix}name`
-/// column that pre-v6 formats use (e.g. `candidate_name`, `treasurer_name`),
-/// read whole into `last_name`.
-pub(crate) fn person_name(data: &Data, prefix: &str) -> PersonName {
-    let name = PersonName::from_prefixed(data, prefix);
-    if !name.is_empty() {
-        return name;
-    }
-    match text(data, &format!("{prefix}name")) {
-        Some(full) => PersonName {
-            last_name: full,
-            ..PersonName::default()
-        },
-        None => name,
-    }
 }
 
 #[cfg(test)]
@@ -621,8 +603,9 @@ mod tests {
             ("candidate_name", "SMITH^JOHN"),
         ]);
         let f = Form1::from_data(&d).unwrap();
-        assert_eq!(f.treasurer.name.last_name, "DOE^JANE");
-        assert_eq!(f.candidate.unwrap().name.last_name, "SMITH^JOHN");
+        assert_eq!(f.treasurer.name.last_name, "DOE");
+        assert_eq!(f.treasurer.name.first_name, "JANE");
+        assert_eq!(f.candidate.unwrap().name.to_string(), "JOHN SMITH");
     }
 
     #[test]
@@ -633,6 +616,5 @@ mod tests {
             Some("Independent expenditure-only political committee (Super PAC)")
         );
         assert_eq!(committee_type_label("Z"), None);
-        assert_eq!(office_label("S"), Some("Senate"));
     }
 }

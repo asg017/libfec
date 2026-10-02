@@ -6,8 +6,9 @@ snapshot_kind: text
 {
   "form": "Form7",
   "data": {
+    "form_type": "F7N",
     "organization_name": "National Association of REALTORS",
-    "organization_id": "C70002563",
+    "filer_committee_id": "C70002563",
     "address": {
       "street_1": "430 N. Michigan Avenue",
       "street_2": null,
@@ -19,8 +20,8 @@ snapshot_kind: text
     "report_code": "Q1",
     "election_date": null,
     "election_state": null,
-    "coverage_from": "2025-01-01",
-    "coverage_through": "2025-03-31",
+    "coverage_from_date": "2025-01-01",
+    "coverage_through_date": "2025-03-31",
     "total_communication_costs": 26652.38,
     "person_designated": {
       "first_name": "Craig",

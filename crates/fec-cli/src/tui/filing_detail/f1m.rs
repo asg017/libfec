@@ -24,8 +24,8 @@ fn date_or_dash(date: Option<jiff::civil::Date>) -> String {
 fn push_committee(d: &mut Doc, form: &Form1M) {
     d.heading("Committee");
     d.field("Name", form.committee_name.clone());
-    if !form.filer_committee_id_number.is_empty() {
-        d.field("FEC ID", form.filer_committee_id_number.clone());
+    if !form.filer_committee_id.is_empty() {
+        d.field("FEC ID", form.filer_committee_id.clone());
     }
     d.address("Address", &form.address, false);
     if let Some(ref code) = form.committee_type {

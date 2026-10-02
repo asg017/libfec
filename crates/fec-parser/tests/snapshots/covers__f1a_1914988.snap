@@ -6,6 +6,7 @@ snapshot_kind: text
 {
   "form": "Form1",
   "data": {
+    "form_type": "F1A",
     "committee_name": "Independent Community Bankers of America Political Action Committee (ICBA PAC)",
     "change_of_committee_name": true,
     "address": {
@@ -21,7 +22,7 @@ snapshot_kind: text
     "committee_url": null,
     "change_of_committee_url": false,
     "effective_date": "2025-09-16",
-    "filer_committee_id_number": "C00032698",
+    "filer_committee_id": "C00032698",
     "committee_type": "E",
     "candidate": null,
     "party_code": null,

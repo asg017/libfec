@@ -10,7 +10,7 @@ pub(super) fn append_f13_content_lines(d: &mut Doc, data: &Form13) {
     }
     d.field_opt(
         "Amends",
-        data.amendment_date
+        data.original_amendment_date
             .map(|date| format!("filing dated {date}")),
     );
 

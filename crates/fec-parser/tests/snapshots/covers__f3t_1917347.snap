@@ -7,7 +7,7 @@ snapshot_kind: text
   "form": "Form3",
   "data": {
     "form_type": "F3T",
-    "filer_committee_id_number": "C00908301",
+    "filer_committee_id": "C00908301",
     "committee_name": "WHITSON FOR CONGRESS",
     "address": {
       "street_1": "PO BOX 426",

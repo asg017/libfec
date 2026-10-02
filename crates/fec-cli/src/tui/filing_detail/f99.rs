@@ -17,8 +17,8 @@ const TAB: &str = "    ";
 pub(super) fn append_f99_content_lines(d: &mut Doc, form: &Form99) {
     d.heading("Miscellaneous Text");
     let mut filer = vec![bold(form.committee_name.clone())];
-    if !form.committee_id.is_empty() {
-        filer.push(Span::raw(format!(" ({})", form.committee_id)));
+    if !form.filer_committee_id.is_empty() {
+        filer.push(Span::raw(format!(" ({})", form.filer_committee_id)));
     }
     d.field_spans("Committee", filer);
     d.address("Address", &form.address, false);

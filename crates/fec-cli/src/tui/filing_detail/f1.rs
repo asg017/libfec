@@ -58,8 +58,8 @@ fn push_committee(d: &mut Doc, form: &Form1) {
         form.committee_name.clone(),
         form.change_of_committee_name,
     );
-    if !form.filer_committee_id_number.is_empty() {
-        d.field("FEC ID", form.filer_committee_id_number.clone());
+    if !form.filer_committee_id.is_empty() {
+        d.field("FEC ID", form.filer_committee_id.clone());
     }
     d.address("Address", &form.address, form.change_of_address);
     if let Some(ref email) = form.committee_email {

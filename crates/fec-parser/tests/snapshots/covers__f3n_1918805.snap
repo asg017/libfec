@@ -7,7 +7,7 @@ snapshot_kind: text
   "form": "Form3",
   "data": {
     "form_type": "F3N",
-    "filer_committee_id_number": "C00912188",
+    "filer_committee_id": "C00912188",
     "committee_name": "MCCORD, MICHAEL",
     "address": {
       "street_1": "2126 E. Victory Dr",

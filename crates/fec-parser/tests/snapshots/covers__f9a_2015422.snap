@@ -34,7 +34,7 @@ snapshot_kind: text
     "communication_title": "TRUST",
     "filer_code": "CLQ",
     "filer_code_description": null,
-    "qualified_non_profit": null,
+    "qualified_nonprofit": null,
     "segregated_bank_account": "N",
     "custodian": {
       "name": {

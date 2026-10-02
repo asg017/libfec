@@ -1,8 +1,7 @@
 //! Form 9: 24-hour notice of disbursements/obligations for electioneering
 //! communications.
 
-use crate::covers::fields::person_name_or_legacy;
-use crate::covers::fields::{amount, date, flag, text, text_or_empty, Data};
+use crate::covers::fields::{amount, date, flag, person_name, text, text_or_empty, Data};
 use crate::covers::{Address, PersonName};
 use jiff::civil::Date;
 
@@ -42,14 +41,17 @@ use jiff::civil::Date;
 /// `original_amendment_date`. v6.1 and v5.x have `qualified_non_profit` in
 /// place of `filer_code`/`filer_code_description`; v5.x has no individual name
 /// columns, and gives the custodian and person completing the form as single
-/// caret-delimited names (FEC format workbook v5.2, sheet F9).
+/// caret-delimited names in the `custodian_last_name` and
+/// `person_completing_last_name` columns, which are split into parts (FEC
+/// format workbook v5.2, sheet F9).
 ///
 /// The test fixture is a real `F9A` (FEC-2015422, v8.5); no `F9N` was
 /// available locally.
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct Form9 {
-    /// Form type as filed: `F9N` or `F9A`. Column `form_type` (FEC format
-    /// workbook v8.4, sheet F9, field 1).
+    /// Form type as filed, e.g. `F9N`: the base form plus the
+    /// amendment-indicator suffix (see [`crate::covers::base_form_type`]).
+    /// Column `form_type` (FEC format workbook v8.4, sheet `F9`, field 1).
     pub form_type: String,
     /// Line 3, the filer's FEC identification number ("First time
     /// filers—leave this line blank",
@@ -122,7 +124,7 @@ pub struct Form9 {
     pub filer_code_description: Option<String>,
     /// v6.1/v5.x only: "QUALIFIED NON-PROFIT", `Y` or `N` (FEC format
     /// workbook v5.2, sheet F9, field 16). Column `qualified_non_profit`.
-    pub qualified_non_profit: Option<String>,
+    pub qualified_nonprofit: Option<String>,
     /// Line 8, "WERE THE DISBURSEMENTS MADE EXCLUSIVELY FROM DONATIONS TO A
     /// SEGREGATED BANK ACCOUNT?": `Y` or `N`. The answer changes which donors
     /// must be itemized on Schedule 9-A
@@ -198,28 +200,24 @@ impl Form9 {
             communication_title: text(data, "communication_title"),
             filer_code: text(data, "filer_code"),
             filer_code_description: text(data, "filer_code_description"),
-            qualified_non_profit: text(data, "qualified_non_profit"),
+            qualified_nonprofit: text(data, "qualified_non_profit"),
             segregated_bank_account: text(data, "segregated_bank_account"),
             custodian: Form9Custodian {
-                name: person_name_or_legacy(data, "custodian_", "custodian_name"),
+                name: person_name(data, "custodian_"),
                 address: Address::from_prefixed(data, "custodian_"),
                 employer: text(data, "custodian_employer"),
                 occupation: text(data, "custodian_occupation"),
             },
             total_donations: amount(data, "total_donations"),
             total_disbursements: amount(data, "total_disbursements"),
-            person_completing: person_name_or_legacy(
-                data,
-                "person_completing_",
-                "person_completing_name",
-            ),
+            person_completing: person_name(data, "person_completing_"),
             date_signed: date(data, "date_signed"),
         })
     }
 
-    /// True for an amendment (`F9A`).
+    /// True for an amended notice (`F9A`); see [`Form9::form_type`].
     pub fn is_amendment(&self) -> bool {
-        self.form_type.to_ascii_uppercase().ends_with('A')
+        crate::covers::is_amendment_form_type(&self.form_type)
     }
 
     /// The filer's name as on Line 1(a): the organization name, or the
