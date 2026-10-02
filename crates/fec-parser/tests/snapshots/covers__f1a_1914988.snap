@@ -1,0 +1,143 @@
+---
+source: crates/fec-parser/tests/covers.rs
+expression: "cover(\"F1A_1914988.fec\")"
+snapshot_kind: text
+---
+{
+  "form": "Form1",
+  "data": {
+    "form_type": "F1A",
+    "committee_name": "Independent Community Bankers of America Political Action Committee (ICBA PAC)",
+    "change_of_committee_name": true,
+    "address": {
+      "street_1": "1100 New York Avenue, NW",
+      "street_2": "Suite 500 East",
+      "city": "Washington",
+      "state": "DC",
+      "zip_code": "20005"
+    },
+    "change_of_address": true,
+    "committee_email": "icbapac@icba.org",
+    "change_of_committee_email": false,
+    "committee_url": null,
+    "change_of_committee_url": false,
+    "effective_date": "2025-09-16",
+    "filer_committee_id": "C00032698",
+    "committee_type": "E",
+    "candidate": null,
+    "party_code": null,
+    "party_type": null,
+    "organization_type": "T",
+    "pac_flags": {
+      "lobbyist_registrant_pac_ssf": true,
+      "lobbyist_registrant_pac_nonconnected": false,
+      "leadership_pac": false,
+      "lobbyist_registrant_pac_super_pac": false,
+      "lobbyist_registrant_pac_hybrid_pac": false
+    },
+    "affiliated": {
+      "committee_id": null,
+      "committee_name": "Independent Community Bankers of America",
+      "candidate_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "1100 New York Avenue NW",
+        "street_2": "Suite 500 East",
+        "city": "Washington",
+        "state": "DC",
+        "zip_code": "20005"
+      },
+      "relationship_code": "ORG"
+    },
+    "custodian": {
+      "name": {
+        "first_name": "Mary Randolph",
+        "last_name": "Gannon",
+        "middle_name": null,
+        "prefix": "Mrs.",
+        "suffix": null
+      },
+      "address": {
+        "street_1": "1100 New York Avenue NW",
+        "street_2": "Suite 500 East",
+        "city": "Washington",
+        "state": "DC",
+        "zip_code": "20005"
+      },
+      "title": "Custodian of Records",
+      "telephone": "2026598111"
+    },
+    "treasurer": {
+      "name": {
+        "first_name": "Paul",
+        "last_name": "Merski",
+        "middle_name": null,
+        "prefix": "Mr.",
+        "suffix": null
+      },
+      "address": {
+        "street_1": "1100 New York Avenue, NW",
+        "street_2": "Suite 500 East",
+        "city": "Washington",
+        "state": "DC",
+        "zip_code": "20005"
+      },
+      "title": "Treasurer",
+      "telephone": "2026598111"
+    },
+    "agent": {
+      "name": {
+        "first_name": "Jenna",
+        "last_name": "Burke",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "1100 New York Avenue",
+        "street_2": "Suite 500 East",
+        "city": "Washington",
+        "state": "DC",
+        "zip_code": "20005"
+      },
+      "title": "Assistant Treasurer",
+      "telephone": "2026598111"
+    },
+    "banks": [
+      {
+        "name": "Minnesota National Bank",
+        "address": {
+          "street_1": "PO Box 306",
+          "street_2": "131 12th St S.",
+          "city": "Sauk Centre",
+          "state": "MN",
+          "zip_code": "56378"
+        }
+      },
+      {
+        "name": "United Bank",
+        "address": {
+          "street_1": "1100 Connecticut Avenue NW",
+          "street_2": null,
+          "city": "Washington",
+          "state": "DC",
+          "zip_code": "20036"
+        }
+      }
+    ],
+    "signer": {
+      "first_name": "Paul",
+      "last_name": "Merski",
+      "middle_name": null,
+      "prefix": "Mr.",
+      "suffix": null
+    },
+    "date_signed": "2025-09-16"
+  }
+}

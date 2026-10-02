@@ -77,14 +77,17 @@ mod form1;
 mod form3;
 mod form3p;
 
-pub use crate::covers::form1::{Form1, Form1Candidate};
+pub use crate::covers::form1::{
+    Form1, Form1Affiliated, Form1Bank, Form1Candidate, Form1Contact, Form1PacFlags,
+};
 
 pub use crate::covers::form3::{
-    Form3, Form3DetailedSummary, Form3DetailedSummaryDisbursements, Form3DetailedSummaryReceipts,
-    Form3Summary,
+    Form3, Form3CashSummary, Form3DetailedSummary, Form3DetailedSummaryDisbursements,
+    Form3DetailedSummaryReceipts, Form3Summary,
 };
 pub use crate::covers::form3p::{
-    Form3P, Form3PDetailedSummary, Form3PDetailedSummaryReceipts, Form3PSummary,
+    Form3P, Form3PDetailedSummary, Form3PDetailedSummaryDisbursements,
+    Form3PDetailedSummaryReceipts, Form3PStateAllocation, Form3PStateAllocations, Form3PSummary,
 };
 use fields::{text, text_or_empty, Data};
 use indexmap::IndexMap;
@@ -105,7 +108,11 @@ impl Cover {
     /// The person who signed the filing (usually the treasurer), if the form has one.
     pub fn signer(&self) -> Option<&PersonName> {
         match self {
-            Cover::Form1(f) => Some(&f.treasurer),
+            Cover::Form1(f) => Some(if f.signer.is_empty() {
+                &f.treasurer.name
+            } else {
+                &f.signer
+            }),
             Cover::Form3(f) => Some(&f.treasurer),
             Cover::Form3P(f) => Some(&f.treasurer),
         }
@@ -115,8 +122,8 @@ impl Cover {
     pub fn date_signed(&self) -> Option<jiff::civil::Date> {
         match self {
             Cover::Form1(f) => f.date_signed,
-            Cover::Form3(f) => Some(f.signed),
-            Cover::Form3P(f) => Some(f.signed),
+            Cover::Form3(f) => f.date_signed,
+            Cover::Form3P(f) => f.date_signed,
         }
     }
 }
@@ -257,11 +264,6 @@ impl PersonName {
             prefix: text(data, &format!("{prefix}prefix")),
             suffix: text(data, &format!("{prefix}suffix")),
         }
-    }
-
-    /// The committee treasurer (`treasurer_*` columns).
-    pub(crate) fn from_data(data: &Data) -> Self {
-        Self::from_prefixed(data, "treasurer_")
     }
 
     /// True when every part of the name is blank.
