@@ -23,6 +23,14 @@
 //!
 //! An 8.x file that starts with blank lines parses as it did before the
 //! legacy work (the format sniffer skips them, as the csv reader always did).
+//!
+//! In fec-cli's exports, 8.x rows of a schedule are now always written in
+//! the schedule's 8.5 layout, matched by column name: the single CSV/JSON
+//! export (8.0 SE and 8.4 SC2 rows were misaligned positionally), the
+//! directory CSV export (whose files took the first row's layout) and the
+//! sqlite `libfec_schedule_*` tables (which took the first row type's 8.5
+//! layout, e.g. SA3L's in an F3L-only export; SA3L rows now fill the
+//! contributor columns, as their 8.5 rows always did positionally).
 
 #![deny(clippy::unwrap_used)]
 
