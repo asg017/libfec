@@ -1,0 +1,50 @@
+---
+source: crates/fec-parser/tests/covers.rs
+expression: "cover(\"F5N_1888248.fec\")"
+snapshot_kind: text
+---
+{
+  "form": "Form5",
+  "data": {
+    "form_type": "F5N",
+    "filer_committee_id": "C90018904",
+    "entity_type": "ORG",
+    "organization_name": "The Conservative Caucus dba Americans for Constitutional Liberty",
+    "individual": {
+      "first_name": "",
+      "last_name": "",
+      "middle_name": null,
+      "prefix": null,
+      "suffix": null
+    },
+    "change_of_address": false,
+    "address": {
+      "street_1": "3057 Nutley Street",
+      "street_2": "Suite 502",
+      "city": "Fairfax",
+      "state": "VA",
+      "zip_code": "22031"
+    },
+    "individual_occupation": null,
+    "individual_employer": null,
+    "qualified_nonprofit": null,
+    "report_code": "Q1",
+    "report_type": null,
+    "original_amendment_date": null,
+    "coverage_from_date": "2025-01-01",
+    "coverage_through_date": "2025-03-31",
+    "election_code": null,
+    "election_date": null,
+    "election_state": null,
+    "total_contributions": 69696.49,
+    "total_independent_expenditures": 79857.54,
+    "person_completing": {
+      "first_name": "Jim",
+      "last_name": "Pfaff",
+      "middle_name": null,
+      "prefix": "Mr.",
+      "suffix": null
+    },
+    "date_signed": "2025-04-15"
+  }
+}

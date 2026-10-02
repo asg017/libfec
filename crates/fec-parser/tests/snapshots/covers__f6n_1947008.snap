@@ -1,0 +1,42 @@
+---
+source: crates/fec-parser/tests/covers.rs
+expression: "cover(\"F6N_1947008.fec\")"
+snapshot_kind: text
+---
+{
+  "form": "Form6",
+  "data": {
+    "form_type": "F6N",
+    "filer_committee_id": "C00901918",
+    "original_amendment_date": null,
+    "committee_name": "KEN PAXTON FOR SENATE",
+    "address": {
+      "street_1": "110 NORTH AKARD ST",
+      "street_2": "PMB #40",
+      "city": "DALLAS",
+      "state": "TX",
+      "zip_code": "75201"
+    },
+    "candidate": {
+      "candidate_id": "S6TX00388",
+      "name": {
+        "first_name": "WARREN",
+        "last_name": "PAXTON",
+        "middle_name": "KENNETH",
+        "prefix": null,
+        "suffix": "JR."
+      },
+      "office": "S",
+      "state": "TX",
+      "district": "00"
+    },
+    "signer": {
+      "first_name": "JOHN",
+      "last_name": "PLISHKA",
+      "middle_name": null,
+      "prefix": null,
+      "suffix": null
+    },
+    "date_signed": "2026-02-17"
+  }
+}

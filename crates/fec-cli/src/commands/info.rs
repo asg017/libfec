@@ -444,6 +444,93 @@ fn process_filing<R: Read>(
                         usd(form.line7_net_donations).bold()
                     );
                 }
+                Cover::Form24(form) => {
+                    println!(
+                        "{}{}",
+                        form.report_type_label()
+                            .unwrap_or("24/48-Hour Report")
+                            .bold(),
+                        form.original_amendment_date
+                            .map(|d| format!(", amends the report filed {d}"))
+                            .unwrap_or_default()
+                    );
+                    if let Some(date_signed) = form.date_signed {
+                        println!(
+                            "Signed by {} on {}",
+                            form.treasurer.to_string().bold(),
+                            date_signed.to_string().bold()
+                        );
+                    }
+                }
+                Cover::Form5(form) => {
+                    let kind = form
+                        .report_type_label()
+                        .or(form.report_code_label())
+                        .unwrap_or("Report of Independent Expenditures");
+                    // The filer is already named in the header line.
+                    println!("{}", kind.bold());
+                    if let Some(date_signed) = form.date_signed {
+                        println!(
+                            "Signed by {} on {}",
+                            form.person_completing.to_string().bold(),
+                            date_signed.to_string().bold()
+                        );
+                    }
+                    println!(
+                        "Total contributions: {}  Total independent expenditures: {}",
+                        format_usd(form.total_contributions),
+                        format_usd(form.total_independent_expenditures)
+                    );
+                }
+                Cover::Form6(form) => {
+                    let c = &form.candidate;
+                    println!(
+                        "48-Hour Notice for {}{} - {} {} {}",
+                        c.name.to_string().bold(),
+                        c.candidate_id
+                            .as_deref()
+                            .map(|id| format!(" ({id})"))
+                            .unwrap_or_default(),
+                        c.office_label().or(c.office.as_deref()).unwrap_or(""),
+                        c.state.as_deref().unwrap_or(""),
+                        c.district.as_deref().unwrap_or("")
+                    );
+                    if let Some(date_signed) = form.date_signed {
+                        println!(
+                            "Signed by {} on {}",
+                            form.signer.to_string().bold(),
+                            date_signed.to_string().bold()
+                        );
+                    }
+                }
+                Cover::Form9(form) => {
+                    // The filer is already named in the header line.
+                    println!(
+                        "{}",
+                        "24-Hour Notice of Electioneering Communications".bold()
+                    );
+                    if let Some(ref title) = form.communication_title {
+                        println!(
+                            "Communication: {}{}",
+                            title.bold(),
+                            form.date_public_distribution
+                                .map(|d| format!(", distributed {d}"))
+                                .unwrap_or_default()
+                        );
+                    }
+                    if let Some(date_signed) = form.date_signed {
+                        println!(
+                            "Signed by {} on {}",
+                            form.person_completing.to_string().bold(),
+                            date_signed.to_string().bold()
+                        );
+                    }
+                    println!(
+                        "Total donations: {}  Total disbursements/obligations: {}",
+                        format_usd(form.total_donations),
+                        format_usd(form.total_disbursements)
+                    );
+                }
             }
         }
 
