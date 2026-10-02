@@ -4,91 +4,13 @@
 //! the paper form: committee (Lines 1–3), type & designation and candidate
 //! (Line 5), affiliated/connected organization (Line 6), custodian (Line 7),
 //! treasurer and designated agent (Line 8) and banks (Line 9).
-//!
-//! Also home to small line-building helpers shared with the Form 1M renderer.
 
-use fec_parser::covers::{Address, Form1, Form1Contact};
+use super::layout::{bold, changed, code_with_label, Doc};
+use fec_parser::covers::{Form1, Form1Affiliated, Form1Contact};
 use ratatui::{
     style::{Color, Modifier, Style},
-    text::{Line, Span},
+    text::Span,
 };
-
-/// Width of the label column, so values line up.
-pub(super) const LABEL_WIDTH: usize = 18;
-
-/// A bold, colored section heading.
-pub(super) fn section_header(title: &str) -> Line<'static> {
-    Line::from(Span::styled(
-        title.to_string(),
-        Style::default()
-            .fg(Color::Cyan)
-            .add_modifier(Modifier::BOLD | Modifier::UNDERLINED),
-    ))
-}
-
-pub(super) fn label_span(label: &str) -> Span<'static> {
-    Span::styled(
-        format!("{:<width$}", format!("{label}: "), width = LABEL_WIDTH),
-        Style::default()
-            .fg(Color::Yellow)
-            .add_modifier(Modifier::BOLD),
-    )
-}
-
-/// `Label:          value`
-pub(super) fn field_line(label: &str, value: impl Into<String>) -> Line<'static> {
-    Line::from(vec![label_span(label), Span::raw(value.into())])
-}
-
-fn changed_span() -> Span<'static> {
-    Span::styled(
-        "  (changed)".to_string(),
-        Style::default().fg(Color::Magenta),
-    )
-}
-
-/// `Label:          value  (changed)`, for the "(Check if … is changed)" boxes.
-fn field_line_changed(label: &str, value: impl Into<String>, changed: bool) -> Line<'static> {
-    let mut spans = vec![label_span(label), Span::raw(value.into())];
-    if changed {
-        spans.push(changed_span());
-    }
-    Line::from(spans)
-}
-
-/// A field whose value is a link.
-fn link_line(label: &str, url: &str, changed: bool) -> Line<'static> {
-    let mut spans = vec![
-        label_span(label),
-        Span::styled(
-            url.to_string(),
-            Style::default()
-                .fg(Color::Blue)
-                .add_modifier(Modifier::UNDERLINED),
-        ),
-    ];
-    if changed {
-        spans.push(changed_span());
-    }
-    Line::from(spans)
-}
-
-/// A dimmed explanatory note.
-pub(super) fn note_line(text: &str) -> Line<'static> {
-    Line::from(Span::styled(
-        text.to_string(),
-        Style::default()
-            .fg(Color::DarkGray)
-            .add_modifier(Modifier::ITALIC),
-    ))
-}
-
-/// Push an `Address:` line unless the address is blank.
-pub(super) fn push_address(lines: &mut Vec<Line<'static>>, label: &str, address: &Address) {
-    if !address.is_empty() {
-        lines.push(field_line(label, address.one_line()));
-    }
-}
 
 /// `(405) 826-6448` for ten-digit numbers, otherwise the value as filed.
 fn format_phone(phone: &str) -> String {
@@ -100,85 +22,82 @@ fn format_phone(phone: &str) -> String {
     }
 }
 
-/// `"code (label)"`, or just the code when there is no sourced label.
-pub(super) fn code_with_label(code: &str, label: Option<&str>) -> String {
-    match label {
-        Some(label) => format!("{code} ({label})"),
-        None => code.to_string(),
-    }
+/// True for an affiliate entry that only says there is none, e.g. a name of
+/// `NONE` or `N/A` with no ID, address or relationship.
+pub fn affiliated_is_placeholder(a: &Form1Affiliated) -> bool {
+    let name = a.display_name();
+    let name = name.trim().trim_end_matches('.').to_ascii_uppercase();
+    matches!(name.as_str(), "" | "NONE" | "N/A" | "NA" | "NOT APPLICABLE")
+        && a.committee_id.is_none()
+        && a.candidate_id.is_none()
+        && a.address.is_empty()
+        && a.relationship_code.is_none()
 }
 
-fn push_contact(lines: &mut Vec<Line<'static>>, title: &str, contact: &Form1Contact) {
-    lines.push(section_header(title));
+fn push_contact(d: &mut Doc, title: &str, contact: &Form1Contact) {
+    d.heading(title);
     let name = contact.name.to_string();
-    lines.push(field_line(
+    d.field(
         "Name",
         if name.is_empty() {
             "—".to_string()
         } else {
             name
         },
-    ));
-    if let Some(ref t) = contact.title {
-        lines.push(field_line("Title", t.clone()));
-    }
-    push_address(lines, "Address", &contact.address);
-    if let Some(ref phone) = contact.telephone {
-        lines.push(field_line("Phone", format_phone(phone)));
-    }
-    lines.push(Line::from(""));
+    );
+    d.field_opt("Title", contact.title.clone());
+    d.address("Address", &contact.address, false);
+    d.field_opt("Phone", contact.telephone.as_deref().map(format_phone));
+    d.blank();
 }
 
-fn push_committee(lines: &mut Vec<Line<'static>>, form: &Form1) {
-    lines.push(section_header("Committee"));
-    lines.push(field_line_changed(
+fn push_committee(d: &mut Doc, form: &Form1) {
+    d.heading("Committee");
+    d.field_changed(
         "Name",
         form.committee_name.clone(),
         form.change_of_committee_name,
-    ));
+    );
     if !form.filer_committee_id_number.is_empty() {
-        lines.push(field_line("FEC ID", form.filer_committee_id_number.clone()));
+        d.field("FEC ID", form.filer_committee_id_number.clone());
     }
-    if !form.address.is_empty() || form.change_of_address {
-        lines.push(field_line_changed(
-            "Address",
-            form.address.one_line(),
-            form.change_of_address,
-        ));
-    }
+    d.address("Address", &form.address, form.change_of_address);
     if let Some(ref email) = form.committee_email {
-        lines.push(field_line_changed(
-            "Email",
-            email.clone(),
-            form.change_of_committee_email,
-        ));
+        d.field_changed("Email", email.clone(), form.change_of_committee_email);
     }
     if let Some(ref url) = form.committee_url {
-        lines.push(link_line("Website", url, form.change_of_committee_url));
+        let mut spans = vec![Span::styled(
+            url.clone(),
+            Style::default()
+                .fg(Color::Blue)
+                .add_modifier(Modifier::UNDERLINED),
+        )];
+        if form.change_of_committee_url {
+            spans.extend([Span::raw(" "), changed()]);
+        }
+        d.field_spans("Website", spans);
     }
-    if let Some(date) = form.effective_date {
-        lines.push(field_line("Effective date", date.to_string()));
-    }
-    lines.push(Line::from(""));
+    d.field_opt("Effective date", form.effective_date.map(|d| d.to_string()));
+    d.blank();
 }
 
-fn push_type(lines: &mut Vec<Line<'static>>, form: &Form1) {
-    lines.push(section_header("Type & designation"));
+fn push_type(d: &mut Doc, form: &Form1) {
+    d.heading("Type & designation");
     let committee_type = match (
         form.committee_type.as_deref(),
         form.committee_type_line(),
         form.committee_type_label(),
     ) {
-        (Some(code), Some(line), Some(label)) => format!("{code} · {line} {label}"),
+        (Some(code), Some(line), Some(label)) => format!("{line} {label} ({code})"),
         (Some(code), _, _) => code.to_string(),
         (None, _, _) => "—".to_string(),
     };
-    lines.push(field_line("Committee type", committee_type));
+    d.field("Committee type", committee_type);
     if let Some(ref org) = form.organization_type {
-        lines.push(field_line(
+        d.field(
             "Connected org",
             code_with_label(org, form.organization_type_label()),
-        ));
+        );
     }
     if form.party_code.is_some() || form.party_type.is_some() {
         let mut parts = vec![];
@@ -188,7 +107,7 @@ fn push_type(lines: &mut Vec<Line<'static>>, form: &Form1) {
         if let Some(ref ptype) = form.party_type {
             parts.push(code_with_label(ptype, form.party_type_label()));
         }
-        lines.push(field_line("Party", parts.join(" · ")));
+        d.field("Party", parts.join(" · "));
     }
     let mut also = vec![];
     if form.pac_flags.is_lobbyist_registrant_pac() {
@@ -198,24 +117,21 @@ fn push_type(lines: &mut Vec<Line<'static>>, form: &Form1) {
         also.push("Leadership PAC");
     }
     if !also.is_empty() {
-        lines.push(field_line("Also", also.join(", ")));
+        d.field("Also", also.join(", "));
     }
-    lines.push(Line::from(""));
+    d.blank();
 }
 
-fn push_candidate(lines: &mut Vec<Line<'static>>, form: &Form1) {
+fn push_candidate(d: &mut Doc, form: &Form1) {
     let Some(ref c) = form.candidate else {
         return;
     };
-    lines.push(section_header("Candidate"));
-    let mut name_spans = vec![
-        label_span("Name"),
-        Span::styled(c.full_name(), Style::default().add_modifier(Modifier::BOLD)),
-    ];
+    d.heading("Candidate");
+    let mut name = vec![bold(c.full_name())];
     if let Some(ref id) = c.candidate_id {
-        name_spans.push(Span::raw(format!(" ({id})")));
+        name.push(Span::raw(format!(" ({id})")));
     }
-    lines.push(Line::from(name_spans));
+    d.field_spans("Name", name);
 
     let mut office = vec![];
     if let Some(ref o) = c.office {
@@ -231,63 +147,64 @@ fn push_candidate(lines: &mut Vec<Line<'static>>, form: &Form1) {
         }
     }
     if !office.is_empty() {
-        lines.push(field_line("Office", office.join(" · ")));
+        d.field("Office", office.join(" · "));
     }
-    lines.push(Line::from(""));
+    d.blank();
 }
 
-fn push_affiliated(lines: &mut Vec<Line<'static>>, form: &Form1) {
+fn push_affiliated(d: &mut Doc, form: &Form1) {
     let Some(ref a) = form.affiliated else {
         return;
     };
-    lines.push(section_header("Affiliated / connected organization"));
+    if affiliated_is_placeholder(a) {
+        return;
+    }
+    d.heading("Affiliated / connected organization");
     let mut name = a.display_name();
     if let Some(id) = a.committee_id.as_ref().or(a.candidate_id.as_ref()) {
         name.push_str(&format!(" ({id})"));
     }
-    lines.push(field_line("Name", name));
+    d.field("Name", name);
     if let Some(ref code) = a.relationship_code {
-        lines.push(field_line(
+        d.field(
             "Relationship",
             code_with_label(code, a.relationship_label()),
-        ));
+        );
     }
-    push_address(lines, "Address", &a.address);
-    lines.push(Line::from(""));
+    d.address("Address", &a.address, false);
+    d.blank();
 }
 
-fn push_banks(lines: &mut Vec<Line<'static>>, form: &Form1) {
+fn push_banks(d: &mut Doc, form: &Form1) {
     if form.banks.is_empty() {
         return;
     }
-    lines.push(section_header("Banks / depositories"));
+    d.heading("Banks / depositories");
     for (i, bank) in form.banks.iter().enumerate() {
-        lines.push(field_line(
+        d.field(
             &format!("Bank {}", i + 1),
             bank.name.clone().unwrap_or_else(|| "—".to_string()),
-        ));
-        push_address(lines, "Address", &bank.address);
+        );
+        d.address("Address", &bank.address, false);
     }
-    lines.push(Line::from(""));
+    d.blank();
 }
 
-pub fn append_f1_content_lines(lines: &mut Vec<Line<'static>>, form: &Form1) {
-    push_committee(lines, form);
-    push_type(lines, form);
-    push_candidate(lines, form);
-    push_affiliated(lines, form);
+pub(super) fn append_f1_content_lines(d: &mut Doc, form: &Form1) {
+    push_committee(d, form);
+    push_type(d, form);
+    push_candidate(d, form);
+    push_affiliated(d, form);
     if let Some(ref custodian) = form.custodian {
-        push_contact(lines, "Custodian of records", custodian);
+        push_contact(d, "Custodian of records", custodian);
     }
-    push_contact(lines, "Treasurer", &form.treasurer);
+    push_contact(d, "Treasurer", &form.treasurer);
     if let Some(ref agent) = form.agent {
-        push_contact(lines, "Designated agent", agent);
+        push_contact(d, "Designated agent", agent);
     }
-    push_banks(lines, form);
-    lines.push(note_line(
-        "Further affiliates, agents and banks may be filed on F1S records.",
-    ));
-    lines.push(Line::from(""));
+    push_banks(d, form);
+    d.note("Further affiliates, agents and banks may be filed on F1S records.");
+    d.blank();
 }
 
 #[cfg(test)]

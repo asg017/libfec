@@ -1,8 +1,10 @@
 //! Filing Detail TUI Component
 //!
 //! This module provides rendering functions for displaying detailed FEC filing information
-//! within a ratatui application. It supports form-specific cover UIs for F1, F1M, F3, and F3P
-//! while sharing common chrome (title, URL, metadata, help bar, yank popup, key handling).
+//! within a ratatui application. Each typed cover (F1, F1M, F2, F3, F3L, F3P, F3X, F4, F5,
+//! F6, F7, F9, F13, F24 and F99) has its own renderer module, all built on the shared line
+//! builders in [`layout`], around common chrome (title, URL, metadata, help bar, yank popup,
+//! key handling).
 //!
 //! Keyboard shortcuts:
 //! - Esc/q: Return to previous view
@@ -27,7 +29,7 @@ pub mod f6;
 pub mod f7;
 pub mod f9;
 pub mod f99;
-mod misc_helpers;
+mod layout;
 
 use crate::tui::{navigation_popup_help_line, HelpBar};
 use crossterm::event::{KeyCode, KeyEvent};
@@ -62,23 +64,25 @@ pub enum FilingDetailAction {
     OpenWebsite { url: String },
 }
 
+/// The typed cover of a filing, one variant per form with a renderer.
 pub enum FilingCoverContent {
     Form1(Box<fec_parser::covers::Form1>),
-    Form3(FilingDetailF3),
-    Form3P(FilingDetailF3P),
-    Form3L(Box<fec_parser::covers::Form3L>),
-    Form4(Box<fec_parser::covers::Form4>),
-    Form7(Box<fec_parser::covers::Form7>),
-    Form13(Box<fec_parser::covers::Form13>),
-    Unknown,
     Form1M(Box<fec_parser::covers::Form1M>),
+    Form2(Box<Form2>),
+    Form3(FilingDetailF3),
+    Form3L(Box<fec_parser::covers::Form3L>),
+    Form3P(FilingDetailF3P),
     Form3X(Box<fec_parser::covers::Form3X>),
-    Form24(Box<fec_parser::covers::Form24>),
+    Form4(Box<fec_parser::covers::Form4>),
     Form5(Box<fec_parser::covers::Form5>),
     Form6(Box<fec_parser::covers::Form6>),
+    Form7(Box<fec_parser::covers::Form7>),
     Form9(Box<fec_parser::covers::Form9>),
-    Form2(Box<Form2>),
+    Form13(Box<fec_parser::covers::Form13>),
+    Form24(Box<fec_parser::covers::Form24>),
     Form99(Box<Form99>),
+    /// No typed cover (an unsupported form type or an unparsable cover).
+    Unknown,
 }
 
 /// Holds extracted filing information for TUI display
@@ -127,21 +131,21 @@ impl<R: std::io::Read> From<&fec_parser::Filing<R>> for FilingDetail {
         let signed_date = cover.and_then(|c| c.date_signed()).map(|d| d.to_string());
         let cover_content = match cover {
             Some(Cover::Form1(form)) => FilingCoverContent::Form1(Box::new(form.clone())),
-            Some(Cover::Form3(form)) => FilingCoverContent::Form3(FilingDetailF3::from(form)),
-            Some(Cover::Form3P(form)) => FilingCoverContent::Form3P(FilingDetailF3P::from(form)),
             Some(Cover::Form1M(form)) => FilingCoverContent::Form1M(Box::new(form.clone())),
-            Some(Cover::Form3X(form)) => FilingCoverContent::Form3X(form.clone()),
+            Some(Cover::Form2(form)) => FilingCoverContent::Form2(form.clone()),
+            Some(Cover::Form3(form)) => FilingCoverContent::Form3(FilingDetailF3::from(form)),
             Some(Cover::Form3L(form)) => FilingCoverContent::Form3L(Box::new(form.clone())),
+            Some(Cover::Form3P(form)) => FilingCoverContent::Form3P(FilingDetailF3P::from(form)),
+            Some(Cover::Form3X(form)) => FilingCoverContent::Form3X(form.clone()),
             Some(Cover::Form4(form)) => FilingCoverContent::Form4(form.clone()),
-            Some(Cover::Form7(form)) => FilingCoverContent::Form7(Box::new(form.clone())),
-            Some(Cover::Form13(form)) => FilingCoverContent::Form13(Box::new(form.clone())),
-            Some(Cover::Form24(form)) => FilingCoverContent::Form24(Box::new(form.clone())),
             Some(Cover::Form5(form)) => FilingCoverContent::Form5(form.clone()),
             Some(Cover::Form6(form)) => FilingCoverContent::Form6(Box::new(form.clone())),
+            Some(Cover::Form7(form)) => FilingCoverContent::Form7(Box::new(form.clone())),
             Some(Cover::Form9(form)) => FilingCoverContent::Form9(form.clone()),
-            None => FilingCoverContent::Unknown,
-            Some(Cover::Form2(form)) => FilingCoverContent::Form2(form.clone()),
+            Some(Cover::Form13(form)) => FilingCoverContent::Form13(Box::new(form.clone())),
+            Some(Cover::Form24(form)) => FilingCoverContent::Form24(Box::new(form.clone())),
             Some(Cover::Form99(form)) => FilingCoverContent::Form99(Box::new(form.clone())),
+            None => FilingCoverContent::Unknown,
         };
 
         FilingDetail {
@@ -393,31 +397,24 @@ fn render_content(f: &mut Frame, filing: &FilingDetail, state: &FilingDetailStat
     }
 
     // Form-specific content
+    let mut d = layout::Doc::new(&mut lines, area.width);
     match &filing.cover_content {
-        FilingCoverContent::Form1(data) => f1::append_f1_content_lines(&mut lines, data),
-        FilingCoverContent::Form3(data) => {
-            f3::append_f3_content_lines(&mut lines, data, area.width)
-        }
-        FilingCoverContent::Form3P(data) => {
-            f3p::append_f3p_content_lines(&mut lines, data, area.width)
-        }
-        FilingCoverContent::Form3L(data) => f3l::append_f3l_content_lines(&mut lines, data),
-        FilingCoverContent::Form4(data) => f4::append_f4_content_lines(&mut lines, data),
-        FilingCoverContent::Form7(data) => f7::append_f7_content_lines(&mut lines, data),
-        FilingCoverContent::Form13(data) => f13::append_f13_content_lines(&mut lines, data),
+        FilingCoverContent::Form1(form) => f1::append_f1_content_lines(&mut d, form),
+        FilingCoverContent::Form1M(form) => f1m::append_f1m_content_lines(&mut d, form),
+        FilingCoverContent::Form2(form) => f2::append_f2_content_lines(&mut d, form),
+        FilingCoverContent::Form3(data) => f3::append_f3_content_lines(&mut d, data),
+        FilingCoverContent::Form3L(form) => f3l::append_f3l_content_lines(&mut d, form),
+        FilingCoverContent::Form3P(data) => f3p::append_f3p_content_lines(&mut d, data),
+        FilingCoverContent::Form3X(form) => f3x::append_f3x_content_lines(&mut d, form),
+        FilingCoverContent::Form4(form) => f4::append_f4_content_lines(&mut d, form),
+        FilingCoverContent::Form5(form) => f5::append_f5_content_lines(&mut d, form),
+        FilingCoverContent::Form6(form) => f6::append_f6_content_lines(&mut d, form),
+        FilingCoverContent::Form7(form) => f7::append_f7_content_lines(&mut d, form),
+        FilingCoverContent::Form9(form) => f9::append_f9_content_lines(&mut d, form),
+        FilingCoverContent::Form13(form) => f13::append_f13_content_lines(&mut d, form),
+        FilingCoverContent::Form24(form) => f24::append_f24_content_lines(&mut d, form),
+        FilingCoverContent::Form99(form) => f99::append_f99_content_lines(&mut d, form),
         FilingCoverContent::Unknown => {}
-        FilingCoverContent::Form1M(data) => f1m::append_f1m_content_lines(&mut lines, data),
-        FilingCoverContent::Form3X(data) => {
-            f3x::append_f3x_content_lines(&mut lines, data, area.width)
-        }
-        FilingCoverContent::Form24(data) => f24::append_f24_content_lines(&mut lines, data),
-        FilingCoverContent::Form5(data) => f5::append_f5_content_lines(&mut lines, data),
-        FilingCoverContent::Form6(data) => f6::append_f6_content_lines(&mut lines, data),
-        FilingCoverContent::Form9(data) => f9::append_f9_content_lines(&mut lines, data),
-        FilingCoverContent::Form2(form) => f2::append_f2_content_lines(&mut lines, form),
-        FilingCoverContent::Form99(form) => {
-            f99::append_f99_content_lines(&mut lines, form, area.width)
-        }
     }
 
     // FEC URL
@@ -679,6 +676,17 @@ pub(crate) mod tests {
     #[test]
     fn filing_detail_f3x_amended_narrow() {
         assert_snapshot!(render_fixture("F3XA_1909193.fec", 60, 40));
+    }
+
+    #[test]
+    fn filing_detail_f3x_40_cols() {
+        // Narrower than a two-column table: labels take their own lines.
+        assert_snapshot!(render_fixture("F3XA_1909193.fec", 40, 130));
+    }
+
+    #[test]
+    fn filing_detail_f1_40_cols() {
+        assert_snapshot!(render_fixture("F1A_1914988.fec", 40, 80));
     }
 
     #[test]

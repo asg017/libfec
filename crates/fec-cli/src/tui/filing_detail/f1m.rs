@@ -5,72 +5,62 @@
 //! then whichever of Line 4 (status by affiliation) and Line 5 (status by
 //! qualification) the filer completed.
 
-use super::f1::{code_with_label, field_line, label_span, note_line, push_address, section_header};
+use super::layout::{bold, code_with_label, dim, Doc};
 use fec_parser::covers::{Form1M, Form1MAffiliation, Form1MQualification};
 use ratatui::{
-    style::{Color, Modifier, Style},
-    text::{Line, Span},
+    style::{Color, Style},
+    text::Span,
 };
 
 const ROMAN: [&str; 5] = ["(i)", "(ii)", "(iii)", "(iv)", "(v)"];
+/// Indent of a Line 5(a) candidate's detail line, under the name.
+const CANDIDATE_INDENT: usize = 6;
 
 fn date_or_dash(date: Option<jiff::civil::Date>) -> String {
     date.map(|d| d.to_string())
         .unwrap_or_else(|| "—".to_string())
 }
 
-fn push_committee(lines: &mut Vec<Line<'static>>, form: &Form1M) {
-    lines.push(section_header("Committee"));
-    lines.push(field_line("Name", form.committee_name.clone()));
+fn push_committee(d: &mut Doc, form: &Form1M) {
+    d.heading("Committee");
+    d.field("Name", form.committee_name.clone());
     if !form.filer_committee_id_number.is_empty() {
-        lines.push(field_line("FEC ID", form.filer_committee_id_number.clone()));
+        d.field("FEC ID", form.filer_committee_id_number.clone());
     }
-    push_address(lines, "Address", &form.address);
+    d.address("Address", &form.address, false);
     if let Some(ref code) = form.committee_type {
-        lines.push(field_line(
+        d.field(
             "Committee type",
             code_with_label(code, form.committee_type_label()),
-        ));
+        );
     }
-    lines.push(Line::from(""));
+    d.blank();
 }
 
-fn push_affiliation(lines: &mut Vec<Line<'static>>, a: &Form1MAffiliation) {
-    lines.push(section_header("Status by affiliation (Line 4)"));
-    lines.push(field_line("Form 1 filed", date_or_dash(a.date_form1_filed)));
+fn push_affiliation(d: &mut Doc, a: &Form1MAffiliation) {
+    d.heading("Status by affiliation (Line 4)");
+    d.field("Form 1 filed", date_or_dash(a.date_form1_filed));
     let mut name = a.committee_name.clone().unwrap_or_else(|| "—".to_string());
     if let Some(ref id) = a.committee_id {
         name.push_str(&format!(" ({id})"));
     }
-    lines.push(field_line("Affiliated with", name));
-    lines.push(Line::from(""));
+    d.field("Affiliated with", name);
+    d.blank();
 }
 
-fn push_qualification(lines: &mut Vec<Line<'static>>, q: &Form1MQualification) {
-    lines.push(section_header("Status by qualification (Line 5)"));
-    lines.push(Line::from(Span::styled(
-        "Contributions to candidates (5a)".to_string(),
-        Style::default()
-            .fg(Color::Yellow)
-            .add_modifier(Modifier::BOLD),
-    )));
+fn push_qualification(d: &mut Doc, q: &Form1MQualification) {
+    d.heading("Status by qualification (Line 5)");
+    d.field_spans("Contributions to candidates", vec![dim("(5a)")]);
     if q.candidates.is_empty() {
-        lines.push(note_line(
-            "  None listed (State party committees may leave this blank).",
-        ));
+        d.note("None listed (State party committees may leave this blank).");
     }
     for (i, c) in q.candidates.iter().enumerate() {
-        let mut spans = vec![
-            Span::raw(format!("  {:<6}", ROMAN.get(i).copied().unwrap_or(""))),
-            Span::styled(
-                c.name.to_string(),
-                Style::default().add_modifier(Modifier::BOLD),
-            ),
-        ];
+        let mut name = vec![bold(c.name.to_string())];
         if let Some(ref id) = c.candidate_id {
-            spans.push(Span::raw(format!(" ({id})")));
+            name.push(Span::raw(format!(" ({id})")));
         }
-        lines.push(Line::from(spans));
+        let roman = format!("{:<CANDIDATE_INDENT$}", ROMAN.get(i).copied().unwrap_or(""));
+        d.wrapped(vec![Span::raw(roman)], CANDIDATE_INDENT, name);
 
         let mut detail = vec![];
         if let Some(ref office) = c.office {
@@ -87,45 +77,49 @@ fn push_qualification(lines: &mut Vec<Line<'static>>, q: &Form1MQualification) {
             detail.push(format!("contributed {date}"));
         }
         if !detail.is_empty() {
-            lines.push(Line::from(Span::styled(
-                format!("        {}", detail.join(" · ")),
-                Style::default().fg(Color::Gray),
-            )));
+            d.wrapped(
+                vec![Span::raw(" ".repeat(CANDIDATE_INDENT))],
+                CANDIDATE_INDENT,
+                vec![Span::styled(
+                    detail.join(" · "),
+                    Style::default().fg(Color::Gray),
+                )],
+            );
         }
     }
-    lines.push(Line::from(""));
-    lines.push(Line::from(vec![
-        label_span("51st contributor"),
-        Span::raw(date_or_dash(q.fifty_first_contributor_date)),
-        Span::styled("  (5b)", Style::default().fg(Color::DarkGray)),
-    ]));
-    lines.push(Line::from(vec![
-        label_span("Registered"),
-        Span::raw(date_or_dash(q.original_registration_date)),
-        Span::styled("  (5c)", Style::default().fg(Color::DarkGray)),
-    ]));
-    lines.push(Line::from(vec![
-        label_span("Qualified"),
-        Span::styled(
-            date_or_dash(q.requirements_met_date),
-            Style::default().add_modifier(Modifier::BOLD),
-        ),
-        Span::styled("  (5d)", Style::default().fg(Color::DarkGray)),
-    ]));
-    lines.push(Line::from(""));
+    d.blank();
+    d.field_spans(
+        "51st contributor",
+        vec![
+            Span::raw(date_or_dash(q.fifty_first_contributor_date)),
+            dim(" (5b)"),
+        ],
+    );
+    d.field_spans(
+        "Registered",
+        vec![
+            Span::raw(date_or_dash(q.original_registration_date)),
+            dim(" (5c)"),
+        ],
+    );
+    d.field_spans(
+        "Qualified",
+        vec![bold(date_or_dash(q.requirements_met_date)), dim(" (5d)")],
+    );
+    d.blank();
 }
 
-pub fn append_f1m_content_lines(lines: &mut Vec<Line<'static>>, form: &Form1M) {
-    push_committee(lines, form);
+pub(super) fn append_f1m_content_lines(d: &mut Doc, form: &Form1M) {
+    push_committee(d, form);
     if let Some(ref a) = form.affiliation {
-        push_affiliation(lines, a);
+        push_affiliation(d, a);
     }
     if let Some(ref q) = form.qualification {
-        push_qualification(lines, q);
+        push_qualification(d, q);
     }
     if form.affiliation.is_none() && form.qualification.is_none() {
-        lines.push(note_line("Neither Line 4 nor Line 5 was completed."));
-        lines.push(Line::from(""));
+        d.note("Neither Line 4 nor Line 5 was completed.");
+        d.blank();
     }
 }
 

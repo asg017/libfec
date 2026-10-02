@@ -1,13 +1,11 @@
 //! Form 3P (presidential authorized committee report) cover rendering.
 //!
-//! Reuses the two-column summary helpers from `f3.rs`.
+//! Same layout as Form 3 (`f3.rs`): identification, cash flow, then the
+//! Summary and Detailed Summary pages, plus the primary expenditures by state.
 
-use super::f3::{
-    address_line, amount_line, cash_flow_lines, group_line, info_line, report_lines, row_line,
-    section_header, ElectionInfo, CYCLE_COLUMNS,
-};
+use super::f3::CYCLE_COLUMNS;
+use super::layout::{election_text, report_code_text, Columns, Doc};
 use fec_parser::covers::Form3P;
-use ratatui::text::Line;
 
 pub struct FilingDetailF3P {
     pub form: Form3P,
@@ -19,35 +17,30 @@ impl From<&Form3P> for FilingDetailF3P {
     }
 }
 
-pub fn append_f3p_content_lines(
-    lines: &mut Vec<Line<'static>>,
-    data: &FilingDetailF3P,
-    width: u16,
-) {
+pub(super) fn append_f3p_content_lines(d: &mut Doc, data: &FilingDetailF3P) {
     let form = &data.form;
-    render_identification(lines, form);
-    lines.push(Line::from(""));
+    render_identification(d, form);
+    d.blank();
 
     let s = &form.summary;
-    cash_flow_lines(
-        lines,
+    d.cash_flow(
         s.line6_cash_on_hand_beginning_period,
         s.line7_total_receipts,
         s.line9_total_disbursements,
         s.line10_cash_on_hand_end_period,
     );
 
-    render_summary(lines, form, width);
-    lines.push(Line::from(""));
-    render_receipts(lines, form, width);
-    lines.push(Line::from(""));
-    render_disbursements(lines, form, width);
-    lines.push(Line::from(""));
-    render_state_allocations(lines, form, width);
+    render_summary(d, form);
+    d.blank();
+    render_receipts(d, form);
+    d.blank();
+    render_disbursements(d, form);
+    d.blank();
+    render_state_allocations(d, form);
 }
 
-fn render_identification(lines: &mut Vec<Line<'static>>, form: &Form3P) {
-    address_line(lines, &form.address, form.change_of_address);
+fn render_identification(d: &mut Doc, form: &Form3P) {
+    d.address("Address", &form.address, form.change_of_address);
     let activity: Vec<&str> = [
         (form.activity_primary, "Primary"),
         (form.activity_general, "General"),
@@ -56,23 +49,26 @@ fn render_identification(lines: &mut Vec<Line<'static>>, form: &Form3P) {
     .filter_map(|(checked, label)| checked.then_some(label))
     .collect();
     if !activity.is_empty() {
-        lines.push(info_line("Activity", activity.join(", ")));
+        d.field("Activity", activity.join(", "));
     }
-    report_lines(
-        lines,
-        ElectionInfo {
-            report_code: form.report_code.as_deref(),
-            election_code: form.election_code.as_deref(),
-            election_code_label: form.election_code_label(),
-            election_date: form.election_date,
-            state_of_election: form.state_of_election.as_deref(),
-        },
+    if let Some(ref code) = form.report_code {
+        d.field("Report", report_code_text(code, None));
+    }
+    d.field_opt(
+        "Election",
+        election_text(
+            form.election_code.as_deref(),
+            form.election_code_label(),
+            form.election_date,
+            form.state_of_election.as_deref(),
+        ),
     );
 }
 
-fn render_summary(lines: &mut Vec<Line<'static>>, form: &Form3P, width: u16) {
+fn render_summary(d: &mut Doc, form: &Form3P) {
     let s = &form.summary;
-    lines.push(section_header("SUMMARY", width, None));
+    d.heading("SUMMARY");
+    d.table(Columns::One);
     let rows = [
         (
             "6. Cash on Hand, Beginning",
@@ -104,33 +100,27 @@ fn render_summary(lines: &mut Vec<Line<'static>>, form: &Form3P, width: u16) {
         ),
     ];
     for (label, value, bold) in rows {
-        lines.extend(amount_line(label, value, width, bold));
+        d.amount(label, value, bold);
     }
-    lines.push(group_line("Net Election Cycle-to-Date:"));
-    lines.extend(amount_line(
+    d.caption("Net Election Cycle-to-Date:");
+    d.amount(
         "14. Net Contributions",
         s.line14_net_contributions_other_than_loans,
-        width,
         false,
-    ));
-    lines.extend(amount_line(
+    );
+    d.amount(
         "15. Net Operating Expenditures",
         s.line15_net_operating_expenditures,
-        width,
         false,
-    ));
+    );
 }
 
-fn render_receipts(lines: &mut Vec<Line<'static>>, form: &Form3P, width: u16) {
+fn render_receipts(d: &mut Doc, form: &Form3P) {
     let r = &form.detailed_summary.receipts;
-    lines.push(section_header("I. RECEIPTS", width, CYCLE_COLUMNS));
-    lines.extend(row_line(
-        "16. Federal Funds",
-        &r.line16_federal_funds,
-        width,
-        false,
-    ));
-    lines.push(group_line("17. Contributions from:"));
+    d.heading("I. RECEIPTS");
+    d.table(CYCLE_COLUMNS);
+    d.row("16. Federal Funds", &r.line16_federal_funds);
+    d.caption("17. Contributions from:");
     let rows = [
         (
             "  (a)(i) Individuals, Itemized",
@@ -170,9 +160,9 @@ fn render_receipts(lines: &mut Vec<Line<'static>>, form: &Form3P, width: u16) {
         ),
     ];
     for (label, row, bold) in rows {
-        lines.extend(row_line(label, row, width, bold));
+        d.row_ab(label, Some(row.column_a), Some(row.column_b), bold);
     }
-    lines.push(group_line("19. Loans Received:"));
+    d.caption("19. Loans Received:");
     let rows = [
         (
             "  (a) From/Guaranteed by Candidate",
@@ -183,9 +173,9 @@ fn render_receipts(lines: &mut Vec<Line<'static>>, form: &Form3P, width: u16) {
         ("  (c) Total Loans", &r.line19c_total_loans, true),
     ];
     for (label, row, bold) in rows {
-        lines.extend(row_line(label, row, width, bold));
+        d.row_ab(label, Some(row.column_a), Some(row.column_b), bold);
     }
-    lines.push(group_line("20. Offsets to Expenditures:"));
+    d.caption("20. Offsets to Expenditures:");
     let rows = [
         (
             "  (a) Operating",
@@ -211,117 +201,115 @@ fn render_receipts(lines: &mut Vec<Line<'static>>, form: &Form3P, width: u16) {
         ("22. Total Receipts", &r.line22_total_receipts, true),
     ];
     for (label, row, bold) in rows {
-        lines.extend(row_line(label, row, width, bold));
+        d.row_ab(label, Some(row.column_a), Some(row.column_b), bold);
     }
 }
 
-fn render_disbursements(lines: &mut Vec<Line<'static>>, form: &Form3P, width: u16) {
-    let d = &form.detailed_summary.disbursements;
-    lines.push(section_header("II. DISBURSEMENTS", width, CYCLE_COLUMNS));
+fn render_disbursements(d: &mut Doc, form: &Form3P) {
+    let ds = &form.detailed_summary.disbursements;
+    d.heading("II. DISBURSEMENTS");
+    d.table(CYCLE_COLUMNS);
     let rows = [
         (
             "23. Operating Expenditures",
-            &d.line23_operating_expenditures,
+            &ds.line23_operating_expenditures,
             false,
         ),
         (
             "24. Transfers to Auth. Committees",
-            &d.line24_transfers_to_other_authorized_committees,
+            &ds.line24_transfers_to_other_authorized_committees,
             false,
         ),
         (
             "25. Fundraising Disbursements",
-            &d.line25_fundraising_disbursements,
+            &ds.line25_fundraising_disbursements,
             false,
         ),
         (
             "26. Exempt Legal & Accounting",
-            &d.line26_exempt_legal_and_accounting_disbursements,
+            &ds.line26_exempt_legal_and_accounting_disbursements,
             false,
         ),
     ];
     for (label, row, bold) in rows {
-        lines.extend(row_line(label, row, width, bold));
+        d.row_ab(label, Some(row.column_a), Some(row.column_b), bold);
     }
-    lines.push(group_line("27. Loan Repayments Made:"));
+    d.caption("27. Loan Repayments Made:");
     let rows = [
         (
             "  (a) Of Candidate Loans",
-            &d.line27a_loan_repayments_candidate,
+            &ds.line27a_loan_repayments_candidate,
             false,
         ),
         (
             "  (b) Other Repayments",
-            &d.line27b_loan_repayments_other,
+            &ds.line27b_loan_repayments_other,
             false,
         ),
         (
             "  (c) Total Loan Repayments",
-            &d.line27c_loan_repayments_total,
+            &ds.line27c_loan_repayments_total,
             true,
         ),
     ];
     for (label, row, bold) in rows {
-        lines.extend(row_line(label, row, width, bold));
+        d.row_ab(label, Some(row.column_a), Some(row.column_b), bold);
     }
-    lines.push(group_line("28. Refunds of Contributions to:"));
+    d.caption("28. Refunds of Contributions to:");
     let rows = [
         (
             "  (a) Individuals",
-            &d.line28a_refunds_to_individuals,
+            &ds.line28a_refunds_to_individuals,
             false,
         ),
         (
             "  (b) Political Party Committees",
-            &d.line28b_refunds_to_political_party_committees,
+            &ds.line28b_refunds_to_political_party_committees,
             false,
         ),
         (
             "  (c) Other Political Committees",
-            &d.line28c_refunds_to_other_political_committees,
+            &ds.line28c_refunds_to_other_political_committees,
             false,
         ),
-        ("  (d) Total Refunds", &d.line28d_refunds_total, true),
+        ("  (d) Total Refunds", &ds.line28d_refunds_total, true),
         (
             "29. Other Disbursements",
-            &d.line29_other_disbursements,
+            &ds.line29_other_disbursements,
             false,
         ),
         (
             "30. Total Disbursements",
-            &d.line30_total_disbursements,
+            &ds.line30_total_disbursements,
             true,
         ),
     ];
     for (label, row, bold) in rows {
-        lines.extend(row_line(label, row, width, bold));
+        d.row_ab(label, Some(row.column_a), Some(row.column_b), bold);
     }
-    lines.push(Line::from(""));
-    lines.push(section_header("III. CONTRIBUTED ITEMS", width, None));
-    lines.extend(amount_line(
+    d.blank();
+    d.heading("III. CONTRIBUTED ITEMS");
+    d.table(Columns::One);
+    d.amount(
         "31. Items on Hand to Be Liquidated",
         form.detailed_summary.line31_items_on_hand_to_be_liquidated,
-        width,
         false,
-    ));
+    );
 }
 
 /// Pages 5–7: only states with a non-zero allocation, plus the totals row.
-fn render_state_allocations(lines: &mut Vec<Line<'static>>, form: &Form3P, width: u16) {
+fn render_state_allocations(d: &mut Doc, form: &Form3P) {
     let alloc = &form.state_allocations;
     if alloc.is_empty() {
         return;
     }
-    lines.push(section_header(
-        "PRIMARY EXPENDITURES BY STATE",
-        width,
-        Some(("This Period", "To Date")),
-    ));
+    d.heading("PRIMARY EXPENDITURES BY STATE");
+    d.table(Columns::Two("This Period", "To Date"));
     for state in &alloc.states {
         if state.allocation.column_a != 0.0 || state.allocation.column_b != 0.0 {
-            lines.extend(row_line(state.state, &state.allocation, width, false));
+            d.row(state.state, &state.allocation);
         }
     }
-    lines.extend(row_line("Totals", &alloc.totals, width, true));
-    lines.push(Line::from(""));
+    d.total("Totals", &alloc.totals);
+    d.blank();
 }
