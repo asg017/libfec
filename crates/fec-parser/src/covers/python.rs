@@ -105,12 +105,21 @@ fn to_dict<'py, T: Covered>(slf: &Bound<'py, T>) -> PyResult<Bound<'py, PyDict>>
     Ok(dict)
 }
 
-/// Equal when `other` is the same class with the same field values.
-fn eq<T: Covered>(slf: &T, other: &Bound<'_, PyAny>) -> bool {
-    match other.cast::<T>() {
-        Ok(other) => serde_json::to_value(slf).ok() == serde_json::to_value(other.get()).ok(),
-        Err(_) => false,
+/// Equal when `other` is the same class and every field compares equal with
+/// Python's `==`, as a dataclass's `__eq__` does: nested covers recurse, and a
+/// NaN amount is unequal to everything, itself included. (Comparing the serde
+/// JSON instead would be wrong: it writes NaN and both infinities as `null`.)
+fn eq<T: Covered>(slf: &Bound<'_, T>, other: &Bound<'_, PyAny>) -> PyResult<bool> {
+    if !other.is_instance_of::<T>() {
+        return Ok(false);
     }
+    for (key, _) in fields(slf.get()) {
+        let key = key.as_str();
+        if !slf.as_any().getattr(key)?.eq(other.getattr(key)?)? {
+            return Ok(false);
+        }
+    }
+    Ok(true)
 }
 
 /// `#[pymethods]` for one cover class: `__repr__`, `__eq__`, `to_dict()`, then
@@ -128,8 +137,8 @@ macro_rules! cover_class {
                 repr(slf)
             }
 
-            fn __eq__(&self, other: &Bound<'_, PyAny>) -> bool {
-                eq(self, other)
+            fn __eq__(slf: &Bound<'_, Self>, other: &Bound<'_, PyAny>) -> PyResult<bool> {
+                eq(slf, other)
             }
 
             /// The fields as a `dict` (nested covers as nested dicts), keyed and
