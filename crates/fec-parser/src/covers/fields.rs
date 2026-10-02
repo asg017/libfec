@@ -103,7 +103,19 @@ pub(crate) fn person_name(data: &Data, prefix: &str) -> PersonName {
 }
 
 fn parse_legacy_name(raw: &str) -> PersonName {
-    let mut parts = raw.split('^').map(str::trim);
+    split_legacy_name(raw, "^")
+}
+
+/// Split a v1–5.x combined name, `Last^First^Prefix^Suffix` with `^` the
+/// filing's name delimiter (HDR `name_delim` / `/*` `NameDelim`; an empty
+/// `delimiter` means `^`), e.g. `Smith^John W.^Mr.^Jr.`. Parts are trimmed.
+/// A middle name or initial stays inside `first_name` as written (the legacy
+/// formats have no middle-name part), so `middle_name` is always `None`;
+/// blank prefix/suffix are `None`. A value without the delimiter becomes
+/// `last_name` whole.
+pub fn split_legacy_name(raw: &str, delimiter: &str) -> PersonName {
+    let delimiter = if delimiter.is_empty() { "^" } else { delimiter };
+    let mut parts = raw.split(delimiter).map(str::trim);
     let part = |p: Option<&str>| p.filter(|s| !s.is_empty()).map(str::to_owned);
     PersonName {
         last_name: parts.next().unwrap_or_default().to_owned(),
@@ -158,5 +170,24 @@ mod tests {
         assert!(flag(&d, "b"));
         assert!(!flag(&d, "c"));
         assert!(!flag(&d, "d"));
+    }
+
+    #[test]
+    fn legacy_names() {
+        let n = split_legacy_name(" Smith ^John W.^Mr.^Jr.", "^");
+        assert_eq!(n.last_name, "Smith");
+        assert_eq!(n.first_name, "John W.");
+        assert_eq!(n.middle_name, None);
+        assert_eq!(n.prefix.as_deref(), Some("Mr."));
+        assert_eq!(n.suffix.as_deref(), Some("Jr."));
+
+        let n = split_legacy_name("Abbenhaus^James I.^^M.D.", "");
+        assert_eq!((n.prefix, n.suffix.as_deref()), (None, Some("M.D.")));
+
+        let n = split_legacy_name("Doe|Jane", "|");
+        assert_eq!((n.last_name.as_str(), n.first_name.as_str()), ("Doe", "Jane"));
+
+        let n = split_legacy_name("Fulton Bank", "^");
+        assert_eq!((n.last_name.as_str(), n.first_name.as_str()), ("Fulton Bank", ""));
     }
 }
