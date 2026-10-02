@@ -206,6 +206,28 @@ mod tests {
             }
         }
         insta::assert_snapshot!("legacy families row counts", counts);
+
+        // Combined `Last^First^Prefix^Suffix` names (v1–5.x) split into the
+        // 8.5 name columns; organisations in the organisation name.
+        let mut names = String::new();
+        for (table, p) in [("schedule_a", "contributor"), ("schedule_b", "payee")] {
+            names += &query(
+                &db,
+                &format!(
+                    "select '{table}' t, filing_id, entity_type, {p}_organization_name org, \
+                     {p}_last_name last, {p}_first_name first, {p}_middle_name middle, \
+                     {p}_prefix prefix, {p}_suffix suffix from ( \
+                       select *, row_number() over (partition by filing_id order by rowid) n \
+                       from libfec_{table}) where n <= 4 order by filing_id, n"
+                ),
+            );
+        }
+        names += &query(
+            &db,
+            "select filing_id, treasurer_last_name, treasurer_first_name, treasurer_prefix, \
+             treasurer_suffix from libfec_F3X order by rowid",
+        );
+        insta::assert_snapshot!("legacy families names", names);
         Ok(())
     }
 

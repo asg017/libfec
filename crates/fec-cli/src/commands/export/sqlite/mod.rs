@@ -4,7 +4,7 @@ use crate::{
     cache::bulk::{candidates, committee},
     cli::ExportArgs,
     sourcer::{FilingSourcer, ItemizationProgressBar},
-    utils::rows::{normalize_fec_date, UnmappedRows},
+    utils::rows::{legacy_name_delimiter, normalize_fec_date, LegacyNames, UnmappedRows},
 };
 use anyhow::Context;
 use colored::Colorize;
@@ -20,7 +20,7 @@ use rusqlite::{
     types::{ToSqlOutput, Value},
     Connection, Statement, ToSql, Transaction,
 };
-use std::{collections::HashMap, hash::Hash, io::Read, path::PathBuf, time::Instant};
+use std::{borrow::Cow, collections::HashMap, hash::Hash, io::Read, path::PathBuf, time::Instant};
 
 const CREATE_FILINGS_SQL: &str = r#"
   CREATE TABLE IF NOT EXISTS libfec_filings(
@@ -129,12 +129,16 @@ struct RecordTable {
     column_types: Vec<FieldFormat>,
     suffix: String,
     current_mapping: Vec<String>,
-    /// Per (row type, version): index in the row of each table column.
-    legacy_field_mapping: HashMap<(String, String), Vec<Option<usize>>>,
+    /// Per (row type, version): index in the row of each table column, and
+    /// how to split the row's combined legacy names into the table's columns.
+    legacy_field_mapping: HashMap<(String, String), LegacyMapping>,
     /// Whether 8.5 rows may be inserted positionally: false when the table
     /// already existed with other columns (see [`RecordTable::create_or_adopt`]).
     positional_ok: bool,
 }
+
+/// A legacy row layout's index of each table column, and its name splitting.
+type LegacyMapping = (Vec<Option<usize>>, LegacyNames);
 
 const LATEST_FEC_VERSION: &str = "8.5";
 impl RecordTable {
@@ -281,6 +285,7 @@ impl RecordTable {
         row_type: &str,
         record: &StringRecord,
         fec_version: &str,
+        name_delimiter: Option<&str>,
     ) -> anyhow::Result<()> {
         let params = self.prep_row(
             filing_id,
@@ -288,6 +293,7 @@ impl RecordTable {
             record,
             insert_stmt.parameter_count(),
             fec_version,
+            name_delimiter,
         )?;
         insert_stmt.execute(params_from_iter(params))?;
         Ok(())
@@ -299,6 +305,7 @@ impl RecordTable {
         record: &StringRecord,
         n_params: usize,
         fec_version: &str,
+        name_delimiter: Option<&str>,
     ) -> anyhow::Result<Vec<FieldValue>> {
         let mut warnings = Vec::new();
         let mut values: Vec<FieldValue> = if fec_version == LATEST_FEC_VERSION && self.positional_ok {
@@ -325,16 +332,24 @@ impl RecordTable {
                     .iter()
                     .map(|col_name| legacy_columns.iter().position(|c| c == col_name))
                     .collect::<Vec<Option<usize>>>();
-                self.legacy_field_mapping.insert(key.clone(), mapping);
+                let names = LegacyNames::new(&self.current_mapping, legacy_columns);
+                self.legacy_field_mapping.insert(key.clone(), (mapping, names));
             }
-            let legacy_mapping = &self.legacy_field_mapping[&key];
-            legacy_mapping
+            let (legacy_mapping, names) = &self.legacy_field_mapping[&key];
+            let mut fields: Vec<Cow<str>> = legacy_mapping
+                .iter()
+                .map(|&record_idx| {
+                    Cow::Borrowed(record_idx.and_then(|i| record.get(i)).unwrap_or(""))
+                })
+                .collect();
+            if let Some(delimiter) = name_delimiter {
+                names.fill(record, &mut fields, delimiter);
+            }
+            fields
                 .iter()
                 .enumerate()
-                .map(|(idx, &record_idx)| {
-                    let field = record_idx
-                        .map(|i| record.get(i).unwrap_or(""))
-                        .unwrap_or("");
+                .map(|(idx, field)| {
+                    let field: &str = field;
                     match self.column_types.get(idx) {
                         Some(FieldFormat::Text) => FieldValue::Text(field.to_owned()),
                         Some(FieldFormat::Date) => date_value(field),
@@ -488,6 +503,7 @@ fn export_itemizations<R: Read>(
                 &r.row_type,
                 &r.record,
                 &fec_version,
+                legacy_name_delimiter(&filing.header),
             )
             .with_context(|| {
                 format!(
@@ -581,6 +597,7 @@ fn insert_filing_metadata(tx: &mut Transaction, filing: &Filing<impl Read>) -> a
         &filing.cover.form_type,
         &filing.cover.record,
         fec_version,
+        legacy_name_delimiter(&filing.header),
     )?;
     Ok(())
 }

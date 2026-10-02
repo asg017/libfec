@@ -12,7 +12,7 @@ use crate::{
     cli::ExportArgs,
     commands::export::sqlite::form_type_parse,
     sourcer::{FilingSourcer, ItemizationProgressBar},
-    utils::rows::{file_stem, remap_by_name, UnmappedRows},
+    utils::rows::{file_stem, legacy_name_delimiter, remap_row, UnmappedRows},
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -77,12 +77,13 @@ pub fn export(
                     e.insert(ItemizationValue { writer, columns })
                 }
             };
-            let fields = remap_by_name(
+            let fields = remap_row(
                 &entry.columns,
                 &filing.cover.record_column_names,
                 &filing.cover.record,
+                legacy_name_delimiter(&filing.header),
             );
-            entry.writer.write_record(fields)?;
+            entry.writer.write_record(fields.iter().map(|f| f.as_bytes()))?;
         }
 
         let pb = ItemizationProgressBar::new(&mb, &filing);
@@ -129,9 +130,13 @@ pub fn export(
             };
 
             entry.writer.write_field(filing.filing_id.as_str())?;
-            entry
-                .writer
-                .write_record(remap_by_name(&entry.columns, row_columns, &row.record))?;
+            let fields = remap_row(
+                &entry.columns,
+                row_columns,
+                &row.record,
+                legacy_name_delimiter(&filing.header),
+            );
+            entry.writer.write_record(fields.iter().map(|f| f.as_bytes()))?;
         }
     }
     Ok(())
