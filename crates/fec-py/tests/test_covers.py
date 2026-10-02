@@ -161,6 +161,21 @@ def test_eq_and_repr():
     assert "summary=Form3XSummary(...)" in text
 
 
+def test_eq_compares_amounts_as_floats():
+    """`==` is field-wise Python equality: NaN never equal, infinities by sign."""
+    raw = (FIXTURES["cover"] / "F3XN_1926068.fec").read_bytes()
+    assert b"1976082.12" in raw  # Line 6(b), cash on hand at the beginning of the period
+
+    def cover(amount: bytes) -> Any:
+        with fec.open(raw.replace(b"1976082.12", amount)) as filing:
+            return filing.cover_data
+
+    assert cover(b"inf") == cover(b"inf")
+    assert cover(b"inf") != cover(b"-inf")
+    assert cover(b"NaN") != cover(b"inf")
+    assert cover(b"NaN") != cover(b"NaN")
+
+
 def test_cover_data_union_is_every_form_class():
     forms = {cls.__name__ for cls in CoverData.__args__}
     assert forms == {s.form for s in SNAPSHOTS}
