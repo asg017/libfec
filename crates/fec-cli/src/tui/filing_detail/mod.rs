@@ -1,7 +1,7 @@
 //! Filing Detail TUI Component
 //!
 //! This module provides rendering functions for displaying detailed FEC filing information
-//! within a ratatui application. It supports form-specific cover UIs for F1, F3, and F3P
+//! within a ratatui application. It supports form-specific cover UIs for F1, F1M, F3, and F3P
 //! while sharing common chrome (title, URL, metadata, help bar, yank popup, key handling).
 //!
 //! Keyboard shortcuts:
@@ -13,12 +13,12 @@
 //! - j/k: Scroll up/down
 
 pub mod f1;
+pub mod f1m;
 pub mod f3;
 pub mod f3p;
 
 use crate::tui::{navigation_popup_help_line, HelpBar};
 use crossterm::event::{KeyCode, KeyEvent};
-use f1::FilingDetailF1;
 use f3::FilingDetailF3;
 use f3p::FilingDetailF3P;
 use fec_parser::{covers::Cover, report_code_label};
@@ -48,10 +48,11 @@ pub enum FilingDetailAction {
 }
 
 pub enum FilingCoverContent {
-    Form1(Box<FilingDetailF1>),
+    Form1(Box<fec_parser::covers::Form1>),
     Form3(FilingDetailF3),
     Form3P(FilingDetailF3P),
     Unknown,
+    Form1M(Box<fec_parser::covers::Form1M>),
 }
 
 /// Holds extracted filing information for TUI display
@@ -97,11 +98,10 @@ impl<R: std::io::Read> From<&fec_parser::Filing<R>> for FilingDetail {
             .filter(|s| !s.is_empty());
         let signed_date = cover.and_then(|c| c.date_signed()).map(|d| d.to_string());
         let cover_content = match cover {
-            Some(Cover::Form1(form)) => {
-                FilingCoverContent::Form1(Box::new(FilingDetailF1::from(form)))
-            }
+            Some(Cover::Form1(form)) => FilingCoverContent::Form1(Box::new(form.clone())),
             Some(Cover::Form3(form)) => FilingCoverContent::Form3(FilingDetailF3::from(form)),
             Some(Cover::Form3P(form)) => FilingCoverContent::Form3P(FilingDetailF3P::from(form)),
+            Some(Cover::Form1M(form)) => FilingCoverContent::Form1M(Box::new(form.clone())),
             None => FilingCoverContent::Unknown,
         };
 
@@ -338,6 +338,7 @@ fn render_content(f: &mut Frame, filing: &FilingDetail, state: &FilingDetailStat
         FilingCoverContent::Form3(data) => f3::append_f3_content_lines(&mut lines, data),
         FilingCoverContent::Form3P(data) => f3p::append_f3p_content_lines(&mut lines, data),
         FilingCoverContent::Unknown => {}
+        FilingCoverContent::Form1M(data) => f1m::append_f1m_content_lines(&mut lines, data),
     }
 
     // FEC URL

@@ -255,22 +255,50 @@ fn process_filing<R: Read>(
                     if let Some(date_signed) = form.date_signed {
                         println!(
                             "Signed by {} on {}",
-                            form.treasurer.to_string().bold(),
+                            cover
+                                .signer()
+                                .map(|s| s.to_string())
+                                .unwrap_or_default()
+                                .bold(),
                             date_signed.to_string().bold()
+                        );
+                    }
+                    if let Some(ref committee_type) = form.committee_type {
+                        println!(
+                            "Committee Type: {}",
+                            match form.committee_type_label() {
+                                Some(label) => format!("{committee_type} ({label})"),
+                                None => committee_type.clone(),
+                            }
                         );
                     }
                     if let Some(ref candidate) = form.candidate {
                         println!(
-                            "Candidate: {} ({}) - {} {}",
+                            "Candidate: {}{} - {} {}",
                             candidate.full_name().bold(),
-                            candidate.candidate_id,
-                            candidate.office.as_deref().unwrap_or(""),
+                            candidate
+                                .candidate_id
+                                .as_deref()
+                                .map(|id| format!(" ({id})"))
+                                .unwrap_or_default(),
+                            candidate
+                                .office_label()
+                                .or(candidate.office.as_deref())
+                                .unwrap_or(""),
                             candidate.state.as_deref().unwrap_or("")
                         );
                     }
-                    if let Some(ref committee_type) = form.committee_type {
-                        println!("Committee Type: {}", committee_type);
+                    if let Some(ref affiliated) = form.affiliated {
+                        println!(
+                            "Affiliated: {}{}",
+                            affiliated.display_name(),
+                            affiliated
+                                .relationship_label()
+                                .map(|l| format!(" ({l})"))
+                                .unwrap_or_default()
+                        );
                     }
+                    println!("Treasurer: {}", form.treasurer.name);
                 }
                 Cover::Form3(form) => {
                     println!(
@@ -287,6 +315,41 @@ fn process_filing<R: Read>(
                         form.signed.to_string().bold()
                     );
                     print_summary(&form.summary);
+                }
+                Cover::Form1M(form) => {
+                    if let Some(date_signed) = form.date_signed {
+                        println!(
+                            "Signed by {} on {}",
+                            form.treasurer.to_string().bold(),
+                            date_signed.to_string().bold()
+                        );
+                    }
+                    if let Some(ref a) = form.affiliation {
+                        println!(
+                            "Multicandidate status by affiliation with {} ({}), Form 1 filed {}",
+                            a.committee_name.as_deref().unwrap_or("?").bold(),
+                            a.committee_id.as_deref().unwrap_or("?"),
+                            a.date_form1_filed
+                                .map(|d| d.to_string())
+                                .unwrap_or_else(|| "?".into())
+                        );
+                    }
+                    if let Some(ref q) = form.qualification {
+                        println!(
+                            "Multicandidate status by qualification: met requirements on {} ({} candidates, 51st contributor {}, registered {})",
+                            q.requirements_met_date
+                                .map(|d| d.to_string())
+                                .unwrap_or_else(|| "?".into())
+                                .bold(),
+                            q.candidates.len(),
+                            q.fifty_first_contributor_date
+                                .map(|d| d.to_string())
+                                .unwrap_or_else(|| "?".into()),
+                            q.original_registration_date
+                                .map(|d| d.to_string())
+                                .unwrap_or_else(|| "?".into()),
+                        );
+                    }
                 }
             }
         }
