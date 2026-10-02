@@ -7,7 +7,7 @@ use wasm_bindgen::prelude::*;
 #[derive(Tsify, Serialize, Deserialize)]
 #[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct FilingHeaderJs {
-    /// Record type XXX
+    /// `HDR`, or `/*` for an electronic 1.x/2.x `/* Header` block.
     pub record_type: String,
     pub ef_type: String,
     pub fec_version: String,
@@ -16,6 +16,27 @@ pub struct FilingHeaderJs {
     pub report_id: Option<String>,
     pub report_number: Option<String>,
     pub comment: Option<String>,
+    /// How the header is written: `"hdr"`, `"legacy_block"` or `"paper"`.
+    pub style: String,
+    /// Body field delimiter: `"fs"` (0x1C) or `"comma"`.
+    pub delimiter: String,
+    /// Sub-delimiter of combined name fields (3.x–5.x and 1.x/2.x only).
+    pub name_delimiter: Option<String>,
+    /// Paper filings: FEC data-entry batch number.
+    pub batch_number: Option<String>,
+    /// Paper filings P2.6+: date the FEC received the filing.
+    pub received_date: Option<String>,
+    /// Whether this is FEC data entry of a paper filing.
+    pub is_paper: bool,
+    /// `/* Header` block: `[key, value]` pairs before `Schedule_Counts:`, keys
+    /// as written, in file order. Empty otherwise.
+    pub legacy_fields: Vec<(String, String)>,
+    /// `/* Header` block: `[row type, count]` pairs. Empty otherwise.
+    pub schedule_counts: Vec<(String, String)>,
+}
+
+fn pairs<'a>(m: impl IntoIterator<Item = (&'a String, &'a String)>) -> Vec<(String, String)> {
+    m.into_iter().map(|(k, v)| (k.clone(), v.clone())).collect()
 }
 
 impl FilingHeaderJs {
@@ -29,6 +50,14 @@ impl FilingHeaderJs {
             report_id: filing_header.report_id.clone(),
             report_number: filing_header.report_number.clone(),
             comment: filing_header.comment.clone(),
+            style: filing_header.style.as_str().to_owned(),
+            delimiter: filing_header.delimiter.as_str().to_owned(),
+            name_delimiter: filing_header.name_delimiter.clone(),
+            batch_number: filing_header.batch_number.clone(),
+            received_date: filing_header.received_date.clone(),
+            is_paper: filing_header.is_paper(),
+            legacy_fields: pairs(&filing_header.legacy_fields),
+            schedule_counts: pairs(&filing_header.schedule_counts),
         }
     }
 }
