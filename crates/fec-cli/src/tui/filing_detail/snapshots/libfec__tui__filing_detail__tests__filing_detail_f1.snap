@@ -3,7 +3,7 @@ source: crates/fec-cli/src/tui/filing_detail/mod.rs
 expression: "render_fixture(\"F1N_1910281.fec\", 100, 50)"
 snapshot_kind: text
 ---
-"FEC-1910281 F1N  by Pete Barlow for Congress (C00914911)                                            "
+"FEC-1910281 F1N by Pete Barlow for Congress (C00914911)                                             "
 "Signed by: Sonya McGrady on 2025-08-05                                                              "
 "                                                                                                    "
 "Committee                                                                                           "

@@ -3,7 +3,7 @@ source: crates/fec-cli/src/tui/filing_detail/mod.rs
 expression: "render_fixture(\"F24N_1946204.fec\", 60, 40)"
 snapshot_kind: text
 ---
-"FEC-1946204 F24N  by UNITED DEMOCRACY PROJECT ("UDP") (C0079"
+"FEC-1946204 F24N 48-Hour Report by UNITED DEMOCRACY PROJECT "
 "Signed by: CHRISTOPHER D'ALESSIO on 2026-02-12              "
 "                                                            "
 " 48-HOUR REPORT  of Independent Expenditures                "

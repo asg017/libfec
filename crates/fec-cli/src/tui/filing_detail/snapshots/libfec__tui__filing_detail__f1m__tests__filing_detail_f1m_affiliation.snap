@@ -3,7 +3,7 @@ source: crates/fec-cli/src/tui/filing_detail/f1m.rs
 expression: "render_fixture(\"F1MN_1924609.fec\", 100, 30)"
 snapshot_kind: text
 ---
-"FEC-1924609 F1MN  by Fight for a Democratic Majority PAC (C00914424)                                "
+"FEC-1924609 F1MN by Fight for a Democratic Majority PAC (C00914424)                                 "
 "Signed by: Judith Zamore on 2025-11-12                                                              "
 "                                                                                                    "
 "Committee                                                                                           "

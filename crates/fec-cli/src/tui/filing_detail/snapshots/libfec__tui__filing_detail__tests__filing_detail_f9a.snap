@@ -3,7 +3,7 @@ source: crates/fec-cli/src/tui/filing_detail/mod.rs
 expression: "render_fixture(\"F9A_2015422.fec\", 100, 50)"
 snapshot_kind: text
 ---
-"FEC-2015422 F9A  by ALLIANCE FOR A BETTER FUTURE INC (C30003628)                                    "
+"FEC-2015422 F9A by ALLIANCE FOR A BETTER FUTURE INC (C30003628)                                     "
 "2026-09-15 through 2026-09-15                                                                       "
 "                                                                                                    "
 "Signed by: CASSIDY KING on 2026-09-28                                                               "

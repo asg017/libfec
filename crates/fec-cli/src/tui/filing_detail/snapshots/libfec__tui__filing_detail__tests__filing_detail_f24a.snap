@@ -3,7 +3,7 @@ source: crates/fec-cli/src/tui/filing_detail/mod.rs
 expression: "render_fixture(\"F24A_1952541.fec\", 100, 50)"
 snapshot_kind: text
 ---
-"FEC-1952541 F24A  by Fairshake (C00835959)                                                          "
+"FEC-1952541 F24A 24-Hour Report by Fairshake (C00835959)                                            "
 "Signed by: Brandon Philipczyk on 2026-03-10                                                         "
 "                                                                                                    "
 " 24-HOUR REPORT  of Independent Expenditures                                                        "

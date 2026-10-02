@@ -3,7 +3,7 @@ source: crates/fec-cli/src/tui/filing_detail/f1.rs
 expression: "render_fixture(\"F1A_1914988.fec\", 100, 70)"
 snapshot_kind: text
 ---
-"FEC-1914988 F1A  by Independent Community Bankers of America Political Action Committee (ICBA PAC) ("
+"FEC-1914988 F1A by Independent Community Bankers of America Political Action Committee (ICBA PAC) (C"
 "Signed by: Mr. Paul Merski on 2025-09-16                                                            "
 "                                                                                                    "
 "Committee                                                                                           "

@@ -3,7 +3,7 @@ source: crates/fec-cli/src/tui/filing_detail/f1m.rs
 expression: "render_fixture(\"F1MN_1917288.fec\", 100, 50)"
 snapshot_kind: text
 ---
-"FEC-1917288 F1MN  by MORE JOBS, LESS GOVERNMENT (C00693838)                                         "
+"FEC-1917288 F1MN by MORE JOBS, LESS GOVERNMENT (C00693838)                                          "
 "Signed by: CHARLES GANTT on 2025-10-02                                                              "
 "                                                                                                    "
 "Committee                                                                                           "

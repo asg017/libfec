@@ -3,7 +3,7 @@ source: crates/fec-cli/src/tui/filing_detail/f1.rs
 expression: "render_fixture(\"F1N_1906351.fec\", 100, 70)"
 snapshot_kind: text
 ---
-"FEC-1906351 F1N  by Families for James Lankford (C00466482)                                         "
+"FEC-1906351 F1N by Families for James Lankford (C00466482)                                          "
 "Signed by: Mrs. Terri Lynn Miller on 2025-07-28                                                     "
 "                                                                                                    "
 "Committee                                                                                           "

@@ -78,7 +78,9 @@ pub enum FilingCoverContent {
 pub struct FilingDetail {
     pub filing_id: String,
     pub form_type: String,
-    pub report_code: Option<String>,
+    /// Human label for the report shown in the title: the form-specific
+    /// 24/48-hour type for F24/F5 notices, else the report code's label.
+    pub report_label: Option<String>,
     pub filer_name: String,
     pub filer_id: String,
     pub coverage_from: Option<String>,
@@ -136,7 +138,7 @@ impl<R: std::io::Read> From<&fec_parser::Filing<R>> for FilingDetail {
         FilingDetail {
             filing_id: filing.filing_id.clone(),
             form_type: filing.cover.form_type.clone(),
-            report_code: filing.cover.report_code.clone(),
+            report_label: report_label(cover, filing.cover.report_code.as_deref()),
             filer_name: filing.cover.filer_name.clone(),
             filer_id: filing.cover.filer_id.clone(),
             coverage_from: filing.cover.coverage_from_date.map(|d| d.to_string()),
@@ -307,16 +309,31 @@ impl Default for FilingDetailState {
     }
 }
 
+fn report_label(cover: Option<&Cover>, report_code: Option<&str>) -> Option<String> {
+    let form_specific = match cover {
+        Some(Cover::Form24(f)) => f.report_type_label(),
+        Some(Cover::Form5(f)) => f.report_type_label(),
+        _ => None,
+    };
+    form_specific
+        .or_else(|| match report_code_label(report_code?) {
+            "[Unknown report code]" => None,
+            label => Some(label),
+        })
+        .map(str::to_owned)
+}
+
 fn render_title(f: &mut Frame, filing: &FilingDetail, area: Rect) {
-    let report_label = filing
-        .report_code
-        .as_ref()
-        .map(|rc| report_code_label(rc.as_str()))
-        .unwrap_or("");
-    let title_text = format!(
-        "FEC-{} {} {} by {} ({})",
-        filing.filing_id, filing.form_type, report_label, filing.filer_name, filing.filer_id
-    );
+    let title_text = [
+        Some(format!("FEC-{}", filing.filing_id)),
+        Some(filing.form_type.clone()),
+        filing.report_label.clone(),
+        Some(format!("by {} ({})", filing.filer_name, filing.filer_id)),
+    ]
+    .into_iter()
+    .flatten()
+    .collect::<Vec<_>>()
+    .join(" ");
     let title = Paragraph::new(title_text).style(Style::default().add_modifier(Modifier::BOLD));
     f.render_widget(title, area);
 }

@@ -3,7 +3,7 @@ source: crates/fec-cli/src/tui/filing_detail/mod.rs
 expression: "render_fixture(\"F6A_1952182.fec\", 100, 50)"
 snapshot_kind: text
 ---
-"FEC-1952182 F6A  by Talarico for Texas (C00919084)                                                  "
+"FEC-1952182 F6A by Talarico for Texas (C00919084)                                                   "
 "Signed by: Lauren Decot Lee on 2026-03-08                                                           "
 "                                                                                                    "
 " 48-HOUR NOTICE  of Contributions/Loans Received                                                    "

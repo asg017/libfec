@@ -3,7 +3,7 @@ source: crates/fec-cli/src/tui/filing_detail/mod.rs
 expression: "render_fixture(\"F5N_1914346.fec\", 100, 50)"
 snapshot_kind: text
 ---
-"FEC-1914346 F5N [Unknown report code] by Heritage Action for America (C90013525)                    "
+"FEC-1914346 F5N 24-Hour Report by Heritage Action for America (C90013525)                           "
 "2025-09-08 through 2025-09-08                                                                       "
 "                                                                                                    "
 "Signed by: Tiffany Justice on 2025-09-09                                                            "

@@ -3,7 +3,7 @@ source: crates/fec-cli/src/tui/filing_detail/f1.rs
 expression: "render_fixture(\"F1A_1917499.fec\", 60, 90)"
 snapshot_kind: text
 ---
-"FEC-1917499 F1A  by SAVE AMERICA STOP SOCIALISM PAC (C007551"
+"FEC-1917499 F1A by SAVE AMERICA STOP SOCIALISM PAC (C0075519"
 "Signed by: JASON D BOLES on 2025-10-03                      "
 "                                                            "
 "Committee                                                   "

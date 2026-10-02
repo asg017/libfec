@@ -3,7 +3,7 @@ source: crates/fec-cli/src/tui/filing_detail/mod.rs
 expression: "render_fixture(\"F6N_1947008.fec\", 60, 40)"
 snapshot_kind: text
 ---
-"FEC-1947008 F6N  by KEN PAXTON FOR SENATE (C00901918)       "
+"FEC-1947008 F6N by KEN PAXTON FOR SENATE (C00901918)        "
 "Signed by: JOHN PLISHKA on 2026-02-17                       "
 "                                                            "
 " 48-HOUR NOTICE  of Contributions/Loans Received            "
