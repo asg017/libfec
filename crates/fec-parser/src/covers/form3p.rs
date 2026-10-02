@@ -282,8 +282,9 @@ impl Form3PDetailedSummary {
         Self {
             receipts: Form3PDetailedSummaryReceipts::from_data(data),
             //disbursements: Form3PDetailedSummaryDisbursements::from_data(data),
-            items_on_hand_to_be_liquidated: data["col_a_items_on_hand_to_be_liquidated"]
-                .parse()
+            items_on_hand_to_be_liquidated: data
+                .get("col_a_items_on_hand_to_be_liquidated")
+                .and_then(|v| v.parse().ok())
                 .unwrap_or(0.0),
         }
     }

@@ -323,7 +323,16 @@ fn process_filing<R: Read>(
 
     let mut status: HashMap<String, FilingFormMetadata> = HashMap::new();
     while let Some(row) = filing.next_row() {
-        let row = row.unwrap();
+        let row = match row {
+            Ok(row) => row,
+            Err(e) => {
+                eprintln!(
+                    "warning: FEC-{}: skipping unreadable row: {e}",
+                    filing.filing_id
+                );
+                continue;
+            }
+        };
         if let Some(x) = status.get_mut(&row.row_type) {
             x.count += 1;
             x.bytes += row.original_size;
