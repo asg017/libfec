@@ -1,0 +1,40 @@
+---
+source: crates/fec-parser/tests/covers.rs
+expression: "cover(\"F3LN_1941874.fec\")"
+snapshot_kind: text
+---
+{
+  "form": "Form3L",
+  "data": {
+    "committee_name": "Jimmy Gomez for Congress",
+    "committee_id": "C00629659",
+    "address": {
+      "street_1": "600 Pennsylvania Ave SE #15180",
+      "street_2": null,
+      "city": "Washington",
+      "state": "DC",
+      "zip_code": "20003"
+    },
+    "change_of_address": false,
+    "election_state": "CA",
+    "election_district": "34",
+    "report_code": "QYS",
+    "election_date": null,
+    "election_held_in_state": null,
+    "also_covers_semi_annual_period": false,
+    "coverage_from": "2025-10-01",
+    "coverage_through": "2025-12-31",
+    "semi_annual_january_june": false,
+    "semi_annual_july_december": false,
+    "line7a_quarterly_monthly_bundled_contributions": 45358.02,
+    "line7b_semi_annual_bundled_contributions": 92197.09,
+    "treasurer": {
+      "first_name": "Melissa",
+      "last_name": "Nissen",
+      "middle_name": null,
+      "prefix": null,
+      "suffix": null
+    },
+    "date_signed": "2026-01-31"
+  }
+}

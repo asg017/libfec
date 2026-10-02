@@ -42,8 +42,10 @@
 
 pub(crate) mod fields;
 mod form1;
+mod form13;
 mod form1m;
 mod form3;
+mod form3l;
 mod form3p;
 mod form3x;
 
@@ -51,10 +53,15 @@ pub use crate::covers::form1::{
     Form1, Form1Affiliated, Form1Bank, Form1Candidate, Form1Contact, Form1PacFlags,
 };
 pub use crate::covers::form1m::{Form1M, Form1MAffiliation, Form1MCandidate, Form1MQualification};
+mod form4;
+mod form7;
+
+pub use crate::covers::form13::Form13;
 pub use crate::covers::form3::{
     Form3, Form3DetailedSummary, Form3DetailedSummaryDisbursements, Form3DetailedSummaryReceipts,
     Form3Summary,
 };
+pub use crate::covers::form3l::Form3L;
 pub use crate::covers::form3p::{
     Form3P, Form3PDetailedSummary, Form3PDetailedSummaryReceipts, Form3PSummary,
 };
@@ -62,6 +69,11 @@ pub use crate::covers::form3x::{
     Form3X, Form3XDetailedSummary, Form3XDisbursements,
     Form3XNetContributionsAndOperatingExpenditures, Form3XReceipts, Form3XSummary,
 };
+pub use crate::covers::form4::{
+    Form4, Form4DetailedSummary, Form4Disbursements, Form4ItemizedLine, Form4LoanLine,
+    Form4Receipts, Form4Summary,
+};
+pub use crate::covers::form7::Form7;
 use fields::{text, text_or_empty, Data};
 use indexmap::IndexMap;
 use serde::Serialize;
@@ -77,6 +89,10 @@ pub enum Cover {
     Form3P(Form3P),
     Form1M(Form1M),
     Form3X(Box<Form3X>),
+    Form3L(Form3L),
+    Form4(Box<Form4>),
+    Form7(Form7),
+    Form13(Form13),
 }
 
 impl Cover {
@@ -92,6 +108,10 @@ impl Cover {
             Cover::Form3P(f) => Some(&f.treasurer),
             Cover::Form1M(f) => Some(&f.treasurer),
             Cover::Form3X(f) => Some(&f.treasurer),
+            Cover::Form3L(f) => Some(&f.treasurer),
+            Cover::Form4(f) => Some(&f.treasurer),
+            Cover::Form7(f) => Some(&f.person_designated),
+            Cover::Form13(f) => Some(&f.designated_officer),
         }
     }
 
@@ -103,6 +123,10 @@ impl Cover {
             Cover::Form3P(f) => Some(f.signed),
             Cover::Form1M(f) => f.date_signed,
             Cover::Form3X(f) => f.date_signed,
+            Cover::Form3L(f) => f.date_signed,
+            Cover::Form4(f) => f.date_signed,
+            Cover::Form7(f) => f.date_signed,
+            Cover::Form13(f) => f.date_signed,
         }
     }
 }
@@ -128,6 +152,10 @@ pub(crate) fn cover_from_form_type(cover_record_form_type: &str, data: &Data) ->
         "F3P" => Form3P::from_data(data).map(Cover::Form3P),
         "F1M" => Form1M::from_data(data).map(Cover::Form1M),
         "F3X" => Form3X::from_data(data).map(|f| Cover::Form3X(Box::new(f))),
+        "F3L" => Form3L::from_data(data).map(Cover::Form3L),
+        "F4" => Form4::from_data(data).map(|f| Cover::Form4(Box::new(f))),
+        "F7" => Form7::from_data(data).map(Cover::Form7),
+        "F13" => Form13::from_data(data).map(Cover::Form13),
         _ => None,
     }
 }

@@ -361,6 +361,76 @@ fn process_filing<R: Read>(
                     }
                     print_summary_form3x(form);
                 }
+                Cover::Form3L(form) => {
+                    if let Some(signed) = form.date_signed {
+                        println!(
+                            "Signed by {} on {}",
+                            form.treasurer.to_string().bold(),
+                            signed.to_string().bold()
+                        );
+                    }
+                    println!(
+                        "Bundled contributions (Line 7a, this period): {}",
+                        crate::tui::filing_detail::format_usd(
+                            form.line7a_quarterly_monthly_bundled_contributions
+                        )
+                        .bold()
+                    );
+                    if let Some(semi_annual) = form.line7b_semi_annual_bundled_contributions {
+                        println!(
+                            "Bundled contributions (Line 7b, semi-annual period): {}",
+                            crate::tui::filing_detail::format_usd(semi_annual).bold()
+                        );
+                    }
+                }
+                Cover::Form4(form) => {
+                    let usd = crate::tui::filing_detail::format_usd;
+                    let s = &form.summary;
+                    println!(
+                        "This period: receipts {}, disbursements {}, cash on hand at close {}",
+                        usd(s.line6c_total_receipts.column_a).bold(),
+                        usd(s.line7_total_disbursements.column_a).bold(),
+                        usd(s.line8_cash_on_hand_close_of_period.column_a).bold()
+                    );
+                    println!(
+                        "Calendar year-to-date: receipts {}, disbursements {}",
+                        usd(s.line6c_total_receipts.column_b).bold(),
+                        usd(s.line7_total_disbursements.column_b).bold()
+                    );
+                }
+                Cover::Form7(form) => {
+                    if let Some(signed) = form.date_signed {
+                        println!(
+                            "Signed by {} on {}",
+                            form.person_designated.to_string().bold(),
+                            signed.to_string().bold()
+                        );
+                    }
+                    if let Some(label) = form.organization_type_label() {
+                        println!("Organization type: {}", label);
+                    }
+                    println!(
+                        "Total communication costs this period: {}",
+                        crate::tui::filing_detail::format_usd(form.total_communication_costs)
+                            .bold()
+                    );
+                }
+                Cover::Form13(form) => {
+                    if let Some(signed) = form.date_signed {
+                        println!(
+                            "Signed by {} on {}",
+                            form.designated_officer.to_string().bold(),
+                            signed.to_string().bold()
+                        );
+                    }
+                    let usd = crate::tui::filing_detail::format_usd;
+                    println!(
+                        "Cumulative donations: accepted {}, refunded {}, net {}",
+                        usd(form.line5_total_donations_accepted).bold(),
+                        usd(form.line6_total_donations_refunded).bold(),
+                        usd(form.line7_net_donations).bold()
+                    );
+                }
             }
         }
 

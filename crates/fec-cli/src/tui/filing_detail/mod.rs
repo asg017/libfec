@@ -13,10 +13,15 @@
 //! - j/k: Scroll up/down
 
 pub mod f1;
+pub mod f13;
 pub mod f1m;
 pub mod f3;
+pub mod f3l;
 pub mod f3p;
 pub mod f3x;
+pub mod f4;
+pub mod f7;
+mod misc_helpers;
 
 use crate::tui::{navigation_popup_help_line, HelpBar};
 use crossterm::event::{KeyCode, KeyEvent};
@@ -52,6 +57,10 @@ pub enum FilingCoverContent {
     Form1(Box<fec_parser::covers::Form1>),
     Form3(FilingDetailF3),
     Form3P(FilingDetailF3P),
+    Form3L(Box<fec_parser::covers::Form3L>),
+    Form4(Box<fec_parser::covers::Form4>),
+    Form7(Box<fec_parser::covers::Form7>),
+    Form13(Box<fec_parser::covers::Form13>),
     Unknown,
     Form1M(Box<fec_parser::covers::Form1M>),
     Form3X(Box<fec_parser::covers::Form3X>),
@@ -105,6 +114,10 @@ impl<R: std::io::Read> From<&fec_parser::Filing<R>> for FilingDetail {
             Some(Cover::Form3P(form)) => FilingCoverContent::Form3P(FilingDetailF3P::from(form)),
             Some(Cover::Form1M(form)) => FilingCoverContent::Form1M(Box::new(form.clone())),
             Some(Cover::Form3X(form)) => FilingCoverContent::Form3X(form.clone()),
+            Some(Cover::Form3L(form)) => FilingCoverContent::Form3L(Box::new(form.clone())),
+            Some(Cover::Form4(form)) => FilingCoverContent::Form4(form.clone()),
+            Some(Cover::Form7(form)) => FilingCoverContent::Form7(Box::new(form.clone())),
+            Some(Cover::Form13(form)) => FilingCoverContent::Form13(Box::new(form.clone())),
             None => FilingCoverContent::Unknown,
         };
 
@@ -340,6 +353,10 @@ fn render_content(f: &mut Frame, filing: &FilingDetail, state: &FilingDetailStat
         FilingCoverContent::Form1(data) => f1::append_f1_content_lines(&mut lines, data),
         FilingCoverContent::Form3(data) => f3::append_f3_content_lines(&mut lines, data),
         FilingCoverContent::Form3P(data) => f3p::append_f3p_content_lines(&mut lines, data),
+        FilingCoverContent::Form3L(data) => f3l::append_f3l_content_lines(&mut lines, data),
+        FilingCoverContent::Form4(data) => f4::append_f4_content_lines(&mut lines, data),
+        FilingCoverContent::Form7(data) => f7::append_f7_content_lines(&mut lines, data),
+        FilingCoverContent::Form13(data) => f13::append_f13_content_lines(&mut lines, data),
         FilingCoverContent::Unknown => {}
         FilingCoverContent::Form1M(data) => f1m::append_f1m_content_lines(&mut lines, data),
         FilingCoverContent::Form3X(data) => {
@@ -597,5 +614,45 @@ pub(crate) mod tests {
     #[test]
     fn filing_detail_f3x_amended_narrow() {
         assert_snapshot!(render_fixture("F3XA_1909193.fec", 60, 40));
+    }
+
+    #[test]
+    fn filing_detail_f3l() {
+        assert_snapshot!(render_fixture("F3LN_1902042.fec", 100, 50));
+    }
+
+    #[test]
+    fn filing_detail_f3l_narrow() {
+        assert_snapshot!(render_fixture("F3LN_1941874.fec", 60, 40));
+    }
+
+    #[test]
+    fn filing_detail_f4() {
+        assert_snapshot!(render_fixture("F4N_1901605.fec", 100, 50));
+    }
+
+    #[test]
+    fn filing_detail_f4_narrow() {
+        assert_snapshot!(render_fixture("F4N_1920068.fec", 60, 40));
+    }
+
+    #[test]
+    fn filing_detail_f7() {
+        assert_snapshot!(render_fixture("F7N_1884734.fec", 100, 50));
+    }
+
+    #[test]
+    fn filing_detail_f7_narrow() {
+        assert_snapshot!(render_fixture("F7N_1919346.fec", 60, 40));
+    }
+
+    #[test]
+    fn filing_detail_f13() {
+        assert_snapshot!(render_fixture("F13A_1910509.fec", 100, 50));
+    }
+
+    #[test]
+    fn filing_detail_f13_narrow() {
+        assert_snapshot!(render_fixture("F13N_1904840.fec", 60, 40));
     }
 }

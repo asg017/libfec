@@ -1,0 +1,162 @@
+---
+source: crates/fec-parser/tests/covers.rs
+expression: "cover(\"F4A_1920140.fec\")"
+snapshot_kind: text
+---
+{
+  "form": "Form4",
+  "data": {
+    "committee_name": "170 FREEDOM MILWAUKEE 2024 HOST COMMITTEE INC",
+    "committee_id": "C00834978",
+    "address": {
+      "street_1": "790 N Water Street",
+      "street_2": "Suite 2500",
+      "city": "Milwaukee",
+      "state": "WI",
+      "zip_code": "53202"
+    },
+    "committee_type": "H",
+    "committee_type_description": null,
+    "report_code": "60D",
+    "coverage_from": "2022-04-27",
+    "coverage_through": "2024-09-01",
+    "treasurer": {
+      "first_name": "Tim",
+      "last_name": "Sheehy",
+      "middle_name": null,
+      "prefix": null,
+      "suffix": null
+    },
+    "date_signed": "2025-10-15",
+    "summary": {
+      "line6a_cash_on_hand_january_1": 0.0,
+      "line6a_year": "2024",
+      "line6b_cash_on_hand_beginning_period": 0.0,
+      "line6c_total_receipts": {
+        "column_a": 91142234.32,
+        "column_b": 52077863.43
+      },
+      "line6d_subtotal": {
+        "column_a": 91142234.32,
+        "column_b": 52077863.43
+      },
+      "line7_total_disbursements": {
+        "column_a": 84160845.27,
+        "column_b": 74450691.81
+      },
+      "line8_cash_on_hand_close_of_period": {
+        "column_a": 6981389.05,
+        "column_b": -22372828.38
+      },
+      "line9_debts_owed_to_committee": 0.0,
+      "line10_debts_owed_by_committee": 0.0,
+      "line11_convention_expenditures": {
+        "column_a": 84129413.74,
+        "column_b": 74443056.23
+      },
+      "line12_convention_refunds": {
+        "column_a": 0.0,
+        "column_b": 0.0
+      },
+      "line12a_expenditures_subject_to_limitation": {
+        "column_a": 84129413.74,
+        "column_b": 74443056.23
+      },
+      "line12b_prior_years_expenditures_subject_to_limitation": {
+        "column_a": 0.0,
+        "column_b": 0.0
+      },
+      "line12c_total_expenditures_subject_to_limitation": 74443056.23
+    },
+    "detailed_summary": {
+      "receipts": {
+        "line13_federal_funds": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line14_contributions": {
+          "itemized": 89482118.3,
+          "unitemized": 100.0,
+          "subtotal": {
+            "column_a": 89482218.3,
+            "column_b": 50966690.96
+          }
+        },
+        "line15_transfers_from_affiliated_committees": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line16_loans_received": {
+          "loans": 0.0,
+          "loan_repayments": 18000.0,
+          "subtotal": {
+            "column_a": 18000.0,
+            "column_b": 0.0
+          }
+        },
+        "line17_convention_refunds": {
+          "itemized": 0.0,
+          "unitemized": 0.0,
+          "subtotal": {
+            "column_a": 0.0,
+            "column_b": 0.0
+          }
+        },
+        "line18_other_refunds": {
+          "itemized": 950.0,
+          "unitemized": 0.0,
+          "subtotal": {
+            "column_a": 950.0,
+            "column_b": 950.0
+          }
+        },
+        "line19_other_income": {
+          "itemized": 1620790.02,
+          "unitemized": 20276.0,
+          "subtotal": {
+            "column_a": 1641066.02,
+            "column_b": 1110222.47
+          }
+        },
+        "line20_total_receipts": {
+          "column_a": 91142234.32,
+          "column_b": 52077863.43
+        }
+      },
+      "disbursements": {
+        "line21_convention_expenditures": {
+          "itemized": 84070901.79,
+          "unitemized": 58511.95,
+          "subtotal": {
+            "column_a": 84129413.74,
+            "column_b": 74443056.23
+          }
+        },
+        "line22_transfers_to_affiliated_committees": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line23_loans_made": {
+          "loans": 18000.0,
+          "loan_repayments": 0.0,
+          "subtotal": {
+            "column_a": 0.0,
+            "column_b": 0.0
+          }
+        },
+        "line24_other_disbursements": {
+          "itemized": 12791.87,
+          "unitemized": 639.66,
+          "subtotal": {
+            "column_a": 13431.53,
+            "column_b": 7635.58
+          }
+        },
+        "line25_total_disbursements": {
+          "column_a": 84160845.27,
+          "column_b": 74450691.81
+        }
+      }
+    }
+  }
+}
