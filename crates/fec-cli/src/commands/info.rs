@@ -205,6 +205,10 @@ fn process_filing<R: Read>(
     spinner: &Option<ProgressBar>,
     full: bool,
 ) {
+    if matches!(format, CmdInfoFormat::Json) {
+        print_filing_json(filing, full);
+        return;
+    }
     if matches!(format, CmdInfoFormat::Human) {
         if !full {
             if let Some(ref spinner) = spinner {
@@ -366,11 +370,55 @@ fn process_filing<R: Read>(
 
             println!("{tbl}");
         }
-        CmdInfoFormat::Json => {
-            let v = Value::Null;
-            println!("{}", v);
-        }
+        // JSON is handled by `print_filing_json` before this point.
+        CmdInfoFormat::Json => {}
     }
+}
+
+/// `libfec info --format json`: one JSON object per filing with the header,
+/// and the generic cover fields, plus per-row-type counts with `--full`.
+fn print_filing_json<R: Read>(filing: &mut Filing<R>, full: bool) {
+    let header = &filing.header;
+    let cover = &filing.cover;
+    let mut v = serde_json::json!({
+        "filing_id": filing.filing_id,
+        "fec_version": header.fec_version,
+        "software_name": header.software_name,
+        "software_version": header.software_version,
+        "report_id": header.report_id,
+        "report_number": header.report_number,
+        "comment": header.comment,
+        "source_length": filing.source_length,
+        "form_type": cover.form_type,
+        "filer_id": cover.filer_id,
+        "filer_name": cover.filer_name,
+        "report_code": cover.report_code,
+        "coverage_from_date": cover.coverage_from_date.map(|d| d.to_string()),
+        "coverage_through_date": cover.coverage_through_date.map(|d| d.to_string()),
+    });
+    if full {
+        let mut rows: std::collections::BTreeMap<String, Value> = Default::default();
+        while let Some(row) = filing.next_row() {
+            let row = match row {
+                Ok(row) => row,
+                Err(e) => {
+                    eprintln!(
+                        "warning: FEC-{}: skipping unreadable row: {e}",
+                        filing.filing_id
+                    );
+                    continue;
+                }
+            };
+            let entry = rows
+                .entry(row.row_type.clone())
+                .or_insert_with(|| serde_json::json!({"count": 0, "bytes": 0}));
+            entry["count"] = (entry["count"].as_u64().unwrap_or(0) + 1).into();
+            entry["bytes"] =
+                (entry["bytes"].as_u64().unwrap_or(0) + row.original_size as u64).into();
+        }
+        v["rows"] = serde_json::to_value(rows).unwrap_or(Value::Null);
+    }
+    println!("{v}");
 }
 
 pub enum InfoInput {
@@ -414,7 +462,7 @@ pub fn info(mut sourcer: FilingSourcer, args: InfoArgs) -> anyhow::Result<()> {
         match input {
             InfoInput::Filing(filing_arg) => {
                 let filing = sourcer.resolve_from_user_argument(&filing_arg.to_bare())?;
-                if io::stdout().is_terminal() {
+                if matches!(args.format, CmdInfoFormat::Human) && io::stdout().is_terminal() {
                     let detail = FilingDetail::from(&filing);
                     if let Some(s) = spinner.as_ref() {
                         s.finish_and_clear();
