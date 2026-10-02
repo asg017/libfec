@@ -401,7 +401,7 @@ pub struct Filing<R: Read> {
 
 impl<R: Read> Filing<R> {
     /// Parse the header and cover of a filing in any supported format (see
-    /// [`format`]), leaving the reader positioned at the first itemization
+    /// [`mod@format`]), leaving the reader positioned at the first itemization
     /// row.
     ///
     /// The format is sniffed from the first line: a `/*` line starts a
