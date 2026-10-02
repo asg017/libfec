@@ -346,6 +346,33 @@ fn process_filing<R: Read>(
                         );
                     }
                 }
+                Cover::Form9(form) => {
+                    println!(
+                        "24-Hour Notice of Electioneering Communications by {}",
+                        form.filer_name().bold()
+                    );
+                    if let Some(ref title) = form.communication_title {
+                        println!(
+                            "Communication: {}{}",
+                            title.bold(),
+                            form.date_public_distribution
+                                .map(|d| format!(", distributed {d}"))
+                                .unwrap_or_default()
+                        );
+                    }
+                    if let Some(date_signed) = form.date_signed {
+                        println!(
+                            "Signed by {} on {}",
+                            form.person_completing.to_string().bold(),
+                            date_signed.to_string().bold()
+                        );
+                    }
+                    println!(
+                        "Total donations: {}  Total disbursements/obligations: {}",
+                        format_usd(form.total_donations),
+                        format_usd(form.total_disbursements)
+                    );
+                }
             }
         }
 
