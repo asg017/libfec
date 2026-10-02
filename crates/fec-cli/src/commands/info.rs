@@ -325,6 +325,23 @@ fn process_filing<R: Read>(
                         usd(s.line7_total_disbursements.column_b).bold()
                     );
                 }
+                Cover::Form7(form) => {
+                    if let Some(signed) = form.date_signed {
+                        println!(
+                            "Signed by {} on {}",
+                            form.person_designated.to_string().bold(),
+                            signed.to_string().bold()
+                        );
+                    }
+                    if let Some(label) = form.organization_type_label() {
+                        println!("Organization type: {}", label);
+                    }
+                    println!(
+                        "Total communication costs this period: {}",
+                        crate::tui::filing_detail::format_usd(form.total_communication_costs)
+                            .bold()
+                    );
+                }
             }
         }
 
