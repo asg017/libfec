@@ -16,6 +16,7 @@ pub mod f1;
 pub mod f1m;
 pub mod f3;
 pub mod f3p;
+pub mod f3x;
 
 use crate::tui::{navigation_popup_help_line, HelpBar};
 use crossterm::event::{KeyCode, KeyEvent};
@@ -53,6 +54,7 @@ pub enum FilingCoverContent {
     Form3P(FilingDetailF3P),
     Unknown,
     Form1M(Box<fec_parser::covers::Form1M>),
+    Form3X(Box<fec_parser::covers::Form3X>),
 }
 
 /// Holds extracted filing information for TUI display
@@ -102,6 +104,7 @@ impl<R: std::io::Read> From<&fec_parser::Filing<R>> for FilingDetail {
             Some(Cover::Form3(form)) => FilingCoverContent::Form3(FilingDetailF3::from(form)),
             Some(Cover::Form3P(form)) => FilingCoverContent::Form3P(FilingDetailF3P::from(form)),
             Some(Cover::Form1M(form)) => FilingCoverContent::Form1M(Box::new(form.clone())),
+            Some(Cover::Form3X(form)) => FilingCoverContent::Form3X(form.clone()),
             None => FilingCoverContent::Unknown,
         };
 
@@ -339,6 +342,9 @@ fn render_content(f: &mut Frame, filing: &FilingDetail, state: &FilingDetailStat
         FilingCoverContent::Form3P(data) => f3p::append_f3p_content_lines(&mut lines, data),
         FilingCoverContent::Unknown => {}
         FilingCoverContent::Form1M(data) => f1m::append_f1m_content_lines(&mut lines, data),
+        FilingCoverContent::Form3X(data) => {
+            f3x::append_f3x_content_lines(&mut lines, data, area.width)
+        }
     }
 
     // FEC URL
@@ -575,5 +581,21 @@ pub(crate) mod tests {
     #[test]
     fn filing_detail_f3p() {
         assert_snapshot!(render_fixture("F3PN_1887806.fec", 100, 50));
+    }
+
+    #[test]
+    fn filing_detail_f3x() {
+        assert_snapshot!(render_fixture("F3XN_1926068.fec", 100, 50));
+    }
+
+    #[test]
+    fn filing_detail_f3x_full() {
+        // Tall enough to show every Detailed Summary line.
+        assert_snapshot!(render_fixture("F3XN_1926068.fec", 100, 120));
+    }
+
+    #[test]
+    fn filing_detail_f3x_amended_narrow() {
+        assert_snapshot!(render_fixture("F3XA_1909193.fec", 60, 40));
     }
 }
