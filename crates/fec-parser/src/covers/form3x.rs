@@ -29,7 +29,7 @@
 //! - v1–v3 have no Levin-fund (18(b), 18(c)) or federal election activity
 //!   (Line 30) columns; those read as `0.0`.
 
-use crate::covers::fields::{amount, date, flag, text, text_or_empty, Data};
+use crate::covers::fields::{amount, date, flag, person_name_or_legacy, text, text_or_empty, Data};
 use crate::covers::{Address, DetailedSummaryRow, PersonName};
 use jiff::civil::Date;
 use serde::Serialize;
@@ -183,43 +183,22 @@ impl Form3X {
         }
     }
 
-    /// The election type named by the letter of [`Form3X::election_code`]:
-    /// `P` Primary, `G` General, `R` Runoff, `C` Convention, `S` Special —
-    /// the Line 4(c)/(d) checkboxes that print the same letters in their
-    /// report codes (12P, 12G, 12R, 12C, 12S, 30G, 30R, 30S;
+    /// The election type named by the first letter of
+    /// [`Form3X::election_code`]; see [`crate::covers::election_code_label`].
+    /// The Line 4(c)/(d) checkboxes print the same letters in their report
+    /// codes (12P, 12G, 12R, 12C, 12S, 30G, 30R, 30S;
     /// [fecfrm3x.pdf p1](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm3x.pdf#page=1)).
-    /// `None` for `E`, which the workbook allows but does not describe, and
-    /// for anything else.
     pub fn election_code_label(&self) -> Option<&'static str> {
-        match self.election_code.as_deref()?.chars().next()? {
-            'P' | 'p' => Some("Primary"),
-            'G' | 'g' => Some("General"),
-            'R' | 'r' => Some("Runoff"),
-            'C' | 'c' => Some("Convention"),
-            'S' | 's' => Some("Special"),
-            _ => None,
-        }
+        self.election_code
+            .as_deref()
+            .and_then(crate::covers::election_code_label)
     }
 }
 
 /// The treasurer's name: the five v6+ `treasurer_*` columns, or the v1–v5
 /// caret-delimited `treasurer_name` ("Lastname^Firstname^Prefix^Suffix").
 fn treasurer(data: &Data) -> PersonName {
-    if data.contains_key("treasurer_last_name") {
-        return PersonName::from_data(data);
-    }
-    let Some(full) = text(data, "treasurer_name") else {
-        return PersonName::default();
-    };
-    let mut parts = full.split('^').map(str::trim);
-    let mut next = || parts.next().filter(|s| !s.is_empty()).map(str::to_owned);
-    PersonName {
-        last_name: next().unwrap_or_default(),
-        first_name: next().unwrap_or_default(),
-        middle_name: None,
-        prefix: next(),
-        suffix: next(),
-    }
+    person_name_or_legacy(data, "treasurer_", "treasurer_name")
 }
 
 /// Amount from the first of `keys` that the record's layout has (blank reads

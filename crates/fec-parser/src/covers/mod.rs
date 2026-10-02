@@ -64,8 +64,8 @@ mod form9;
 
 pub use crate::covers::form24::Form24;
 pub use crate::covers::form3::{
-    election_code_label, Form3, Form3CashSummary, Form3DetailedSummary,
-    Form3DetailedSummaryDisbursements, Form3DetailedSummaryReceipts, Form3Summary,
+    Form3, Form3CashSummary, Form3DetailedSummary, Form3DetailedSummaryDisbursements,
+    Form3DetailedSummaryReceipts, Form3Summary,
 };
 pub use crate::covers::form3l::Form3L;
 pub use crate::covers::form3p::{
@@ -150,6 +150,26 @@ impl Cover {
             Cover::Form6(f) => f.date_signed,
             Cover::Form9(f) => f.date_signed,
         }
+    }
+}
+
+/// The election type for a cover record's election code (`P2026` →
+/// `"Primary"`), from the code's first letter.
+///
+/// Letters per the FEC e-filing format specification, "Election Code (A.K.A.
+/// Primary/General Indicator or PGI)": `P` Primary, `G` General, `O` Other,
+/// `C` Convention, `R` Runoff, `S` Special, `E` Recount, each followed by the
+/// election year (FEC_Format_v8.4.pdf p11). Unknown letters return `None`.
+pub fn election_code_label(code: &str) -> Option<&'static str> {
+    match code.trim().chars().next()?.to_ascii_uppercase() {
+        'P' => Some("Primary"),
+        'G' => Some("General"),
+        'O' => Some("Other"),
+        'C' => Some("Convention"),
+        'R' => Some("Runoff"),
+        'S' => Some("Special"),
+        'E' => Some("Recount"),
+        _ => None,
     }
 }
 

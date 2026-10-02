@@ -16,6 +16,7 @@
 //! - **Dates are `YYYYMMDD`** in every v6+ filing. Older versions sometimes use
 //!   `MM/DD/YYYY`; [`date`] accepts both.
 
+use crate::covers::PersonName;
 use indexmap::IndexMap;
 use jiff::civil::Date;
 
@@ -65,6 +66,40 @@ pub(crate) fn flag(data: &Data, key: &str) -> bool {
     data.get(key)
         .map(|s| s.trim().eq_ignore_ascii_case("x"))
         .unwrap_or(false)
+}
+
+/// Read a structured `{prefix}last_name`/… name, falling back to a legacy
+/// single-column name (`legacy_key`) when the structured columns are absent.
+///
+/// v3/v5.x formats give names as one caret-delimited field, e.g.
+/// `Smith^Pat T.^Mr.^Jr.` = last ^ first (and middle) ^ prefix ^ suffix (FEC
+/// format workbook v5.2, sample data for "IND/NAME" fields). A value without
+/// carets is kept whole as the last name. Some legacy layouts put that
+/// caret-delimited name in the `{prefix}last_name` column itself (Form 9's
+/// custodian in v5.x); that is split the same way.
+pub(crate) fn person_name_or_legacy(data: &Data, prefix: &str, legacy_key: &str) -> PersonName {
+    let name = PersonName::from_prefixed(data, prefix);
+    if name.first_name.is_empty() && name.last_name.contains('^') {
+        return parse_legacy_name(&name.last_name);
+    }
+    if !name.is_empty() {
+        return name;
+    }
+    text(data, legacy_key)
+        .map(|raw| parse_legacy_name(&raw))
+        .unwrap_or(name)
+}
+
+fn parse_legacy_name(raw: &str) -> PersonName {
+    let mut parts = raw.split('^').map(str::trim);
+    let part = |p: Option<&str>| p.filter(|s| !s.is_empty()).map(str::to_owned);
+    PersonName {
+        last_name: parts.next().unwrap_or_default().to_owned(),
+        first_name: parts.next().unwrap_or_default().to_owned(),
+        middle_name: None,
+        prefix: part(parts.next()),
+        suffix: part(parts.next()),
+    }
 }
 
 #[cfg(test)]

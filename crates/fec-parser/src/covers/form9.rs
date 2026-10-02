@@ -1,8 +1,8 @@
 //! Form 9: 24-hour notice of disbursements/obligations for electioneering
 //! communications.
 
+use crate::covers::fields::person_name_or_legacy;
 use crate::covers::fields::{amount, date, flag, text, text_or_empty, Data};
-use crate::covers::form5::person_name_or_legacy;
 use crate::covers::{Address, PersonName};
 use jiff::civil::Date;
 

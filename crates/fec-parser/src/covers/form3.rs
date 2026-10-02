@@ -150,27 +150,9 @@ impl Form3 {
 
     /// Election type named by [`Form3::election_code`] (see [`election_code_label`]).
     pub fn election_code_label(&self) -> Option<&'static str> {
-        self.election_code.as_deref().and_then(election_code_label)
-    }
-}
-
-/// The election type for a cover record's election code (`P2026` →
-/// `"Primary"`), from the code's first letter.
-///
-/// Letters per the FEC e-filing format specification, "Election Code (A.K.A.
-/// Primary/General Indicator or PGI)": `P` Primary, `G` General, `O` Other,
-/// `C` Convention, `R` Runoff, `S` Special, `E` Recount, each followed by the
-/// election year (FEC_Format_v8.4.pdf p11). Unknown letters return `None`.
-pub fn election_code_label(code: &str) -> Option<&'static str> {
-    match code.trim().chars().next()?.to_ascii_uppercase() {
-        'P' => Some("Primary"),
-        'G' => Some("General"),
-        'O' => Some("Other"),
-        'C' => Some("Convention"),
-        'R' => Some("Runoff"),
-        'S' => Some("Special"),
-        'E' => Some("Recount"),
-        _ => None,
+        self.election_code
+            .as_deref()
+            .and_then(crate::covers::election_code_label)
     }
 }
 
@@ -495,11 +477,11 @@ mod tests {
 
     #[test]
     fn election_codes() {
-        assert_eq!(election_code_label("P2026"), Some("Primary"));
-        assert_eq!(election_code_label("g2024"), Some("General"));
-        assert_eq!(election_code_label("E2020"), Some("Recount"));
-        assert_eq!(election_code_label(""), None);
-        assert_eq!(election_code_label("X2020"), None);
+        assert_eq!(crate::covers::election_code_label("P2026"), Some("Primary"));
+        assert_eq!(crate::covers::election_code_label("g2024"), Some("General"));
+        assert_eq!(crate::covers::election_code_label("E2020"), Some("Recount"));
+        assert_eq!(crate::covers::election_code_label(""), None);
+        assert_eq!(crate::covers::election_code_label("X2020"), None);
     }
 
     #[test]

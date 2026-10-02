@@ -1,7 +1,7 @@
 //! Form 6: 48-hour notice of contributions/loans received.
 
+use crate::covers::fields::person_name_or_legacy;
 use crate::covers::fields::{date, text, text_or_empty, Data};
-use crate::covers::form5::person_name_or_legacy;
 use crate::covers::{Address, PersonName};
 use jiff::civil::Date;
 
