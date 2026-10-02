@@ -1,0 +1,64 @@
+---
+source: crates/fec-parser/tests/covers.rs
+expression: "cover(\"F2A_1902439.fec\")"
+snapshot_kind: text
+---
+{
+  "form": "Form2",
+  "data": {
+    "form_type": "F2A",
+    "candidate_id": "H8FL27185",
+    "candidate": {
+      "first_name": "Maria",
+      "last_name": "Salazar",
+      "middle_name": "Elvira",
+      "prefix": null,
+      "suffix": null
+    },
+    "candidate_address": {
+      "street_1": "3725 West Flagler Street",
+      "street_2": "#281",
+      "city": "Miami",
+      "state": "FL",
+      "zip_code": "33134"
+    },
+    "change_of_address": true,
+    "party_code": "REP",
+    "office": "H",
+    "office_state": "FL",
+    "district": "27",
+    "election_year": 2026,
+    "vice_president": null,
+    "principal_committee": {
+      "id": "C00714261",
+      "name": "Salazar For Congress",
+      "address": {
+        "street_1": "3725 West Flagler Street",
+        "street_2": "#281",
+        "city": "Miami",
+        "state": "FL",
+        "zip_code": "33134"
+      }
+    },
+    "authorized_committee": {
+      "id": "C00769711",
+      "name": "Salazar Victory Committee",
+      "address": {
+        "street_1": "3725 West Flagler Street",
+        "street_2": "#281",
+        "city": "Miami",
+        "state": "FL",
+        "zip_code": "33134"
+      }
+    },
+    "personal_funds_declaration": null,
+    "signer": {
+      "first_name": "Maria",
+      "last_name": "Salazar",
+      "middle_name": "Elvira",
+      "prefix": null,
+      "suffix": null
+    },
+    "date_signed": "2025-07-15"
+  }
+}
