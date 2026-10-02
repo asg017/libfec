@@ -7,7 +7,7 @@ API.  Every value in a parsed filing is a raw `str` today (no type coercion),
 which is why the dicts below are `dict[str, str]`.
 """
 
-from typing import TypedDict
+from typing import Any, TypedDict
 
 __all__ = [
     "from_file",
@@ -51,8 +51,10 @@ def from_http(
 ) -> Parsed | None:
     """Download and parse a filing from docquery.fec.gov; `None` if not found."""
 
-def parse_header(hdr: str | list[str]) -> tuple[dict[str, str], str, int]:
-    """Parse an `HDR` line into `(header, fec_version, lines_consumed)`."""
+def parse_header(hdr: str | list[str]) -> tuple[dict[str, Any], str, int]:
+    """Parse an `HDR` line, or a 1.x/2.x `/* Header` block's lines, into
+    `(header, fec_version, lines_consumed)`; a block's `schedule_counts` is a
+    nested dict."""
 
 def parse_line(
     line: str, version: str, _line_num: int | None = None
