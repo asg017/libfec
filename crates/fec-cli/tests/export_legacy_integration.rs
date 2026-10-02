@@ -108,3 +108,64 @@ fn dir_csv_mixed_versions_any_order() {
     }
     assert_eq!(headers[0], headers[1]);
 }
+
+/// FS-delimited filing text from `|`-delimited lines.
+fn fs(lines: &str) -> String {
+    lines.replace('|', "\x1c")
+}
+
+/// A paper P3.4 F3L with an SA3L (contributor names), trimmed from
+/// FEC-1314260.
+const PAPER_SA3L: &str = "HDR|P3.4|\"Aurotech/Captricity\"|1|20190204
+F3LN|C00674408|||PO BOX 230069||HOLLIS|NY|114230069|||Q2|20180120|NC||20180420|20180815|||||ANGRAND|ELMINA|TRACEY|||20190110|201901300300258854|201901300300258858|20190129
+SA3L|C00674408||ANGRAND|ELMINA|TRACEY|||PO BOX 230069||HOLLIS|NM|11423||C00674408|STUDENT AT IONA COLLEGE||||||||201901300300258855
+";
+
+/// An 8.4 F3L with an SA3L (lobbyist bundling layout), trimmed from
+/// FEC-1807079.
+const V8_4_SA3L: &str = "HDR|FEC|8.4|Test|1||||
+F3LN|C00828541|Committee|X|P.O. BOX 509||ARLINGTON|VA|22216|||Q2S||||20240401|20240630|||0.00|84000.00|CRATE|BRADLEY|T.|||20240731
+SA3L|C00828541|SA3L.4369|||IND||MILLER|JEFF||||4723 CAT MOUNTAIN DR||AUSTIN|TX|78731||||0.00|84000.00||MILLER STRATEGIES LLC|CEO
+";
+
+/// A sqlite export's `libfec_schedule_a` has Schedule A's 8.5 layout
+/// whichever row comes first: an SA3L (paper or 8.x lobbyist bundling)
+/// first no longer gives the table its layout, which blanked later rows'
+/// names. 8.x SA3L rows fill the contributor columns, as their 8.5 rows
+/// always have positionally.
+#[test]
+fn sqlite_schedule_a_layout_does_not_depend_on_first_row() {
+    let s = Scratch::new();
+    let paper = s.write("1314260.fec", &fs(PAPER_SA3L));
+    let v84 = s.write("1807079.fec", &fs(V8_4_SA3L));
+    let modern = s.write("850.fec", MODERN_8_5);
+    for (name, order) in [
+        ("a.db", [&paper, &v84, &modern]),
+        ("b.db", [&modern, &v84, &paper]),
+    ] {
+        let db = s.path(name);
+        let o = s.libfec(&[&"export", order[0], order[1], order[2], &"-o", &db]);
+        assert!(o.status.success(), "{}", String::from_utf8_lossy(&o.stderr));
+        let conn = rusqlite::Connection::open(&db).unwrap();
+        let mut stmt = conn
+            .prepare(
+                "select filing_id, form_type, contributor_last_name, contribution_aggregate \
+                 from libfec_schedule_a order by filing_id",
+            )
+            .unwrap();
+        let got: Vec<(String, String, String, Option<f64>)> = stmt
+            .query_map([], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3).ok())))
+            .unwrap()
+            .map(Result::unwrap)
+            .collect();
+        assert_eq!(
+            got,
+            vec![
+                ("1314260".into(), "SA3L".into(), "ANGRAND".into(), None),
+                ("1807079".into(), "SA3L".into(), "MILLER".into(), Some(84000.0)),
+                ("850".into(), "SA11AI".into(), "Modern".into(), Some(123.0)),
+            ],
+            "{name}"
+        );
+    }
+}

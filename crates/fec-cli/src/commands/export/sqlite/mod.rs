@@ -4,7 +4,10 @@ use crate::{
     cache::bulk::{candidates, committee},
     cli::ExportArgs,
     sourcer::{FilingSourcer, ItemizationProgressBar},
-    utils::rows::{legacy_name_delimiter, normalize_fec_date, LegacyNames, UnmappedRows},
+    utils::rows::{
+        export_columns, legacy_name_delimiter, normalize_fec_date, source_index, LegacyNames,
+        UnmappedRows,
+    },
 };
 use anyhow::Context;
 use colored::Colorize;
@@ -142,23 +145,26 @@ type LegacyMapping = (Vec<Option<usize>>, LegacyNames);
 
 const LATEST_FEC_VERSION: &str = "8.5";
 impl RecordTable {
-    /// The table's columns are the row type's 8.5 layout, else its 8.4 one
-    /// (some forms were *removed* in 8.5, like F3Z1, ex FEC-1890921), else
-    /// the layout of the version being exported (legacy-only row types).
+    /// A table for one row type: its columns are the row type's 8.5 layout,
+    /// else its 8.4 one (some forms were *removed* in 8.5, like F3Z1, ex
+    /// FEC-1890921), else the layout of the version being exported
+    /// (legacy-only row types). See [`export_columns`].
     fn new(row_type: &str, suffix: &str, fec_version: &str) -> anyhow::Result<Self> {
-        let column_names =
-            fec_parser::mappings::column_names_for_field(row_type, LATEST_FEC_VERSION)
-                .or_else(|_| fec_parser::mappings::column_names_for_field(row_type, "8.4"))
-                .or_else(|_| fec_parser::mappings::column_names_for_field(row_type, fec_version))
-                .with_context(|| {
-                    format!(
-                        "Error getting mapping column names for field '{}' and fec version '{}'",
-                        row_type, fec_version
-                    )
-                })?
-                .to_owned();
+        let column_names = export_columns(row_type, fec_version)
+            .with_context(|| {
+                format!(
+                    "Error getting mapping column names for field '{}' and fec version '{}'",
+                    row_type, fec_version
+                )
+            })?
+            .to_owned();
+        Self::with_columns(column_names, suffix)
+    }
+
+    /// A table with the given columns (e.g. a schedule's 8.5 layout).
+    fn with_columns(column_names: Vec<String>, suffix: &str) -> anyhow::Result<Self> {
         if column_names.is_empty() {
-            anyhow::bail!("Empty column mapping for field '{row_type}'");
+            anyhow::bail!("Empty column mapping for table '{suffix}'");
         }
         let current_mapping = column_names.clone();
         let column_types: Vec<FieldFormat> = column_names
@@ -330,7 +336,7 @@ impl RecordTable {
                 let mapping = self
                     .current_mapping
                     .iter()
-                    .map(|col_name| legacy_columns.iter().position(|c| c == col_name))
+                    .map(|col_name| source_index(legacy_columns, col_name))
                     .collect::<Vec<Option<usize>>>();
                 let names = LegacyNames::new(&self.current_mapping, legacy_columns);
                 self.legacy_field_mapping.insert(key.clone(), (mapping, names));
@@ -398,16 +404,18 @@ fn date_value(field: &str) -> FieldValue {
     }
 }
 
+/// A schedule's table has the schedule's 8.5 layout
+/// ([`ScheduleType::column_names`]), whichever row type comes first: a
+/// variant such as SA3L (8.x lobbyist bundling, whose 8.5 rows go in
+/// positionally, as they always have) or a paper-only type must not define
+/// it, or later rows remapped by name into it lose their names and amounts.
 fn prepare_schedule_statement<'a>(
-    row: &FilingRow,
-    fec_version: &str,
     schedule_type: &ScheduleType,
     tx: &'a Transaction,
 ) -> anyhow::Result<ItemizationValue<'a>> {
-    let mut record_table: RecordTable = RecordTable::new(
-        &row.row_type,
+    let mut record_table = RecordTable::with_columns(
+        schedule_type.column_names(LATEST_FEC_VERSION)?,
         schedule_type.to_sqlite_tablename().as_str(),
-        fec_version,
     )?;
     record_table.create_or_adopt(tx)?;
     let insert_statement = record_table.insert_statement(tx)?;
@@ -470,7 +478,7 @@ fn export_itemizations<R: Read>(
             }
             let value = match &key {
                 ItemizationKey::Schedule(schedule_type) => {
-                    prepare_schedule_statement(&r, &fec_version, schedule_type, tx)
+                    prepare_schedule_statement(schedule_type, tx)
                         .with_context(|| {
                             format!(
                                 "Error preparing statement for schedule type {:?}",

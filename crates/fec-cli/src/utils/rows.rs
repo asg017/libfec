@@ -115,13 +115,35 @@ pub fn remap_by_name<'r>(
     target
         .iter()
         .map(|name| {
-            source
-                .iter()
-                .position(|c| c == name)
+            source_index(source, name)
                 .and_then(|i| record.get(i))
                 .unwrap_or("")
         })
         .collect()
+}
+
+/// Index in a `source` layout of the column that fills target column
+/// `name`: the column of that name, else its counterpart in an 8.x SA3L
+/// (lobbyist bundling) layout. SA3L rows are filed under Schedule A, whose
+/// 45 columns their 8.5 rows fill positionally (sqlite), so other versions
+/// map by name the same way: `lobbyist_registrant_*` → `contributor_*`,
+/// `bundled_amount_period` → `contribution_amount`,
+/// `bundled_amount_semi_annual` → `contribution_aggregate`, `memo_text` →
+/// `memo_text_description`.
+pub fn source_index(source: &[String], name: &str) -> Option<usize> {
+    source.iter().position(|c| c == name).or_else(|| {
+        let alias: Cow<str> = match name {
+            "contribution_amount" => "bundled_amount_period".into(),
+            "contribution_aggregate" => "bundled_amount_semi_annual".into(),
+            "memo_text_description" => "memo_text".into(),
+            _ => format!(
+                "lobbyist_registrant_{}",
+                name.strip_prefix("contributor_")?
+            )
+            .into(),
+        };
+        source.iter().position(|c| *c == alias)
+    })
 }
 
 /// [`remap_by_name`], then [`LegacyNames::fill`] when `name_delimiter` is
