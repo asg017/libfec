@@ -76,3 +76,73 @@ the F2S layout instead of F2's (see below).
 - Other spec/list length mismatches that real rows never exceed (e.g. v2 SB 33
   vs 34, v2 SD 30 vs 28, v2 H1/H2 trailing ORIG/SUPR_TRAN_ID, v5 F92/F93 short
   lists) were left alone.
+
+## 2. Duplicate and blank column names (legacy lists only)
+
+`FilingCover` and the exporters key rows by column name, so a repeated name
+loses one value and `""` collides with every other blank. Lists that also
+serve 8.0–8.5 were not touched (they already use `_TODO_DUP`, except the
+known `TODO_UNKNOWN_BLANK` in F3L 6.4+).
+
+**Duplicates**: the second occurrence gets `<name>_TODO_DUP`, the convention
+the 8.x lists already use and that `covers/form3x.rs` (`row_dup`),
+`covers/form4.rs` (`dup_key`), `covers/form3p.rs` (`row_dup`) and
+`covers/form2.rs` (`candidate_state_TODO_DUP` = office state) read first.
+The second occurrence is the same form line as the 8.x `_TODO_DUP` column
+in every case (e.g. F3X v3 `col_a_total_receipts` at 17 = Line 6(c), at 36 =
+Line 19).
+
+| form | lists | renamed |
+|---|---|---|
+| F2 | `^3.0\|^2`, `^5.3…5.0`, `^6.3\|6.2\|6.1`, all four paper keys | `candidate_state` (office state) |
+| F3L | `^P(3.4\|3.3\|3.2)`, `^P(3.1\|3.0\|2.6)` | `election_state` |
+| F3P | `^(5.1\|5.0\|3\|2\|1)`, `^5.3\|5.2`, `^6.4…6.1`, `^P3.2…` | `col_a_total_receipts`, `col_a_total_disbursements` |
+| F3PS | `^5.3…^3`, `^6.4…6.1` | `a_individuals`, `b_political_party_committees` |
+| F3X | `^3\|^2\|^1`, `^5.3…5.0` (receipts already done there), both paper keys | `col_{a,b}_total_{receipts,disbursements,contributions}` |
+| F4 | `^5.3…^1`, both paper keys | `col_{a,b}_total_{receipts,disbursements}` |
+| SC1 | `^2`, `^3`, `^5.2\|5.1\|5.0`, `^5.3`, `^(P1\|P2\|P3.0\|P3.1)` | `description` (E.2, future-income description) |
+
+Exceptions where the workbook gives a different name:
+
+- `^sl` `^5.3\|5.2\|5.1\|5.0` index 21 `col_b_disbursements_period` →
+  `col_a_disbursements_period`: FEC_v530.xls "Sch L" r32 seq 22 "10.Disbursements"
+  is the column-A line 10 (column B starts at seq 23 "1a.").
+- `^h1` `^5.3\|5.2`: index 2 `transaction_id` → `unused_3` and index 28 `""` →
+  `transaction_id`: FEC_v530.xls "Sch H1" r12 seq 3 SPACE HOLDER, r39 seq 29
+  TRAN ID; electronic/266203.fec H1 has the tran id ("H1J15") at index 28.
+- `^h4` `^5.1\|5.0` index 14 → `admin_voter_drive_activity`: Fec_v510.xls "Sch H4" r25
+  "YESNO (Activity Is Admin./Voter Drive)" is the old combined flag; index 38
+  ("Activity is Administrative") keeps `administrative_voter_drive_activity`,
+  as in the 8.x list.
+
+**F92/F93 v5 lists replaced**: Fec_v500/v510/FEC_v520/FEC_v530 F92 equals
+"Sch A" and F93 equals "Sch B" label for label (5.3 only swaps unused fields
+for SPACE HOLDER). The old lists were short (f92 `^5.3|5.2` 36 of 44,
+`^5.0` 36 of 38) and f93 `^5.0` was shifted by one from index 9 on. They are
+now copies of `^sa[^3]` `^5.2`/`^5.1`/`^5.0` and `^sb` `^5.2|5.1`/`^5.0`.
+
+**Blank names** (`""`) were named from the spec label at that position,
+reusing the name the same form (or SA/SB for F92/F93, F56/F65 for F57) uses
+for that label in another version; `AMENDED CD` → `amended_cd` (F57:
+`amended_code`, as its v3 list already had). Positions that are SPACE
+HOLDER / "Unused field" in every version a key covers are named
+`unused_<seq>` (1-based field number):
+
+| form | key | index → name (spec) |
+|---|---|---|
+| F132 / F133 | `^5.3\|5.2` | 17 / 16 → `internal_use_only` (FEC_v520.xls "INTERNAL USE ONLY") |
+| F1S | `^6.1` | 10 → `affiliated_organization_type` (FEC_Format_v6.1.xls F1S "6. ORGANIZATION TYPE") |
+| F24 | `^5.0…5.3`, `^3` | 8 → `treasurer_name` ("NAME/TREASURER (as signed)") |
+| F3P31 | `^5.3` / `^5.2…^3` | 30 → `unused_31` (5.3 SPACE HOLDER) / `amended_cd` |
+| F3S | `^5.3…^3` | 25 `b_loan_repayments_all_other_loans`, 28 `b_refund_political_party_committees`, 29 `c_refund_other_political_committees` (Fec_v300.xls F3S 19(b), 20(b), 20(c); names as in the 6.x+ list) |
+| F5 | `^5.3` | 11 `individual_occupation` (INDOCC); 13–15, 22–24 → `unused_14…16`, `unused_23…25` |
+| F56, F76, F94, H5, H6 | v5 keys | `amended_cd` |
+| F57 | `^5.3…5.0`, `^3` | 18 `payee_cmtte_fec_id_number` (8.x name for the payee committee id), 19–23 `unused_20…24`, 30 `amended_code` |
+| F91 | `^5.3` | 10 → `unused_11` |
+| H1 | `^5.3\|5.2` / `^5.1\|5.0` | 3–26 → `unused_4…27`, 27 `internal_use_only` / 27 `amended_cd` |
+| H2 | `^5.3\|5.2\|5.1` | 4 `exempt_activity` (FEC_v510 "Activity Is Exempt"), 9 `amended_cd` |
+| H4 | `^5.3\|5.2` / `^5.1\|5.0` | 14 `unused_15`, 32 `internal_use_only` / 14 see above, 32 `amended_cd` |
+| SE | `^5.3`, `^5.2…`, `^3` | 19–23 `unused_20…24`; 35 `unused_36` (5.3) / `amended_cd` |
+| SE | `^2` | 19–23 `payee_candidate_{id_number,name,office,state,district}` (Fec_v2.xls SE seq 20–24) |
+| SF | `^5.3` / `^5.2…` | 35 `unused_36` / `amended_cd` |
+| SL | `^5.3…5.0` | 39 `amended_cd` (label "AMENDED CODE") |
