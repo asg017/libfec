@@ -23,11 +23,17 @@
 //!   `treasurer_*` columns; see [`Form3X::treasurer`].
 //! - v1–v5 and the paper (`P*`) layouts reuse one column name for the
 //!   Summary Page line and the Detailed Summary line it is copied from
-//!   (6(c)/19, 7/31, 11(d)/33) instead of the v6+ `*_TODO_DUP` names. The
-//!   form defines those pairs as equal, so we read the `_TODO_DUP` name and
-//!   fall back to the shared name.
+//!   (6(c)/19, 7/31, 11(d)/33); the mapping renames the second copy
+//!   `*_TODO_DUP`, as in v6+. The form defines those pairs as equal, so we
+//!   read the `_TODO_DUP` name and fall back to the shared name.
 //! - v1–v3 have no Levin-fund (18(b), 18(c)) or federal election activity
-//!   (Line 30) columns; those read as `0.0`.
+//!   (Line 30) columns; those read as `0.0`. Their single Line 18 (transfers
+//!   from non-federal accounts) is read into 18(a).
+//! - Paper (`P*`) records give Line 6(a)'s year before its amount; the
+//!   mapping names those two columns in that order (see
+//!   `crates/fec-parser-macros/MAPPINGS_CHANGES.md`). P1.0–P2.4 amounts are
+//!   often keyed without a decimal point and are read as written (see
+//!   `wiki/legacy/COVERS.md` in the research notes).
 
 use crate::covers::fields::{amount, date, flag, person_name_or_legacy, text, text_or_empty, Data};
 use crate::covers::{Address, DetailedSummaryRow, PersonName};

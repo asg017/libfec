@@ -333,7 +333,13 @@ pub struct FilingCover {
 }
 
 impl FilingCover {
-    fn from_record(fec_version: &str, cover_record: StringRecord) -> Result<Self, String> {
+    /// `name_delimiter`: the header's, for splitting legacy combined names
+    /// in the typed cover.
+    fn from_record(
+        fec_version: &str,
+        name_delimiter: Option<&str>,
+        cover_record: StringRecord,
+    ) -> Result<Self, String> {
         // Trimmed: paper P2.3–P3.1 pads row types (`F7N     `).
         let form_type = cover_record
             .get(0)
@@ -381,10 +387,11 @@ impl FilingCover {
         // `YYYYMMDD` (v3+ and paper) or `MM/DD/YYYY`; blank or unparsable
         // values are `None` (some F5s have the column but leave it empty,
         // e.g. FEC-1917549).
-        let coverage_from_date = covers::fields::date(&cover_record_kv, "coverage_from_date");
-        let coverage_through_date = covers::fields::date(&cover_record_kv, "coverage_through_date");
+        let data = covers::fields::Data::new(cover_record_kv.clone(), name_delimiter);
+        let coverage_from_date = covers::fields::date(&data, "coverage_from_date");
+        let coverage_through_date = covers::fields::date(&data, "coverage_through_date");
 
-        let cover_data = covers::cover_from_form_type(&form_type, &cover_record_kv);
+        let cover_data = covers::cover_from_form_type(&form_type, &data);
         // Individuals filing F5/F9 leave the organization-name column blank.
         let filer_name = match cover_data.as_ref().and_then(|c| c.filer_name()) {
             Some(name) if filer_name.trim().is_empty() => name,
@@ -445,6 +452,7 @@ impl<R: Read> Filing<R> {
         };
         let mut cover = FilingCover::from_record(
             &header.fec_version,
+            header.name_delimiter.as_deref(),
             StringRecord::from_byte_record_lossy(cover_record),
         )
         .map_err(|e| anyhow::anyhow!("Error parsing cover record: {}", e))?;

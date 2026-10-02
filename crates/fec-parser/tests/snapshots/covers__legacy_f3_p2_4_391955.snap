@@ -1,0 +1,179 @@
+---
+source: crates/fec-parser/tests/covers.rs
+expression: "legacy_cover(\"P2.4_391955.fec\")"
+snapshot_kind: text
+---
+{
+  "form": "Form3",
+  "data": {
+    "form_type": "F3N",
+    "filer_committee_id": "C00453241",
+    "committee_name": "BARKLEY FOR SENATE",
+    "address": {
+      "street_1": "2610 PARKVIEW BLVD",
+      "street_2": null,
+      "city": "ROBBINSDALE",
+      "state": "MN",
+      "zip_code": "55422"
+    },
+    "change_of_address": false,
+    "election_state": "MN",
+    "election_district": null,
+    "report_code": "30G",
+    "election_code": null,
+    "election_date": "2008-11-04",
+    "state_of_election": "MN",
+    "coverage_from_date": "2008-10-16",
+    "coverage_through_date": "2008-11-24",
+    "treasurer": {
+      "first_name": "CHARLES",
+      "last_name": "MACARTHUR",
+      "middle_name": "ELLSWORTH",
+      "prefix": null,
+      "suffix": null
+    },
+    "date_signed": "2008-12-02",
+    "summary": {
+      "line6a_total_contributions": {
+        "column_a": 82317.0,
+        "column_b": 158175.0
+      },
+      "line6b_total_contribution_refunds": {
+        "column_a": 0.0,
+        "column_b": 0.0
+      },
+      "line6c_net_contributions": {
+        "column_a": 82317.0,
+        "column_b": 158175.0
+      },
+      "line7a_total_operating_expenditures": {
+        "column_a": 87509.0,
+        "column_b": 152427.0
+      },
+      "line7b_total_offsets_to_operating_expenditures": {
+        "column_a": 0.0,
+        "column_b": 0.0
+      },
+      "line7c_net_operating_expenditures": {
+        "column_a": 87509.0,
+        "column_b": 152427.0
+      },
+      "line8_cash_on_hand_close_of_period": 4030.0,
+      "line9_debts_owed_to_committee": 0.0,
+      "line10_debts_owed_by_committee": 22300.0
+    },
+    "detailed_summary": {
+      "receipts": {
+        "line11a_i_contributions_from_individuals_itemized": {
+          "column_a": 42926.0,
+          "column_b": 0.0
+        },
+        "line11a_ii_contributions_from_individuals_unitemized": {
+          "column_a": 34632.0,
+          "column_b": 0.0
+        },
+        "line11a_iii_contributions_from_individuals_total": {
+          "column_a": 77558.0,
+          "column_b": 152828.0
+        },
+        "line11b_political_party_committees": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line11c_other_political_committees_pacs": {
+          "column_a": 4359.0,
+          "column_b": 4946.0
+        },
+        "line11d_the_candidate": {
+          "column_a": 400.0,
+          "column_b": 400.0
+        },
+        "line11e_total_contributions": {
+          "column_a": 82317.0,
+          "column_b": 158175.0
+        },
+        "line12_transfers_from_authorized": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line13a_loans_from_candidate": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line13b_other_loans": {
+          "column_a": 2000.0,
+          "column_b": 4300.0
+        },
+        "line13c_total_loans": {
+          "column_a": 2000.0,
+          "column_b": 4300.0
+        },
+        "line14_offset_to_operating_expenditures": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line15_other_receipts": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line16_total_receipts": {
+          "column_a": 84317.0,
+          "column_b": 162475.0
+        }
+      },
+      "disbursements": {
+        "line17_operating_expenditures": {
+          "column_a": 87509.0,
+          "column_b": 152427.0
+        },
+        "line18_transfers_to_authorized": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line19a_candidate_loan_repayments": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line19b_other_loan_repayments": {
+          "column_a": 2000.0,
+          "column_b": 2000.0
+        },
+        "line19c_total_loan_repayments": {
+          "column_a": 2000.0,
+          "column_b": 2000.0
+        },
+        "line20a_refunds_to_individuals": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line20b_refunds_to_party_committees": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line20c_refunds_to_other_committees": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line20d_total_refunds": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line21_other_disbursements": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line22_total_disbursements": {
+          "column_a": 89509.0,
+          "column_b": 154427.0
+        }
+      },
+      "cash_summary": {
+        "line23_cash_on_hand_beginning": 9221.0,
+        "line24_total_receipts": 84317.0,
+        "line25_subtotal": 93539.0,
+        "line26_total_disbursements": 89509.0,
+        "line27_cash_on_hand_close": 4030.0
+      }
+    }
+  }
+}

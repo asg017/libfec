@@ -1,0 +1,243 @@
+---
+source: crates/fec-parser/tests/covers.rs
+expression: "legacy_cover(\"5.00_102196.fec\")"
+snapshot_kind: text
+---
+{
+  "form": "Form3X",
+  "data": {
+    "form_type": "F3XA",
+    "filer_committee_id": "C00011197",
+    "committee_name": "Kentucky State Democratic Central Executive Committee",
+    "address": {
+      "street_1": "PO Box 694",
+      "street_2": null,
+      "city": "Frankfort",
+      "state": "KY",
+      "zip_code": "40602"
+    },
+    "change_of_address": false,
+    "report_code": "M5",
+    "election_code": null,
+    "election_date": null,
+    "state_of_election": null,
+    "coverage_from_date": "2003-04-01",
+    "coverage_through_date": "2003-04-30",
+    "qualified_committee": true,
+    "treasurer": {
+      "first_name": "",
+      "last_name": "David Tandy",
+      "middle_name": null,
+      "prefix": null,
+      "suffix": null
+    },
+    "date_signed": "2003-12-19",
+    "summary": {
+      "line6a_cash_on_hand_jan_1": 13752.42,
+      "line6a_year": 2003,
+      "line6b_cash_on_hand_beginning_period": 29397.8,
+      "line6c_total_receipts": {
+        "column_a": 16209.54,
+        "column_b": 128449.59
+      },
+      "line6d_subtotal": {
+        "column_a": 45607.34,
+        "column_b": 142202.01
+      },
+      "line7_total_disbursements": {
+        "column_a": 25050.16,
+        "column_b": 121644.83
+      },
+      "line8_cash_on_hand_close_of_period": {
+        "column_a": 20557.18,
+        "column_b": 20557.18
+      },
+      "line9_debts_owed_to_committee": 0.0,
+      "line10_debts_owed_by_committee": 33990.25
+    },
+    "detailed_summary": {
+      "receipts": {
+        "line11a_i_individuals_itemized": {
+          "column_a": 0.0,
+          "column_b": 20209.0
+        },
+        "line11a_ii_individuals_unitemized": {
+          "column_a": 375.0,
+          "column_b": 0.0
+        },
+        "line11a_iii_individuals_total": {
+          "column_a": 375.0,
+          "column_b": 20209.0
+        },
+        "line11b_political_party_committees": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line11c_other_political_committees": {
+          "column_a": 0.0,
+          "column_b": 18500.0
+        },
+        "line11d_total_contributions": {
+          "column_a": 375.0,
+          "column_b": 38709.0
+        },
+        "line12_transfers_from_affiliated": {
+          "column_a": 14450.19,
+          "column_b": 26450.19
+        },
+        "line13_loans_received": {
+          "column_a": 0.0,
+          "column_b": 31000.0
+        },
+        "line14_loan_repayments_received": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line15_offsets_to_operating_expenditures": {
+          "column_a": 1316.01,
+          "column_b": 1392.31
+        },
+        "line16_refunds_of_federal_contributions": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line17_other_federal_receipts": {
+          "column_a": 68.34,
+          "column_b": 6632.49
+        },
+        "line18a_transfers_from_nonfederal_account": {
+          "column_a": 0.0,
+          "column_b": 24265.6
+        },
+        "line18b_transfers_from_levin_funds": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line18c_total_nonfederal_transfers": {
+          "column_a": 0.0,
+          "column_b": 24265.6
+        },
+        "line19_total_receipts": {
+          "column_a": 16209.54,
+          "column_b": 128449.59
+        },
+        "line20_total_federal_receipts": {
+          "column_a": 16209.54,
+          "column_b": 104183.99
+        }
+      },
+      "disbursements": {
+        "line21a_i_shared_operating_federal_share": {
+          "column_a": 5514.21,
+          "column_b": 18553.66
+        },
+        "line21a_ii_shared_operating_nonfederal_share": {
+          "column_a": 7722.48,
+          "column_b": 30908.07
+        },
+        "line21b_other_federal_operating_expenditures": {
+          "column_a": 11813.47,
+          "column_b": 64104.36
+        },
+        "line21c_total_operating_expenditures": {
+          "column_a": 25050.16,
+          "column_b": 113566.09
+        },
+        "line22_transfers_to_affiliated": {
+          "column_a": 0.0,
+          "column_b": 7976.75
+        },
+        "line23_contributions_to_federal_candidates": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line24_independent_expenditures": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line25_coordinated_party_expenditures": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line26_loan_repayments_made": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line27_loans_made": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line28a_refunds_to_individuals": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line28b_refunds_to_party_committees": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line28c_refunds_to_other_committees": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line28d_total_contribution_refunds": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line29_other_disbursements": {
+          "column_a": 0.0,
+          "column_b": 101.99
+        },
+        "line30a_i_fea_federal_share": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line30a_ii_fea_levin_share": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line30b_fea_all_federal": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line30c_fea_total": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line31_total_disbursements": {
+          "column_a": 25050.16,
+          "column_b": 121644.83
+        },
+        "line32_total_federal_disbursements": {
+          "column_a": 17327.68,
+          "column_b": 90736.76
+        }
+      },
+      "net": {
+        "line33_total_contributions": {
+          "column_a": 375.0,
+          "column_b": 38709.0
+        },
+        "line34_total_contribution_refunds": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line35_net_contributions": {
+          "column_a": 375.0,
+          "column_b": 38709.0
+        },
+        "line36_total_federal_operating_expenditures": {
+          "column_a": 17327.68,
+          "column_b": 82658.02
+        },
+        "line37_offsets_to_operating_expenditures": {
+          "column_a": 1316.01,
+          "column_b": 1392.31
+        },
+        "line38_net_operating_expenditures": {
+          "column_a": 16011.67,
+          "column_b": 81265.71
+        }
+      }
+    }
+  }
+}
