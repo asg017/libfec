@@ -1,0 +1,31 @@
+---
+source: crates/fec-parser/tests/covers.rs
+expression: "cover(\"F99_1945322.fec\")"
+snapshot_kind: text
+---
+{
+  "form": "Form99",
+  "data": {
+    "committee_id": "C00780304",
+    "committee_name": "Robinhood Markets, Inc. PAC",
+    "address": {
+      "street_1": "85 Willow Road",
+      "street_2": null,
+      "city": "Menlo Park",
+      "state": "CA",
+      "zip_code": "940253656"
+    },
+    "treasurer": {
+      "first_name": "Shiv",
+      "last_name": "Verma",
+      "middle_name": null,
+      "prefix": null,
+      "suffix": null
+    },
+    "date_signed": "2026-02-06",
+    "text_code": "MSM",
+    "filing_frequency": "M",
+    "pdf_attachment": false,
+    "text": "Reports Analysis Division\nFederal Election Commission\n1050 First Street NE\nWashington, DC 20463\n\nRE: Robinhood Markets, Inc. PAC, FEC ID C00780304, Change in Filing Frequency\n\nTo Whom It May Concern:\nPursuant to 11 C.F.R. 104.5(c), Robinhood Markets, Inc. PAC is changing filing frequency status from a\nQuarterly/Semi-Annual filer to a Monthly Filer. In accordance with this new filing frequency, the next report that Robinhood Markets, Inc. PAC intends to file will be the 2026 February Monthly Report due on February 20, 2026.\n\nThank you in Advance,\nShiv Verma, Treasurer"
+  }
+}
