@@ -4,6 +4,7 @@ use jiff::civil::Date;
 
 /// "FORM 1 - Statement of Organization"
 /// Filed by committees to register with the FEC or to update their registration info.
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct Form1 {
     pub committee_name: String,
     pub street_1: String,
@@ -24,6 +25,7 @@ pub struct Form1 {
     pub treasurer: Treasurer,
 }
 
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct Form1Candidate {
     pub candidate_id: String,
     pub last_name: String,
@@ -113,12 +115,8 @@ impl Form1 {
                 .cloned()
                 .filter(|s| !s.is_empty()),
             committee_url: data.get("committee_url").cloned().filter(|s| !s.is_empty()),
-            effective_date: data
-                .get("effective_date")
-                .and_then(|s| Date::strptime("%Y%m%d", s).ok()),
-            date_signed: data
-                .get("date_signed")
-                .and_then(|s| Date::strptime("%Y%m%d", s).ok()),
+            effective_date: crate::covers::fields::date(data, "effective_date"),
+            date_signed: crate::covers::fields::date(data, "date_signed"),
             committee_type: data
                 .get("committee_type")
                 .cloned()

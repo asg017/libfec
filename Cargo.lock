@@ -922,9 +922,11 @@ dependencies = [
  "csv",
  "fec-parser-macros",
  "indexmap",
+ "insta",
  "jiff",
  "lazy_static",
  "regex",
+ "serde",
  "serde_json",
  "thiserror 1.0.63",
 ]
