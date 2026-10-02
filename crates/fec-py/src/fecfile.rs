@@ -181,6 +181,7 @@ pub fn parse_header<'py>(
         .delimiter(b"\x1c"[0])
         .flexible(true)
         .has_headers(false)
+        .quoting(false)
         .from_reader(hdr_str.as_bytes());
 
     let record = rdr
@@ -240,6 +241,7 @@ pub fn parse_line<'py>(
         .delimiter(b"\x1c"[0])
         .flexible(true)
         .has_headers(false)
+        .quoting(false)
         .from_reader(line.as_bytes());
 
     let record = rdr
