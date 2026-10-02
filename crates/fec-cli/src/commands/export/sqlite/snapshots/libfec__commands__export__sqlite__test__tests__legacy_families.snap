@@ -1,0 +1,126 @@
+---
+source: crates/fec-cli/src/commands/export/sqlite/test.rs
+expression: "query(&db,\n\"select filing_id, fec_version, software_name, cover_record_form, \\\n             cover_record_form_amendment_indicator, coverage_from_date, header_style, \\\n             batch_number, received_date from libfec_filings order by rowid\")"
+snapshot_kind: text
+---
+filing_id | fec_version | software_name | cover_record_form | cover_record_form_amendment_indicator | coverage_from_date | header_style | batch_number | received_date
+==== Row 0 ====
+[filing_id]:497
+[fec_version]:1.02
+[software_name]:
+[cover_record_form]:F3
+[cover_record_form_amendment_indicator]:N
+[coverage_from_date]:1998-04-01
+[header_style]:legacy_block
+[batch_number]:NULL
+[received_date]:NULL
+==== Row 1 ====
+[filing_id]:10665
+[fec_version]:2.02
+[software_name]:(Filer's own software)
+[cover_record_form]:F3P
+[cover_record_form_amendment_indicator]:A
+[coverage_from_date]:2000-01-01
+[header_style]:legacy_block
+[batch_number]:NULL
+[received_date]:NULL
+==== Row 2 ====
+[filing_id]:13801
+[fec_version]:3.00
+[software_name]:Navision AVF
+[cover_record_form]:F3X
+[cover_record_form_amendment_indicator]:N
+[coverage_from_date]:2001-03-01
+[header_style]:hdr
+[batch_number]:NULL
+[received_date]:NULL
+==== Row 3 ====
+[filing_id]:102196
+[fec_version]:5.00
+[software_name]:Patton Technologies LLC
+[cover_record_form]:F3X
+[cover_record_form_amendment_indicator]:A
+[coverage_from_date]:2003-04-01
+[header_style]:hdr
+[batch_number]:NULL
+[received_date]:NULL
+==== Row 4 ====
+[filing_id]:300707
+[fec_version]:5.3
+[software_name]:FECfile
+[cover_record_form]:F99
+[cover_record_form_amendment_indicator]:NULL
+[coverage_from_date]:NULL
+[header_style]:hdr
+[batch_number]:NULL
+[received_date]:NULL
+==== Row 5 ====
+[filing_id]:342096
+[fec_version]:6.1
+[software_name]:FECfile
+[cover_record_form]:F3X
+[cover_record_form_amendment_indicator]:A
+[coverage_from_date]:2007-05-01
+[header_style]:hdr
+[batch_number]:NULL
+[received_date]:NULL
+==== Row 6 ====
+[filing_id]:730663
+[fec_version]:7.0
+[software_name]:Patton Technologies LLC
+[cover_record_form]:F3X
+[cover_record_form_amendment_indicator]:A
+[coverage_from_date]:2010-11-23
+[header_style]:hdr
+[batch_number]:NULL
+[received_date]:NULL
+==== Row 7 ====
+[filing_id]:236480
+[fec_version]:P1.0
+[software_name]:SECURE PAPER SOLUTION'S FEC SYSTEM
+[cover_record_form]:F3X
+[cover_record_form_amendment_indicator]:N
+[coverage_from_date]:2006-04-01
+[header_style]:paper
+[batch_number]:2817
+[received_date]:NULL
+==== Row 8 ====
+[filing_id]:391955
+[fec_version]:P2.4
+[software_name]:ILM'S FEC SYSTEM
+[cover_record_form]:F3
+[cover_record_form_amendment_indicator]:N
+[coverage_from_date]:2008-10-16
+[header_style]:paper
+[batch_number]:3046
+[received_date]:NULL
+==== Row 9 ====
+[filing_id]:716051
+[fec_version]:P2.6
+[software_name]:ILM'S FEC SYSTEM
+[cover_record_form]:F3
+[cover_record_form_amendment_indicator]:A
+[coverage_from_date]:2010-10-14
+[header_style]:paper
+[batch_number]:3280
+[received_date]:20110203
+==== Row 10 ====
+[filing_id]:1081726
+[fec_version]:P3.2
+[software_name]:"Aurotech/Captricity"
+[cover_record_form]:F7
+[cover_record_form_amendment_indicator]:N
+[coverage_from_date]:2016-04-01
+[header_style]:paper
+[batch_number]:1
+[received_date]:20160708
+==== Row 11 ====
+[filing_id]:1215766
+[fec_version]:P3.4
+[software_name]:"Aurotech/Captricity"
+[cover_record_form]:F3X
+[cover_record_form_amendment_indicator]:N
+[coverage_from_date]:2017-01-01
+[header_style]:paper
+[batch_number]:1
+[received_date]:20180322
