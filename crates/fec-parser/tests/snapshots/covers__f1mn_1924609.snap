@@ -1,0 +1,34 @@
+---
+source: crates/fec-parser/tests/covers.rs
+expression: "cover(\"F1MN_1924609.fec\")"
+snapshot_kind: text
+---
+{
+  "form": "Form1M",
+  "data": {
+    "committee_name": "Fight for a Democratic Majority PAC",
+    "address": {
+      "street_1": "600 Pennsylvania Ave SE",
+      "street_2": "Unit 15180",
+      "city": "Washington",
+      "state": "DC",
+      "zip_code": "20003"
+    },
+    "filer_committee_id_number": "C00914424",
+    "committee_type": "N",
+    "affiliation": {
+      "date_form1_filed": "2025-08-01",
+      "committee_id": "C00574970",
+      "committee_name": "Fair Shot PAC"
+    },
+    "qualification": null,
+    "treasurer": {
+      "first_name": "Judith",
+      "last_name": "Zamore",
+      "middle_name": null,
+      "prefix": null,
+      "suffix": null
+    },
+    "date_signed": "2025-11-12"
+  }
+}

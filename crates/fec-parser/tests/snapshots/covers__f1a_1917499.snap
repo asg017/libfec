@@ -1,0 +1,142 @@
+---
+source: crates/fec-parser/tests/covers.rs
+expression: "cover(\"F1A_1917499.fec\")"
+snapshot_kind: text
+---
+{
+  "form": "Form1",
+  "data": {
+    "committee_name": "SAVE AMERICA STOP SOCIALISM PAC",
+    "change_of_committee_name": false,
+    "address": {
+      "street_1": "126 C STREET NW",
+      "street_2": "THIRD FLOOR",
+      "city": "WASHINGTON",
+      "state": "DC",
+      "zip_code": "20001"
+    },
+    "change_of_address": false,
+    "committee_email": "JASON@TABULARIUS.PRO",
+    "change_of_committee_email": false,
+    "committee_url": "HTTPS://SAVEAMERICASTOPSOCIALISM.COM",
+    "change_of_committee_url": false,
+    "effective_date": "2024-04-26",
+    "filer_committee_id_number": "C00755199",
+    "committee_type": "F",
+    "candidate": null,
+    "party_code": null,
+    "party_type": null,
+    "organization_type": null,
+    "pac_flags": {
+      "lobbyist_registrant_pac_ssf": false,
+      "lobbyist_registrant_pac_nonconnected": false,
+      "leadership_pac": true,
+      "lobbyist_registrant_pac_super_pac": false,
+      "lobbyist_registrant_pac_hybrid_pac": false
+    },
+    "affiliated": {
+      "committee_id": null,
+      "committee_name": null,
+      "candidate_id": "H0GA06192",
+      "name": {
+        "first_name": "MARJORIE TAYLOR MRS.",
+        "last_name": "GREENE",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "204 WOODGLEN RD.",
+        "street_2": null,
+        "city": "ROME",
+        "state": "GA",
+        "zip_code": "30165"
+      },
+      "relationship_code": "LPS"
+    },
+    "custodian": {
+      "name": {
+        "first_name": "JASON",
+        "last_name": "BOLES",
+        "middle_name": "D",
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "126 C STREET NW",
+        "street_2": "THIRD FLOOR",
+        "city": "WASHINGTON",
+        "state": "DC",
+        "zip_code": "20001"
+      },
+      "title": "TREASURER",
+      "telephone": "2022208411"
+    },
+    "treasurer": {
+      "name": {
+        "first_name": "JASON",
+        "last_name": "BOLES",
+        "middle_name": "D",
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "126 C STREET NW",
+        "street_2": "THIRD FLOOR",
+        "city": "WASHINGTON",
+        "state": "DC",
+        "zip_code": "20001"
+      },
+      "title": "TREASURER",
+      "telephone": "2022208411"
+    },
+    "agent": {
+      "name": {
+        "first_name": "STEFAN",
+        "last_name": "PASSANTINO",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "1050 CONENCTICUT AVE NW",
+        "street_2": "SUITE 500",
+        "city": "WASHINGTON",
+        "state": "DC",
+        "zip_code": "20036"
+      },
+      "title": "ATTORNEY-IN-FACT",
+      "telephone": "2024001530"
+    },
+    "banks": [
+      {
+        "name": "SERVISFIRST BANK",
+        "address": {
+          "street_1": "300 GALLERIA PARKWAY SE",
+          "street_2": "SUITE 100",
+          "city": "ATLANTA",
+          "state": "GA",
+          "zip_code": "30339"
+        }
+      },
+      {
+        "name": "CHAIN BRIDGE BANK",
+        "address": {
+          "street_1": "1445A LAUGHLIN AVENUE",
+          "street_2": null,
+          "city": "MCLEAN",
+          "state": "VA",
+          "zip_code": "22314"
+        }
+      }
+    ],
+    "signer": {
+      "first_name": "JASON",
+      "last_name": "BOLES",
+      "middle_name": "D",
+      "prefix": null,
+      "suffix": null
+    },
+    "date_signed": "2025-10-03"
+  }
+}
