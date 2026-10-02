@@ -159,7 +159,7 @@ impl Form3 {
             .filter(|label| *label != "[Unknown report code]")
     }
 
-    /// Election type named by [`Form3::election_code`] (see [`election_code_label`]).
+    /// Election type named by [`Form3::election_code`] (see [`crate::covers::election_code_label`]).
     pub fn election_code_label(&self) -> Option<&'static str> {
         self.election_code
             .as_deref()

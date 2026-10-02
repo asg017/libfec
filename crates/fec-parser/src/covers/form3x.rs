@@ -90,7 +90,7 @@ pub struct Form3X {
     pub report_code: Option<String>,
     /// Election code for pre- and post-election reports, e.g. `P2012`
     /// (`election_code`, workbook field 11, allowed values
-    /// "C,G,P,R,S,E[YYYY]"). The paper form has no box for it; its letter
+    /// "C,G,P,R,S,E\[YYYY\]"). The paper form has no box for it; its letter
     /// matches the Primary/General/Runoff/Convention/Special checkbox of
     /// Line 4(c)/(d) ([fecfrm3x.pdf p1](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm3x.pdf#page=1)).
     /// Absent from the paper (`P*`) layouts. See [`Form3X::election_code_label`].
