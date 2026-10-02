@@ -46,6 +46,7 @@ mod form24;
 mod form3;
 mod form3p;
 mod form5;
+mod form6;
 
 pub use crate::covers::form1::{Form1, Form1Candidate};
 pub use crate::covers::form24::Form24;
@@ -57,6 +58,7 @@ pub use crate::covers::form3p::{
     Form3P, Form3PDetailedSummary, Form3PDetailedSummaryReceipts, Form3PSummary,
 };
 pub use crate::covers::form5::Form5;
+pub use crate::covers::form6::{Form6, Form6Candidate};
 use fields::{text, text_or_empty, Data};
 use indexmap::IndexMap;
 use serde::Serialize;
@@ -70,6 +72,7 @@ pub enum Cover {
     Form3P(Form3P),
     Form24(Form24),
     Form5(Form5),
+    Form6(Form6),
 }
 
 impl Cover {
@@ -81,6 +84,7 @@ impl Cover {
             Cover::Form3P(f) => Some(&f.treasurer),
             Cover::Form24(f) => Some(&f.treasurer),
             Cover::Form5(f) => Some(&f.person_completing),
+            Cover::Form6(f) => Some(&f.signer),
         }
     }
 
@@ -92,6 +96,7 @@ impl Cover {
             Cover::Form3P(f) => Some(f.signed),
             Cover::Form24(f) => f.date_signed,
             Cover::Form5(f) => f.date_signed,
+            Cover::Form6(f) => f.date_signed,
         }
     }
 }
@@ -117,6 +122,7 @@ pub(crate) fn cover_from_form_type(cover_record_form_type: &str, data: &Data) ->
         "F3P" => Form3P::from_data(data).map(Cover::Form3P),
         "F24" => Form24::from_data(data).map(Cover::Form24),
         "F5" => Form5::from_data(data).map(Cover::Form5),
+        "F6" => Form6::from_data(data).map(Cover::Form6),
         _ => None,
     }
 }
