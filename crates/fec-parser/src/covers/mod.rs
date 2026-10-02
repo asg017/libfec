@@ -73,9 +73,9 @@ pub enum Cover {
     Form3(Form3),
     Form3P(Form3P),
     Form24(Form24),
-    Form5(Form5),
+    Form5(Box<Form5>),
     Form6(Form6),
-    Form9(Form9),
+    Form9(Box<Form9>),
 }
 
 impl Cover {
@@ -126,9 +126,9 @@ pub(crate) fn cover_from_form_type(cover_record_form_type: &str, data: &Data) ->
         "F3" => Form3::from_data(data).map(Cover::Form3),
         "F3P" => Form3P::from_data(data).map(Cover::Form3P),
         "F24" => Form24::from_data(data).map(Cover::Form24),
-        "F5" => Form5::from_data(data).map(Cover::Form5),
+        "F5" => Form5::from_data(data).map(|f| Cover::Form5(Box::new(f))),
         "F6" => Form6::from_data(data).map(Cover::Form6),
-        "F9" => Form9::from_data(data).map(Cover::Form9),
+        "F9" => Form9::from_data(data).map(|f| Cover::Form9(Box::new(f))),
         _ => None,
     }
 }

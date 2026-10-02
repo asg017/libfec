@@ -111,9 +111,9 @@ impl<R: std::io::Read> From<&fec_parser::Filing<R>> for FilingDetail {
             Some(Cover::Form3(form)) => FilingCoverContent::Form3(FilingDetailF3::from(form)),
             Some(Cover::Form3P(form)) => FilingCoverContent::Form3P(FilingDetailF3P::from(form)),
             Some(Cover::Form24(form)) => FilingCoverContent::Form24(Box::new(form.clone())),
-            Some(Cover::Form5(form)) => FilingCoverContent::Form5(Box::new(form.clone())),
+            Some(Cover::Form5(form)) => FilingCoverContent::Form5(form.clone()),
             Some(Cover::Form6(form)) => FilingCoverContent::Form6(Box::new(form.clone())),
-            Some(Cover::Form9(form)) => FilingCoverContent::Form9(Box::new(form.clone())),
+            Some(Cover::Form9(form)) => FilingCoverContent::Form9(form.clone()),
             None => FilingCoverContent::Unknown,
         };
 
