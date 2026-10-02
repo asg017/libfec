@@ -15,12 +15,16 @@
 pub mod f1;
 pub mod f13;
 pub mod f1m;
+pub mod f24;
 pub mod f3;
 pub mod f3l;
 pub mod f3p;
 pub mod f3x;
 pub mod f4;
+pub mod f5;
+pub mod f6;
 pub mod f7;
+pub mod f9;
 mod misc_helpers;
 
 use crate::tui::{navigation_popup_help_line, HelpBar};
@@ -64,6 +68,10 @@ pub enum FilingCoverContent {
     Unknown,
     Form1M(Box<fec_parser::covers::Form1M>),
     Form3X(Box<fec_parser::covers::Form3X>),
+    Form24(Box<fec_parser::covers::Form24>),
+    Form5(Box<fec_parser::covers::Form5>),
+    Form6(Box<fec_parser::covers::Form6>),
+    Form9(Box<fec_parser::covers::Form9>),
 }
 
 /// Holds extracted filing information for TUI display
@@ -118,6 +126,10 @@ impl<R: std::io::Read> From<&fec_parser::Filing<R>> for FilingDetail {
             Some(Cover::Form4(form)) => FilingCoverContent::Form4(form.clone()),
             Some(Cover::Form7(form)) => FilingCoverContent::Form7(Box::new(form.clone())),
             Some(Cover::Form13(form)) => FilingCoverContent::Form13(Box::new(form.clone())),
+            Some(Cover::Form24(form)) => FilingCoverContent::Form24(Box::new(form.clone())),
+            Some(Cover::Form5(form)) => FilingCoverContent::Form5(form.clone()),
+            Some(Cover::Form6(form)) => FilingCoverContent::Form6(Box::new(form.clone())),
+            Some(Cover::Form9(form)) => FilingCoverContent::Form9(form.clone()),
             None => FilingCoverContent::Unknown,
         };
 
@@ -366,6 +378,10 @@ fn render_content(f: &mut Frame, filing: &FilingDetail, state: &FilingDetailStat
         FilingCoverContent::Form3X(data) => {
             f3x::append_f3x_content_lines(&mut lines, data, area.width)
         }
+        FilingCoverContent::Form24(data) => f24::append_f24_content_lines(&mut lines, data),
+        FilingCoverContent::Form5(data) => f5::append_f5_content_lines(&mut lines, data),
+        FilingCoverContent::Form6(data) => f6::append_f6_content_lines(&mut lines, data),
+        FilingCoverContent::Form9(data) => f9::append_f9_content_lines(&mut lines, data),
     }
 
     // FEC URL
@@ -678,5 +694,65 @@ pub(crate) mod tests {
     #[test]
     fn filing_detail_f3p_state_allocations() {
         assert_snapshot!(render_fixture("F3PN_1920459.fec", 100, 130));
+    }
+
+    #[test]
+    fn filing_detail_f24n() {
+        assert_snapshot!(render_fixture("F24N_1946204.fec", 100, 50));
+    }
+
+    #[test]
+    fn filing_detail_f24a() {
+        assert_snapshot!(render_fixture("F24A_1952541.fec", 100, 50));
+    }
+
+    #[test]
+    fn filing_detail_f24n_narrow() {
+        assert_snapshot!(render_fixture("F24N_1946204.fec", 60, 40));
+    }
+
+    #[test]
+    fn filing_detail_f5n_quarterly() {
+        assert_snapshot!(render_fixture("F5N_1888248.fec", 100, 50));
+    }
+
+    #[test]
+    fn filing_detail_f5n_24_hour() {
+        assert_snapshot!(render_fixture("F5N_1914346.fec", 100, 50));
+    }
+
+    #[test]
+    fn filing_detail_f5a() {
+        assert_snapshot!(render_fixture("F5A_1900837.fec", 100, 50));
+    }
+
+    #[test]
+    fn filing_detail_f5n_narrow() {
+        assert_snapshot!(render_fixture("F5N_1888248.fec", 60, 40));
+    }
+
+    #[test]
+    fn filing_detail_f6n() {
+        assert_snapshot!(render_fixture("F6N_1947008.fec", 100, 50));
+    }
+
+    #[test]
+    fn filing_detail_f6a() {
+        assert_snapshot!(render_fixture("F6A_1952182.fec", 100, 50));
+    }
+
+    #[test]
+    fn filing_detail_f6n_narrow() {
+        assert_snapshot!(render_fixture("F6N_1947008.fec", 60, 40));
+    }
+
+    #[test]
+    fn filing_detail_f9a() {
+        assert_snapshot!(render_fixture("F9A_2015422.fec", 100, 50));
+    }
+
+    #[test]
+    fn filing_detail_f9a_narrow() {
+        assert_snapshot!(render_fixture("F9A_2015422.fec", 60, 40));
     }
 }
