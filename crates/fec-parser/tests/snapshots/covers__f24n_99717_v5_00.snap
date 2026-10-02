@@ -1,0 +1,30 @@
+---
+source: crates/fec-parser/tests/covers.rs
+expression: "cover(\"F24N_99717.fec\")"
+snapshot_kind: text
+---
+{
+  "form": "Form24",
+  "data": {
+    "form_type": "F24N",
+    "filer_committee_id": "C00000885",
+    "report_type": "48",
+    "original_amendment_date": null,
+    "committee_name": "International Union of Painters and Allied Trades Political Action Together Legislative an",
+    "address": {
+      "street_1": "1750 New York Avenue, NW",
+      "street_2": null,
+      "city": "Washington",
+      "state": "DC",
+      "zip_code": "20006"
+    },
+    "treasurer": {
+      "first_name": "George",
+      "last_name": "Galis",
+      "middle_name": null,
+      "prefix": null,
+      "suffix": null
+    },
+    "date_signed": "2003-11-14"
+  }
+}

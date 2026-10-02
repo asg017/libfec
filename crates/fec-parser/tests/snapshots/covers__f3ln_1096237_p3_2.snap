@@ -1,0 +1,41 @@
+---
+source: crates/fec-parser/tests/covers.rs
+expression: "cover(\"F3LN_1096237.fec\")"
+snapshot_kind: text
+---
+{
+  "form": "Form3L",
+  "data": {
+    "form_type": "F3LN",
+    "committee_name": "KIRKPATRICK FOR SENATE",
+    "filer_committee_id": "C00578484",
+    "address": {
+      "street_1": "PO BOX 34421",
+      "street_2": null,
+      "city": "PHOENIX",
+      "state": "AZ",
+      "zip_code": "85067"
+    },
+    "change_of_address": false,
+    "election_state": "AZ",
+    "election_district": "00",
+    "report_code": "12P",
+    "election_date": "2016-08-20",
+    "election_held_in_state": "AZ",
+    "also_covers_semi_annual_period": false,
+    "coverage_from_date": "2016-07-01",
+    "coverage_through_date": "2016-08-10",
+    "semi_annual_january_june": false,
+    "semi_annual_july_december": false,
+    "line7a_quarterly_monthly_bundled_contributions": 0.0,
+    "line7b_semi_annual_bundled_contributions": null,
+    "treasurer": {
+      "first_name": "STEVEN",
+      "last_name": "MELE",
+      "middle_name": null,
+      "prefix": null,
+      "suffix": null
+    },
+    "date_signed": "8201-08-01"
+  }
+}

@@ -1,0 +1,133 @@
+---
+source: crates/fec-parser/tests/covers.rs
+expression: "cover(\"F1A_357167.fec\")"
+snapshot_kind: text
+---
+{
+  "form": "Form1",
+  "data": {
+    "form_type": "F1A",
+    "committee_name": "Bank of America Corporation Federal PAC",
+    "change_of_committee_name": false,
+    "address": {
+      "street_1": "1909 K Street NW Suite 710",
+      "street_2": "DC9-920-07-01",
+      "city": "Washington",
+      "state": "DC",
+      "zip_code": "20006"
+    },
+    "change_of_address": false,
+    "committee_email": "john.collingwood@bankofamerica.com",
+    "change_of_committee_email": false,
+    "committee_url": "N/A",
+    "change_of_committee_url": false,
+    "effective_date": "2008-08-14",
+    "filer_committee_id": "C00364778",
+    "committee_type": "E",
+    "candidate": null,
+    "party_code": null,
+    "party_type": null,
+    "organization_type": "C",
+    "pac_flags": {
+      "lobbyist_registrant_pac_ssf": false,
+      "lobbyist_registrant_pac_nonconnected": false,
+      "leadership_pac": false,
+      "lobbyist_registrant_pac_super_pac": false,
+      "lobbyist_registrant_pac_hybrid_pac": false
+    },
+    "affiliated": {
+      "committee_id": null,
+      "committee_name": "Bank of America Corporation",
+      "candidate_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "100 North Tryon St.",
+        "street_2": null,
+        "city": "Charlotte",
+        "state": "NC",
+        "zip_code": "28255"
+      },
+      "relationship_code": "ORG"
+    },
+    "custodian": {
+      "name": {
+        "first_name": "John",
+        "last_name": "Collingwood",
+        "middle_name": "E",
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "c/o PASS",
+        "street_2": "1020 North Fairfax St.",
+        "city": "Alexandria",
+        "state": "VA",
+        "zip_code": "22314"
+      },
+      "title": "Custodian",
+      "telephone": "2023510111"
+    },
+    "treasurer": {
+      "name": {
+        "first_name": "John",
+        "last_name": "Collingwood",
+        "middle_name": "E",
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "1909 K Street NW Suite 710",
+        "street_2": "DC9-929-07-01",
+        "city": "Washington",
+        "state": "DC",
+        "zip_code": "20006"
+      },
+      "title": "Treasurer",
+      "telephone": "2023510111"
+    },
+    "agent": {
+      "name": {
+        "first_name": "Edward",
+        "last_name": "Hill",
+        "middle_name": "J",
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "1909 K Street NW Suite 700",
+        "street_2": "DC9-920-07-01",
+        "city": "Washington",
+        "state": "DC",
+        "zip_code": "20005"
+      },
+      "title": "Assistant Treasurer",
+      "telephone": "2023510114"
+    },
+    "banks": [
+      {
+        "name": "Bank of America N.A.",
+        "address": {
+          "street_1": "901 W. Trade Street",
+          "street_2": null,
+          "city": "Charlotte",
+          "state": "NC",
+          "zip_code": "28255"
+        }
+      }
+    ],
+    "signer": {
+      "first_name": "John",
+      "last_name": "Collingwood",
+      "middle_name": "E",
+      "prefix": null,
+      "suffix": null
+    },
+    "date_signed": "2008-08-14"
+  }
+}
