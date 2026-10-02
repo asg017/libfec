@@ -49,14 +49,8 @@ struct FilingFormMetadata {
     bytes: usize,
 }
 
-fn form_name(form_type: &str) -> &str {
-    let base_form_type = if form_type.ends_with('A') || form_type.ends_with('N') {
-        &form_type[..form_type.len() - 1]
-    } else {
-        form_type
-    };
-
-    match base_form_type {
+fn form_name(form_type: &str) -> &'static str {
+    match fec_parser::covers::base_form_type(form_type).as_str() {
     "F1"  => "Statement of Organization",
     "F1M"  => "Notification of Multicandidate Status",
     "F2"  => "Statement of Candidacy",
@@ -77,15 +71,16 @@ fn form_name(form_type: &str) -> &str {
     _ => "",
   }
 }
-use num_format::{Locale, ToFormattedString};
+use crate::tui::filing_detail::{f1::affiliated_is_placeholder, format_usd};
 use tabled::{builder::Builder, settings::Style};
 
-fn format_usd(amount: f64) -> String {
-    let rounded = (amount * 100.0).round() as i64; // convert to cents
-    let dollars = rounded / 100;
-    let cents = (rounded % 100).abs(); // handle negative cents correctly
-
-    format!("${}.{:02}", dollars.to_formatted_string(&Locale::en), cents)
+/// `"Label (CODE)"`, or just the code when there is no label; the same
+/// format as the filing detail TUI.
+fn code_with_label(code: &str, label: Option<&str>) -> String {
+    match label {
+        Some(label) => format!("{label} ({code})"),
+        None => code.to_string(),
+    }
 }
 
 fn print_summary(summary: &Form3PSummary) {
@@ -283,10 +278,7 @@ fn process_filing<R: Read>(
                     if let Some(ref committee_type) = form.committee_type {
                         println!(
                             "Committee Type: {}",
-                            match form.committee_type_label() {
-                                Some(label) => format!("{committee_type} ({label})"),
-                                None => committee_type.clone(),
-                            }
+                            code_with_label(committee_type, form.committee_type_label())
                         );
                     }
                     if let Some(ref candidate) = form.candidate {
@@ -305,7 +297,11 @@ fn process_filing<R: Read>(
                             candidate.state.as_deref().unwrap_or("")
                         );
                     }
-                    if let Some(ref affiliated) = form.affiliated {
+                    if let Some(affiliated) = form
+                        .affiliated
+                        .as_ref()
+                        .filter(|a| !affiliated_is_placeholder(a))
+                    {
                         println!(
                             "Affiliated: {}{}",
                             affiliated.display_name(),
@@ -392,20 +388,17 @@ fn process_filing<R: Read>(
                     }
                     println!(
                         "Bundled contributions (Line 7a, this period): {}",
-                        crate::tui::filing_detail::format_usd(
-                            form.line7a_quarterly_monthly_bundled_contributions
-                        )
-                        .bold()
+                        format_usd(form.line7a_quarterly_monthly_bundled_contributions).bold()
                     );
                     if let Some(semi_annual) = form.line7b_semi_annual_bundled_contributions {
                         println!(
                             "Bundled contributions (Line 7b, semi-annual period): {}",
-                            crate::tui::filing_detail::format_usd(semi_annual).bold()
+                            format_usd(semi_annual).bold()
                         );
                     }
                 }
                 Cover::Form4(form) => {
-                    let usd = crate::tui::filing_detail::format_usd;
+                    let usd = format_usd;
                     let s = &form.summary;
                     println!(
                         "This period: receipts {}, disbursements {}, cash on hand at close {}",
@@ -432,8 +425,7 @@ fn process_filing<R: Read>(
                     }
                     println!(
                         "Total communication costs this period: {}",
-                        crate::tui::filing_detail::format_usd(form.total_communication_costs)
-                            .bold()
+                        format_usd(form.total_communication_costs).bold()
                     );
                 }
                 Cover::Form13(form) => {
@@ -444,7 +436,7 @@ fn process_filing<R: Read>(
                             signed.to_string().bold()
                         );
                     }
-                    let usd = crate::tui::filing_detail::format_usd;
+                    let usd = format_usd;
                     println!(
                         "Cumulative donations: accepted {}, refunded {}, net {}",
                         usd(form.line5_total_donations_accepted).bold(),
@@ -475,7 +467,8 @@ fn process_filing<R: Read>(
                         .report_type_label()
                         .or(form.report_code_label())
                         .unwrap_or("Report of Independent Expenditures");
-                    println!("{} by {}", kind.bold(), form.filer_name().bold());
+                    // The filer is already named in the header line.
+                    println!("{}", kind.bold());
                     if let Some(date_signed) = form.date_signed {
                         println!(
                             "Signed by {} on {}",
@@ -511,9 +504,10 @@ fn process_filing<R: Read>(
                     }
                 }
                 Cover::Form9(form) => {
+                    // The filer is already named in the header line.
                     println!(
-                        "24-Hour Notice of Electioneering Communications by {}",
-                        form.filer_name().bold()
+                        "{}",
+                        "24-Hour Notice of Electioneering Communications".bold()
                     );
                     if let Some(ref title) = form.communication_title {
                         println!(
@@ -587,9 +581,8 @@ fn process_filing<R: Read>(
                     }
                     if let Some(ref code) = form.text_code {
                         println!(
-                            "Text code: {} {}",
-                            code,
-                            form.text_code_label().unwrap_or("")
+                            "Text code: {}",
+                            code_with_label(code, form.text_code_label())
                         );
                     }
                     if let Some(ref text) = form.text {
@@ -1268,4 +1261,20 @@ fn print_summary_form3x(form: &fec_parser::covers::Form3X) {
         tabled::settings::Alignment::right(),
     );
     println!("{}", table)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn form_name_strips_suffix() {
+        let f3x = "Report of Receipts and Disbursements for other than an Authorized Committee";
+        assert_eq!(form_name("F3XN"), f3x);
+        assert_eq!(form_name("F3XA"), f3x);
+        assert_eq!(form_name("F3XT"), f3x);
+        assert_eq!(form_name("F3T"), form_name("F3N"));
+        assert_eq!(form_name("F1MN"), "Notification of Multicandidate Status");
+        assert_eq!(form_name("F99"), "Miscellaneous Text");
+    }
 }
