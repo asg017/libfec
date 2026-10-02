@@ -310,6 +310,21 @@ fn process_filing<R: Read>(
                         );
                     }
                 }
+                Cover::Form4(form) => {
+                    let usd = crate::tui::filing_detail::format_usd;
+                    let s = &form.summary;
+                    println!(
+                        "This period: receipts {}, disbursements {}, cash on hand at close {}",
+                        usd(s.line6c_total_receipts.column_a).bold(),
+                        usd(s.line7_total_disbursements.column_a).bold(),
+                        usd(s.line8_cash_on_hand_close_of_period.column_a).bold()
+                    );
+                    println!(
+                        "Calendar year-to-date: receipts {}, disbursements {}",
+                        usd(s.line6c_total_receipts.column_b).bold(),
+                        usd(s.line7_total_disbursements.column_b).bold()
+                    );
+                }
             }
         }
 
