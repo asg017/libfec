@@ -100,7 +100,7 @@ mod tests {
 
         let mut tx = db.transaction()?;
         insert_filing_metadata(&mut tx, &f1s_84).unwrap();
-        export_itemizations(&mut tx, f1s_84, None)?;
+        export_itemizations(&mut tx, f1s_84, None, None)?;
         tx.commit()?;
 
         insta::assert_snapshot!(
@@ -114,7 +114,7 @@ mod tests {
 
         let mut tx = db.transaction()?;
         insert_filing_metadata(&mut tx, &f1s_85).unwrap();
-        export_itemizations(&mut tx, f1s_85, None)?;
+        export_itemizations(&mut tx, f1s_85, None, None)?;
         tx.commit()?;
         insta::assert_snapshot!(
             "F1S 8.5 data",
@@ -126,12 +126,12 @@ mod tests {
 
     #[test]
     fn test_sqlite_docs_in_schema() {
-        use super::super::{RecordTable, ALL_TABLES};
+        use super::super::{RecordTable, ALL_TABLES, LATEST_FEC_VERSION};
 
         let db = rusqlite::Connection::open_in_memory().unwrap();
 
         for &(row_type, suffix) in ALL_TABLES {
-            match RecordTable::new(row_type, suffix) {
+            match RecordTable::new(row_type, suffix, LATEST_FEC_VERSION) {
                 Ok(rt) => {
                     db.execute(&rt.create_sql(), []).unwrap();
                 }

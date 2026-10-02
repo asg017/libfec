@@ -4,6 +4,7 @@ use crate::{
     cache::bulk::{candidates, committee},
     cli::ExportArgs,
     sourcer::{FilingSourcer, ItemizationProgressBar},
+    utils::rows::{normalize_fec_date, UnmappedRows},
 };
 use anyhow::Context;
 use colored::Colorize;
@@ -11,7 +12,7 @@ use csv::StringRecord;
 use fec_parser::{
     mappings::{DATE_COLUMNS, FLOAT_COLUMNS},
     schedules::{form_type_schedule_type, ScheduleType},
-    try_format_fec_date, Filing, FilingRow,
+    Filing, FilingRow,
 };
 use indicatif::{HumanDuration, MultiProgress};
 use rusqlite::{
@@ -57,12 +58,31 @@ const CREATE_FILINGS_SQL: &str = r#"
     filer_name TEXT NOT NULL,
     report_code TEXT,
     coverage_from_date TEXT,
-    coverage_through_date TEXT
+    coverage_through_date TEXT,
+
+    --- How the filing's header is written: 'hdr' (electronic 3.x and later), 'legacy_block' (electronic 1.x/2.x `/* Header` block), or 'paper' (FEC data entry of a paper filing)
+    header_style TEXT,
+
+    --- Paper filings: the FEC data-entry batch number
+    batch_number TEXT,
+
+    --- Paper filings (P2.6 and later): date the FEC received the paper filing, as written
+    received_date TEXT
   )
 "#;
 
+/// Columns added to `libfec_filings` after its first release; [`init`] adds
+/// them to databases created by older versions.
+const FILINGS_ADDED_COLUMNS: &[&str] = &["header_style", "batch_number", "received_date"];
+
 const INSERT_FILING_SQL: &str = r#"
-  INSERT INTO libfec_filings VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+  INSERT INTO libfec_filings(
+    filing_id, fec_version, software_name, software_version, report_id,
+    report_number, comment, cover_record_form,
+    cover_record_form_amendment_indicator, filer_id, filer_name, report_code,
+    coverage_from_date, coverage_through_date, header_style, batch_number,
+    received_date
+  ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
 "#;
 
 #[derive(Clone, Copy)]
@@ -109,23 +129,30 @@ struct RecordTable {
     column_types: Vec<FieldFormat>,
     suffix: String,
     current_mapping: Vec<String>,
-    legacy_field_mapping: HashMap<String, Vec<Option<usize>>>,
+    /// Per (row type, version): index in the row of each table column.
+    legacy_field_mapping: HashMap<(String, String), Vec<Option<usize>>>,
 }
 
 const LATEST_FEC_VERSION: &str = "8.5";
 impl RecordTable {
-    fn new(row_type: &str, suffix: &str) -> anyhow::Result<Self> {
+    /// The table's columns are the row type's 8.5 layout, else its 8.4 one
+    /// (some forms were *removed* in 8.5, like F3Z1, ex FEC-1890921), else
+    /// the layout of the version being exported (legacy-only row types).
+    fn new(row_type: &str, suffix: &str, fec_version: &str) -> anyhow::Result<Self> {
         let column_names =
             fec_parser::mappings::column_names_for_field(row_type, LATEST_FEC_VERSION)
-                // some forms were *removed* in  8.5, like F3Z1, ex FEC-1890921. TODO Need a better fallback strategy
                 .or_else(|_| fec_parser::mappings::column_names_for_field(row_type, "8.4"))
+                .or_else(|_| fec_parser::mappings::column_names_for_field(row_type, fec_version))
                 .with_context(|| {
                     format!(
                         "Error getting mapping column names for field '{}' and fec version '{}'",
-                        row_type, LATEST_FEC_VERSION
+                        row_type, fec_version
                     )
                 })?
                 .to_owned();
+        if column_names.is_empty() {
+            anyhow::bail!("Empty column mapping for field '{row_type}'");
+        }
         let current_mapping = column_names.clone();
         let column_types: Vec<FieldFormat> = column_names
             .iter()
@@ -166,7 +193,7 @@ impl RecordTable {
 
         sql += "  filing_id text references libfec_filings(filing_id),\n";
 
-        let last_idx = self.column_names.len() - 1;
+        let last_idx = self.column_names.len().saturating_sub(1);
         for (i, (name, col_type)) in self
             .column_names
             .iter()
@@ -211,29 +238,34 @@ impl RecordTable {
         })
     }
 
+    /// Insert a row; errors (without inserting) when the row's own layout
+    /// for `fec_version` is unknown.
     fn insert(
         &mut self,
         insert_stmt: &mut Statement,
         filing_id: &str,
+        row_type: &str,
         record: &StringRecord,
         fec_version: &str,
     ) -> anyhow::Result<()> {
         let params = self.prep_row(
             filing_id,
+            row_type,
             record,
             insert_stmt.parameter_count(),
             fec_version,
-        );
+        )?;
         insert_stmt.execute(params_from_iter(params))?;
         Ok(())
     }
     fn prep_row(
         &mut self,
         filing_id: &str,
+        row_type: &str,
         record: &StringRecord,
         n_params: usize,
         fec_version: &str,
-    ) -> Vec<FieldValue> {
+    ) -> anyhow::Result<Vec<FieldValue>> {
         let mut warnings = Vec::new();
         let mut values: Vec<FieldValue> = if fec_version == LATEST_FEC_VERSION {
             record
@@ -241,10 +273,7 @@ impl RecordTable {
                 .enumerate()
                 .map(|(idx, field)| match self.column_types.get(idx) {
                     Some(FieldFormat::Text) => FieldValue::Text(field.to_owned()),
-                    Some(FieldFormat::Date) => match field.len() {
-                        8 => FieldValue::Date(try_format_fec_date(field)),
-                        _ => FieldValue::Text(field.to_owned()),
-                    },
+                    Some(FieldFormat::Date) => date_value(field),
                     Some(FieldFormat::Float) => match field.parse::<f64>() {
                         Ok(value) => FieldValue::Float(value),
                         Err(_) => FieldValue::Text(field.to_owned()),
@@ -253,19 +282,18 @@ impl RecordTable {
                 })
                 .collect()
         } else {
-            let legacy_mapping = self
-                .legacy_field_mapping
-                .entry(fec_version.to_owned())
-                .or_insert_with(|| {
-                    let legacy_columns =
-                        fec_parser::mappings::column_names_for_field(&record[0], fec_version)
-                            .unwrap()
-                            .to_owned();
-                    self.current_mapping
-                        .iter()
-                        .map(|col_name| legacy_columns.iter().position(|c| c == col_name))
-                        .collect::<Vec<Option<usize>>>()
-                });
+            let key = (row_type.to_owned(), fec_version.to_owned());
+            if !self.legacy_field_mapping.contains_key(&key) {
+                let legacy_columns =
+                    fec_parser::mappings::column_names_for_field(row_type, fec_version)?;
+                let mapping = self
+                    .current_mapping
+                    .iter()
+                    .map(|col_name| legacy_columns.iter().position(|c| c == col_name))
+                    .collect::<Vec<Option<usize>>>();
+                self.legacy_field_mapping.insert(key.clone(), mapping);
+            }
+            let legacy_mapping = &self.legacy_field_mapping[&key];
             legacy_mapping
                 .iter()
                 .enumerate()
@@ -275,10 +303,7 @@ impl RecordTable {
                         .unwrap_or("");
                     match self.column_types.get(idx) {
                         Some(FieldFormat::Text) => FieldValue::Text(field.to_owned()),
-                        Some(FieldFormat::Date) => match field.len() {
-                            8 => FieldValue::Date(try_format_fec_date(field)),
-                            _ => FieldValue::Text(field.to_owned()),
-                        },
+                        Some(FieldFormat::Date) => date_value(field),
                         Some(FieldFormat::Float) => match field.parse::<f64>() {
                             Ok(value) => FieldValue::Float(value),
                             Err(_) => FieldValue::Text(field.to_owned()),
@@ -311,17 +336,30 @@ impl RecordTable {
             });
             values.truncate(n_params);
         }
-        values
+        Ok(values)
+    }
+}
+
+/// A date column's value: `YYYY-MM-DD` when the field is `YYYYMMDD` or
+/// `MM/DD/YYYY`, else the field as text.
+fn date_value(field: &str) -> FieldValue {
+    match normalize_fec_date(field) {
+        Some(date) => FieldValue::Date(date),
+        None => FieldValue::Text(field.to_owned()),
     }
 }
 
 fn prepare_schedule_statement<'a>(
     row: &FilingRow,
+    fec_version: &str,
     schedule_type: &ScheduleType,
     tx: &'a Transaction,
 ) -> anyhow::Result<ItemizationValue<'a>> {
-    let record_table: RecordTable =
-        RecordTable::new(&row.row_type, schedule_type.to_sqlite_tablename().as_str())?;
+    let record_table: RecordTable = RecordTable::new(
+        &row.row_type,
+        schedule_type.to_sqlite_tablename().as_str(),
+        fec_version,
+    )?;
     tx.execute(&record_table.create_sql(), [])?;
     let insert_statement = record_table.insert_statement(tx)?;
     Ok(ItemizationValue {
@@ -332,10 +370,11 @@ fn prepare_schedule_statement<'a>(
 
 fn prepare_form_type_statement<'a>(
     row: &FilingRow,
+    fec_version: &str,
     form_type: &str,
     tx: &'a Transaction,
 ) -> anyhow::Result<ItemizationValue<'a>> {
-    let record_table: RecordTable = RecordTable::new(&row.row_type, form_type)?;
+    let record_table: RecordTable = RecordTable::new(&row.row_type, form_type, fec_version)?;
     tx.execute(&record_table.create_sql(), [])?;
     let insert_statement = record_table.insert_statement(tx)?;
     Ok(ItemizationValue {
@@ -344,13 +383,18 @@ fn prepare_form_type_statement<'a>(
     })
 }
 
+/// Rows whose (row type, version) has no column mapping are skipped with one
+/// warning per row type.
 fn export_itemizations<R: Read>(
     tx: &mut Transaction,
     mut filing: Filing<R>,
     pb: Option<&ItemizationProgressBar>,
+    mb: Option<&MultiProgress>,
 ) -> anyhow::Result<usize> {
     let mut itemizations_statements: HashMap<ItemizationKey, ItemizationValue> = HashMap::new();
+    let mut unmapped = UnmappedRows::new(mb);
     let mut count = 0;
+    let fec_version = filing.header.fec_version.clone();
 
     while let Some(r) = filing.next_row() {
         let r = r.context("Error reading next row from filing")?;
@@ -367,31 +411,49 @@ fn export_itemizations<R: Read>(
         // We need to handle the or_insert_with error case, but HashMap::Entry doesn't
         // support fallible closures directly. So we check if we need to insert first.
         if !itemizations_statements.contains_key(&key) {
+            // A row type with no known layout can't define a table.
+            if [fec_version.as_str(), LATEST_FEC_VERSION, "8.4"]
+                .iter()
+                .all(|v| fec_parser::mappings::column_names_for_field(&r.row_type, v).is_err())
+            {
+                unmapped.warn(&filing.filing_id, &r.row_type, &fec_version, "skipping them");
+                continue;
+            }
             let value = match &key {
                 ItemizationKey::Schedule(schedule_type) => {
-                    prepare_schedule_statement(&r, schedule_type, tx).with_context(|| {
-                        format!(
-                            "Error preparing statement for schedule type {:?}",
-                            schedule_type
-                        )
-                    })?
+                    prepare_schedule_statement(&r, &fec_version, schedule_type, tx)
+                        .with_context(|| {
+                            format!(
+                                "Error preparing statement for schedule type {:?}",
+                                schedule_type
+                            )
+                        })?
                 }
                 ItemizationKey::FormType(form_type) => {
-                    prepare_form_type_statement(&r, form_type, tx).with_context(|| {
-                        format!("Error preparing statement for form type {}", form_type)
-                    })?
+                    prepare_form_type_statement(&r, &fec_version, form_type, tx).with_context(
+                        || format!("Error preparing statement for form type {}", form_type),
+                    )?
                 }
             };
             itemizations_statements.insert(key.clone(), value);
         }
 
-        let v = itemizations_statements.get_mut(&key).unwrap(); // Safe: we just inserted it above
+        let Some(v) = itemizations_statements.get_mut(&key) else {
+            continue;
+        };
+        if fec_version != LATEST_FEC_VERSION
+            && fec_parser::mappings::column_names_for_field(&r.row_type, &fec_version).is_err()
+        {
+            unmapped.warn(&filing.filing_id, &r.row_type, &fec_version, "skipping them");
+            continue;
+        }
         v.record_table
             .insert(
                 &mut v.insert_statement,
                 &filing.filing_id,
+                &r.row_type,
                 &r.record,
-                &filing.header.fec_version,
+                &fec_version,
             )
             .with_context(|| {
                 format!(
@@ -404,15 +466,20 @@ fn export_itemizations<R: Read>(
     Ok(count)
 }
 
+/// Split a cover form type into its form and amendment indicator:
+/// `F3XN` → (`F3X`, `N`). Case-insensitive (`f3xa` → (`f3x`, `A`)).
 pub(crate) fn form_type_parse(form_type: &str) -> (&str, Option<&str>) {
-    if let Some(stripped) = form_type.strip_suffix('A') {
-        (stripped, Some("A"))
-    } else if let Some(stripped) = form_type.strip_suffix('N') {
-        (stripped, Some("N"))
-    } else if let Some(stripped) = form_type.strip_suffix('T') {
-        (stripped, Some("T"))
-    } else {
-        (form_type, None)
+    let form_type = form_type.trim();
+    match form_type.chars().last().map(|c| c.to_ascii_uppercase()) {
+        Some(indicator @ ('A' | 'N' | 'T')) => (
+            &form_type[..form_type.len() - 1],
+            Some(match indicator {
+                'A' => "A",
+                'N' => "N",
+                _ => "T",
+            }),
+        ),
+        _ => (form_type, None),
     }
 }
 
@@ -436,15 +503,35 @@ fn insert_filing_metadata(tx: &mut Transaction, filing: &Filing<impl Read>) -> a
             &filing.cover.report_code.clone(),
             &filing.cover.coverage_from_date.clone(),
             &filing.cover.coverage_through_date.clone(),
+            filing.header.style.as_str(),
+            &filing.header.batch_number,
+            &filing.header.received_date,
         ],
     )?;
 
     let (form_type, _amendment_indicator) = form_type_parse(&filing.cover.form_type);
 
+    let fec_version = &filing.header.fec_version;
+    // A legacy cover form with no known layout still gets its
+    // libfec_filings row; only its cover table is skipped.
+    if fec_version != LATEST_FEC_VERSION
+        && fec_parser::mappings::column_names_for_field(&filing.cover.form_type, fec_version)
+            .is_err()
+    {
+        UnmappedRows::new(None).warn(
+            &filing.filing_id,
+            &filing.cover.form_type,
+            fec_version,
+            "skipping its cover table",
+        );
+        return Ok(());
+    }
+
     let mut rt = RecordTable::new(
         &filing.cover.form_type,
         // strip any lagging "A", "N", or "T", or return form_type
         form_type,
+        fec_version,
     )
     .with_context(|| {
         format!(
@@ -457,8 +544,9 @@ fn insert_filing_metadata(tx: &mut Transaction, filing: &Filing<impl Read>) -> a
     rt.insert(
         &mut stmt,
         &filing.filing_id,
+        &filing.cover.form_type,
         &filing.cover.record,
-        &filing.header.fec_version,
+        fec_version,
     )?;
     Ok(())
 }
@@ -466,6 +554,20 @@ fn insert_filing_metadata(tx: &mut Transaction, filing: &Filing<impl Read>) -> a
 fn init(tx: &mut Transaction) -> anyhow::Result<()> {
     tx.execute(CREATE_FILINGS_SQL, [])
         .context("Error initializing filing schema")?;
+    // Databases created before these columns existed.
+    let existing: Vec<String> = tx
+        .prepare("SELECT name FROM pragma_table_info('libfec_filings')")?
+        .query_map([], |row| row.get(0))?
+        .collect::<Result<_, _>>()?;
+    for column in FILINGS_ADDED_COLUMNS {
+        if !existing.iter().any(|c| c == column) {
+            tx.execute(
+                &format!("ALTER TABLE libfec_filings ADD COLUMN {column} TEXT"),
+                [],
+            )
+            .with_context(|| format!("Error adding column {column} to libfec_filings"))?;
+        }
+    }
     Ok(())
 }
 
@@ -672,7 +774,7 @@ pub fn cmd_export_sqlite(
         if !args.cover_only {
             let pb = ItemizationProgressBar::new(&mb, &filing);
             let filing_id = filing.filing_id.clone();
-            export_itemizations(&mut tx, filing, Some(&pb))
+            export_itemizations(&mut tx, filing, Some(&pb), Some(&mb))
                 .with_context(|| format!("Error exporting itemizations for FEC-{}", filing_id))?;
         }
     }
@@ -756,7 +858,7 @@ pub fn export_single_filing<R: Read>(
     insert_filing_metadata(&mut tx, &filing)?;
 
     if !cover_only {
-        export_itemizations(&mut tx, filing, None)?;
+        export_itemizations(&mut tx, filing, None, None)?;
     }
 
     tx.commit().context("Error committing SQLite transaction")?;
@@ -1311,7 +1413,7 @@ pub fn cmd_schemaize(path: PathBuf) -> anyhow::Result<()> {
 
     let mut created = 0;
     for &(row_type, suffix) in ALL_TABLES {
-        match RecordTable::new(row_type, suffix) {
+        match RecordTable::new(row_type, suffix, LATEST_FEC_VERSION) {
             Ok(record_table) => {
                 tx.execute(&record_table.create_sql(), [])?;
                 created += 1;
