@@ -694,22 +694,50 @@ def test_filter_prefixes_match_the_row_type_not_the_line(sample_fec_content):
     """``filter_itemizations`` is matched against the row type, not the raw line.
 
     Real tests ``line.startswith(prefix)`` or ``line.startswith('"' + prefix)``,
-    so a prefix that runs past the first field, or that carries the quote of a
-    quoted row type, can match there and never here.  Prefixes that stay inside
-    the row type -- every documented use -- behave identically, which
-    `test_filter_itemizations_matches_real` covers.
+    so a prefix that runs past the first field can match there and never here.
+    Prefixes that stay inside the row type -- every documented use -- behave
+    identically, which `test_filter_itemizations_matches_real` covers.
     """
     header, cover = sample_fec_content.split("\n")[:2]
-    for row, prefix in [
-        ("SA11AI\x1cC00900860", "SA11AI\x1cC"),  # runs past the first field
-        ('"SA11AI"\x1cC00900860', '"SA'),  # matches real's quoted-prefix branch
-    ]:
-        lines = [header, cover, row]
-        options = {"filter_itemizations": [prefix]}
-        theirs = real.loads(lines, options=options)["itemizations"]
-        mine = ours.loads(lines, options=options)["itemizations"]
-        assert sum(map(len, theirs.values())) == 1, prefix
-        assert mine == {}, prefix
+    lines = [header, cover, "SA11AI\x1cC00900860"]
+    options = {"filter_itemizations": ["SA11AI\x1cC"]}
+    theirs = real.loads(lines, options=options)["itemizations"]
+    mine = ours.loads(lines, options=options)["itemizations"]
+    assert sum(map(len, theirs.values())) == 1
+    assert mine == {}
+
+
+def test_quoted_row_type_has_no_mapping(sample_fec_content):
+    """A row type in double quotes is a missing mapping here, a record in real.
+
+    `fec-parser` reads fields verbatim (the format has no quoting), so the row
+    type of ``"SA11AI"`` is ``"SA11AI"``, quotes included, and has no mapping;
+    real strips the quotes first.  The spec forbids ``"`` in a record and no
+    known filing quotes its row types.
+    """
+    header, cover = sample_fec_content.split("\n")[:2]
+    lines = [header, cover, '"SA11AI"\x1cC00900860']
+    theirs = real.loads(lines)["itemizations"]
+    assert sum(map(len, theirs.values())) == 1
+    with pytest.raises(ours.FecParserMissingMappingError):
+        ours.loads(lines)
+
+
+def test_quoted_fields_match_real(sample_fec_content):
+    """Quoted fields come out as real gives them: one surrounding layer off.
+
+    Filings do contain ``"`` despite the spec (``"CMDI"``, ``""``, ``"BUD" SMITH``,
+    an unclosed ``"BUD SMITH``); `fec-parser` keeps them verbatim and the compat
+    layer strips one surrounding layer per field, like real.  An unclosed quote
+    must not swallow the following lines.
+    """
+    lines = sample_fec_content.split("\n")
+    fields = lines[2].split("\x1c")
+    quoted = ['"CMDI"', '""', '"BUD" SMITH', '"BUD SMITH', 'O"BRIEN']
+    for i, value in zip(range(3, 3 + len(quoted)), quoted):
+        fields[i] = value
+    document = "\n".join(lines[:2] + ["\x1c".join(fields)] + lines[3:])
+    assert ours.loads(document) == real.loads(document)
 
 
 def test_blank_lines_shift_warning_line_numbers(sample_fec_content):
