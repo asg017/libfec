@@ -4,7 +4,7 @@ use crate::{
     cache::bulk::{candidates, committee},
     cli::ExportArgs,
     sourcer::{FilingSourcer, ItemizationProgressBar},
-    utils::rows::{all_filings_failed, warn, UnmappedRows},
+    utils::rows::{all_filings_failed, normalize_fec_date, warn, UnmappedRows},
 };
 use anyhow::Context;
 use colored::Colorize;
@@ -12,7 +12,7 @@ use csv::StringRecord;
 use fec_parser::{
     mappings::{DATE_COLUMNS, FLOAT_COLUMNS},
     schedules::{form_type_schedule_type, ScheduleType},
-    try_format_fec_date, Filing, FilingRow,
+    Filing, FilingRow,
 };
 use indicatif::{HumanDuration, MultiProgress};
 use rusqlite::{
@@ -58,12 +58,31 @@ const CREATE_FILINGS_SQL: &str = r#"
     filer_name TEXT NOT NULL,
     report_code TEXT,
     coverage_from_date TEXT,
-    coverage_through_date TEXT
+    coverage_through_date TEXT,
+
+    --- How the filing's header is written: 'hdr' (electronic 3.x and later), 'legacy_block' (electronic 1.x/2.x `/* Header` block), or 'paper' (FEC data entry of a paper filing)
+    header_style TEXT,
+
+    --- Paper filings: the FEC data-entry batch number
+    batch_number TEXT,
+
+    --- Paper filings (P2.6 and later): date the FEC received the paper filing, as written
+    received_date TEXT
   )
 "#;
 
+/// Columns added to `libfec_filings` after its first release; [`init`] adds
+/// them to databases created by older versions.
+const FILINGS_ADDED_COLUMNS: &[&str] = &["header_style", "batch_number", "received_date"];
+
 const INSERT_FILING_SQL: &str = r#"
-  INSERT INTO libfec_filings VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+  INSERT INTO libfec_filings(
+    filing_id, fec_version, software_name, software_version, report_id,
+    report_number, comment, cover_record_form,
+    cover_record_form_amendment_indicator, filer_id, filer_name, report_code,
+    coverage_from_date, coverage_through_date, header_style, batch_number,
+    received_date
+  ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
 "#;
 
 #[derive(Clone, Copy)]
@@ -244,10 +263,7 @@ impl RecordTable {
                 .enumerate()
                 .map(|(idx, field)| match self.column_types.get(idx) {
                     Some(FieldFormat::Text) => FieldValue::Text(field.to_owned()),
-                    Some(FieldFormat::Date) => match field.len() {
-                        8 => FieldValue::Date(try_format_fec_date(field)),
-                        _ => FieldValue::Text(field.to_owned()),
-                    },
+                    Some(FieldFormat::Date) => date_value(field),
                     Some(FieldFormat::Float) => match field.parse::<f64>() {
                         Ok(value) => FieldValue::Float(value),
                         Err(_) => FieldValue::Text(field.to_owned()),
@@ -276,10 +292,7 @@ impl RecordTable {
                         .unwrap_or("");
                     match self.column_types.get(idx) {
                         Some(FieldFormat::Text) => FieldValue::Text(field.to_owned()),
-                        Some(FieldFormat::Date) => match field.len() {
-                            8 => FieldValue::Date(try_format_fec_date(field)),
-                            _ => FieldValue::Text(field.to_owned()),
-                        },
+                        Some(FieldFormat::Date) => date_value(field),
                         Some(FieldFormat::Float) => match field.parse::<f64>() {
                             Ok(value) => FieldValue::Float(value),
                             Err(_) => FieldValue::Text(field.to_owned()),
@@ -313,6 +326,15 @@ impl RecordTable {
             values.truncate(n_params);
         }
         Ok(values)
+    }
+}
+
+/// A date column's value: `YYYY-MM-DD` when the field is `YYYYMMDD` or
+/// `MM/DD/YYYY`, else the field as text.
+fn date_value(field: &str) -> FieldValue {
+    match normalize_fec_date(field) {
+        Some(date) => FieldValue::Date(date),
+        None => FieldValue::Text(field.to_owned()),
     }
 }
 
@@ -468,6 +490,9 @@ fn insert_filing_metadata(tx: &mut Transaction, filing: &Filing<impl Read>) -> a
             &filing.cover.report_code.clone(),
             &filing.cover.coverage_from_date.clone(),
             &filing.cover.coverage_through_date.clone(),
+            filing.header.style.as_str(),
+            &filing.header.batch_number,
+            &filing.header.received_date,
         ],
     )?;
 
@@ -514,6 +539,20 @@ fn insert_filing_metadata(tx: &mut Transaction, filing: &Filing<impl Read>) -> a
 fn init(tx: &mut Transaction) -> anyhow::Result<()> {
     tx.execute(CREATE_FILINGS_SQL, [])
         .context("Error initializing filing schema")?;
+    // Databases created before these columns existed.
+    let existing: Vec<String> = tx
+        .prepare("SELECT name FROM pragma_table_info('libfec_filings')")?
+        .query_map([], |row| row.get(0))?
+        .collect::<Result<_, _>>()?;
+    for column in FILINGS_ADDED_COLUMNS {
+        if !existing.iter().any(|c| c == column) {
+            tx.execute(
+                &format!("ALTER TABLE libfec_filings ADD COLUMN {column} TEXT"),
+                [],
+            )
+            .with_context(|| format!("Error adding column {column} to libfec_filings"))?;
+        }
+    }
     Ok(())
 }
 
