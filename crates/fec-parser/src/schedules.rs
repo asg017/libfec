@@ -40,22 +40,31 @@ pub enum ScheduleType {
     //ScheduleI,
 }
 
+/// The schedule a row type belongs to, by its prefix (`SA11AI` → A,
+/// `SC1/10` → C1). Case-insensitive and trimmed, like the mappings'
+/// lookup, so a `sa11ai` row is classified like `SA11AI`.
 pub fn form_type_schedule_type(form_type: &str) -> Option<ScheduleType> {
-    if form_type.starts_with("SA") {
+    let form_type = form_type.trim();
+    let starts_with = |prefix: &str| {
+        form_type
+            .get(..prefix.len())
+            .is_some_and(|p| p.eq_ignore_ascii_case(prefix))
+    };
+    if starts_with("SA") {
         Some(ScheduleType::ScheduleA)
-    } else if form_type.starts_with("SB") {
+    } else if starts_with("SB") {
         Some(ScheduleType::ScheduleB)
-    } else if form_type.starts_with("SC1") {
+    } else if starts_with("SC1") {
         Some(ScheduleType::ScheduleC1)
-    } else if form_type.starts_with("SC2") {
+    } else if starts_with("SC2") {
         Some(ScheduleType::ScheduleC2)
-    } else if form_type.starts_with("SC") {
+    } else if starts_with("SC") {
         Some(ScheduleType::ScheduleC)
-    } else if form_type.starts_with("SD") {
+    } else if starts_with("SD") {
         Some(ScheduleType::ScheduleD)
-    } else if form_type.starts_with("SE") {
+    } else if starts_with("SE") {
         Some(ScheduleType::ScheduleE)
-    } else if form_type.starts_with("SF") {
+    } else if starts_with("SF") {
         Some(ScheduleType::ScheduleF)
     } else {
         None
@@ -140,6 +149,14 @@ mod tests {
             let columns = schedule.column_names("8.5").expect("8.5 layout");
             assert_eq!(columns[0], "form_type", "{schedule}");
         }
+        assert_eq!(
+            form_type_schedule_type(" sa11ai"),
+            Some(ScheduleType::ScheduleA)
+        );
+        assert_eq!(form_type_schedule_type("sc1/10"), Some(ScheduleType::ScheduleC1));
+        assert_eq!(form_type_schedule_type("Sc/10"), Some(ScheduleType::ScheduleC));
+        assert_eq!(form_type_schedule_type("s"), None);
+        assert_eq!(form_type_schedule_type("F3XN"), None);
         // Not the lobbyist-bundling layout of SA3L.
         let sa = ScheduleType::ScheduleA.column_names("8.5").expect("SA");
         assert!(sa.iter().any(|c| c == "contributor_last_name"));

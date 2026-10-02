@@ -229,3 +229,17 @@ fn unreadable_filings_are_reported_without_a_terminal() {
         assert!(stderr.contains("999.fec"), "{name}: {stderr}");
     }
 }
+
+/// A lowercase row type (`sa11ai`) is a Schedule A row in a targeted export.
+#[test]
+fn lowercase_schedule_row_types_are_exported() {
+    let s = Scratch::new();
+    let input = s.write("501.fec", &LEGACY_5_00.replace("SA11AI", "sa11ai"));
+    let out = s.path("a.csv");
+    let o = s.libfec(&[&"export", &input, &"--target", &"schedule-a", &"-o", &out]);
+    assert!(o.status.success(), "{}", String::from_utf8_lossy(&o.stderr));
+    assert_eq!(
+        donors(&read_csv(&out)),
+        vec![("501".to_owned(), "Legacy".to_owned(), "Alice".to_owned())]
+    );
+}
