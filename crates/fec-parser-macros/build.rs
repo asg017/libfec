@@ -1,3 +1,3 @@
 fn main() {
-    println!("cargo:rerun-if-changed=mappings2.json");
+    println!("cargo:rerun-if-changed=src/mappings2.json");
 }
