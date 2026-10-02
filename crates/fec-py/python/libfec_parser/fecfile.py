@@ -6,20 +6,22 @@ tz-aware ``datetime``s in US/Eastern.  ``tests/test_fecfile_differential.py``
 holds this module to that claim against the real package on every fixture and
 documents the few differences that survive.
 
-**Scope: FEC format versions 8.0-8.5**, which is what `fec-parser` reads.  The
-whole-filing functions raise `FecParseError` on anything else -- an older
+**Scope: FEC format versions 8.0-8.5.**  `fec-parser` reads older filings too,
+but the whole-filing functions raise `FecParseError` on anything else -- an older
 comma-delimited or 6.x/7.x filing, a paper ``P3.x`` one, a version string spelled
 outside those six, a versions 1-2 ``/* ... */`` header -- where real `fecfile`
-parses it.  :func:`parse_line` and :func:`parse_header` have no such limit; their
-mappings match real's across every version real maps.  The README's "Where it
-differs" is the full list, including how the two packages treat malformed input.
+parses it, because only 8.x is held to the differential test.  :func:`parse_line`
+and :func:`parse_header` have no such limit.  The README's "Where it differs" is
+the full list, including how the two packages treat malformed input.
 
-Values come from each row's **raw** fields plus `fecfile`'s own type table
-(vendored as ``_fecfile_types.json``; see ``NOTICE``), never from libfec's typed
-accessors: libfec types a handful of columns `fecfile` does not, and reads a
-short row's missing columns as ``None`` where `fecfile` gives ``''``.  Going
-through the vendored table is exact by construction and makes ``as_strings``
-nothing more than "skip the converters".
+Values come from each row's **raw** fields plus `fecfile`'s own column mappings
+and type table (vendored as ``_fecfile_mappings.json`` and
+``_fecfile_types.json``; see ``NOTICE``), never from libfec's mappings or typed
+accessors: libfec names some columns differently (it fixes legacy typos, names
+blank and duplicated columns), types a handful of columns `fecfile` does not, and
+reads a short row's missing columns as ``None`` where `fecfile` gives ``''``.
+Going through the vendored tables is exact by construction and makes
+``as_strings`` nothing more than "skip the converters".
 """
 
 import contextlib
@@ -36,8 +38,8 @@ from typing import TYPE_CHECKING, Any, NamedTuple
 if TYPE_CHECKING:
     import httpx2
 
-from ._native import parser as _native_parser
 from .parser import FecError as _FecError
+from .parser import FecParseError as _FecParseError
 from .parser import MissingMappingError as _MissingMappingError
 from .parser import open as _open
 
@@ -78,25 +80,15 @@ _VALID_OPTIONS = ("filter_itemizations", "as_strings")
 # column in versions 3.x–5.x), which therefore reads as ''.
 _HEADER_ATTRS = {"soft_name": "software_name", "soft_ver": "software_version"}
 
-#: Placeholder column names `fec-parser` invents, and the name real `fecfile`'s
-#: ``mappings.json`` has in that position.  This module's spec is `fecfile`'s
-#: names, so every native name goes through `_spec_name` before it becomes a
-#: dict key -- which is also what gives a duplicated column real's semantics:
-#: with both copies under one name, `_record`'s plain assignment keeps the *last*
-#: one's value at the *first* one's key position, exactly as real's loop does.
-#: One `_TODO_DUP` suffix (a column the FEC layout names twice, such as an F3X
-#: cover's ``col_a_total_receipts`` or an F2's ``candidate_state``) and one
-#: `TODO_UNKNOWN_BLANK` (the F3L mapping's nameless column, ``''`` in real).
-#: Deferred parser items: this table should shrink to nothing when `fec-parser`
-#: stops inventing the names.
-_DUP_SUFFIX = "_TODO_DUP"
-_NATIVE_NAMES = {"TODO_UNKNOWN_BLANK": ""}
+#: The format versions the whole-filing functions read (see the module docstring).
+_VERSIONS_8X = ("8.0", "8.1", "8.2", "8.3", "8.4", "8.5")
 
 #: A column's converter: the raw field and the line number in, a typed value out.
 _Converter = Callable[[str, "int | None"], Any]
 
 _MAPPINGS: dict[tuple[str, str], tuple[tuple[str, ...], tuple[_Converter | None, ...]]] = {}
 _TYPES: dict[str, Any] | None = None
+_FEC_MAPPINGS: dict[str, Any] | None = None
 _EASTERN: zoneinfo.ZoneInfo | None = None
 
 
@@ -216,6 +208,15 @@ def _type_table() -> dict[str, Any]:
     return _TYPES
 
 
+def _mapping_table() -> dict[str, Any]:
+    """`fecfile`'s ``mappings.json``, read once on first use."""
+    global _FEC_MAPPINGS
+    if _FEC_MAPPINGS is None:
+        text = files(__package__).joinpath("_fecfile_mappings.json").read_text(encoding="utf-8")
+        _FEC_MAPPINGS = json.loads(text)
+    return _FEC_MAPPINGS
+
+
 def _eastern() -> zoneinfo.ZoneInfo:
     """US/Eastern, the zone every date in a filing is localized to.
 
@@ -236,9 +237,18 @@ def _eastern() -> zoneinfo.ZoneInfo:
     return _EASTERN
 
 
-def _spec_name(name: str) -> str:
-    """One native column name, as real `fecfile`'s ``mappings.json`` spells it."""
-    return _NATIVE_NAMES.get(name, name.removesuffix(_DUP_SUFFIX))
+def _column_names(form: str, version: str) -> list[str]:
+    """Real's column names for one ``(form, version)`` pair.
+
+    `getMapping_from_regex` (`fecfile/cache.py:23-37`): first form pattern, then
+    first version pattern, in dict order and case-insensitively, that matches.
+    """
+    for form_re, versions in _mapping_table().items():
+        if re.match(form_re, form, re.IGNORECASE):
+            for version_re, names in versions.items():
+                if re.match(version_re, version, re.IGNORECASE):
+                    return names
+    raise FecParserMissingMappingError({"form": form, "version": version})
 
 
 def _type_prop(form: str, version: str, field: str) -> dict[str, str] | None:
@@ -300,9 +310,9 @@ def _converter(form: str, version: str, field: str, prop: dict[str, str]) -> _Co
 def _mapping(form: str, version: str) -> tuple[tuple[str, ...], tuple[_Converter | None, ...]]:
     """``(column names, per-column converters)`` for one ``(form, version)`` pair.
 
-    Names are the spec's, not the native side's (`_spec_name`), and the
-    converters are looked up under those same names, which is how a duplicated
-    column ends up typed the way real types it.  Cached: the walk over the type
+    Names are real's own (`_column_names`), and the converters are looked up
+    under those same names, which is how a duplicated column ends up typed the
+    way real types it.  Cached: the walk over the type
     table is three levels of regexes, far too slow to repeat per field per row,
     and one shared tuple per ``(form, version)`` means every row's dict shares
     its keys.  ``None`` in place of a converter is a plain string column.
@@ -312,10 +322,7 @@ def _mapping(form: str, version: str) -> tuple[tuple[str, ...], tuple[_Converter
     if cached is not None:
         return cached
 
-    native_names = _native_parser._column_names(form, version)
-    if native_names is None:
-        raise FecParserMissingMappingError({"form": form, "version": version})
-    names = [_spec_name(name) for name in native_names]
+    names = _column_names(form, version)
     converters: list[_Converter | None] = []
     for name in names:
         prop = _type_prop(form, version, name)
@@ -339,8 +346,8 @@ def _record(
     `fecparser.parse_line` loops over the mapping rather than over the fields.
     A column the mapping names twice is written twice, so the last occurrence's
     value wins at the first occurrence's key position -- real's semantics, and
-    the reason `_mapping` hands back the spec's names rather than the native
-    side's disambiguated ones.  ``converters=None`` is ``as_strings``: no typing
+    the reason `_mapping` hands back real's names rather than libfec's
+    disambiguated ones.  ``converters=None`` is ``as_strings``: no typing
     at all.
     """
     count = len(fields)
@@ -426,6 +433,8 @@ def _header_record(header: Any, version: str, options: _Options) -> dict[str, An
     """
     names, converters = _mapping(header.record_type, version)
     fields = [getattr(header, _HEADER_ATTRS.get(name, name), None) or "" for name in names]
+    # `Header` keeps quotes verbatim, like a `Row`; real strips one layer.
+    fields = _unquote(fields)
     return _record(fields, names, None if options.as_strings else converters, 0)
 
 
@@ -462,6 +471,11 @@ def _iter_items(reader: Any, options: _Options) -> Iterator[FecItem]:
     end the loop.
     """
     version = reader.fec_version
+    if version not in _VERSIONS_8X:
+        raise _FecParseError(
+            f"FEC format version {version!r} is outside libfec_parser.fecfile's scope "
+            "(8.0-8.5); read it with libfec_parser.open() instead"
+        )
     yield FecItem("header", _header_record(reader.header, version, options))
     yield FecItem("summary", _row_record(reader.cover_row, version, options))
 
@@ -662,13 +676,15 @@ def iter_http(
         yield from _iter_response(response, file_number, opts)
 
 
-def parse_header(hdr: str | list[str]) -> tuple[dict[str, Any] | None, str, int]:
+def parse_header(hdr: str | list[str]) -> tuple[dict[str, Any] | None, str | None, int | None]:
     """Parse a filing's header into ``(header, version, lines_consumed)``.
 
     ``hdr`` is the ``HDR`` line, or the file's lines as a list.
     ``lines_consumed`` only ever tells you anything for versions 1 and 2, whose
-    header was a multi-line ``/* ... /*`` block — a form `fec_parser` does not
-    read, so this raises :class:`FecParserMissingMappingError` for it.
+    header was a multi-line ``/* ... /*`` block: every ``key = value`` line,
+    lowercased, plus a ``schedule_counts`` dict of ints, exactly as real builds
+    it (`fecfile/fecparser.py:136-160`) -- including ``(None, None, None)`` for a
+    block with no closing ``/*``.
     """
     if isinstance(hdr, str):
         lines = [hdr]
@@ -678,10 +694,7 @@ def parse_header(hdr: str | list[str]) -> tuple[dict[str, Any] | None, str, int]
         raise TypeError(f"hdr must be a str or a list of str, not {type(hdr).__name__}")
 
     if lines[0].startswith("/*"):
-        raise FecParserMissingMappingError(
-            {"form": "/* ... /* header", "version": "1 or 2"},
-            "the multi-line header of FEC file format versions 1 and 2 is not supported",
-        )
+        return _parse_header_block(lines)
 
     fields = _fields_from_line(lines[0])
     if len(fields) < 2:
@@ -691,6 +704,31 @@ def parse_header(hdr: str | list[str]) -> tuple[dict[str, Any] | None, str, int]
     # 'HDR<sep>FEC<sep>3.00...' in the older versions, 'HDR<sep>8.5...' since.
     version = fields[2] if fields[1] == "FEC" else fields[1]
     return parse_line(lines[0], version, 0), version, 1
+
+
+def _parse_header_block(lines: list[str]) -> tuple[dict[str, Any] | None, str | None, int | None]:
+    """The versions 1-2 ``/* Header`` block, line for line as real reads it."""
+    header: dict[str, Any] = {"schedule_counts": {}}
+    header_size = 1
+    schedule_counts = False
+    if header_size >= len(lines):
+        return None, None, None
+    while not lines[header_size].startswith("/*"):
+        this_line = lines[header_size]
+        if this_line.lower().startswith("schedule_counts"):
+            schedule_counts = True
+        else:
+            header_fields = this_line.split("=")
+            k = header_fields[0].strip().lower()
+            v = header_fields[1].strip().lower()
+            if schedule_counts:
+                header["schedule_counts"][k] = int(v)
+            else:
+                header[k] = v
+        header_size += 1
+        if header_size >= len(lines):
+            return None, None, None
+    return header, header["fec_ver_#"], header_size + 1
 
 
 def parse_line(line: str, version: str, line_num: int | None = None) -> dict[str, Any] | None:

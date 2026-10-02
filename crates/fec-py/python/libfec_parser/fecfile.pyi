@@ -103,8 +103,11 @@ def iter_http(
     `[http]` extra (`httpx2`); raises `ImportError` naming it otherwise.
     """
 
-def parse_header(hdr: str | list[str]) -> tuple[dict[str, Value] | None, str, int]:
-    """Parse an `HDR` line into `(header, fec_version, lines_consumed)`."""
+def parse_header(hdr: str | list[str]) -> tuple[dict[str, Any] | None, str, int]:
+    """Parse an `HDR` line (or a versions 1-2 `/*` block) into `(header, fec_version, lines_consumed)`.
+
+    A `/*` block with no closing `/*` gives `(None, None, None)`, as in real `fecfile`.
+    """
 
 def parse_line(
     line: str, version: str, line_num: int | None = None
