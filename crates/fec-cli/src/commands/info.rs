@@ -10,6 +10,7 @@
 //! For committees, it launches an interactive TUI displaying all available
 //! committee information from the bulk data cache.
 
+use crate::utils::rows::normalize_fec_date;
 use crate::tui::{
     candidate_detail::{render_candidate_detail, CandidateDetailAction, CandidateDetailState},
     committee_detail::{render_committee_detail, CommitteeDetailAction, CommitteeDetailState},
@@ -23,7 +24,7 @@ use crossterm::{
 };
 use fec_parser::{
     covers::{Cover, Form3PSummary, Form3Summary},
-    report_code_label, Filing,
+    report_code_label, Filing, FilingHeader, HeaderStyle,
 };
 use indicatif::{HumanBytes, ProgressBar};
 use ratatui::{backend::CrosstermBackend, Terminal};
@@ -603,13 +604,18 @@ fn process_filing<R: Read>(
             .blue()
         );
 
-        println!(
-            "v{} {} filed with {} {}",
-            filing.header.fec_version,
-            HumanBytes(filing.source_length as u64),
-            filing.header.software_name,
-            filing.header.software_version
-        );
+        println!("{}", header_summary(&filing.header, filing.source_length));
+        if let Some(ref batch) = filing.header.batch_number {
+            print!("{}: {}", "Batch".bold(), batch);
+            if let Some(ref received) = filing.header.received_date {
+                print!(
+                    ", {}: {}",
+                    "received".bold(),
+                    normalize_fec_date(received).unwrap_or_else(|| received.clone())
+                );
+            }
+            println!();
+        }
 
         if let Some(ref report_id) = filing.header.report_id {
             println!("{}: '{}'", "Report ID".bold(), report_id);
@@ -631,7 +637,16 @@ fn process_filing<R: Read>(
 
     let mut status: HashMap<String, FilingFormMetadata> = HashMap::new();
     while let Some(row) = filing.next_row() {
-        let row = row.unwrap();
+        let row = match row {
+            Ok(row) => row,
+            Err(e) => {
+                eprintln!(
+                    "warning: FEC-{}: skipping unreadable row: {e}",
+                    filing.filing_id
+                );
+                continue;
+            }
+        };
         if let Some(x) = status.get_mut(&row.row_type) {
             x.count += 1;
             x.bytes += row.original_size;
@@ -676,6 +691,33 @@ fn process_filing<R: Read>(
     }
 }
 
+/// One line describing the header: `v8.4 12 kB filed with NetFile 2024`;
+/// paper filings were keyed in by the FEC, and 1.x/2.x ones have a
+/// `/* Header` block instead of an HDR record.
+fn header_summary(header: &FilingHeader, source_length: usize) -> String {
+    let size = HumanBytes(source_length as u64);
+    let software = format!("{} {}", header.software_name, header.software_version);
+    let software = software.trim();
+    match header.style {
+        HeaderStyle::Paper => format!(
+            "{} {} {size}, paper filing entered with {}",
+            header.fec_version,
+            "[paper]".yellow(),
+            if software.is_empty() { "unknown software" } else { software }
+        ),
+        HeaderStyle::LegacyBlock => format!(
+            "v{} {} {size} filed with {}",
+            header.fec_version,
+            "[legacy /* header]".yellow(),
+            software
+        ),
+        HeaderStyle::Hdr => format!(
+            "v{} {size} filed with {} {}",
+            header.fec_version, header.software_name, header.software_version
+        ),
+    }
+}
+
 /// `libfec info --format json`: one JSON object per filing with the header,
 /// the generic cover fields, and the typed cover (`cover_data`, see
 /// `fec_parser::covers`), plus per-row-type counts with `--full`.
@@ -690,6 +732,9 @@ fn print_filing_json<R: Read>(filing: &mut Filing<R>, full: bool) {
         "report_id": header.report_id,
         "report_number": header.report_number,
         "comment": header.comment,
+        "header_style": header.style.as_str(),
+        "batch_number": header.batch_number,
+        "received_date": header.received_date,
         "source_length": filing.source_length,
         "form_type": cover.form_type,
         "filer_id": cover.filer_id,

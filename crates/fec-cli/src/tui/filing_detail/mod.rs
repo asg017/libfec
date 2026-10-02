@@ -103,6 +103,12 @@ pub struct FilingDetail {
     pub report_id: Option<String>,
     pub report_number: Option<String>,
     pub comment: Option<String>,
+    /// `paper` / `legacy /* header` badge; `None` for HDR filings.
+    pub header_badge: Option<&'static str>,
+    /// Paper filings: FEC data-entry batch number.
+    pub batch_number: Option<String>,
+    /// Paper filings P2.6+: date the FEC received the filing.
+    pub received_date: Option<String>,
     pub treasurer: Option<String>,
     pub signed_date: Option<String>,
     pub cover_content: FilingCoverContent,
@@ -163,6 +169,13 @@ impl<R: std::io::Read> From<&fec_parser::Filing<R>> for FilingDetail {
             report_id: filing.header.report_id.clone(),
             report_number: filing.header.report_number.clone(),
             comment: filing.header.comment.clone(),
+            header_badge: match filing.header.style {
+                fec_parser::HeaderStyle::Hdr => None,
+                fec_parser::HeaderStyle::Paper => Some("paper"),
+                fec_parser::HeaderStyle::LegacyBlock => Some("legacy /* header"),
+            },
+            batch_number: filing.header.batch_number.clone(),
+            received_date: filing.header.received_date.clone(),
             treasurer,
             signed_date,
             cover_content,
@@ -447,6 +460,13 @@ fn render_content(f: &mut Frame, filing: &FilingDetail, state: &FilingDetailStat
                 .add_modifier(Modifier::BOLD),
         ),
         Span::raw(format!("v{}", filing.fec_version)),
+        Span::styled(
+            filing
+                .header_badge
+                .map(|b| format!(" [{b}]"))
+                .unwrap_or_default(),
+            Style::default().fg(Color::Magenta),
+        ),
         Span::raw("  "),
         Span::styled(
             "Size: ".to_string(),
@@ -469,6 +489,31 @@ fn render_content(f: &mut Frame, filing: &FilingDetail, state: &FilingDetailStat
             filing.software_name, filing.software_version
         )),
     ]));
+
+    if let Some(ref batch) = filing.batch_number {
+        let mut spans = vec![
+            Span::styled(
+                "Batch: ".to_string(),
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(batch.clone()),
+        ];
+        if let Some(ref received) = filing.received_date {
+            spans.push(Span::styled(
+                "  Received: ".to_string(),
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            ));
+            spans.push(Span::raw(
+                crate::utils::rows::normalize_fec_date(received)
+                    .unwrap_or_else(|| received.clone()),
+            ));
+        }
+        lines.push(Line::from(spans));
+    }
 
     // Optional metadata
     if let Some(ref report_id) = filing.report_id {
