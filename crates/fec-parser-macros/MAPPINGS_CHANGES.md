@@ -126,6 +126,13 @@ Exceptions where the workbook gives a different name:
   - `^(P3\|P2\|P1)` index 18/19 (column A line 10/11) →
     `col_b_disbursements_period` / `col_b_cash_on_hand_close_of_period`; index
     35/36 (column B line 10/11) → the two `_TODO_DUP` names.
+- `^text` `^5.3`, `^5.2\|5.1\|5.0`, `^3`: index 1 `form_type` →
+  `back_reference_sched_form_name`, the 8.x name of the same field: the form or
+  schedule line the text belongs to (FEC_v530.xls "Text" r9 seq 2 "FORM TYPE",
+  Fec_v300.xls "Text" r7 seq 2; FEC_Format_v8.0.xlsx "Text" r9 seq 5 "BACK
+  REFERENCE SCHED / FORM NAME"). Values are `F3XT`, `SA15`, ...
+  (electronic/19450.fec); under `form_type` exports dropped them (column 0
+  of a TEXT row is `rec_type`).
 - `^h1` `^5.3\|5.2`: index 2 `transaction_id` → `unused_3` and index 28 `""` →
   `transaction_id`: FEC_v530.xls "Sch H1" r12 seq 3 SPACE HOLDER, r39 seq 29
   TRAN ID; electronic/266203.fec H1 has the tran id ("H1J15") at index 28.

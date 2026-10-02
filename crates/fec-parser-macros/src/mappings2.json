@@ -12873,19 +12873,19 @@
     ],
     "^5.3": [
       "rec_type",
-      "form_type",
+      "back_reference_sched_form_name",
       "back_reference_tran_id_number",
       "text"
     ],
     "^5.2|5.1|5.0": [
       "rec_type",
-      "form_type",
+      "back_reference_sched_form_name",
       "back_reference_tran_id_number",
       "text"
     ],
     "^3": [
       "rec_type",
-      "form_type",
+      "back_reference_sched_form_name",
       "back_reference_tran_id_number",
       "text"
     ]
