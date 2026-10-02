@@ -73,6 +73,8 @@
 //! matches on the base.
 
 pub(crate) mod fields;
+#[cfg(feature = "python")]
+pub mod python;
 pub use fields::Data as CoverData;
 pub use crate::covers::fields::split_legacy_name;
 mod form1;
@@ -316,6 +318,10 @@ pub(crate) fn cover_from_form_type(cover_record_form_type: &str, data: &Data) ->
 /// Read with a column prefix: `PersonName::from_prefixed(data, "treasurer_")`
 /// reads `treasurer_last_name`, `treasurer_first_name`, `treasurer_middle_name`,
 /// `treasurer_prefix` and `treasurer_suffix`.
+#[cfg_attr(
+    feature = "python",
+    pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
+)]
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
 pub struct PersonName {
     pub first_name: String,
@@ -377,6 +383,10 @@ impl PersonName {
 /// Read with a column prefix: `Address::from_prefixed(data, "")` reads
 /// `street_1`, `street_2`, `city`, `state`, `zip_code`; with `"candidate_"` it
 /// reads `candidate_street_1`, … .
+#[cfg_attr(
+    feature = "python",
+    pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
+)]
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
 pub struct Address {
     pub street_1: Option<String>,
@@ -437,6 +447,10 @@ impl Address {
 /// What the columns mean depends on the form. On Forms 3 and 3P Column A is
 /// "Total This Period" and Column B "Election Cycle-to-Date"; on Form 3X
 /// Column B is "Calendar Year-to-Date". Each form's struct documents its own.
+#[cfg_attr(
+    feature = "python",
+    pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
+)]
 #[derive(Debug, Clone, Copy, Default, PartialEq, Serialize)]
 pub struct DetailedSummaryRow {
     pub column_a: f64,

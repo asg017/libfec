@@ -34,6 +34,10 @@ use jiff::civil::Date;
 /// all of them. [`crate::Filing::from_reader`] therefore reads the
 /// `[BEGINTEXT]` block right after an F99 cover and stores it in
 /// [`text`](Self::text).
+#[cfg_attr(
+    feature = "python",
+    pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
+)]
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct Form99 {
     /// Form type as filed: `F99`. Other covers carry an amendment-indicator
