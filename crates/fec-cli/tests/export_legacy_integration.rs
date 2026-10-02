@@ -243,3 +243,16 @@ fn lowercase_schedule_row_types_are_exported() {
         vec![("501".to_owned(), "Legacy".to_owned(), "Alice".to_owned())]
     );
 }
+
+/// An input that resolves to nothing is an error, not a `todo!()` panic.
+#[test]
+fn unresolvable_input_is_an_error() {
+    let s = Scratch::new();
+    for input in ["no/such/file.fec", "H-C", "S-CA-X"] {
+        let o = s.libfec(&[&"export", &input, &"-o", &s.path("x.db")]);
+        let stderr = String::from_utf8_lossy(&o.stderr);
+        assert_eq!(o.status.code(), Some(1), "{input}: {stderr}");
+        assert!(stderr.contains("Could not resolve input"), "{input}: {stderr}");
+        assert!(!stderr.contains("panicked"), "{input}: {stderr}");
+    }
+}
