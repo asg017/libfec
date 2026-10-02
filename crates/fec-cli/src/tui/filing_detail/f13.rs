@@ -1,44 +1,32 @@
 //! Form 13 (donations accepted for an inaugural committee) cover rendering.
 
-use super::misc_helpers::{
-    amount_line, code_with_label, field_line, note_line, push_address, section_line,
-};
+use super::layout::{report_code_text, Columns, Doc};
 use fec_parser::covers::Form13;
-use ratatui::text::Line;
 
-pub fn append_f13_content_lines(lines: &mut Vec<Line<'static>>, data: &Form13) {
-    push_address(lines, &data.address);
-    if data.change_of_address {
-        lines.push(note_line("Address changed since last report"));
-    }
+pub(super) fn append_f13_content_lines(d: &mut Doc, data: &Form13) {
+    d.address("Address", &data.address, data.change_of_address);
     if let Some(ref code) = data.report_code {
-        lines.push(field_line(
-            "Filing",
-            code_with_label(code, data.report_code_label()),
-        ));
+        d.field("Report", report_code_text(code, data.report_code_label()));
     }
-    if let Some(date) = data.amendment_date {
-        lines.push(field_line("Amends", format!("filing dated {date}")));
-    }
+    d.field_opt(
+        "Amends",
+        data.amendment_date
+            .map(|date| format!("filing dated {date}")),
+    );
 
-    lines.push(Line::from(""));
-    lines.push(section_line(
-        "CUMULATIVE TOTALS (FROM COMMITTEE'S INCEPTION)",
-    ));
-    lines.push(amount_line(
+    d.blank();
+    d.heading("CUMULATIVE TOTALS (FROM COMMITTEE'S INCEPTION)");
+    d.table(Columns::One);
+    d.amount(
         "5. Total donations accepted",
-        Some(data.line5_total_donations_accepted),
+        data.line5_total_donations_accepted,
         false,
-    ));
-    lines.push(amount_line(
+    );
+    d.amount(
         "6. Total donations refunded",
-        Some(data.line6_total_donations_refunded),
+        data.line6_total_donations_refunded,
         false,
-    ));
-    lines.push(amount_line(
-        "7. Net donations",
-        Some(data.line7_net_donations),
-        true,
-    ));
-    lines.push(Line::from(""));
+    );
+    d.amount("7. Net donations", data.line7_net_donations, true);
+    d.blank();
 }

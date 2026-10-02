@@ -1,16 +1,10 @@
 //! Form 3L (bundled contributions by lobbyists/registrants) cover rendering.
 
-use super::misc_helpers::{
-    amount_line, code_with_label, field_line, note_line, push_address, section_line,
-};
+use super::layout::{report_code_text, Columns, Doc};
 use fec_parser::covers::Form3L;
-use ratatui::text::Line;
 
-pub fn append_f3l_content_lines(lines: &mut Vec<Line<'static>>, data: &Form3L) {
-    push_address(lines, &data.address);
-    if data.change_of_address {
-        lines.push(note_line("Address changed since last report"));
-    }
+pub(super) fn append_f3l_content_lines(d: &mut Doc, data: &Form3L) {
+    d.address("Address", &data.address, data.change_of_address);
 
     // Line 4: candidate committees only.
     if let Some(ref state) = data.election_state {
@@ -18,14 +12,11 @@ pub fn append_f3l_content_lines(lines: &mut Vec<Line<'static>>, data: &Form3L) {
             Some(district) => format!("{state}, district {district}"),
             None => state.clone(),
         };
-        lines.push(field_line("Running in", value));
+        d.field("Running in", value);
     }
 
     if let Some(ref code) = data.report_code {
-        lines.push(field_line(
-            "Report",
-            code_with_label(code, data.report_code_label()),
-        ));
+        d.field("Report", report_code_text(code, data.report_code_label()));
     }
 
     // Line 5(c)/(d): pre-/post-election reports.
@@ -40,7 +31,7 @@ pub fn append_f3l_content_lines(lines: &mut Vec<Line<'static>>, data: &Form3L) {
             }
             value.push_str(&format!("in {state}"));
         }
-        lines.push(field_line("Election", value));
+        d.field("Election", value);
     }
 
     // Line 6(b): which semi-annual period, when boxed.
@@ -53,26 +44,24 @@ pub fn append_f3l_content_lines(lines: &mut Vec<Line<'static>>, data: &Form3L) {
         (false, true) => Some("July 1 - December 31"),
         (false, false) => None,
     };
-    if let Some(period) = semi_annual {
-        lines.push(field_line("Semi-annual", period));
-    }
+    d.field_opt("Semi-annual", semi_annual);
 
-    lines.push(Line::from(""));
-    lines.push(section_line("7. TOTAL REPORTABLE BUNDLED CONTRIBUTIONS"));
-    lines.push(amount_line(
+    d.blank();
+    d.heading("7. TOTAL REPORTABLE BUNDLED CONTRIBUTIONS");
+    d.table(Columns::One);
+    d.amount(
         "(a) Qtr/Monthly/Pre/Post",
-        Some(data.line7a_quarterly_monthly_bundled_contributions),
+        data.line7a_quarterly_monthly_bundled_contributions,
         true,
-    ));
+    );
     if data.covers_semi_annual_period() || data.line7b_semi_annual_bundled_contributions.is_some() {
-        lines.push(amount_line(
+        d.row_ab(
             "(b) Semi-annual period",
             data.line7b_semi_annual_bundled_contributions,
+            None,
             true,
-        ));
-        lines.push(note_line(
-            "(a) and (b) are overlapping periods; do not add them.",
-        ));
+        );
+        d.note("(a) and (b) are overlapping periods; do not add them.");
     }
-    lines.push(Line::from(""));
+    d.blank();
 }
