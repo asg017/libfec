@@ -325,6 +325,27 @@ fn process_filing<R: Read>(
                         format_usd(form.total_independent_expenditures)
                     );
                 }
+                Cover::Form6(form) => {
+                    let c = &form.candidate;
+                    println!(
+                        "48-Hour Notice for {}{} - {} {} {}",
+                        c.name.to_string().bold(),
+                        c.candidate_id
+                            .as_deref()
+                            .map(|id| format!(" ({id})"))
+                            .unwrap_or_default(),
+                        c.office_label().or(c.office.as_deref()).unwrap_or(""),
+                        c.state.as_deref().unwrap_or(""),
+                        c.district.as_deref().unwrap_or("")
+                    );
+                    if let Some(date_signed) = form.date_signed {
+                        println!(
+                            "Signed by {} on {}",
+                            form.signer.to_string().bold(),
+                            date_signed.to_string().bold()
+                        );
+                    }
+                }
             }
         }
 

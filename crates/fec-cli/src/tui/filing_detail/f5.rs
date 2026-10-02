@@ -11,7 +11,7 @@ use ratatui::{style::Color, text::Line};
 pub fn append_f5_content_lines(lines: &mut Vec<Line<'static>>, form: &Form5) {
     // Line 4(a): type of report. 24/48-hour reports and quarterly reports
     // share this record; show whichever was filed.
-    let amendment = amendment_text(form.is_amendment(), form.original_amendment_date);
+    let amendment = amendment_text(form.is_amendment(), form.original_amendment_date, "report");
     let is_hour_report = form.report_type.is_some();
     match (form.report_type.as_deref(), form.report_code.as_deref()) {
         (Some(code), _) => {

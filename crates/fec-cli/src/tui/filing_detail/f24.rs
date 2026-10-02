@@ -112,12 +112,14 @@ pub(super) fn push_report_banner(
 }
 
 /// Amendment status text for a cover whose form type ends in `A`.
+/// `noun` is what the form calls the amended filing ("report", "notice").
 pub(super) fn amendment_text(
     is_amendment: bool,
     original: Option<jiff::civil::Date>,
+    noun: &str,
 ) -> Option<String> {
     match (is_amendment, original) {
-        (true, Some(date)) => Some(format!("AMENDMENT of the report filed {date}")),
+        (true, Some(date)) => Some(format!("AMENDMENT of the {noun} filed {date}")),
         (true, None) => Some("AMENDMENT".to_string()),
         (false, _) => None,
     }
@@ -143,7 +145,7 @@ pub fn append_f24_content_lines(lines: &mut Vec<Line<'static>>, form: &Form24) {
         banner,
         color,
         "of Independent Expenditures",
-        amendment_text(form.is_amendment(), form.original_amendment_date),
+        amendment_text(form.is_amendment(), form.original_amendment_date, "report"),
     );
     if let Some(when) = when {
         lines.push(note_line(when));
