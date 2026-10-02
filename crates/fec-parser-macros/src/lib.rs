@@ -40,6 +40,48 @@ pub fn gen_float_columns(_: TokenStream) -> TokenStream {
 
 const MAPPINGS_JSON_PATH: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/src/mappings2.json");
 
+/// Rewrites a mappings2.json version key into the regex actually compiled.
+///
+/// The JSON keys are written loosely (`^8.5|8.4`, `^5.3|5.2|5.1|5.0|^3`): `.`
+/// is unescaped and only the first alternative is anchored, so `8.4` would
+/// match anywhere in the version string. The keys are kept as-is in the JSON
+/// (same text as fecfile/FastFEC) and hardened here:
+/// - every `.` becomes `\.`;
+/// - a key with a top-level `|` (outside `(...)` / `[...]`) becomes
+///   `^(?:alt1|alt2|...)`, with a leading `^` stripped from each alternative.
+///
+/// Keys whose alternatives are already grouped (`^(P3.4|P3.3)`,
+/// `^P(3.1|3.0)`) only get the escaping.
+fn harden_version_regex(key: &str) -> String {
+    let escaped = key.replace('.', "\\.");
+    let mut alternatives = Vec::new();
+    let mut depth = 0i32;
+    let mut in_class = false;
+    let mut start = 0;
+    for (i, c) in escaped.char_indices() {
+        match c {
+            '[' if !in_class => in_class = true,
+            ']' if in_class => in_class = false,
+            '(' if !in_class => depth += 1,
+            ')' if !in_class => depth -= 1,
+            '|' if !in_class && depth == 0 => {
+                alternatives.push(&escaped[start..i]);
+                start = i + 1;
+            }
+            _ => {}
+        }
+    }
+    if alternatives.is_empty() {
+        return escaped;
+    }
+    alternatives.push(&escaped[start..]);
+    let stripped: Vec<&str> = alternatives
+        .iter()
+        .map(|alt| alt.strip_prefix('^').unwrap_or(alt))
+        .collect();
+    format!("^(?:{})", stripped.join("|"))
+}
+
 #[proc_macro]
 pub fn gen_form_types(_: TokenStream) -> TokenStream {
     let json_data: serde_json::Value = {
@@ -77,7 +119,12 @@ pub fn gen_form_type_version_set(_: TokenStream) -> TokenStream {
 
     let mut result = Vec::new();
     for value in values {
-        let keys: Vec<String> = value.as_object().unwrap().keys().cloned().collect();
+        let keys: Vec<String> = value
+            .as_object()
+            .unwrap()
+            .keys()
+            .map(|key| harden_version_regex(key))
+            .collect();
 
         let item = quote! {
           RegexSetBuilder::new([
@@ -140,4 +187,27 @@ pub fn gen_column_names(_: TokenStream) -> TokenStream {
     };
 
     output.into()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::harden_version_regex;
+
+    #[test]
+    fn harden_version_regex_rewrites() {
+        for (key, expected) in [
+            ("^8.5|8.4", r"^(?:8\.5|8\.4)"),
+            ("^5.3|5.2|5.1|5.0|^3", r"^(?:5\.3|5\.2|5\.1|5\.0|3)"),
+            ("^P3.2|^P3.3|^P3.4", r"^(?:P3\.2|P3\.3|P3\.4)"),
+            ("^(P3.4|P3.3|P3.2)", r"^(P3\.4|P3\.3|P3\.2)"),
+            ("^P(3.1|3.0|2.6)", r"^P(3\.1|3\.0|2\.6)"),
+            ("^(5.1|5.0|3|2|1)", r"^(5\.1|5\.0|3|2|1)"),
+            ("^[6-8]", "^[6-8]"),
+            ("^1", "^1"),
+            ("^(P3|P2.6)", r"^(P3|P2\.6)"),
+            ("^3|^2", "^(?:3|2)"),
+        ] {
+            assert_eq!(harden_version_regex(key), expected, "{key}");
+        }
+    }
 }
