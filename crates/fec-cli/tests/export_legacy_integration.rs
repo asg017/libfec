@@ -169,3 +169,27 @@ fn sqlite_schedule_a_layout_does_not_depend_on_first_row() {
         );
     }
 }
+
+/// `SC/10` and a literal `SC-10` row type share `SC-10.csv`: one writer
+/// writes both, in file order, under a single header line.
+#[test]
+fn fastfec_row_types_sharing_a_file_name() {
+    let s = Scratch::new();
+    let input = s.write(
+        "77.fec",
+        "HDR,FEC,5.00,Test,1,,,,\nF3XN,C00000001,,Test\nSC/10,C00000001,FIRST\nSC-10,C00000001,SECOND\nSC/10,C00000001,THIRD\n",
+    );
+    let out = s.path("out");
+    let o = s.libfec(&[&"fastfec", &input, &out]);
+    assert!(o.status.success(), "{}", String::from_utf8_lossy(&o.stderr));
+    let rows = read_csv(&out.join("77").join("SC-10.csv"));
+    assert_eq!(rows[0][0], "form_type");
+    let data: Vec<(&str, &str)> = rows[1..]
+        .iter()
+        .map(|r| (r[0].as_str(), r[2].as_str()))
+        .collect();
+    assert_eq!(
+        data,
+        vec![("SC/10", "FIRST"), ("SC-10", "SECOND"), ("SC/10", "THIRD")]
+    );
+}

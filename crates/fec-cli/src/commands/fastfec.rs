@@ -15,7 +15,13 @@ use anyhow::Context;
  */
 use fec_parser::{Filing, FilingHeader, HeaderStyle};
 use indicatif::{ProgressBar, ProgressStyle};
-use std::{collections::HashMap, fs::File, io::Read, path::Path, sync::LazyLock};
+use std::{
+    collections::{hash_map::Entry, HashMap, HashSet},
+    fs::File,
+    io::Read,
+    path::Path,
+    sync::LazyLock,
+};
 
 use crate::{
     cli::FastFecArgs,
@@ -111,6 +117,7 @@ fn write_cover_csv<R: Read>(filing: &Filing<R>, cover_csv_path: &Path) -> anyhow
 
 fn write_fastfec_compat<R: Read>(mut filing: Filing<R>, directory: &Path) -> anyhow::Result<()> {
     let mut csv_writers: HashMap<String, csv::Writer<File>> = HashMap::new();
+    let mut seen_row_types: HashSet<String> = HashSet::new();
     let mut unmapped = UnmappedRows::new(None);
     let pb = ProgressBar::new(filing.source_length as u64).with_style(STYLE.clone());
     pb.set_message(filing.filing_id.to_owned());
@@ -130,37 +137,52 @@ fn write_fastfec_compat<R: Read>(mut filing: Filing<R>, directory: &Path) -> any
             pb.set_position(position.byte());
         }
 
-        if let Some(w) = csv_writers.get_mut(&r.row_type) {
-            w.write_record(&r.record.clone())?;
-        } else {
-            // Several row types can share a file stem (`SC/10`, `SC-10`):
-            // append to the existing file rather than fail.
-            let path = filing_directory.join(format!("{}.csv", file_stem(&r.row_type)));
-            let existed = path.exists();
-            let f = File::options().create(true).append(true).open(&path)?;
-            let mut w = csv::WriterBuilder::new()
-                .flexible(true)
-                .has_headers(false)
-                .from_writer(f);
-
-            // Like FastFEC, rows of an unmapped type are written without a
-            // header line.
-            match fec_parser::mappings::column_names_for_field(
+        // Writers are keyed by file name: several row types can share a
+        // file stem (`SC/10` and a literal `SC-10` are both `SC-10.csv`),
+        // and two buffered writers on one file interleave their output.
+        // Their rows go to one file, under the header of the first.
+        let w = match csv_writers.entry(file_stem(&r.row_type)) {
+            Entry::Occupied(e) => e.into_mut(),
+            Entry::Vacant(e) => {
+                let path = filing_directory.join(format!("{}.csv", e.key()));
+                // The cover's file, when a row type shares its stem.
+                let existed = path.exists();
+                let f = File::options().create(true).append(true).open(&path)?;
+                let mut w = csv::WriterBuilder::new()
+                    .flexible(true)
+                    .has_headers(false)
+                    .from_writer(f);
+                // Like FastFEC, rows of an unmapped type are written without
+                // a header line.
+                if let (false, Ok(column_names)) = (
+                    existed,
+                    fec_parser::mappings::column_names_for_field(
+                        &r.row_type,
+                        &filing.header.fec_version,
+                    ),
+                ) {
+                    w.write_record(column_names)?;
+                }
+                e.insert(w)
+            }
+        };
+        if !seen_row_types.contains(&r.row_type) {
+            if fec_parser::mappings::column_names_for_field(
                 &r.row_type,
                 &filing.header.fec_version,
-            ) {
-                Ok(column_names) if !existed => w.write_record(column_names)?,
-                Ok(_) => {}
-                Err(_) => unmapped.warn(
+            )
+            .is_err()
+            {
+                unmapped.warn(
                     &filing.filing_id,
                     &r.row_type,
                     &filing.header.fec_version,
                     "writing its rows without a header line",
-                ),
+                );
             }
-            w.write_record(&r.record.clone())?;
-            csv_writers.insert(r.row_type, w);
+            seen_row_types.insert(r.row_type.clone());
         }
+        w.write_record(&r.record)?;
     }
     Ok(())
 }
