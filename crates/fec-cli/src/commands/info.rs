@@ -678,10 +678,8 @@ fn process_filing<R: Read>(
 
             println!("{tbl}");
         }
-        CmdInfoFormat::Json => {
-            let v = Value::Null;
-            println!("{}", v);
-        }
+        // JSON is handled by `print_filing_json` before this point.
+        CmdInfoFormat::Json => {}
     }
 }
 
@@ -711,7 +709,16 @@ fn print_filing_json<R: Read>(filing: &mut Filing<R>, full: bool) {
     if full {
         let mut rows: std::collections::BTreeMap<String, Value> = Default::default();
         while let Some(row) = filing.next_row() {
-            let Ok(row) = row else { continue };
+            let row = match row {
+                Ok(row) => row,
+                Err(e) => {
+                    eprintln!(
+                        "warning: FEC-{}: skipping unreadable row: {e}",
+                        filing.filing_id
+                    );
+                    continue;
+                }
+            };
             let entry = rows
                 .entry(row.row_type.clone())
                 .or_insert_with(|| serde_json::json!({"count": 0, "bytes": 0}));
@@ -765,7 +772,7 @@ pub fn info(mut sourcer: FilingSourcer, args: InfoArgs) -> anyhow::Result<()> {
         match input {
             InfoInput::Filing(filing_arg) => {
                 let filing = sourcer.resolve_from_user_argument(&filing_arg.to_bare())?;
-                if io::stdout().is_terminal() {
+                if matches!(args.format, CmdInfoFormat::Human) && io::stdout().is_terminal() {
                     let detail = FilingDetail::from(&filing);
                     if let Some(s) = spinner.as_ref() {
                         s.finish_and_clear();

@@ -166,11 +166,17 @@ impl<R: std::io::Read> From<&fec_parser::Filing<R>> for FilingDetail {
     }
 }
 
+/// `$1,234.56`, or `-$1,234.56` for negative amounts (including those
+/// between -1 and 0, which would otherwise lose their sign).
 pub fn format_usd(amount: f64) -> String {
     let rounded = (amount * 100.0).round() as i64;
-    let dollars = rounded / 100;
-    let cents = (rounded % 100).abs();
-    format!("${}.{:02}", dollars.to_formatted_string(&Locale::en), cents)
+    let sign = if rounded < 0 { "-" } else { "" };
+    let abs = rounded.unsigned_abs();
+    format!(
+        "{sign}${}.{:02}",
+        (abs / 100).to_formatted_string(&Locale::en),
+        abs % 100
+    )
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -633,6 +639,15 @@ pub(crate) mod tests {
             .draw(|f| render_filing_detail(f, f.area(), &detail, &state))
             .unwrap();
         terminal.backend().to_string()
+    }
+
+    #[test]
+    fn format_usd_signs() {
+        assert_eq!(format_usd(1234.5), "$1,234.50");
+        assert_eq!(format_usd(-5307.63), "-$5,307.63");
+        assert_eq!(format_usd(-0.5), "-$0.50");
+        assert_eq!(format_usd(0.0), "$0.00");
+        assert_eq!(format_usd(-0.001), "$0.00");
     }
 
     #[test]
