@@ -1,6 +1,6 @@
 //! Form 24: 24/48-hour notice of independent expenditures.
 
-use crate::covers::fields::{date, text, text_or_empty, Data};
+use crate::covers::fields::{date, person_name_or_legacy, text, text_or_empty, Data};
 use crate::covers::{Address, PersonName};
 use jiff::civil::Date;
 
@@ -36,9 +36,9 @@ use jiff::civil::Date;
 /// # Versions
 ///
 /// v8.0–8.5 carry all 16 fields. v6.1–7.0 lack `original_amendment_date`.
-/// v3 and v5.x have no treasurer name columns (v5.2's single caret-delimited
-/// "NAME/TREASURER (as signed)" field is unnamed in `fec-parser`'s mapping), so
-/// [`Form24::treasurer`] is empty there; v3 also lacks `report_type`.
+/// v3 and v5.x have one caret-delimited `treasurer_name` column ("NAME/
+/// TREASURER (as signed)") instead of the five name columns; it is split like
+/// every legacy name (see [`Form24::treasurer`]). v3 also lacks `report_type`.
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct Form24 {
     /// Form type as filed, e.g. `F24N`: the base form plus the
@@ -71,7 +71,8 @@ pub struct Form24 {
     /// The committee treasurer, the only person named on the record. Columns
     /// `treasurer_last_name`, `treasurer_first_name`, `treasurer_middle_name`,
     /// `treasurer_prefix`, `treasurer_suffix` (FEC format workbook v8.4,
-    /// sheet F24, fields 11-15). Empty on v3/v5 filings.
+    /// sheet F24, fields 11-15). v3/v5.x give one `treasurer_name` column,
+    /// "Last^First^Prefix^Suffix", split on `^` (middle name left empty).
     pub treasurer: PersonName,
     /// Date the report was signed. Column `date_signed` (FEC format workbook
     /// v8.4, sheet F24, field 16).
@@ -87,7 +88,7 @@ impl Form24 {
             original_amendment_date: date(data, "original_amendment_date"),
             committee_name: text_or_empty(data, "committee_name"),
             address: Address::from_prefixed(data, ""),
-            treasurer: PersonName::from_data(data),
+            treasurer: person_name_or_legacy(data, "treasurer_", "treasurer_name"),
             date_signed: date(data, "date_signed"),
         })
     }
