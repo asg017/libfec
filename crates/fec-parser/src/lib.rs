@@ -98,6 +98,13 @@ impl FilingHeader {
     }
 }
 
+/// Description of a report code (`Q1` → "April Quarterly"), or
+/// `"[Unknown report code]"`.
+///
+/// The codes are those listed under "Report Codes" in the FEC e-filing
+/// specification (FEC_Format_v8.4.pdf p14–15); the descriptions follow it
+/// closely but not always word for word, and a few legacy codes (e.g. `ADJ`,
+/// `CA`) are not on that list.
 pub fn report_code_label(report_code: &str) -> &'static str {
     // labels from: https://api.open.fec.gov/developers/#/filings/get_v1_filings_:~:text=(query)-,Name%20of%20report%20where%20the%20underlying%20data%20comes%20from%3A,-%2D%2010D%20Pre%2DElection
     // also: https://www.fec.gov/campaign-finance-data/report-type-code-descriptions/
@@ -126,7 +133,7 @@ pub fn report_code_label(report_code: &str) -> &'static str {
         "M2" => "February Monthly",
         "M3" => "March Monthly",
         "M4" => "April Monthly",
-        "M5" => "May Month        ly",
+        "M5" => "May Monthly",
         "M6" => "June Monthly",
         "M7" => "July Monthly",
         "M8" => "August Monthly",
@@ -140,6 +147,9 @@ pub fn report_code_label(report_code: &str) -> &'static str {
 
         "TER" => "Termination Report",
         "YE" => "Year-End",
+        // FEC format workbook v8.4, sheet F3X, field 10: "Monthly Year-End reports
+        // should be coded with 'MYE'."
+        "MYE" => "Monthly Year-End",
         "ADJ" => "COMP ADJUST AMEND",
         "CA" => "COMPREHENSIVE AMEND",
         "90S" => "Post Inaugural Supplement",
