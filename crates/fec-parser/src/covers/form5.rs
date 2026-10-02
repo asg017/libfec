@@ -241,9 +241,14 @@ impl Form5 {
 /// v3/v5.x formats give names as one caret-delimited field, e.g.
 /// `Smith^Pat T.^Mr.^Jr.` = last ^ first (and middle) ^ prefix ^ suffix (FEC
 /// format workbook v5.2, sample data for "IND/NAME" fields). A value without
-/// carets is kept whole as the last name.
+/// carets is kept whole as the last name. Some legacy layouts put that
+/// caret-delimited name in the `{prefix}last_name` column itself (Form 9's
+/// custodian in v5.x); that is split the same way.
 pub(crate) fn person_name_or_legacy(data: &Data, prefix: &str, legacy_key: &str) -> PersonName {
     let name = PersonName::from_prefixed(data, prefix);
+    if name.first_name.is_empty() && name.last_name.contains('^') {
+        return parse_legacy_name(&name.last_name);
+    }
     if !name.is_empty() {
         return name;
     }
@@ -283,5 +288,12 @@ mod tests {
             .collect();
         let name = person_name_or_legacy(&data, "person_completing_", "person_completing_name");
         assert_eq!(name.last_name, "JANE DOE");
+
+        let data: Data = [("custodian_last_name", "Doe^Jane^^")]
+            .into_iter()
+            .map(|(k, v)| (k.to_owned(), v.to_owned()))
+            .collect();
+        let name = person_name_or_legacy(&data, "custodian_", "custodian_name");
+        assert_eq!(name.to_string(), "Jane Doe");
     }
 }
