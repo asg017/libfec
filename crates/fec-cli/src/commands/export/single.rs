@@ -5,6 +5,7 @@ use fec_parser::schedules::{form_type_schedule_type, ScheduleType};
 use crate::{
     cli::{ExportArgs, ExportTarget},
     sourcer::{FilingSourcer, ItemizationProgressBar},
+    utils::rows::{all_filings_failed, warn},
 };
 
 pub enum SingleOutput {
@@ -71,16 +72,34 @@ pub fn cmd_export_single(
     let (_trace, _input_mappings, iter) =
         sourcer.resolve_iterator_from_flags(args.filings, args.api, Some(&mb))?;
     let mut nrows = 0;
+    let (mut read, mut failed) = (0usize, 0usize);
 
     for filing in iter {
         let mut filing = match filing {
             Ok(f) => f,
-            Err(_) => todo!(),
+            Err(e) => {
+                warn(Some(&mb), format!("Error fetching filing, skipping: {e:?}"));
+                failed += 1;
+                continue;
+            }
         };
+        read += 1;
         let pb = ItemizationProgressBar::new(&mb, &filing);
         let mut first = true;
         while let Some(r) = filing.next_row() {
-            let row = r?;
+            let row = match r {
+                Ok(row) => row,
+                Err(e) => {
+                    warn(
+                        Some(&mb),
+                        format!(
+                            "warning: FEC-{}: skipping unreadable row: {e}",
+                            filing.filing_id
+                        ),
+                    );
+                    continue;
+                }
+            };
             pb.update(&row);
 
             if target_matches_form_type(&target, row.row_type.as_str()) {
@@ -121,6 +140,9 @@ pub fn cmd_export_single(
     }
     if let Writer::Json { file, .. } = &mut output {
         file.write_all(b"]")?;
+    }
+    if read == 0 && failed > 0 {
+        return Err(all_filings_failed(failed));
     }
     let duration = jiff::Timestamp::now() - t0;
     eprintln!(

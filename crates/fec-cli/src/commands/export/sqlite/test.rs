@@ -100,7 +100,7 @@ mod tests {
 
         let mut tx = db.transaction()?;
         insert_filing_metadata(&mut tx, &f1s_84).unwrap();
-        export_itemizations(&mut tx, f1s_84, None)?;
+        export_itemizations(&mut tx, f1s_84, None, None)?;
         tx.commit()?;
 
         insta::assert_snapshot!(
@@ -114,7 +114,7 @@ mod tests {
 
         let mut tx = db.transaction()?;
         insert_filing_metadata(&mut tx, &f1s_85).unwrap();
-        export_itemizations(&mut tx, f1s_85, None)?;
+        export_itemizations(&mut tx, f1s_85, None, None)?;
         tx.commit()?;
         insta::assert_snapshot!(
             "F1S 8.5 data",
