@@ -86,6 +86,20 @@ pub fn file_stem(row_type: &str) -> String {
         .collect()
 }
 
+/// The columns a row type is exported with, whatever the filing's version:
+/// its 8.5 layout, else its 8.4 one (forms removed in 8.5, like F3Z1), else
+/// `fec_version`'s own layout (legacy-only row types, e.g. paper `F3Z`: the
+/// first filing with one then fixes the columns and rows of other legacy
+/// versions are rearranged by name).
+pub fn export_columns(row_type: &str, fec_version: &str) -> Option<&'static [String]> {
+    use fec_parser::mappings::column_names_for_field;
+    column_names_for_field(row_type, "8.5")
+        .or_else(|_| column_names_for_field(row_type, "8.4"))
+        .or_else(|_| column_names_for_field(row_type, fec_version))
+        .ok()
+        .map(Vec::as_slice)
+}
+
 /// The fields of `record` (laid out as `source` columns) rearranged into the
 /// `target` columns by name; missing columns are empty. When the layouts are
 /// identical, the record's fields as they are (possibly fewer or more than
