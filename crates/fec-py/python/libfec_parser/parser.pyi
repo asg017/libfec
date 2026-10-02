@@ -12,6 +12,8 @@ from datetime import date
 from types import TracebackType
 from typing import Any, Literal, Protocol, Self, TypeAlias, final, overload
 
+from .covers import CoverData
+
 __all__ = [
     "Cover",
     "Filing",
@@ -176,6 +178,11 @@ class FilingReader:
         """The full cover line as a `Row`; the same object every time."""
 
     @property
+    def cover_data(self) -> CoverData | None:
+        """The typed cover record (`Form3X`, `Form1`, … from `libfec_parser.covers`),
+        `None` for a form with no typed struct; the same object every time."""
+
+    @property
     def id(self) -> str | None:
         """The file stem of a path source, or of a file object's `name`
         (`FEC-` stripped); `None` when the source does not name itself."""
@@ -234,6 +241,7 @@ class Filing:
     header: Header
     cover: Cover
     cover_row: Row
+    cover_data: CoverData | None
     rows: list[Row]
 
     def __init__(self, source: Source) -> None: ...

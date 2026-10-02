@@ -45,6 +45,10 @@ use jiff::civil::Date;
 /// ([fecfrm3posti.pdf p1](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm3posti.pdf#page=1));
 /// the `F3` record has no Column C, and the FEC sources do not say which paper
 /// column the record's Column B holds on such a report.
+#[cfg_attr(
+    feature = "python",
+    pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
+)]
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct Form3 {
     /// Form type as filed, e.g. `F3N`: the base form plus the
@@ -179,6 +183,10 @@ fn row(data: &Data, suffix: &str) -> DetailedSummaryRow {
 /// Cycle-to-Date"); Lines 8–10 have one amount. Every line is carried from the
 /// Detailed Summary Page or the debt schedules
 /// ([fecfrm3i.pdf p3](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm3i.pdf#page=3)).
+#[cfg_attr(
+    feature = "python",
+    pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
+)]
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct Form3Summary {
     /// Line 6(a), total contributions (other than loans), carried from Line
@@ -248,6 +256,10 @@ impl Form3Summary {
 /// schedule's total is added to the unitemized amount for its category before
 /// being entered here, so summing Schedule A rows will not generally reproduce
 /// these lines ([fecfrm3i.pdf p6](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm3i.pdf#page=6)).
+#[cfg_attr(
+    feature = "python",
+    pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
+)]
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct Form3DetailedSummaryReceipts {
     /// Line 11(a)(i), contributions from individuals/persons other than
@@ -351,6 +363,10 @@ impl Form3DetailedSummaryReceipts {
 /// ([fecfrm3.pdf p4](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm3.pdf#page=4)).
 ///
 /// Column A is "Total This Period", Column B "Election Cycle-to-Date".
+#[cfg_attr(
+    feature = "python",
+    pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
+)]
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct Form3DetailedSummaryDisbursements {
     /// Line 17, operating expenditures, e.g. advertising, salaries, travel,
@@ -423,6 +439,10 @@ impl Form3DetailedSummaryDisbursements {
 /// Form 3 page 4, Detailed Summary Page Part III, Cash Summary (Lines 23–27),
 /// single amounts for this period
 /// ([fecfrm3.pdf p4](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm3.pdf#page=4)).
+#[cfg_attr(
+    feature = "python",
+    pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
+)]
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct Form3CashSummary {
     /// Line 23, cash on hand at beginning of reporting period: currency, bank
@@ -462,6 +482,10 @@ impl Form3CashSummary {
 /// Form 3 pages 3–4, the Detailed Summary Page
 /// ([fecfrm3.pdf p3](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm3.pdf#page=3),
 /// [p4](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm3.pdf#page=4)).
+#[cfg_attr(
+    feature = "python",
+    pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
+)]
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct Form3DetailedSummary {
     /// Part I, Receipts (Lines 11–16).

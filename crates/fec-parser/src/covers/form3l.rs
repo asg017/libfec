@@ -37,6 +37,10 @@ use jiff::civil::Date;
 /// (`P2.6`–`P3.4`) name the Line 5 state-of-election column `election_state`
 /// a second time; `fec-parser` renames that second copy
 /// `election_state_TODO_DUP`, which [`Form3L::election_held_in_state`] reads.
+#[cfg_attr(
+    feature = "python",
+    pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
+)]
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct Form3L {
     /// Form type as filed, e.g. `F3LN`: the base form plus the

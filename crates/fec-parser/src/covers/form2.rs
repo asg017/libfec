@@ -43,6 +43,10 @@ use jiff::civil::Date;
 /// layouts (6.3 and earlier) both "candidate state" columns are named
 /// `candidate_state`, so the second (office state) overwrites the first; see
 /// [`office_state`](Self::office_state).
+#[cfg_attr(
+    feature = "python",
+    pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
+)]
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct Form2 {
     /// Form type as filed, e.g. `F2N`: the base form plus the
@@ -164,6 +168,10 @@ pub struct Form2 {
 
 /// A committee designated on Form 2: the principal campaign committee (Line 7)
 /// or an other authorized committee (Line 8).
+#[cfg_attr(
+    feature = "python",
+    pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
+)]
 #[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize)]
 pub struct Form2Committee {
     /// FEC committee ID. Columns `committee_id_number` (Line 7, "PCC
@@ -203,6 +211,10 @@ impl Form2Committee {
 /// [`Form2::personal_funds_declaration`]. The meaning of the amounts beyond
 /// the column names and the v6.4 change note is not documented in the FEC
 /// sources indexed for this crate.
+#[cfg_attr(
+    feature = "python",
+    pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
+)]
 #[derive(Debug, Clone, Copy, Default, PartialEq, serde::Serialize)]
 pub struct Form2PersonalFundsDeclaration {
     /// Column `primary_personal_funds_declared`.
