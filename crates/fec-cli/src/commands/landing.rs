@@ -318,8 +318,16 @@ fn render_help(f: &mut Frame, area: Rect) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use insta::assert_snapshot;
     use ratatui::{backend::TestBackend, Terminal};
+
+    // The banner shows the crate version; mask it so release bumps don't break snapshots.
+    macro_rules! assert_snapshot {
+        ($value:expr) => {
+            insta::with_settings!({ filters => vec![(r"v\d+\.\d+\.\d+", "v[VERSION]")] }, {
+                insta::assert_snapshot!($value);
+            })
+        };
+    }
 
     fn create_app() -> App {
         App::new()

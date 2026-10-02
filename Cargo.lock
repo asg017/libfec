@@ -1371,6 +1371,7 @@ checksum = "b76866be74d68b1595eb8060cb9191dca9c021db2316558e52ddc5d55d41b66c"
 dependencies = [
  "console",
  "once_cell",
+ "regex",
  "serde",
  "similar",
  "tempfile",
