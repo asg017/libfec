@@ -1,130 +1,130 @@
 ---
 source: crates/fec-parser/tests/covers.rs
-expression: "cover(\"F3N_1918805.fec\")"
+expression: "cover(\"F3N_1858438.fec\")"
 snapshot_kind: text
 ---
 {
   "form": "Form3",
   "data": {
     "form_type": "F3N",
-    "filer_committee_id": "C00912188",
-    "committee_name": "MCCORD, MICHAEL",
+    "filer_committee_id": "C00834028",
+    "committee_name": "George Whitesides for Congress",
     "address": {
-      "street_1": "2126 E. Victory Dr",
-      "street_2": "Po Box 228",
-      "city": "SAVANNAH",
-      "state": "GA",
-      "zip_code": "31404"
+      "street_1": "PO Box 221776",
+      "street_2": null,
+      "city": "Newhall",
+      "state": "CA",
+      "zip_code": "91322"
     },
-    "change_of_address": true,
-    "election_state": "GA",
-    "election_district": "01",
-    "report_code": "Q3",
-    "election_code": null,
-    "election_date": null,
-    "state_of_election": null,
-    "coverage_from_date": "2025-07-01",
-    "coverage_through_date": "2025-09-30",
+    "change_of_address": false,
+    "election_state": "CA",
+    "election_district": "27",
+    "report_code": "30G",
+    "election_code": "G2024",
+    "election_date": "2024-11-05",
+    "state_of_election": "CA",
+    "coverage_from_date": "2024-10-17",
+    "coverage_through_date": "2024-11-25",
     "treasurer": {
-      "first_name": "Marcio",
-      "last_name": "Liam",
+      "first_name": "Jay",
+      "last_name": "Petterson",
       "middle_name": null,
       "prefix": null,
       "suffix": null
     },
-    "date_signed": "2025-10-13",
+    "date_signed": "2024-12-05",
     "summary": {
       "line6a_total_contributions": {
-        "column_a": 62540.0,
-        "column_b": 62540.0
+        "column_a": 801282.01,
+        "column_b": 8339598.03
       },
       "line6b_total_contribution_refunds": {
-        "column_a": 0.0,
-        "column_b": 0.0
+        "column_a": 8662.06,
+        "column_b": 124355.43
       },
       "line6c_net_contributions": {
-        "column_a": 62540.0,
-        "column_b": 62540.0
+        "column_a": 792619.95,
+        "column_b": 8215242.6
       },
       "line7a_total_operating_expenditures": {
-        "column_a": 30158.62,
-        "column_b": 30158.62
+        "column_a": 1859432.01,
+        "column_b": 9759243.22
       },
       "line7b_total_offsets_to_operating_expenditures": {
         "column_a": 0.0,
-        "column_b": 0.0
+        "column_b": 3999.64
       },
       "line7c_net_operating_expenditures": {
-        "column_a": 30158.62,
-        "column_b": 30158.62
+        "column_a": 1859432.01,
+        "column_b": 9755243.58
       },
-      "line8_cash_on_hand_close_of_period": 82381.38,
+      "line8_cash_on_hand_close_of_period": 481624.7,
       "line9_debts_owed_to_committee": 0.0,
-      "line10_debts_owed_by_committee": 50000.0
+      "line10_debts_owed_by_committee": 1310000.0
     },
     "detailed_summary": {
       "receipts": {
         "line11a_i_contributions_from_individuals_itemized": {
-          "column_a": 62100.0,
-          "column_b": 62100.0
+          "column_a": 502496.34,
+          "column_b": 5853775.45
         },
         "line11a_ii_contributions_from_individuals_unitemized": {
-          "column_a": 440.0,
-          "column_b": 440.0
+          "column_a": 156450.74,
+          "column_b": 1544171.31
         },
         "line11a_iii_contributions_from_individuals_total": {
-          "column_a": 62540.0,
-          "column_b": 62540.0
+          "column_a": 658947.08,
+          "column_b": 7397946.76
         },
         "line11b_political_party_committees": {
-          "column_a": 0.0,
-          "column_b": 0.0
+          "column_a": 3608.07,
+          "column_b": 10190.36
         },
         "line11c_other_political_committees_pacs": {
-          "column_a": 0.0,
-          "column_b": 0.0
+          "column_a": 138726.86,
+          "column_b": 657833.41
         },
         "line11d_the_candidate": {
           "column_a": 0.0,
-          "column_b": 0.0
+          "column_b": 273627.5
         },
         "line11e_total_contributions": {
-          "column_a": 62540.0,
-          "column_b": 62540.0
+          "column_a": 801282.01,
+          "column_b": 8339598.03
         },
         "line12_transfers_from_authorized": {
-          "column_a": 0.0,
-          "column_b": 0.0
+          "column_a": 83913.38,
+          "column_b": 568613.39
         },
         "line13a_loans_from_candidate": {
-          "column_a": 50000.0,
-          "column_b": 50000.0
+          "column_a": 250000.0,
+          "column_b": 1310000.0
         },
         "line13b_other_loans": {
           "column_a": 0.0,
           "column_b": 0.0
         },
         "line13c_total_loans": {
-          "column_a": 50000.0,
-          "column_b": 50000.0
+          "column_a": 250000.0,
+          "column_b": 1310000.0
         },
         "line14_offset_to_operating_expenditures": {
           "column_a": 0.0,
-          "column_b": 0.0
+          "column_b": 3999.64
         },
         "line15_other_receipts": {
-          "column_a": 0.0,
-          "column_b": 0.0
+          "column_a": 184028.31,
+          "column_b": 15253.51
         },
         "line16_total_receipts": {
-          "column_a": 112540.0,
-          "column_b": 112540.0
+          "column_a": 1319223.7,
+          "column_b": 10237464.57
         }
       },
       "disbursements": {
         "line17_operating_expenditures": {
-          "column_a": 30158.62,
-          "column_b": 30158.62
+          "column_a": 1859432.01,
+          "column_b": 9759243.22
         },
         "line18_transfers_to_authorized": {
           "column_a": 0.0,
@@ -143,36 +143,36 @@ snapshot_kind: text
           "column_b": 0.0
         },
         "line20a_refunds_to_individuals": {
-          "column_a": 0.0,
-          "column_b": 0.0
+          "column_a": 8662.05,
+          "column_b": 123355.42
         },
         "line20b_refunds_to_party_committees": {
           "column_a": 0.0,
           "column_b": 0.0
         },
         "line20c_refunds_to_other_committees": {
-          "column_a": 0.0,
-          "column_b": 0.0
+          "column_a": 0.01,
+          "column_b": 1000.01
         },
         "line20d_total_refunds": {
-          "column_a": 0.0,
-          "column_b": 0.0
+          "column_a": 8662.06,
+          "column_b": 124355.43
         },
         "line21_other_disbursements": {
-          "column_a": 0.0,
-          "column_b": 0.0
+          "column_a": 1700.0,
+          "column_b": 152572.79
         },
         "line22_total_disbursements": {
-          "column_a": 30158.62,
-          "column_b": 30158.62
+          "column_a": 1869794.07,
+          "column_b": 10036171.44
         }
       },
       "cash_summary": {
-        "line23_cash_on_hand_beginning": 0.0,
-        "line24_total_receipts": 112540.0,
-        "line25_subtotal": 112540.0,
-        "line26_total_disbursements": 30158.62,
-        "line27_cash_on_hand_close": 82381.38
+        "line23_cash_on_hand_beginning": 1032195.07,
+        "line24_total_receipts": 1319223.7,
+        "line25_subtotal": 2351418.77,
+        "line26_total_disbursements": 1869794.07,
+        "line27_cash_on_hand_close": 481624.7
       }
     }
   }

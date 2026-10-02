@@ -1,0 +1,155 @@
+---
+source: crates/fec-parser/tests/covers.rs
+expression: "cover(\"F1N_1906351.fec\")"
+snapshot_kind: text
+---
+{
+  "form": "Form1",
+  "data": {
+    "form_type": "F1N",
+    "committee_name": "Families for James Lankford",
+    "change_of_committee_name": false,
+    "address": {
+      "street_1": "PO Box 1639",
+      "street_2": null,
+      "city": "Bethany",
+      "state": "OK",
+      "zip_code": "730081639"
+    },
+    "change_of_address": false,
+    "committee_email": "terri@jameslankford.com",
+    "change_of_committee_email": false,
+    "committee_url": "www.jameslankford.com",
+    "change_of_committee_url": false,
+    "effective_date": "2025-07-01",
+    "filer_committee_id": "C00466482",
+    "committee_type": "A",
+    "candidate": {
+      "candidate_id": "S4OK00232",
+      "name": {
+        "first_name": "James",
+        "last_name": "Lankford",
+        "middle_name": "Paul",
+        "prefix": null,
+        "suffix": null
+      },
+      "office": "S",
+      "state": "OK",
+      "district": "00"
+    },
+    "party_code": "REP",
+    "party_type": "NAT",
+    "organization_type": null,
+    "pac_flags": {
+      "lobbyist_registrant_pac_ssf": false,
+      "lobbyist_registrant_pac_nonconnected": false,
+      "leadership_pac": false,
+      "lobbyist_registrant_pac_super_pac": false,
+      "lobbyist_registrant_pac_hybrid_pac": false
+    },
+    "affiliated": {
+      "committee_id": "C00494567",
+      "committee_name": "Monday Meeting PAC",
+      "candidate_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "228 S Washington St",
+        "street_2": "Ste 115",
+        "city": "Alexandria",
+        "state": "VA",
+        "zip_code": "223145404"
+      },
+      "relationship_code": "JFR"
+    },
+    "custodian": {
+      "name": {
+        "first_name": "Terri",
+        "last_name": "Miller",
+        "middle_name": "Lynn",
+        "prefix": "Mrs.",
+        "suffix": null
+      },
+      "address": {
+        "street_1": "14520 Chambery Ct",
+        "street_2": null,
+        "city": "Yukon",
+        "state": "OK",
+        "zip_code": "730994743"
+      },
+      "title": "Custodian of Records",
+      "telephone": "4058266448"
+    },
+    "treasurer": {
+      "name": {
+        "first_name": "Terri",
+        "last_name": "Miller",
+        "middle_name": "Lynn",
+        "prefix": "Mrs.",
+        "suffix": null
+      },
+      "address": {
+        "street_1": "14520 Chambery Ct",
+        "street_2": null,
+        "city": "Yukon",
+        "state": "OK",
+        "zip_code": "730994743"
+      },
+      "title": "Treasurer",
+      "telephone": "4058266448"
+    },
+    "agent": {
+      "name": {
+        "first_name": "Terri",
+        "last_name": "Miller",
+        "middle_name": "Lynn",
+        "prefix": "Mrs.",
+        "suffix": null
+      },
+      "address": {
+        "street_1": "14520 Chambery Ct",
+        "street_2": null,
+        "city": "Yukon",
+        "state": "OK",
+        "zip_code": "730994743"
+      },
+      "title": "Custodian of Records",
+      "telephone": "4058266448"
+    },
+    "banks": [
+      {
+        "name": "MidFirst Bank",
+        "address": {
+          "street_1": "PO Box 76149",
+          "street_2": null,
+          "city": "Oklahoma City",
+          "state": "OK",
+          "zip_code": "73142"
+        }
+      },
+      {
+        "name": "MidFirst Bank",
+        "address": {
+          "street_1": "PO Box 76149",
+          "street_2": null,
+          "city": "Oklahoma City",
+          "state": "OK",
+          "zip_code": "73142"
+        }
+      }
+    ],
+    "signer": {
+      "first_name": "Terri",
+      "last_name": "Miller",
+      "middle_name": "Lynn",
+      "prefix": "Mrs.",
+      "suffix": null
+    },
+    "date_signed": "2025-07-28"
+  }
+}
