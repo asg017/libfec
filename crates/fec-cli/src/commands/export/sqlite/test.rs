@@ -155,6 +155,90 @@ mod tests {
         Ok(())
     }
 
+    /// One filing per legacy format family (fixtures shared with
+    /// fec-parser): every row is either exported or skipped with a warning,
+    /// and libfec_filings records the header style and paper batch fields.
+    #[test]
+    fn test_legacy_families() -> anyhow::Result<()> {
+        let fixtures = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../fec-parser/tests/fixtures/legacy");
+        let mut db = rusqlite::Connection::open_in_memory()?;
+        let mut tx = db.transaction()?;
+        init(&mut tx)?;
+        for name in [
+            "1.02_497.fec",
+            "2.02_10665.fec",
+            "3.00_13801.fec",
+            "5.00_102196.fec",
+            "5.3_300707.fec",
+            "6.1_342096.fec",
+            "7.0_730663.fec",
+            "P1.0_236480.fec",
+            "P2.4_391955.fec",
+            "P2.6_716051.fec",
+            "P3.2_1081726.fec",
+            "P3.4_1215766.fec",
+        ] {
+            let bytes = std::fs::read(fixtures.join(name))?;
+            let id = name
+                .trim_end_matches(".fec")
+                .rsplit('_')
+                .next()
+                .unwrap_or(name);
+            let filing = Filing::from_reader(bytes.as_slice(), id.to_owned(), bytes.len())?;
+            insert_filing_metadata(&mut tx, &filing)?;
+            export_itemizations(&mut tx, filing, None, None)?;
+        }
+        tx.commit()?;
+
+        insta::assert_snapshot!(query(
+            &db,
+            "select filing_id, fec_version, software_name, cover_record_form, \
+             cover_record_form_amendment_indicator, coverage_from_date, header_style, \
+             batch_number, received_date from libfec_filings order by rowid"
+        ));
+        let tables: Vec<String> = db
+            .prepare("select name from sqlite_master where type = 'table' order by name")?
+            .query_map([], |r| r.get(0))?
+            .collect::<Result<_, _>>()?;
+        let mut counts = String::new();
+        for table in tables {
+            let rows: Vec<(String, i64)> = db
+                .prepare(&format!(
+                    "select filing_id, count(*) from [{table}] group by 1 order by 1"
+                ))?
+                .query_map([], |r| Ok((r.get(0)?, r.get(1)?)))?
+                .collect::<Result<_, _>>()?;
+            for (filing_id, n) in rows {
+                counts.push_str(&format!("{table} {filing_id} {n}\n"));
+            }
+        }
+        insta::assert_snapshot!("legacy families row counts", counts);
+
+        // Combined `Last^First^Prefix^Suffix` names (v1–5.x) split into the
+        // 8.5 name columns; organisations in the organisation name.
+        let mut names = String::new();
+        for (table, p) in [("schedule_a", "contributor"), ("schedule_b", "payee")] {
+            names += &query(
+                &db,
+                &format!(
+                    "select '{table}' t, filing_id, entity_type, {p}_organization_name org, \
+                     {p}_last_name last, {p}_first_name first, {p}_middle_name middle, \
+                     {p}_prefix prefix, {p}_suffix suffix from ( \
+                       select *, row_number() over (partition by filing_id order by rowid) n \
+                       from libfec_{table}) where n <= 4 order by filing_id, n"
+                ),
+            );
+        }
+        names += &query(
+            &db,
+            "select filing_id, treasurer_last_name, treasurer_first_name, treasurer_prefix, \
+             treasurer_suffix from libfec_F3X order by rowid",
+        );
+        insta::assert_snapshot!("legacy families names", names);
+        Ok(())
+    }
+
     #[test]
     fn test_sqlite_docs_in_schema() {
         use super::super::{RecordTable, ALL_TABLES, LATEST_FEC_VERSION};

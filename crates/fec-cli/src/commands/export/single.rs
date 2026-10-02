@@ -8,7 +8,7 @@ use fec_parser::{
 use crate::{
     cli::{ExportArgs, ExportTarget},
     sourcer::{FilingSourcer, ItemizationProgressBar},
-    utils::rows::{all_filings_failed, remap_by_name, warn, UnmappedRows},
+    utils::rows::{all_filings_failed, legacy_name_delimiter, remap_row, warn, UnmappedRows},
 };
 
 pub enum SingleOutput {
@@ -37,7 +37,7 @@ pub fn cmd_export_single(
 ) -> anyhow::Result<()> {
     let t0 = jiff::Timestamp::now();
     // Every row is written in the 8.5 layout; rows of other versions are
-    // rearranged by column name (see `remap_by_name`).
+    // rearranged by column name, legacy combined names split (see `remap_row`).
     let columns: Vec<String> = Into::<ScheduleType>::into(target).column_names("8.5")?;
     let mut output = match output_type {
         SingleOutput::Csv => {
@@ -105,7 +105,12 @@ pub fn cmd_export_single(
                     );
                     continue;
                 };
-                let fields = remap_by_name(&columns, row_columns, &row.record);
+                let fields = remap_row(
+                    &columns,
+                    row_columns,
+                    &row.record,
+                    legacy_name_delimiter(&filing.header),
+                );
                 nrows += 1;
                 match &mut output {
                     Writer::Csv { writer } => {
@@ -128,7 +133,7 @@ pub fn cmd_export_single(
                         for (name, field) in columns.iter().zip(fields) {
                             record.insert(
                                 name.clone(),
-                                serde_json::Value::String(String::from(field)),
+                                serde_json::Value::String(field.into_owned()),
                             );
                         }
                         let value = serde_json::Value::Object(record);
