@@ -920,6 +920,7 @@ dependencies = [
  "anyhow",
  "bstr",
  "csv",
+ "csv-core",
  "fec-parser-macros",
  "indexmap",
  "insta",

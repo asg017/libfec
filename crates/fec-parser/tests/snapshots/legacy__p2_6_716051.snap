@@ -1,0 +1,141 @@
+---
+source: crates/fec-parser/tests/legacy.rs
+expression: "render(\"P2.6_716051.fec\")"
+snapshot_kind: text
+---
+FilingHeader {
+    header_record: StringRecord(["HDR", "P2.6", "ILM'S FEC SYSTEM", "3280", "20110203", ""]),
+    record_type: "HDR",
+    ef_type: "",
+    fec_version: "P2.6",
+    software_name: "ILM'S FEC SYSTEM",
+    software_version: "",
+    report_id: None,
+    report_number: None,
+    comment: None,
+    style: Paper,
+    delimiter: Fs,
+    name_delimiter: None,
+    batch_number: Some(
+        "3280",
+    ),
+    received_date: Some(
+        "20110203",
+    ),
+    legacy_fields: {},
+    schedule_counts: {},
+}
+cover: form_type="F3A" filer_id="C00230482" filer_name="GRASSLEY COMMITTEE INC." report_code=Some("30G") from=Some(2010-10-14) through=Some(2010-11-22) typed=true
+  form_type = "F3A"
+  filer_committee_id_number = "C00230482"
+  committee_name = "GRASSLEY COMMITTEE INC."
+  change_of_address = ""
+  street_1 = "PO BOX 1000"
+  street_2 = ""
+  city = "DES MOINES"
+  state = "IA"
+  zip_code = "50304"
+  election_state = "IA"
+  election_district = ""
+  report_code = "30G"
+  election_date = "20101102"
+  state_of_election = "IA"
+  coverage_from_date = "20101014"
+  coverage_through_date = "20101122"
+  treasurer_last_name = "WATSON"
+  treasurer_first_name = "DAVE"
+  treasurer_middle_name = ""
+  treasurer_prefix = ""
+  treasurer_suffix = ""
+  date_signed = "20110204"
+  col_a_total_contributions_no_loans = "   183532.48"
+  col_a_total_contributions_refunds = "     2700.00"
+  col_a_net_contributions = "   180832.48"
+  col_a_total_operating_expenditures = "  1408229.95"
+  col_a_total_offset_to_operating_expenditures = "     2894.85"
+  col_a_net_operating_expenditures = "  1405335.10"
+  col_a_cash_on_hand_close_of_period = "  1948085.38"
+  col_a_debts_to = "        0.00"
+  col_a_debts_by = "    13216.14"
+  col_a_individual_contributions_itemized = "    60503.00"
+  col_a_individual_contributions_unitemized = "    10013.11"
+  col_a_total_individual_contributions = "    70516.11"
+  col_a_political_party_contributions = "      635.61"
+  col_a_pac_contributions = "   112380.76"
+  col_a_candidate_contributions = "        0.00"
+  col_a_total_contributions = "   183532.48"
+  col_a_transfers_from_authorized = "        0.00"
+  col_a_candidate_loans = "        0.00"
+  col_a_other_loans = "        0.00"
+  col_a_total_loans = "        0.00"
+  col_a_offset_to_operating_expenditures = "     2894.85"
+  col_a_other_receipts = "      936.51"
+  col_a_total_receipts = "   187363.84"
+  col_a_operating_expenditures = "  1408229.95"
+  col_a_transfers_to_authorized = "        0.00"
+  col_a_candidate_loan_repayments = "        0.00"
+  col_a_other_loan_repayments = "        0.00"
+  col_a_total_loan_repayments = "        0.00"
+  col_a_refunds_to_individuals = "     1600.00"
+  col_a_refunds_to_party_committees = "        0.00"
+  col_a_refunds_to_other_committees = "     1100.00"
+  col_a_total_refunds = "     2700.00"
+  col_a_other_disbursements = "   286000.00"
+  col_a_total_disbursements = "  1696929.95"
+  col_b_total_contributions_no_loans = "  7057898.60"
+  col_b_total_contributions_refunds = "    64413.33"
+  col_b_net_contributions = "  6993485.27"
+  col_b_total_operating_expenditures = "  6763811.85"
+  col_b_total_offset_to_operating_expenditures = "     8529.18"
+  col_b_net_operating_expenditures = "  6755282.67"
+  col_b_individual_contributions_itemized = "  2833079.41"
+  col_b_individual_contributions_unitemized = "   704377.56"
+  col_b_total_individual_contributions = "  3537456.97"
+  col_b_political_party_contributions = "     1203.77"
+  col_b_pac_contributions = "  3519237.86"
+  col_b_candidate_contributions = "        0.00"
+  col_b_total_contributions = "  7057898.60"
+  col_b_transfers_from_authorized = "    96427.11"
+  col_b_candidate_loans = "        0.00"
+  col_b_other_loans = "        0.00"
+  col_b_total_loans = "        0.00"
+  col_b_offset_to_operating_expenditures = "     8529.18"
+  col_b_other_receipts = "   543650.57"
+  col_b_total_receipts = "  7706505.46"
+  col_b_operating_expenditures = "  6763811.85"
+  col_b_transfers_to_authorized = "        0.00"
+  col_b_candidate_loan_repayments = "        0.00"
+  col_b_other_loan_repayments = "        0.00"
+  col_b_total_loan_repayments = "        0.00"
+  col_b_refunds_to_individuals = "    39713.33"
+  col_b_refunds_to_party_committees = "        0.00"
+  col_b_refunds_to_other_committees = "    24700.00"
+  col_b_total_refunds = "    64413.33"
+  col_b_other_disbursements = "   888955.00"
+  col_b_total_disbursements = "  7717180.18"
+  col_a_cash_beginning_reporting_period = "  3457651.49"
+  col_a_total_receipts_period = "   187363.84"
+  col_a_subtotals = "  3645015.33"
+  col_a_total_disbursements_period = "  1696929.95"
+  col_a_cash_on_hand_close = "  1948085.38"
+  beginning_image_number = "11020070001"
+row "F3S" line=3 byte=1097 record=2 fields=["F3S", "C00230482", "20101103", "20101122", "      250.00", "      215.00", "      465.00", "        0.00", "        0.00", "        0.00", "      465.00", "        0.00", "        0.00", "        0.00", "        0.00", "     2894.85", "        0.00", "     3359.85", "    91613.13", "        0.00", "        0.00", "        0.00", "        0.00", "        0.00", "        0.00", "        0.00", "        0.00", "     2000.00", "    93613.13", "      465.00", "    88718.28", "11020070001"]
+row "SA11AI" line=4 byte=1492 record=3 fields=["SA11AI", "C00230482", "", "KELSON", "JEFFREY", "D", "", "", "1274 PGA DR", "", "LE MARS", "IA", "510316203", "20100507", "", "QUAD COUNTY CORN PROCESSORS", "GENERAL MANAGER", "P", "2010", "      325.00", "      100.00", "RECEIPT", "11020070002"]
+row "SA11AI" line=5 byte=1670 record=4 fields=["SA11AI", "C00230482", "", "KENT", "IRENE", "", "", "", "2507 MULBERRY AVE", "", "MUSCATINE", "IA", "527012780", "20100422", "", "SELF", "HOMEMAKER", "P", "2010", "     2400.00", "     2400.00", "RECEIPT", "11020070002"]
+row "SA11C" line=6 byte=1822 record=5 fields=["SA11C", "C00230482", "DAIRY FARMERS OF AMERICA, INC. PAC", "", "", "", "", "", "PO BOX 909700", "", "KANSAS CITY", "MO", "641909700", "20051031", "", "", "", "P", "2010", "     1000.00", "     1000.00", "RECEIPT", "11020070005"]
+row "SA11C" line=7 byte=1983 record=6 fields=["SA11C", "C00230482", "DAIRY FARMERS OF AMERICA, INC. PAC", "", "", "", "", "", "PO BOX 909700", "", "KANSAS CITY", "MO", "641909700", "20051216", "", "", "", "P", "2010", "     2000.00", "     1000.00", "RECEIPT", "11020070005"]
+row "SA11A1" line=8 byte=2144 record=7 fields=["SA11A1", "C00230482", "", "ALEXIEFF", "STEPHEN", "T", "", "", "203 COUNTRY PLACE DR", "", "LANCASTER", "PA", "176011776", "20101029", "", "N/A", "RETIRED", "G", "2010", "      205.00", "       35.00", "RECEIPT", "11020070049"]
+row "SA11A1" line=9 byte=2303 record=8 fields=["SA11A1", "C00230482", "", "ALONSO-POCH", "MANUEL", "", "", "", "3520 ROCKERMAN RD", "", "MIAMI", "FL", "331333233", "20101018", "", "A&M", "FOUNDER", "G", "2010", "      500.00", "      500.00", "RECEIPT", "11020070049"]
+row "SA11B" line=10 byte=2456 record=9 fields=["SA11B", "C00230482", "CEDAR COUNTY REPUBLICAN CENTRAL COMM", "", "", "", "", "", "1052 195TH ST", "", "TIPTON", "IA", "527729421", "20101022", "", "", "", "G", "2010", "      271.21", "      110.22", "IN-KIND NEWSPAPER AD", "11020070081"]
+row "SA11B" line=11 byte=2627 record=10 fields=["SA11B", "C00230482", "KEOKUK COUNTY REPUBLICAN CENTRAL CMTE", "", "", "", "", "", "PO BOX 231", "", "SIGOURNEY", "IA", "525910231", "20101028", "", "", "", "G", "2010", "       75.39", "       75.39", "IN-KIND NOTE: NEWSPAPER AD", "11020070081"]
+row "SA14" line=12 byte=2805 record=11 fields=["SA14", "C00230482", "", "BLEICH", "DAVID", "J", "", "", "2724 E 28TH CT", "", "DAVENPORT", "IA", "528032104", "20101122", "", "", "", "G", "2010", "     1460.76", "     1460.76", "OFFSETS TO OPERATING EXPENDITU NOTE: UNUSED TRAVEL ADVANCE", "11020070082"]
+row "SA14" line=13 byte=2993 record=12 fields=["SA14", "C00230482", "", "HORIHAN", "MATT", "", "", "", "213 BUCHANAN ST", "", "ALEXANDRIA", "VA", "223142103", "20101122", "", "", "", "G", "2010", "      305.53", "      305.53", "OFFSETS TO OPERATING EXPENDITU NOTE: UNUSED TRAVEL ADVANCE", "11020070082"]
+row "SA15" line=14 byte=3182 record=13 fields=["SA15", "C00230482", "AMES COMMUNITY BANK", "", "", "", "", "", "104 CHESTNUT", "", "AMES", "IA", "50010", "20101031", "", "", "", "G", "2010", "    25461.35", "       12.47", "OTHER RECEIPT", "11020070084"]
+row "SA15" line=15 byte=3321 record=14 fields=["SA15", "C00230482", "BANK IOWA", "", "", "", "", "", "1150 JORDAN CREEK PKWY", "", "WEST DES MOINES", "IA", "502665831", "20101027", "", "", "", "G", "2010", "    16997.20", "      165.78", "OTHER RECEIPT", "11020070084"]
+row "SB17" line=16 byte=3475 record=15 fields=["SB17", "C00230482", "DELTA AIRLINES", "", "", "", "", "", "1030 DELTA BLVD", "", "ATLANTA", "GA", "303541989", "20101027", "AIRFARE", "", "", "", "", "", "", "", "", "", "", "", "", "     1001.80", "        0.00", "[MEMO ITEM] MEMO: AIRFARE", "11020070007"]
+row "SB17" line=17 byte=3641 record=16 fields=["SB17", "C00230482", "", "BARBARA", "SAL", "", "", "", "7800 SEQUOIA LN", "", "PARKLAND", "FL", "330672322", "20101027", "PARKING", "", "", "", "", "", "", "", "", "", "", "", "", "       30.00", "        0.00", "[MEMO ITEM] MEMO: PARKING", "11020070007"]
+row "SB21" line=18 byte=3804 record=17 fields=["SB21", "C00230482", "JIM GIBBONS FOR CONGRESS", "", "", "", "", "", "PO BOX 71712", "", "CLIVE", "IA", "503250712", "20101103", "P10 DEBT CONTRIBUTION", "", "GIBBONS", "JIM", "", "", "", "", "H", "IA", "03", "O", "PRIMARY10", "     2000.00", "        0.00", "", "11020070169"]
+row "SB21" line=19 byte=3989 record=18 fields=["SB21", "C00230482", "LANGE FOR CONGRESS", "", "", "", "", "", "606 13TH AVE NE", "", "INDEPENDENCE", "IA", "506442121", "20101020", "G10 CONTRIBUTION", "", "LANGE", "BENJAMIN", "MICHAEL", "", "", "", "H", "IA", "01", "G", "2010", "     2000.00", "        0.00", "", "11020070169"]
+row "SB20C" line=20 byte=4178 record=19 fields=["SB20C", "C00230482", "TESSERA, INC. PAC", "", "", "", "", "", "3025 ORCHARD PKWY", "", "SAN JOSE", "CA", "951342017", "20101028", "REFUND OF CONTRIBUTION REFUND OF EXCESSI", "TESSERA INC PAC", "", "", "", "", "", "010", "", "", "", "G", "2010", "     1100.00", "        0.00", "", "11020070173"]
+row "SB20A" line=21 byte=4382 record=20 fields=["SB20A", "C00230482", "SAC & FOX TRIBE", "", "", "", "", "", "349 MESKWAKI RD", "", "TAMA", "IA", "523399634", "20101102", "REFUND OF CONTRIBUTION REFUND OF EXCESSI", "", "", "", "", "", "", "010", "", "", "", "G", "2010", "     1600.00", "        0.00", "", "11020070174"]
+row "SD10" line=22 byte=4563 record=21 fields=["SD10", "C00230482", "", "HOFFMAN", "MARY", "JO", "", "", "3905 SYLVIAN AVE", "", "SIOUX CITY", "IA", "511041325", "PAYROLL-ESTIMATED DUE", "    13216.14", "        0.00", "        0.00", "    13216.14", "11020070175"]

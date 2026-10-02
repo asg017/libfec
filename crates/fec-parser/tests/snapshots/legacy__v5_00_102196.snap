@@ -1,0 +1,157 @@
+---
+source: crates/fec-parser/tests/legacy.rs
+expression: "render(\"5.00_102196.fec\")"
+snapshot_kind: text
+---
+FilingHeader {
+    header_record: StringRecord(["HDR", "FEC", "5.00", "Patton Technologies LLC", "2.00", "", "FEC-85433", "1"]),
+    record_type: "HDR",
+    ef_type: "FEC",
+    fec_version: "5.00",
+    software_name: "Patton Technologies LLC",
+    software_version: "2.00",
+    report_id: Some(
+        "FEC-85433",
+    ),
+    report_number: Some(
+        "1",
+    ),
+    comment: None,
+    style: Hdr,
+    delimiter: Comma,
+    name_delimiter: None,
+    batch_number: None,
+    received_date: None,
+    legacy_fields: {},
+    schedule_counts: {},
+}
+cover: form_type="F3XA" filer_id="C00011197" filer_name="Kentucky State Democratic Central Executive Committee" report_code=Some("M5") from=Some(2003-04-01) through=Some(2003-04-30) typed=true
+  form_type = "F3XA"
+  filer_committee_id_number = "C00011197"
+  committee_name = "Kentucky State Democratic Central Executive Committee"
+  street_1 = "PO Box 694"
+  street_2 = ""
+  city = "Frankfort"
+  state = "KY"
+  zip_code = "40602"
+  change_of_address = ""
+  qualified_committee = "X"
+  report_code = "M5"
+  election_code = ""
+  date_of_election = ""
+  state_of_election = ""
+  coverage_from_date = "20030401"
+  coverage_through_date = "20030430"
+  col_a_cash_on_hand_beginning_period = "29397.80"
+  col_a_total_receipts = "16209.54"
+  col_a_subtotal = "45607.34"
+  col_a_total_disbursements = "25050.16"
+  col_a_cash_on_hand_close_of_period = "20557.18"
+  col_a_debts_to = "0.00"
+  col_a_debts_by = "33990.25"
+  col_a_individuals_itemized = "0.00"
+  col_a_individuals_unitemized = "375.00"
+  col_a_individual_contribution_total = "375.00"
+  col_a_political_party_committees = "0.00"
+  col_a_other_political_committees_pacs = "0.00"
+  col_a_total_contributions = "375.00"
+  col_a_transfers_from_aff_other_party_cmttees = "14450.19"
+  col_a_total_loans = "0.00"
+  col_a_total_loan_repayments_received = "0.00"
+  col_a_offsets_to_expenditures = "1316.01"
+  col_a_federal_refunds = "0.00"
+  col_a_other_federal_receipts = "68.34"
+  col_a_transfers_from_nonfederal_h3 = "0.00"
+  col_a_total_receipts_TODO_DUP = "16209.54"
+  col_a_total_federal_receipts = "16209.54"
+  col_a_shared_operating_expenditures_federal = "5514.21"
+  col_a_shared_operating_expenditures_nonfederal = "7722.48"
+  col_a_other_federal_operating_expenditures = "11813.47"
+  col_a_total_operating_expenditures = "25050.16"
+  col_a_transfers_to_affiliated = "0.00"
+  col_a_contributions_to_candidates = "0.00"
+  col_a_independent_expenditures = "0.00"
+  col_a_coordinated_expenditures_by_party_committees = "0.00"
+  col_a_total_loan_repayments_made = "0.00"
+  col_a_loans_made = "0.00"
+  col_a_refunds_to_individuals = "0.00"
+  col_a_refunds_to_party_committees = "0.00"
+  col_a_refunds_to_other_committees = "0.00"
+  col_a_total_refunds = "0.00"
+  col_a_other_disbursements = "0.00"
+  col_a_total_federal_disbursements = "17327.68"
+  col_a_total_contributions_refunds = "0.00"
+  col_a_net_contributions = "375.00"
+  col_a_total_federal_operating_expenditures = "17327.68"
+  col_a_total_offsets_to_expenditures = "1316.01"
+  col_a_net_operating_expenditures = "16011.67"
+  col_b_cash_on_hand_jan_1 = "13752.42"
+  col_b_year = "2003"
+  col_b_total_receipts = "128449.59"
+  col_b_subtotal = "142202.01"
+  col_b_total_disbursements = "121644.83"
+  col_b_cash_on_hand_close_of_period = "20557.18"
+  col_b_individuals_itemized = "20209.00"
+  col_b_individuals_unitemized = "0.00"
+  col_b_individual_contribution_total = "20209.00"
+  col_b_political_party_committees = "0.00"
+  col_b_other_political_committees_pacs = "18500.00"
+  col_b_total_contributions = "38709.00"
+  col_b_transfers_from_aff_other_party_cmttees = "26450.19"
+  col_b_total_loans = "31000.00"
+  col_b_total_loan_repayments_received = "0.00"
+  col_b_offsets_to_expenditures = "1392.31"
+  col_b_federal_refunds = "0.00"
+  col_b_other_federal_receipts = "6632.49"
+  col_b_transfers_from_nonfederal_h3 = "24265.60"
+  col_b_total_federal_receipts = "104183.99"
+  col_b_shared_operating_expenditures_federal = "18553.66"
+  col_b_shared_operating_expenditures_nonfederal = "30908.07"
+  col_b_other_federal_operating_expenditures = "64104.36"
+  col_b_total_operating_expenditures = "113566.09"
+  col_b_transfers_to_affiliated = "7976.75"
+  col_b_contributions_to_candidates = "0.00"
+  col_b_independent_expenditures = "0.00"
+  col_b_coordinated_expenditures_by_party_committees = "0.00"
+  col_b_total_loan_repayments_made = "0.00"
+  col_b_loans_made = "0.00"
+  col_b_refunds_to_individuals = "0.00"
+  col_b_refunds_to_party_committees = "0.00"
+  col_b_refunds_to_other_committees = "0.00"
+  col_b_total_refunds = "0.00"
+  col_b_other_disbursements = "101.99"
+  col_b_total_federal_disbursements = "90736.76"
+  col_b_total_contributions_refunds = "0.00"
+  col_b_net_contributions = "38709.00"
+  col_b_total_federal_operating_expenditures = "82658.02"
+  col_b_total_offsets_to_expenditures = "1392.31"
+  col_b_net_operating_expenditures = "81265.71"
+  treasurer_name = "David Tandy"
+  date_signed = "20031219"
+  col_a_levin_funds = "0.00"
+  col_a_total_nonfederal_transfers = "0.00"
+  col_a_federal_election_activity_federal_share = "0.00"
+  col_a_federal_election_activity_levin_share = "0.00"
+  col_a_federal_election_activity_all_federal = "0.00"
+  col_a_federal_election_activity_total = "0.00"
+  col_b_levin_funds = "0.00"
+  col_b_total_nonfederal_transfers = "24265.60"
+  col_b_federal_election_activity_federal_share = "0.00"
+  col_b_federal_election_activity_levin_share = "0.00"
+  col_b_federal_election_activity_all_federal = "0.00"
+  col_b_federal_election_activity_total = "0.00"
+row "SA12" line=3 byte=912 record=2 fields=["SA12", "C00011197", "ORG", "Democratic National Committee", "430 South Capital ST. SE.", "", "Washington", "DC", "20003", "", "", "", "", "5550.19", "20030410", "5550.19", "", "Victory Fund Transfer", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "SA12-01-05273-10478", "", "", "", ""]
+row "SA12" line=4 byte=1155 record=3 fields=["SA12", "C00011197", "COM", "ASDC", "Association of State Democratic Ch", "10771 Deborah Drive", "Potomac", "MD", "20854", "", "", "", "", "20900.00", "20030421", "8900.00", "", "ASDC  Dollars for Democrats Transfer", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "SA12-01-05281-10501", "", "", "", ""]
+row "SA15" line=5 byte=1414 record=4 fields=["SA15", "C00011197", "ORG", "Kentucky State Treasurer", "Revenue Cabinet", "", "Frankfort", "KY", "40601", "", "", "Kentucky State Treasurer", "Revenue Cabinet", "1316.01", "20030402", "1316.01", "", "Tax Refund", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "SA15-01-05298-10537", "", "", "", ""]
+row "SA17" line=6 byte=1669 record=5 fields=["SA17", "C00011197", "ORG", "Farmers Bank", "PO Box 309", "", "Frankfort", "KY", "40602", "", "", "", "", "45.07", "20030430", "0.42", "", "Interest", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "SA17-14-03379-04518", "", "", "", ""]
+row "SA17" line=7 byte=1861 record=6 fields=["SA17", "C00011197", "ORG", "Farmers Bank", "PO Box 309", "", "Frankfort", "KY", "40602", "", "", "", "", "46.40", "20030430", "1.33", "", "Interest", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "SA17-12-00481-00697", "", "", "", ""]
+row "SB21b" line=8 byte=2053 record=7 fields=["SB21b", "C00011197", "IND", "Tattrie^Richard L.^^", "350 Duncan RD", "", "Frankfort", "KY", "40601", "", "Computer / Building Services", "", "", "20030408", "412.50", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "SB21b-01-05261-10462", "", "", "", "", "", ""]
+row "SB21b" line=9 byte=2242 record=8 fields=["SB21b", "C00011197", "ORG", "ADP Inc.", "500 W Seventh St", "", "Cincinnati", "OH", "45203", "", "See Memo Entries", "", "", "20030415", "5017.55", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "SB21b-01-05279-0000", "", "", "", "", "", ""]
+row "SC/10" line=10 byte=2411 record=9 fields=["SC/10", "C00011197", "ORG", "Farmers Bank", "PO Box 309", "", "Frankfort", "KY", "40602", "", "", "31000.00", "0.00", "31000.00", "20030320", "20031123", "7", "Y", "", "", "", "", "", "", "", "SC10-000024"]
+row "SC/10" line=11 byte=2553 record=10 fields=["SC/10", "C00011197", "ORG", "Farmers Bank", "PO Box 309", "", "Frankfort", "KY", "40602", "", "", "0.00", "0.00", "0.00", "20030320", "20031123", "7", "Y", "", "", "", "", "", "", "", "SC10-000025"]
+row "SD10" line=12 byte=2687 record=11 fields=["SD10", "C00011197", "ORG", "Mrs. Joe T. Litton", "402 Breckinridge Lane", "", "Louisville", "KY", "40200", "SD10-000001", "143.75", "0.00", "0.00", "143.75", "", "", "", "", "", "", "", "", "", "", "", "", "", "SD10-000001"]
+row "SD10" line=13 byte=2851 record=12 fields=["SD10", "C00011197", "ORG", "Frank Sawell", "29 N Maysville St.", "", "Mt. Sterling", "KY", "40200", "SD10-000004", "285.50", "0.00", "0.00", "285.50", "", "", "", "", "", "", "", "", "", "", "", "", "", "SD10-000004"]
+row "H4" line=14 byte=3008 record=13 fields=["H4", "C00011197", "IND", "Tattrie^Ashley^^", "350 Duncan Road", "", "Frankfort", "KY", "40601", "Administration", "20030401", "250.00", "90.00", "160.00", "", "", "", "", "36422.20", "Building Cleaning", "", "", "", "", "", "", "", "", "", "", "", "", "", "H421a-01-05249-10435", "", "", "", "", "X", "", "", ""]
+row "H4" line=15 byte=3220 record=14 fields=["H4", "C00011197", "ORG", "Capitol Family Physicians", "PO Box 4168", "", "Frankfort", "KY", "406044168", "Administration", "20030401", "85.00", "30.60", "54.40", "", "", "", "", "36507.20", "Health Care Insurance PMT", "", "", "", "", "", "", "", "", "", "", "", "", "", "H421a-01-05250-10436", "", "", "", "", "X", "", "", ""]
+row "TEXT" line=16 byte=3447 record=15 fields=["TEXT", "H4", "H421a-01-05272-10477", "See Schedule A Line 15 of 2002 12 Day report - Refund was allocable from 9/25/2000", ""]
+row "TEXT" line=17 byte=3564 record=16 fields=["TEXT", "F3XA", "", "The Kentucky Democratic Party is in receipt of your letter of November 26 2003 regarding the committee's 2003 May Monthly report.  Memo Schedule A's that itemize the Kentucky Democratic Parties share of the gross contributions received through the joint fundraising activities from the ASDC (Association of State Democratic Chairs) are reported on the amended July Monthly Report.   -    Non-disclosure of salary or wages on Schedule B supporting Line 30(b) please note that the no employee of the committee spent more than 25% of their time during this month working on any Federal Election Activity or activities in connection with a Federal Election. Therefore salary payments were reported on Schedule B for line 21b.    -     Clarification regarding administrative expenses  all administrative expenses incurred for the period have been appropriately disclosed.  The Kentucky Democratic Party does not have any payments for rent or mortgage because the committee owns the property.    ", ""]

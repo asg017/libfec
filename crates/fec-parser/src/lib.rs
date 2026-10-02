@@ -1,11 +1,16 @@
 #![deny(clippy::unwrap_used)]
 
 pub mod covers;
+pub mod format;
 pub mod mappings;
+mod reader;
 pub mod schedules;
 
 use crate::covers::Cover;
-use csv::{ByteRecord, ByteRecordsIntoIter, StringRecord};
+use crate::format::{is_begin_text, is_end_text, is_supported_version};
+pub use crate::format::{Delimiter, HeaderStyle};
+use crate::reader::{LegacyBlock, Records, Sniffed};
+use csv::{ByteRecord, StringRecord};
 use indexmap::IndexMap;
 use jiff::civil::Date;
 use mappings::column_names_for_field;
@@ -38,14 +43,34 @@ pub enum FilingHeaderError {
     #[error("`{0}`")]
     UnsupportedVersion(String),
 }
-// fields from mappings2.json -> '^hdr$' -> '$[6-8]'
-
 /// > The first record of every electronic file that is submitted to the FEC
 /// > must be an HDR record that precedes the main body of the ASCII CSV
 /// > (comma separated values) data"
 /// > Source: FEC_Format_8.4.pdf, page 3
+///
+/// Three header styles exist (see [`HeaderStyle`]); fields a style does not
+/// carry are empty strings / `None`:
+///
+/// | field | `Hdr` (3.x–8.x) | `Paper` (P1.0–P3.4) | `LegacyBlock` (1.x/2.x) |
+/// |---|---|---|---|
+/// | `record_type` | `HDR` | `HDR` | `/*` (there is no HDR record) |
+/// | `ef_type` | `FEC` | empty | empty |
+/// | `fec_version` | trimmed | trimmed, e.g. `P3.4` | `FEC_Ver_#` |
+/// | `software_name` / `software_version` | as written | name only | `Soft_Name` / `Soft_Ver#` |
+/// | `report_id` | yes | P2.2+ | `None` |
+/// | `report_number`, `comment` | yes | `None` | `None` |
+/// | `name_delimiter` | 3.x–5.x only | `None` | `NameDelim` |
+/// | `batch_number` | `None` | yes | `None` |
+/// | `received_date` | `None` | P2.6+ | `None` |
+/// | `legacy_fields`, `schedule_counts` | empty | empty | the block's lines |
+///
+/// HDR column positions come from the `^hdr$` entry of mappings2.json for
+/// the version, so 3.x–5.x's extra `name_delim` column and paper's layouts
+/// are handled; for 6.x–8.x they are the fixed positions 0–7.
 #[derive(Debug)]
 pub struct FilingHeader {
+    /// The HDR record as read. For [`HeaderStyle::LegacyBlock`], a synthesized
+    /// record of the block's values (not the schedule counts) in file order.
     pub header_record: StringRecord,
     pub record_type: String,
     pub ef_type: String,
@@ -55,46 +80,142 @@ pub struct FilingHeader {
     pub report_id: Option<String>,
     pub report_number: Option<String>,
     pub comment: Option<String>,
+    /// How the header is written.
+    pub style: HeaderStyle,
+    /// The body's field delimiter.
+    pub delimiter: Delimiter,
+    /// Sub-delimiter of combined name fields (`Last^First^...`): the 3.x–5.x
+    /// HDR `name_delim` column or the `/*` block's `NameDelim`. `None` when
+    /// absent or empty; the spec default is `^`.
+    pub name_delimiter: Option<String>,
+    /// Paper filings: the FEC data-entry batch number.
+    pub batch_number: Option<String>,
+    /// Paper filings P2.6+: date the FEC received the paper filing.
+    pub received_date: Option<String>,
+    /// [`HeaderStyle::LegacyBlock`]: every `key = value` line before
+    /// `Schedule_Counts:`, keys as written (`FEC_Ver_#`, `Form_Name`,
+    /// `FEC_IDnum`, `Control_#`, `Dec/NoDec`, `Date_Fmat`, ...). Empty for
+    /// other styles.
+    pub legacy_fields: IndexMap<String, String>,
+    /// [`HeaderStyle::LegacyBlock`]: the `Schedule_Counts:` lines (row type →
+    /// count as written). Empty for other styles.
+    pub schedule_counts: IndexMap<String, String>,
+}
+
+/// Whether HDR field 1 is a paper version (`P3.4`) rather than `FEC`.
+fn is_paper_version_field(field: &str) -> bool {
+    let mut chars = field.trim().chars();
+    matches!(chars.next(), Some('P' | 'p')) && chars.next().is_some_and(|c| c.is_ascii_digit())
+}
+
+fn unsupported_version(fec_version: &str) -> FilingHeaderError {
+    FilingHeaderError::UnsupportedVersion(format!(
+        "Unsupported version '{fec_version}', supported versions are {}.",
+        format::SUPPORTED_VERSION_FAMILIES
+    ))
 }
 
 impl FilingHeader {
-    fn from_record(hdr: csv::StringRecord) -> Result<Self, FilingHeaderError> {
+    /// Whether this is FEC data entry of a paper filing.
+    pub fn is_paper(&self) -> bool {
+        self.style == HeaderStyle::Paper
+    }
+
+    /// Build from an `HDR` record ([`HeaderStyle::Hdr`] or
+    /// [`HeaderStyle::Paper`]).
+    fn from_record(
+        hdr: csv::StringRecord,
+        delimiter: Delimiter,
+    ) -> Result<Self, FilingHeaderError> {
         let record_type = header_get_field!(hdr, 0, "record_type");
-        let ef_type = header_get_field!(hdr, 1, "ef_type");
-        let fec_version = header_get_field!(hdr, 2, "fec_version").trim().to_owned();
-        match fec_version.as_str() {
-            "8.0" | "8.1" | "8.2" | "8.3" | "8.4" | "8.5" => (),
-            _ => {
-                return Err(FilingHeaderError::UnsupportedVersion(format!(
-                    "Unsupported version '{fec_version}', only 8.0-8.5 are currently supported."
-                )));
-            }
+        let style = match hdr.get(1) {
+            Some(f) if is_paper_version_field(f) => HeaderStyle::Paper,
+            _ => HeaderStyle::Hdr,
+        };
+        let (ef_type, fec_version) = match style {
+            HeaderStyle::Paper => (String::new(), header_get_field!(hdr, 1, "fec_version")),
+            _ => (
+                header_get_field!(hdr, 1, "ef_type"),
+                header_get_field!(hdr, 2, "fec_version"),
+            ),
+        };
+        let fec_version = fec_version.trim().to_owned();
+        if !is_supported_version(&fec_version) {
+            return Err(unsupported_version(&fec_version));
         }
-        let software_name = header_get_field!(hdr, 3, "soft_name");
-        let software_version = header_get_field!(hdr, 4, "soft_ver");
-        let report_id = hdr
-            .get(5)
-            .map(|v| String::from(v.trim()))
-            .filter(|v| !String::is_empty(v));
-        let report_number = hdr
-            .get(6)
-            .map(|v| String::from(v.trim()))
-            .filter(|v| !String::is_empty(v));
-        let comment = hdr
-            .get(7)
-            .map(|v| String::from(v.trim()))
-            .filter(|v| !String::is_empty(v));
+        let columns = column_names_for_field("hdr", &fec_version)
+            .map_err(|_| unsupported_version(&fec_version))?;
+        let idx = |name: &str| columns.iter().position(|c| c == name);
+        // Required in FS `HDR` records (6.x–8.x, as always); optional in
+        // paper and comma ones (136149, a 5.1 file, is just `HDR,FEC,5.1`).
+        let strict = style == HeaderStyle::Hdr && delimiter == Delimiter::Fs;
+        let raw = |name: &'static str| -> Result<String, FilingHeaderError> {
+            match idx(name) {
+                Some(i) if strict => Ok(header_get_field!(hdr, i, name)),
+                Some(i) => Ok(hdr.get(i).map(str::to_owned).unwrap_or_default()),
+                None => Ok(String::new()),
+            }
+        };
+        let opt = |name: &str| {
+            idx(name)
+                .and_then(|i| hdr.get(i))
+                .map(|v| String::from(v.trim()))
+                .filter(|v| !String::is_empty(v))
+        };
+        let software_name = raw("soft_name")?;
+        let software_version = raw("soft_ver")?;
 
         Ok(FilingHeader {
-            header_record: hdr,
             record_type,
             ef_type,
             fec_version,
             software_name,
             software_version,
-            report_id,
-            report_number,
-            comment,
+            report_id: opt("report_id"),
+            report_number: opt("report_number"),
+            comment: opt("comment"),
+            style,
+            delimiter,
+            name_delimiter: opt("name_delim"),
+            batch_number: opt("batch_number"),
+            received_date: opt("received_date"),
+            legacy_fields: IndexMap::new(),
+            schedule_counts: IndexMap::new(),
+            header_record: hdr,
+        })
+    }
+
+    /// Build from a `/* Header` block ([`HeaderStyle::LegacyBlock`]).
+    fn from_legacy_block(block: LegacyBlock) -> Result<Self, FilingHeaderError> {
+        let fec_version = block
+            .get("FEC_Ver_#")
+            .ok_or_else(|| {
+                FilingHeaderError::UnsupportedVersion(
+                    "`/* Header` block has no `FEC_Ver_#` line".to_owned(),
+                )
+            })?
+            .to_owned();
+        if !is_supported_version(&fec_version) {
+            return Err(unsupported_version(&fec_version));
+        }
+        let get = |key: &str| block.get(key).map(str::to_owned);
+        Ok(FilingHeader {
+            header_record: block.fields.values().map(String::as_str).collect(),
+            record_type: "/*".to_owned(),
+            ef_type: String::new(),
+            software_name: get("Soft_Name").unwrap_or_default(),
+            software_version: get("Soft_Ver#").unwrap_or_default(),
+            report_id: None,
+            report_number: None,
+            comment: None,
+            style: HeaderStyle::LegacyBlock,
+            delimiter: Delimiter::Comma,
+            name_delimiter: get("NameDelim").filter(|v| !v.is_empty()),
+            batch_number: None,
+            received_date: None,
+            fec_version,
+            legacy_fields: block.fields,
+            schedule_counts: block.schedule_counts,
         })
     }
 }
@@ -187,9 +308,11 @@ pub struct FilingCover {
 
 impl FilingCover {
     fn from_record(fec_version: &str, cover_record: StringRecord) -> Result<Self, String> {
+        // Trimmed: paper P2.3–P3.1 pads row types (`F7N     `).
         let form_type = cover_record
             .get(0)
             .ok_or_else(|| "Cover record row contains 0 fields".to_owned())?
+            .trim()
             .to_owned();
 
         let columns = column_names_for_field(form_type.as_str(), fec_version)
@@ -272,41 +395,71 @@ pub struct Filing<R: Read> {
     pub filing_id: String,
     pub header: FilingHeader,
     pub cover: FilingCover,
-    records_iter: Peekable<ByteRecordsIntoIter<R>>,
+    records_iter: Peekable<Records<R>>,
     pub source_length: usize,
 }
 
 impl<R: Read> Filing<R> {
+    /// Parse the header and cover of a filing in any supported format (see
+    /// [`mod@format`]), leaving the reader positioned at the first itemization
+    /// row.
+    ///
+    /// The format is sniffed from the first line: a `/*` line starts a
+    /// [`HeaderStyle::LegacyBlock`] header, which is consumed; otherwise the
+    /// first line is the `HDR` record, split on FS (0x1C) if it contains one
+    /// and on commas if not, and nothing is consumed ahead of the body
+    /// reader, so FS files are read exactly as they always have been.
     pub fn from_reader(rdr: R, filing_id: String, source_length: usize) -> anyhow::Result<Self> {
-        let csv_reader = csv::ReaderBuilder::new()
-            .delimiter(b"\x1c"[0])
-            .flexible(true)
-            .has_headers(false)
-            .from_reader(rdr);
+        let (prefix, source) = reader::peek_first_line(rdr)?;
+        let sniffed = reader::sniff(&prefix);
+        drop(prefix);
 
-        let mut records_iter = csv_reader.into_byte_records().peekable();
+        let (header, mut records_iter, cover_record) = match sniffed {
+            Sniffed::LegacyBlock => {
+                let mut buffered = Records::buffered(source);
+                let block = reader::read_legacy_block(&mut buffered)?;
+                let (bytes, lines) = (block.bytes, block.lines);
+                let header = FilingHeader::from_legacy_block(block)?;
+                let mut records_iter = Records::lines(buffered, bytes, lines + 1).peekable();
+                let cover_record = next_non_blank(&mut records_iter).ok_or_else(|| {
+                    anyhow::anyhow!("No cover record found after `/* Header` block")
+                })??;
+                (header, records_iter, cover_record)
+            }
+            Sniffed::Fs | Sniffed::Comma => {
+                let (delimiter, records) = match sniffed {
+                    Sniffed::Fs => (Delimiter::Fs, Records::fs(source)),
+                    _ => (
+                        Delimiter::Comma,
+                        Records::lines(Records::buffered(source), 0, 1),
+                    ),
+                };
+                let mut records_iter = records.peekable();
+                let hdr = records_iter
+                    .next()
+                    .ok_or_else(|| anyhow::anyhow!("no header record found"))??;
 
-        let hdr = records_iter
-            .next()
-            .ok_or_else(|| anyhow::anyhow!("no header record found"))??;
+                let hdr_record_type = String::from_utf8(
+                    hdr.get(0)
+                        .ok_or_else(|| anyhow::anyhow!("file missing header"))?
+                        .to_vec(),
+                )
+                .map_err(|e| anyhow::anyhow!("Invalid UTF-8 in header record type: {}", e))?;
+                if !hdr_record_type.trim().eq_ignore_ascii_case("HDR") {
+                    return Err(anyhow::anyhow!(
+                        "Incorrect header record type: {hdr_record_type}"
+                    ));
+                }
 
-        let hdr_record_type = String::from_utf8(
-            hdr.get(0)
-                .ok_or_else(|| anyhow::anyhow!("file missing header"))?
-                .to_vec(),
-        )
-        .map_err(|e| anyhow::anyhow!("Invalid UTF-8 in header record type: {}", e))?;
-        if hdr_record_type != "HDR" {
-            return Err(anyhow::anyhow!(
-                "Incorrect header record type: {hdr_record_type}"
-            ));
-        }
-
-        let hdr_record = StringRecord::from_byte_record_lossy(hdr);
-        let cover_record = records_iter
-            .next()
-            .ok_or_else(|| anyhow::anyhow!("No cover record found (2nd record missing)"))??;
-        let header = FilingHeader::from_record(hdr_record)?;
+                let hdr_record = StringRecord::from_byte_record_lossy(hdr);
+                // Some 3.00 files have an empty line between HDR and the cover.
+                let cover_record = next_non_blank(&mut records_iter).ok_or_else(|| {
+                    anyhow::anyhow!("No cover record found (2nd record missing)")
+                })??;
+                let header = FilingHeader::from_record(hdr_record, delimiter)?;
+                (header, records_iter, cover_record)
+            }
+        };
         let mut cover = FilingCover::from_record(
             &header.fec_version,
             StringRecord::from_byte_record_lossy(cover_record),
@@ -320,7 +473,7 @@ impl<R: Read> Filing<R> {
         if let Some(Cover::Form99(form)) = cover.cover_data.as_mut() {
             let next_is_text = matches!(
                 records_iter.peek(),
-                Some(Ok(r)) if r.get(0) == Some(b"[BEGINTEXT]".as_slice())
+                Some(Ok(r)) if r.get(0).is_some_and(is_begin_text)
             );
             if form.text.is_none() && next_is_text {
                 records_iter.next();
@@ -363,8 +516,9 @@ impl<R: Read> Filing<R> {
             None => return None,
         };
 
+        // Trimmed: paper P2.3–P3.1 pads row types (`SB23 `).
         let row_type = match record.get(0) {
-            Some(field) => field.to_owned(),
+            Some(field) => field.trim().to_owned(),
             None => {
                 return Some(Err(FilingRowReadError::EmptyRecord(
                     record.position().map(|p| p.line()).unwrap_or(0),
@@ -372,13 +526,13 @@ impl<R: Read> Filing<R> {
             }
         };
 
-        if row_type == "[BEGINTEXT]" {
+        if is_begin_text(row_type.as_bytes()) {
             let mut contents = String::new();
             loop {
                 match self.records_iter.next() {
                     Some(Err(e)) => return Some(Err(FilingRowReadError::TextRecordError(e))),
                     Some(Ok(record)) => match record.get(0) {
-                        Some(b"[ENDTEXT]") => match self.records_iter.next() {
+                        Some(f) if is_end_text(f) => match self.records_iter.next() {
                             Some(record) => {
                                 let record = match record {
                                     Ok(r) => r,
@@ -388,7 +542,7 @@ impl<R: Read> Filing<R> {
                                 let record = StringRecord::from_byte_record_lossy(record);
                                 let row_type = record
                                     .get(0)
-                                    .map(|s| s.to_owned())
+                                    .map(|s| s.trim().to_owned())
                                     .unwrap_or_else(|| String::from(""));
                                 return Some(Ok(FilingRow {
                                     row_type,
@@ -422,7 +576,9 @@ impl<R: Read> Filing<R> {
 
 /// Read the body of a `[BEGINTEXT]` block whose marker record has just been
 /// consumed, up to and including the `[ENDTEXT]` record (or the end of the
-/// file). Fields of a line are re-joined with the FS (`0x1C`) delimiter.
+/// file). Fields of a line are re-joined with the FS (`0x1C`) delimiter; in
+/// comma files each text line arrives as one unsplit field (see
+/// `reader::LineRecords`), so it is kept verbatim, blank lines included.
 ///
 /// The CSV reader skips blank lines, which matter in a letter. A record's
 /// reported line number is where the reader *started* looking for it, i.e.
@@ -454,7 +610,7 @@ where
         if let Some(prev) = pending.take() {
             push(&prev, Some(&record));
         }
-        if record.get(0) == Some(b"[ENDTEXT]".as_slice()) {
+        if record.get(0).is_some_and(is_end_text) {
             break;
         }
         pending = Some(record);
@@ -469,6 +625,17 @@ where
     let body = body.strip_suffix("[ENDTEXT]").unwrap_or(body);
     let body = body.trim_end().trim_start_matches(['\n', '\r']);
     (!body.trim().is_empty()).then(|| body.to_owned())
+}
+
+/// Next record that has a non-whitespace field.
+fn next_non_blank<I>(records: &mut I) -> Option<csv::Result<ByteRecord>>
+where
+    I: Iterator<Item = csv::Result<ByteRecord>>,
+{
+    records.find(|r| match r {
+        Ok(r) => r.iter().any(|f| !f.trim_ascii().is_empty()),
+        Err(_) => true,
+    })
 }
 
 #[derive(Error, Debug)]
