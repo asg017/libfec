@@ -43,3 +43,7 @@ macro_rules! cover_snapshot {
 cover_snapshot!(f1n_1910281, "F1N_1910281.fec");
 cover_snapshot!(f3n_1918805, "F3N_1918805.fec");
 cover_snapshot!(f3pn_1887806, "F3PN_1887806.fec");
+cover_snapshot!(f3n_1858438, "F3N_1858438.fec");
+cover_snapshot!(f3t_1917347, "F3T_1917347.fec");
+cover_snapshot!(f3pa_1863008, "F3PA_1863008.fec");
+cover_snapshot!(f3pn_1920459, "F3PN_1920459.fec");
