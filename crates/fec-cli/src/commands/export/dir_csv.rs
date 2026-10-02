@@ -1,4 +1,10 @@
-use std::{collections::HashMap, fs::File, path::PathBuf};
+use std::{
+    collections::{hash_map::Entry, HashMap},
+    fs::File,
+    path::PathBuf,
+};
+
+use anyhow::Context;
 
 use fec_parser::schedules::{form_type_schedule_type, ScheduleType};
 
@@ -6,6 +12,7 @@ use crate::{
     cli::ExportArgs,
     commands::export::sqlite::form_type_parse,
     sourcer::{FilingSourcer, ItemizationProgressBar},
+    utils::rows::{file_stem, remap_by_name, UnmappedRows},
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -16,87 +23,115 @@ enum ItemizationKey {
 
 struct ItemizationValue {
     writer: csv::Writer<File>,
+    /// The columns of the file's header (after `filing_id`).
+    columns: Vec<String>,
 }
 
+fn new_writer(path: PathBuf, header: &[String]) -> anyhow::Result<csv::Writer<File>> {
+    let f = File::create_new(&path)
+        .with_context(|| format!("Could not create {}", path.display()))?;
+    let mut w = csv::WriterBuilder::new()
+        .flexible(true)
+        .has_headers(true)
+        .from_writer(f);
+    w.write_record(header)?;
+    Ok(w)
+}
+
+/// One CSV per cover form and per schedule (or other row type). A file's
+/// columns are those of the first row written to it; rows of other versions
+/// are rearranged by column name, and rows with no known layout are skipped
+/// with a warning.
 pub fn export(
     mut sourcer: FilingSourcer,
     args: ExportArgs,
     output_directory: PathBuf,
 ) -> anyhow::Result<()> {
-    let mut cover_writers: std::collections::HashMap<String, ItemizationValue> = HashMap::new();
-    let mut itemization_writers: std::collections::HashMap<ItemizationKey, ItemizationValue> =
-        HashMap::new();
+    let mut cover_writers: HashMap<String, ItemizationValue> = HashMap::new();
+    let mut itemization_writers: HashMap<ItemizationKey, ItemizationValue> = HashMap::new();
     let mb = indicatif::MultiProgress::new();
+    let mut unmapped = UnmappedRows::new(Some(&mb));
     let (_trace, _input_mappings, iter) =
         sourcer.resolve_iterator_from_flags(args.filings, args.api, Some(&mb))?;
 
     for filing in iter {
         let mut filing = match filing {
             Ok(f) => f,
-            Err(_) => todo!(),
+            Err(e) => {
+                let _ = mb.println(format!("Error fetching filing, skipping: {e:?}"));
+                continue;
+            }
         };
+        let fec_version = filing.header.fec_version.clone();
 
         {
             let (form_type, _amendment_indicator) = form_type_parse(&filing.cover.form_type);
-            cover_writers
-                .entry(form_type.to_owned())
-                .or_insert_with(|| {
-                    let path = output_directory.join(format!("cover_{}.csv", form_type));
-                    let f = File::create_new(path).unwrap();
-                    let mut w = csv::WriterBuilder::new()
-                        .flexible(true)
-                        .has_headers(true)
-                        .from_writer(f);
-                    w.write_record(filing.cover.record_column_names.clone())
-                        .unwrap();
-                    ItemizationValue { writer: w }
-                })
-                .writer
-                .write_record(&filing.cover.record)
-                .unwrap();
+            let form_type = form_type.to_ascii_uppercase();
+            let entry = match cover_writers.entry(form_type.clone()) {
+                Entry::Occupied(e) => e.into_mut(),
+                Entry::Vacant(e) => {
+                    let columns = filing.cover.record_column_names.clone();
+                    let path =
+                        output_directory.join(format!("cover_{}.csv", file_stem(&form_type)));
+                    let writer = new_writer(path, &columns)?;
+                    e.insert(ItemizationValue { writer, columns })
+                }
+            };
+            let fields = remap_by_name(
+                &entry.columns,
+                &filing.cover.record_column_names,
+                &filing.cover.record,
+            );
+            entry.writer.write_record(fields)?;
         }
 
         let pb = ItemizationProgressBar::new(&mb, &filing);
         while let Some(r) = filing.next_row() {
-            let row = r?;
+            let row = match r {
+                Ok(row) => row,
+                Err(e) => {
+                    let _ = mb.println(format!(
+                        "warning: FEC-{}: skipping unreadable row: {e}",
+                        filing.filing_id
+                    ));
+                    continue;
+                }
+            };
             pb.update(&row);
+
+            let Ok(row_columns) =
+                fec_parser::mappings::column_names_for_field(&row.row_type, &fec_version)
+            else {
+                unmapped.warn(&filing.filing_id, &row.row_type, &fec_version, "skipping them");
+                continue;
+            };
 
             let key = match form_type_schedule_type(row.row_type.as_str()) {
                 Some(schedule_type) => ItemizationKey::Schedule(schedule_type),
                 None => ItemizationKey::FormType(row.row_type.as_str().to_owned()),
             };
-            let writer = &mut itemization_writers
-                .entry(key.clone())
-                .or_insert_with(|| {
-                    let path = match key.clone() {
+            let entry = match itemization_writers.entry(key) {
+                Entry::Occupied(e) => e.into_mut(),
+                Entry::Vacant(e) => {
+                    let path = match e.key() {
                         ItemizationKey::Schedule(schedule_type) => output_directory
                             .join(format!("{}.csv", schedule_type.to_sqlite_tablename())),
                         ItemizationKey::FormType(form_type) => {
-                            output_directory.join(format!("form_{}.csv", form_type))
+                            output_directory.join(format!("form_{}.csv", file_stem(form_type)))
                         }
                     };
-                    let f = File::create_new(path).unwrap();
-                    let mut w = csv::WriterBuilder::new()
-                        .flexible(true)
-                        .has_headers(true)
-                        .from_writer(f);
-                    let mut column_names = fec_parser::mappings::column_names_for_field(
-                        &row.row_type,
-                        &filing.header.fec_version,
-                    )
-                    .unwrap()
-                    .to_owned();
-                    column_names.insert(0, "filing_id".to_owned());
-                    w.write_record(column_names).expect("Writing CSV header");
-                    ItemizationValue { writer: w }
-                })
-                .writer;
+                    let columns = row_columns.clone();
+                    let mut header = columns.clone();
+                    header.insert(0, "filing_id".to_owned());
+                    let writer = new_writer(path, &header)?;
+                    e.insert(ItemizationValue { writer, columns })
+                }
+            };
 
-            writer.write_field(filing.filing_id.as_str())?;
-            for field in &row.record {
-                writer.write_field(field)?;
-            }
-            writer.write_record(None::<&[u8]>)?;
+            entry.writer.write_field(filing.filing_id.as_str())?;
+            entry
+                .writer
+                .write_record(remap_by_name(&entry.columns, row_columns, &row.record))?;
         }
     }
     Ok(())
