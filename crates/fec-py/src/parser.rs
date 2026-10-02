@@ -23,6 +23,62 @@ pub struct Header {
     pub report_number: Option<String>,
     #[pyo3(get)]
     pub comment: Option<String>,
+    /// How the header is written: `"hdr"`, `"legacy_block"` (electronic
+    /// 1.x/2.x `/* Header` block) or `"paper"`.
+    #[pyo3(get)]
+    pub style: String,
+    /// Body field delimiter: `"fs"` (0x1C) or `"comma"`.
+    #[pyo3(get)]
+    pub delimiter: String,
+    /// Sub-delimiter of combined name fields (3.x–5.x and 1.x/2.x only).
+    #[pyo3(get)]
+    pub name_delimiter: Option<String>,
+    /// Paper filings: FEC data-entry batch number.
+    #[pyo3(get)]
+    pub batch_number: Option<String>,
+    /// Paper filings P2.6+: date the FEC received the filing.
+    #[pyo3(get)]
+    pub received_date: Option<String>,
+    /// Whether this is FEC data entry of a paper filing.
+    #[pyo3(get)]
+    pub is_paper: bool,
+    legacy_fields: Vec<(String, String)>,
+    schedule_counts: Vec<(String, String)>,
+}
+
+impl From<&fec_parser::FilingHeader> for Header {
+    fn from(h: &fec_parser::FilingHeader) -> Self {
+        Header {
+            record_type: h.record_type.clone(),
+            ef_type: h.ef_type.clone(),
+            fec_version: h.fec_version.clone(),
+            software_name: h.software_name.clone(),
+            software_version: h.software_version.clone(),
+            report_id: h.report_id.clone(),
+            report_number: h.report_number.clone(),
+            comment: h.comment.clone(),
+            style: h.style.as_str().to_owned(),
+            delimiter: h.delimiter.as_str().to_owned(),
+            name_delimiter: h.name_delimiter.clone(),
+            batch_number: h.batch_number.clone(),
+            received_date: h.received_date.clone(),
+            is_paper: h.is_paper(),
+            legacy_fields: pairs(&h.legacy_fields),
+            schedule_counts: pairs(&h.schedule_counts),
+        }
+    }
+}
+
+fn pairs<'a>(m: impl IntoIterator<Item = (&'a String, &'a String)>) -> Vec<(String, String)> {
+    m.into_iter().map(|(k, v)| (k.clone(), v.clone())).collect()
+}
+
+fn pairs_to_dict<'py>(py: Python<'py>, pairs: &[(String, String)]) -> PyResult<Bound<'py, PyDict>> {
+    let dict = PyDict::new_bound(py);
+    for (k, v) in pairs {
+        dict.set_item(k, v)?;
+    }
+    Ok(dict)
 }
 
 #[pymethods]
@@ -32,6 +88,20 @@ impl Header {
             "Header(fec_version='{}', software_name='{}', software_version='{}')",
             self.fec_version, self.software_name, self.software_version
         )
+    }
+
+    /// `/* Header` block (electronic 1.x/2.x): every `key = value` line before
+    /// `Schedule_Counts:`, keys as written, in file order. Empty otherwise.
+    #[getter]
+    fn legacy_fields<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
+        pairs_to_dict(py, &self.legacy_fields)
+    }
+
+    /// `/* Header` block: the `Schedule_Counts:` lines (row type -> count as
+    /// written). Empty otherwise.
+    #[getter]
+    fn schedule_counts<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
+        pairs_to_dict(py, &self.schedule_counts)
     }
 }
 
@@ -174,17 +244,7 @@ impl Filing {
             pyo3::exceptions::PyValueError::new_err(format!("Failed to parse filing: {}", e))
         })?;
 
-        // Convert header
-        let header = Header {
-            record_type: filing.header.record_type.clone(),
-            ef_type: filing.header.ef_type.clone(),
-            fec_version: filing.header.fec_version.clone(),
-            software_name: filing.header.software_name.clone(),
-            software_version: filing.header.software_version.clone(),
-            report_id: filing.header.report_id.clone(),
-            report_number: filing.header.report_number.clone(),
-            comment: filing.header.comment.clone(),
-        };
+        let header = Header::from(&filing.header);
 
         // Convert cover
         let cover = Cover {
