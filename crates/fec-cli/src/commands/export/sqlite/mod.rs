@@ -131,6 +131,9 @@ struct RecordTable {
     current_mapping: Vec<String>,
     /// Per (row type, version): index in the row of each table column.
     legacy_field_mapping: HashMap<(String, String), Vec<Option<usize>>>,
+    /// Whether 8.5 rows may be inserted positionally: false when the table
+    /// already existed with other columns (see [`RecordTable::create_or_adopt`]).
+    positional_ok: bool,
 }
 
 const LATEST_FEC_VERSION: &str = "8.5";
@@ -173,7 +176,38 @@ impl RecordTable {
             suffix: suffix.to_owned(),
             current_mapping,
             legacy_field_mapping: HashMap::new(),
+            positional_ok: true,
         })
+    }
+
+    /// Create the table, or if it already exists (made earlier in this
+    /// export, or by a previous one) with other columns, adopt those so rows
+    /// are remapped by name into it. Different legacy versions of a
+    /// legacy-only row type (F3Z P1.0 vs P2.x) have different layouts.
+    fn create_or_adopt(&mut self, tx: &Transaction) -> anyhow::Result<()> {
+        tx.execute(&self.create_sql(), [])?;
+        let existing: Vec<(String, String)> = tx
+            .prepare("SELECT name, type FROM pragma_table_info(?)")?
+            .query_map([format!("libfec_{}", self.suffix)], |r| {
+                Ok((r.get(0)?, r.get(1)?))
+            })?
+            .collect::<Result<_, _>>()?;
+        let (names, types): (Vec<String>, Vec<String>) = existing.into_iter().skip(1).unzip();
+        if names != self.column_names {
+            self.column_types = types
+                .iter()
+                .map(|t| match t.to_ascii_lowercase().as_str() {
+                    "date" => FieldFormat::Date,
+                    "float" => FieldFormat::Float,
+                    _ => FieldFormat::Text,
+                })
+                .collect();
+            self.column_names = names.clone();
+            self.current_mapping = names;
+            self.legacy_field_mapping.clear();
+            self.positional_ok = false;
+        }
+        Ok(())
     }
     fn create_sql(&self) -> String {
         let docs = sqlite_docs::table_docs(&self.suffix.to_ascii_lowercase());
@@ -267,7 +301,7 @@ impl RecordTable {
         fec_version: &str,
     ) -> anyhow::Result<Vec<FieldValue>> {
         let mut warnings = Vec::new();
-        let mut values: Vec<FieldValue> = if fec_version == LATEST_FEC_VERSION {
+        let mut values: Vec<FieldValue> = if fec_version == LATEST_FEC_VERSION && self.positional_ok {
             record
                 .iter()
                 .enumerate()
@@ -355,12 +389,12 @@ fn prepare_schedule_statement<'a>(
     schedule_type: &ScheduleType,
     tx: &'a Transaction,
 ) -> anyhow::Result<ItemizationValue<'a>> {
-    let record_table: RecordTable = RecordTable::new(
+    let mut record_table: RecordTable = RecordTable::new(
         &row.row_type,
         schedule_type.to_sqlite_tablename().as_str(),
         fec_version,
     )?;
-    tx.execute(&record_table.create_sql(), [])?;
+    record_table.create_or_adopt(tx)?;
     let insert_statement = record_table.insert_statement(tx)?;
     Ok(ItemizationValue {
         record_table,
@@ -374,8 +408,8 @@ fn prepare_form_type_statement<'a>(
     form_type: &str,
     tx: &'a Transaction,
 ) -> anyhow::Result<ItemizationValue<'a>> {
-    let record_table: RecordTable = RecordTable::new(&row.row_type, form_type, fec_version)?;
-    tx.execute(&record_table.create_sql(), [])?;
+    let mut record_table: RecordTable = RecordTable::new(&row.row_type, form_type, fec_version)?;
+    record_table.create_or_adopt(tx)?;
     let insert_statement = record_table.insert_statement(tx)?;
     Ok(ItemizationValue {
         record_table,
@@ -539,7 +573,7 @@ fn insert_filing_metadata(tx: &mut Transaction, filing: &Filing<impl Read>) -> a
             &filing.cover.form_type, &filing.filing_id
         )
     })?;
-    tx.execute(&rt.create_sql(), [])?;
+    rt.create_or_adopt(tx)?;
     let mut stmt = rt.insert_statement(tx)?;
     rt.insert(
         &mut stmt,
