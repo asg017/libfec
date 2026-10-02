@@ -17,6 +17,7 @@ pub mod f3;
 pub mod f3l;
 pub mod f3p;
 pub mod f4;
+pub mod f7;
 mod misc_helpers;
 
 use crate::tui::{navigation_popup_help_line, HelpBar};
@@ -56,6 +57,7 @@ pub enum FilingCoverContent {
     Form3P(FilingDetailF3P),
     Form3L(Box<fec_parser::covers::Form3L>),
     Form4(Box<fec_parser::covers::Form4>),
+    Form7(Box<fec_parser::covers::Form7>),
     Unknown,
 }
 
@@ -109,6 +111,7 @@ impl<R: std::io::Read> From<&fec_parser::Filing<R>> for FilingDetail {
             Some(Cover::Form3P(form)) => FilingCoverContent::Form3P(FilingDetailF3P::from(form)),
             Some(Cover::Form3L(form)) => FilingCoverContent::Form3L(Box::new(form.clone())),
             Some(Cover::Form4(form)) => FilingCoverContent::Form4(form.clone()),
+            Some(Cover::Form7(form)) => FilingCoverContent::Form7(Box::new(form.clone())),
             None => FilingCoverContent::Unknown,
         };
 
@@ -346,6 +349,7 @@ fn render_content(f: &mut Frame, filing: &FilingDetail, state: &FilingDetailStat
         FilingCoverContent::Form3P(data) => f3p::append_f3p_content_lines(&mut lines, data),
         FilingCoverContent::Form3L(data) => f3l::append_f3l_content_lines(&mut lines, data),
         FilingCoverContent::Form4(data) => f4::append_f4_content_lines(&mut lines, data),
+        FilingCoverContent::Form7(data) => f7::append_f7_content_lines(&mut lines, data),
         FilingCoverContent::Unknown => {}
     }
 
@@ -603,5 +607,15 @@ pub(crate) mod tests {
     #[test]
     fn filing_detail_f4_narrow() {
         assert_snapshot!(render_fixture("F4N_1920068.fec", 60, 40));
+    }
+
+    #[test]
+    fn filing_detail_f7() {
+        assert_snapshot!(render_fixture("F7N_1884734.fec", 100, 50));
+    }
+
+    #[test]
+    fn filing_detail_f7_narrow() {
+        assert_snapshot!(render_fixture("F7N_1919346.fec", 60, 40));
     }
 }
