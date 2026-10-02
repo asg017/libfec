@@ -333,6 +333,41 @@ fn process_filing<R: Read>(
                     }
                     print_summary(&form.summary);
                 }
+                Cover::Form1M(form) => {
+                    if let Some(date_signed) = form.date_signed {
+                        println!(
+                            "Signed by {} on {}",
+                            form.treasurer.to_string().bold(),
+                            date_signed.to_string().bold()
+                        );
+                    }
+                    if let Some(ref a) = form.affiliation {
+                        println!(
+                            "Multicandidate status by affiliation with {} ({}), Form 1 filed {}",
+                            a.committee_name.as_deref().unwrap_or("?").bold(),
+                            a.committee_id.as_deref().unwrap_or("?"),
+                            a.date_form1_filed
+                                .map(|d| d.to_string())
+                                .unwrap_or_else(|| "?".into())
+                        );
+                    }
+                    if let Some(ref q) = form.qualification {
+                        println!(
+                            "Multicandidate status by qualification: met requirements on {} ({} candidates, 51st contributor {}, registered {})",
+                            q.requirements_met_date
+                                .map(|d| d.to_string())
+                                .unwrap_or_else(|| "?".into())
+                                .bold(),
+                            q.candidates.len(),
+                            q.fifty_first_contributor_date
+                                .map(|d| d.to_string())
+                                .unwrap_or_else(|| "?".into()),
+                            q.original_registration_date
+                                .map(|d| d.to_string())
+                                .unwrap_or_else(|| "?".into()),
+                        );
+                    }
+                }
             }
         }
 
