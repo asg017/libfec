@@ -1,0 +1,38 @@
+---
+source: crates/fec-parser/tests/legacy.rs
+expression: "render(\"5.3_300707.fec\")"
+snapshot_kind: text
+---
+FilingHeader {
+    header_record: StringRecord(["HDR", "FEC", "5.3", "FECfile", "5.3.1.2(f17)", "", "", ""]),
+    record_type: "HDR",
+    ef_type: "FEC",
+    fec_version: "5.3",
+    software_name: "FECfile",
+    software_version: "5.3.1.2(f17)",
+    report_id: None,
+    report_number: None,
+    comment: None,
+    style: Hdr,
+    delimiter: Comma,
+    name_delimiter: None,
+    batch_number: None,
+    received_date: None,
+    legacy_fields: {},
+    schedule_counts: {},
+}
+cover: form_type="F99" filer_id="C00401224" filer_name="ACTBLUE" report_code=None from=None through=None typed=true
+  form_type = "F99"
+  filer_committee_id_number = "C00401224"
+  committee_name = "ACTBLUE"
+  street_1 = "P.O. Box 382110"
+  street_2 = ""
+  city = "Cambridge"
+  state = "MA"
+  zip_code = "02238"
+  treasurer_name = "DeBergalis^Matt^^"
+  date_signed = "20070813"
+  text_code = "MST"
+f99 text: Some(
+    "Mr. Michael Hartsock\nSenrio Campaign Finance Analyst\nReports Analysis Division\nFederal Election Commission\n\nDear Mr. Hartsock:\n\nThis filing constitutes a response to your Request for Additional Information dated July 13, 2007.\n\nWe have amended our filing to address all three of the concerns raised in your request.  Specifically, we have\n\n1.  Amended our filing to provide an explanation for each earmarked contribution listed in Schedule A that does not have a cooresponding entry in Schedule B.\n\n2.  Amended Schedule H3 to correctly list the account from which a transfer was received.\n\n3.  Amended Schedule H4 to include memo entries detailing the expenses covered in the \"Reimbursement for Office Expenses\" referenced.\n\nWe hope that this amended filing fully answers your concerns.\n\nSincerely yours,\n\nMatt DeBergalis\nTreasurer",
+)
