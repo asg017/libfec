@@ -45,3 +45,6 @@ cover_snapshot!(f3n_1918805, "F3N_1918805.fec");
 cover_snapshot!(f3pn_1887806, "F3PN_1887806.fec");
 cover_snapshot!(f24n_1946204, "F24N_1946204.fec");
 cover_snapshot!(f24a_1952541, "F24A_1952541.fec");
+cover_snapshot!(f5n_1888248, "F5N_1888248.fec");
+cover_snapshot!(f5n_1914346, "F5N_1914346.fec");
+cover_snapshot!(f5a_1900837, "F5A_1900837.fec");
