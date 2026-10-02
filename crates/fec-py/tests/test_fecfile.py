@@ -381,3 +381,99 @@ class TestIntegration:
         for schedule_key in itemizations.keys():
             # Should be Schedule A related
             assert 'A' in schedule_key or 'SA' in schedule_key
+
+
+LEGACY_FIXTURES = (
+    Path(__file__).parent.parent.parent / "fec-parser" / "tests" / "fixtures" / "legacy"
+)
+
+
+def legacy_fixture(name):
+    return (LEGACY_FIXTURES / name).read_text(encoding="utf-8", errors="replace")
+
+
+class TestLegacyFormats:
+    """fecfile compat on pre-6.x electronic and paper filings"""
+
+    def test_parse_header_v5_comma(self):
+        lines = legacy_fixture("5.00_102196.fec").split("\n")
+        header, version, consumed = parse_header(lines)
+        assert version == "5.00"
+        assert consumed == 1
+        assert header["record_type"] == "HDR"
+        assert header["ef_type"] == "FEC"
+        assert header["fec_version"] == "5.00"
+        assert header["software_name"] == "Patton Technologies LLC"
+        assert header["software_version"] == "2.00"
+        assert header["report_id"] == "FEC-85433"
+        assert header["report_number"] == "1"
+        assert "name_delim" not in header  # empty in this file
+
+    def test_parse_line_v5_comma(self):
+        lines = legacy_fixture("5.00_102196.fec").split("\n")
+        _, version, consumed = parse_header(lines)
+        cover = parse_line(lines[consumed], version)
+        assert cover["form_type"] == "F3XA"
+        assert cover["filer_committee_id_number"] == "C00011197"
+        row = parse_line(lines[consumed + 1], version)
+        assert row["form_type"] == "SA12"
+        # quoted fields are unquoted, as python fecfile's csv.reader does
+        assert "Democratic National Committee" in row.values()
+
+    def test_loads_v5_comma(self):
+        parsed = loads(legacy_fixture("5.00_102196.fec"))
+        assert parsed["header"]["fec_version"] == "5.00"
+        assert parsed["filing"]["form_type"] == "F3XA"
+        assert parsed["itemizations"]["Schedule A"]
+
+    def test_parse_header_paper(self):
+        content = legacy_fixture("P3.4_1215766.fec")
+        header, version, consumed = parse_header(content.split("\n")[0])
+        assert version == "P3.4"
+        assert consumed == 1
+        assert header["record_type"] == "HDR"
+        assert header["ef_type"] == ""
+        assert header["fec_version"] == "P3.4"
+        assert header["batch_number"] == "1"
+        assert header["received_date"] == "20180322"
+
+    def test_parse_header_legacy_block_matches_fecfile(self):
+        """`/* Header` blocks: lowercased keys and values, int schedule counts"""
+        lines = legacy_fixture("2.02_10665.fec").split("\n")
+        header, version, consumed = parse_header(lines)
+        assert version == "2.02"
+        assert lines[consumed - 1].startswith("/*")
+        assert header["fec_ver_#"] == "2.02"
+        assert header["soft_name"] == "(filer's own software)"
+        assert header["form_name"] == "f3pa"
+        assert all(isinstance(v, int) for v in header["schedule_counts"].values())
+        assert parse_line(lines[consumed], version)["form_type"] == "F3PA"
+
+
+class TestLegacyParserHeader:
+    """libfec_parser.parser.Filing header exposes legacy fields"""
+
+    def test_v5_comma(self):
+        from libfec_parser.parser import Filing
+
+        h = Filing(str(LEGACY_FIXTURES / "5.00_102196.fec")).header
+        assert (h.style, h.delimiter, h.is_paper) == ("hdr", "comma", False)
+        assert h.legacy_fields == {}
+
+    def test_paper(self):
+        from libfec_parser.parser import Filing
+
+        h = Filing(str(LEGACY_FIXTURES / "P3.4_1215766.fec")).header
+        assert (h.style, h.delimiter, h.is_paper) == ("paper", "fs", True)
+        assert (h.batch_number, h.received_date) == ("1", "20180322")
+        assert h.fec_version == "P3.4"
+
+    def test_legacy_block(self):
+        from libfec_parser.parser import Filing
+
+        h = Filing(str(LEGACY_FIXTURES / "2.02_10665.fec")).header
+        assert (h.style, h.delimiter, h.record_type) == ("legacy_block", "comma", "/*")
+        assert h.name_delimiter == "^"
+        assert h.legacy_fields["FEC_VER_#"] == "2.02"
+        assert list(h.legacy_fields)[0] == "FEC_VER_#"
+        assert h.schedule_counts
