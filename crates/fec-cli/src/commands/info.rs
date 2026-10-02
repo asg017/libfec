@@ -288,6 +288,28 @@ fn process_filing<R: Read>(
                     );
                     print_summary(&form.summary);
                 }
+                Cover::Form3L(form) => {
+                    if let Some(signed) = form.date_signed {
+                        println!(
+                            "Signed by {} on {}",
+                            form.treasurer.to_string().bold(),
+                            signed.to_string().bold()
+                        );
+                    }
+                    println!(
+                        "Bundled contributions (Line 7a, this period): {}",
+                        crate::tui::filing_detail::format_usd(
+                            form.line7a_quarterly_monthly_bundled_contributions
+                        )
+                        .bold()
+                    );
+                    if let Some(semi_annual) = form.line7b_semi_annual_bundled_contributions {
+                        println!(
+                            "Bundled contributions (Line 7b, semi-annual period): {}",
+                            crate::tui::filing_detail::format_usd(semi_annual).bold()
+                        );
+                    }
+                }
             }
         }
 

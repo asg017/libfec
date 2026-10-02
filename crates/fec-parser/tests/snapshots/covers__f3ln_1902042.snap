@@ -1,0 +1,40 @@
+---
+source: crates/fec-parser/tests/covers.rs
+expression: "cover(\"F3LN_1902042.fec\")"
+snapshot_kind: text
+---
+{
+  "form": "Form3L",
+  "data": {
+    "committee_name": "Bell for Missouri",
+    "committee_id": "C00842336",
+    "address": {
+      "street_1": "PO Box 33079",
+      "street_2": null,
+      "city": "Washington",
+      "state": "DC",
+      "zip_code": "20033"
+    },
+    "change_of_address": false,
+    "election_state": "MO",
+    "election_district": "01",
+    "report_code": "Q2S",
+    "election_date": null,
+    "election_held_in_state": null,
+    "also_covers_semi_annual_period": false,
+    "coverage_from": "2025-04-01",
+    "coverage_through": "2025-06-30",
+    "semi_annual_january_june": false,
+    "semi_annual_july_december": false,
+    "line7a_quarterly_monthly_bundled_contributions": 150930.0,
+    "line7b_semi_annual_bundled_contributions": 467692.0,
+    "treasurer": {
+      "first_name": "Cassie",
+      "last_name": "Tinsmon",
+      "middle_name": null,
+      "prefix": null,
+      "suffix": null
+    },
+    "date_signed": "2025-07-15"
+  }
+}
