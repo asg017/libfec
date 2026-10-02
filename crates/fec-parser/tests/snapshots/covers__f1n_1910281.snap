@@ -6,28 +6,140 @@ snapshot_kind: text
 {
   "form": "Form1",
   "data": {
+    "form_type": "F1N",
     "committee_name": "Pete Barlow for Congress",
-    "street_1": "PO Box1017",
-    "street_2": null,
-    "city": "Harrisonburg",
-    "state": "VA",
-    "zip_code": "22803",
+    "change_of_committee_name": false,
+    "address": {
+      "street_1": "PO Box1017",
+      "street_2": null,
+      "city": "Harrisonburg",
+      "state": "VA",
+      "zip_code": "22803"
+    },
+    "change_of_address": false,
     "committee_email": "sonya@pbccompliance.org",
+    "change_of_committee_email": false,
     "committee_url": null,
+    "change_of_committee_url": false,
     "effective_date": "2025-08-05",
-    "date_signed": "2025-08-05",
+    "filer_committee_id": "C00914911",
     "committee_type": "A",
-    "candidate": null,
+    "candidate": {
+      "candidate_id": null,
+      "name": {
+        "first_name": "Pete",
+        "last_name": "Barlow",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": "H",
+      "state": "VA",
+      "district": "06"
+    },
     "party_code": "DEM",
     "party_type": null,
     "organization_type": null,
-    "leadership_pac": null,
+    "pac_flags": {
+      "lobbyist_registrant_pac_ssf": false,
+      "lobbyist_registrant_pac_nonconnected": false,
+      "leadership_pac": false,
+      "lobbyist_registrant_pac_super_pac": false,
+      "lobbyist_registrant_pac_hybrid_pac": false
+    },
+    "affiliated": {
+      "committee_id": null,
+      "committee_name": "NONE",
+      "candidate_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": null,
+        "street_2": null,
+        "city": null,
+        "state": null,
+        "zip_code": null
+      },
+      "relationship_code": null
+    },
+    "custodian": {
+      "name": {
+        "first_name": "Sonya",
+        "last_name": "McGrady",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "PO Box 1017",
+        "street_2": null,
+        "city": "Harrisonburg",
+        "state": "VA",
+        "zip_code": "22803"
+      },
+      "title": "Treasurer",
+      "telephone": null
+    },
     "treasurer": {
+      "name": {
+        "first_name": "Sonya",
+        "last_name": "McGrady",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "PO Box 1017",
+        "street_2": null,
+        "city": "Harrisonburg",
+        "state": "VA",
+        "zip_code": "22803"
+      },
+      "title": "Treasurer",
+      "telephone": null
+    },
+    "agent": {
+      "name": {
+        "first_name": "Jayne",
+        "last_name": "Docherty",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "PO Box 1017",
+        "street_2": null,
+        "city": "Harrisonburg",
+        "state": "VA",
+        "zip_code": "22803"
+      },
+      "title": "Chair",
+      "telephone": null
+    },
+    "banks": [
+      {
+        "name": "Truist Bank",
+        "address": {
+          "street_1": "214 N Tryon Street",
+          "street_2": null,
+          "city": "Charlotte",
+          "state": "NC",
+          "zip_code": "28202"
+        }
+      }
+    ],
+    "signer": {
       "first_name": "Sonya",
       "last_name": "McGrady",
       "middle_name": null,
       "prefix": null,
       "suffix": null
-    }
+    },
+    "date_signed": "2025-08-05"
   }
 }

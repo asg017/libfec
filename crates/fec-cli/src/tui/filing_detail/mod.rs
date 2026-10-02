@@ -1,8 +1,9 @@
 //! Filing Detail TUI Component
 //!
 //! This module provides rendering functions for displaying detailed FEC filing information
-//! within a ratatui application. It supports form-specific cover UIs for F1, F3, and F3P
-//! while sharing common chrome (title, URL, metadata, help bar, yank popup, key handling).
+//! within a ratatui application. Each typed cover (F1, F3 and F3P) has its own renderer
+//! module, all built on the shared line builders in [`layout`], around common chrome
+//! (title, URL, metadata, help bar, yank popup, key handling).
 //!
 //! Keyboard shortcuts:
 //! - Esc/q: Return to previous view
@@ -15,10 +16,10 @@
 pub mod f1;
 pub mod f3;
 pub mod f3p;
+mod layout;
 
 use crate::tui::{navigation_popup_help_line, HelpBar};
 use crossterm::event::{KeyCode, KeyEvent};
-use f1::FilingDetailF1;
 use f3::FilingDetailF3;
 use f3p::FilingDetailF3P;
 use fec_parser::{covers::Cover, report_code_label};
@@ -47,10 +48,12 @@ pub enum FilingDetailAction {
     OpenWebsite { url: String },
 }
 
+/// The typed cover of a filing, one variant per form with a renderer.
 pub enum FilingCoverContent {
-    Form1(Box<FilingDetailF1>),
+    Form1(Box<fec_parser::covers::Form1>),
     Form3(FilingDetailF3),
     Form3P(FilingDetailF3P),
+    /// No typed cover (an unsupported form type or an unparsable cover).
     Unknown,
 }
 
@@ -92,28 +95,18 @@ impl FilingDetail {
 
 impl<R: std::io::Read> From<&fec_parser::Filing<R>> for FilingDetail {
     fn from(filing: &fec_parser::Filing<R>) -> Self {
-        let (treasurer, signed_date, cover_content) =
-            if let Some(ref cover) = filing.cover.cover_data {
-                match cover {
-                    Cover::Form1(form) => (
-                        Some(form.treasurer.to_string()),
-                        form.date_signed.map(|d| d.to_string()),
-                        FilingCoverContent::Form1(Box::new(FilingDetailF1::from(form))),
-                    ),
-                    Cover::Form3(form) => (
-                        Some(form.treasurer.to_string()),
-                        Some(form.signed.to_string()),
-                        FilingCoverContent::Form3(FilingDetailF3::from(form)),
-                    ),
-                    Cover::Form3P(form) => (
-                        Some(form.treasurer.to_string()),
-                        Some(form.signed.to_string()),
-                        FilingCoverContent::Form3P(FilingDetailF3P::from(form)),
-                    ),
-                }
-            } else {
-                (None, None, FilingCoverContent::Unknown)
-            };
+        let cover = filing.cover.cover_data.as_ref();
+        let treasurer = cover
+            .and_then(|c| c.signer())
+            .map(|p| p.to_string())
+            .filter(|s| !s.is_empty());
+        let signed_date = cover.and_then(|c| c.date_signed()).map(|d| d.to_string());
+        let cover_content = match cover {
+            Some(Cover::Form1(form)) => FilingCoverContent::Form1(Box::new(form.clone())),
+            Some(Cover::Form3(form)) => FilingCoverContent::Form3(FilingDetailF3::from(form)),
+            Some(Cover::Form3P(form)) => FilingCoverContent::Form3P(FilingDetailF3P::from(form)),
+            None => FilingCoverContent::Unknown,
+        };
 
         FilingDetail {
             filing_id: filing.filing_id.clone(),
@@ -357,10 +350,11 @@ fn render_content(f: &mut Frame, filing: &FilingDetail, state: &FilingDetailStat
     }
 
     // Form-specific content
+    let mut d = layout::Doc::new(&mut lines, area.width);
     match &filing.cover_content {
-        FilingCoverContent::Form1(data) => f1::append_f1_content_lines(&mut lines, data),
-        FilingCoverContent::Form3(data) => f3::append_f3_content_lines(&mut lines, data),
-        FilingCoverContent::Form3P(data) => f3p::append_f3p_content_lines(&mut lines, data),
+        FilingCoverContent::Form1(form) => f1::append_f1_content_lines(&mut d, form),
+        FilingCoverContent::Form3(data) => f3::append_f3_content_lines(&mut d, data),
+        FilingCoverContent::Form3P(data) => f3p::append_f3p_content_lines(&mut d, data),
         FilingCoverContent::Unknown => {}
     }
 
@@ -548,8 +542,42 @@ fn render_yank_popup(f: &mut Frame, area: Rect, filing: &FilingDetail, state: &F
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
+    use insta::assert_snapshot;
+    use ratatui::{backend::TestBackend, Terminal};
+
+    /// Build a [`FilingDetail`] from a cover fixture shared with `fec-parser`'s
+    /// tests (`crates/fec-parser/tests/fixtures/covers/{name}`): a real filing
+    /// truncated to its HDR and cover records.
+    pub(crate) fn detail_from_fixture(name: &str) -> FilingDetail {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../fec-parser/tests/fixtures/covers")
+            .join(name);
+        // Fixture names are `{FORM_TYPE}_{FILING_ID}.fec`; use the real filing id.
+        let filing_id = name
+            .trim_end_matches(".fec")
+            .rsplit('_')
+            .next()
+            .unwrap()
+            .to_string();
+        let file = std::fs::File::open(&path).unwrap_or_else(|e| panic!("{name}: {e}"));
+        let len = file.metadata().unwrap().len() as usize;
+        let filing = fec_parser::Filing::from_reader(file, filing_id, len)
+            .unwrap_or_else(|e| panic!("parsing {name}: {e}"));
+        FilingDetail::from(&filing)
+    }
+
+    /// Render the full filing detail view for a fixture at `width` x `height`.
+    pub(crate) fn render_fixture(name: &str, width: u16, height: u16) -> String {
+        let detail = detail_from_fixture(name);
+        let state = FilingDetailState::new();
+        let mut terminal = Terminal::new(TestBackend::new(width, height)).unwrap();
+        terminal
+            .draw(|f| render_filing_detail(f, f.area(), &detail, &state))
+            .unwrap();
+        terminal.backend().to_string()
+    }
 
     #[test]
     fn format_usd_signs() {
@@ -558,5 +586,45 @@ mod tests {
         assert_eq!(format_usd(-0.5), "-$0.50");
         assert_eq!(format_usd(0.0), "$0.00");
         assert_eq!(format_usd(-0.001), "$0.00");
+    }
+
+    #[test]
+    fn filing_detail_f1() {
+        assert_snapshot!(render_fixture("F1N_1910281.fec", 100, 50));
+    }
+
+    #[test]
+    fn filing_detail_f3() {
+        assert_snapshot!(render_fixture("F3N_1918805.fec", 100, 50));
+    }
+
+    #[test]
+    fn filing_detail_f3p() {
+        assert_snapshot!(render_fixture("F3PN_1887806.fec", 100, 50));
+    }
+
+    #[test]
+    fn filing_detail_f1_40_cols() {
+        assert_snapshot!(render_fixture("F1A_1914988.fec", 40, 80));
+    }
+
+    #[test]
+    fn filing_detail_f3_narrow() {
+        assert_snapshot!(render_fixture("F3N_1918805.fec", 60, 40));
+    }
+
+    #[test]
+    fn filing_detail_f3_post_general() {
+        assert_snapshot!(render_fixture("F3N_1858438.fec", 100, 90));
+    }
+
+    #[test]
+    fn filing_detail_f3p_narrow() {
+        assert_snapshot!(render_fixture("F3PN_1887806.fec", 60, 40));
+    }
+
+    #[test]
+    fn filing_detail_f3p_state_allocations() {
+        assert_snapshot!(render_fixture("F3PN_1920459.fec", 100, 130));
     }
 }
