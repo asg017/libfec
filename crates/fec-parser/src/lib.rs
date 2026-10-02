@@ -9,6 +9,7 @@ use csv::{ByteRecord, ByteRecordsIntoIter, StringRecord};
 use indexmap::IndexMap;
 use jiff::civil::Date;
 use mappings::column_names_for_field;
+use std::iter::Peekable;
 use std::{fs, io::Read, path::Path};
 use thiserror::Error;
 
@@ -271,7 +272,7 @@ pub struct Filing<R: Read> {
     pub filing_id: String,
     pub header: FilingHeader,
     pub cover: FilingCover,
-    records_iter: ByteRecordsIntoIter<R>,
+    records_iter: Peekable<ByteRecordsIntoIter<R>>,
     pub source_length: usize,
 }
 
@@ -289,7 +290,7 @@ impl<R: Read> Filing<R> {
             .quoting(false)
             .from_reader(rdr);
 
-        let mut records_iter = csv_reader.into_byte_records();
+        let mut records_iter = csv_reader.into_byte_records().peekable();
 
         let hdr = records_iter
             .next()
@@ -312,8 +313,23 @@ impl<R: Read> Filing<R> {
             .next()
             .ok_or_else(|| anyhow::anyhow!("No cover record found (2nd record missing)"))??;
         let header = FilingHeader::from_record(hdr_record)?;
-        let cover = FilingCover::from_record(&header.fec_version, unquote_record(cover_record))
+        let mut cover = FilingCover::from_record(&header.fec_version, unquote_record(cover_record))
             .map_err(|e| anyhow::anyhow!("Error parsing cover record: {}", e))?;
+
+        // An F99's message body is not part of its cover record: it is the
+        // `[BEGINTEXT]` ... `[ENDTEXT]` block on the lines right after it (FEC
+        // format workbook v8.4, sheet F99). Read it now so the typed cover
+        // carries it; see `covers::Form99::text`.
+        if let Some(Cover::Form99(form)) = cover.cover_data.as_mut() {
+            let next_is_text = matches!(
+                records_iter.peek(),
+                Some(Ok(r)) if r.get(0) == Some(b"[BEGINTEXT]".as_slice())
+            );
+            if form.text.is_none() && next_is_text {
+                records_iter.next();
+                form.text = read_text_block(&mut records_iter);
+            }
+        }
 
         Ok(Self {
             filing_id: filing_id
@@ -409,6 +425,57 @@ impl<R: Read> Filing<R> {
             byte_offset,
         }))
     }
+}
+
+/// Read the body of a `[BEGINTEXT]` block whose marker record has just been
+/// consumed, up to and including the `[ENDTEXT]` record (or the end of the
+/// file). Fields of a line are re-joined with the FS (`0x1C`) delimiter.
+///
+/// The CSV reader skips blank lines, which matter in a letter. A record's
+/// reported line number is where the reader *started* looking for it, i.e.
+/// it includes the blank lines skipped before it, so the gap between one
+/// record's line and the next one's tells how many blank lines preceded the
+/// first. Returns `None` for an empty body.
+fn read_text_block<I>(records: &mut I) -> Option<String>
+where
+    I: Iterator<Item = csv::Result<ByteRecord>>,
+{
+    let line_of = |r: &ByteRecord| r.position().map(|p| p.line());
+    let lines_in = |r: &ByteRecord| 1 + r.as_slice().iter().filter(|b| **b == b'\n').count() as u64;
+    let mut body = String::new();
+    let mut push = |record: &ByteRecord, next: Option<&ByteRecord>| {
+        if let (Some(start), Some(next_start)) = (line_of(record), next.and_then(line_of)) {
+            let blanks = next_start.saturating_sub(start + lines_in(record));
+            for _ in 0..blanks {
+                body.push('\n');
+            }
+        }
+        let fields: Vec<&[u8]> = record.iter().collect();
+        body.push_str(&String::from_utf8_lossy(&fields.join(&b'\x1c')));
+        body.push('\n');
+    };
+
+    let mut pending: Option<ByteRecord> = None;
+    for record in records.by_ref() {
+        let Ok(record) = record else { break };
+        if let Some(prev) = pending.take() {
+            push(&prev, Some(&record));
+        }
+        if record.get(0) == Some(b"[ENDTEXT]".as_slice()) {
+            break;
+        }
+        pending = Some(record);
+    }
+    if let Some(prev) = pending {
+        push(&prev, None);
+    }
+
+    // A stray quote can make the reader swallow the closing marker into a
+    // field; drop it if so.
+    let body = body.trim_end();
+    let body = body.strip_suffix("[ENDTEXT]").unwrap_or(body);
+    let body = body.trim_end().trim_start_matches(['\n', '\r']);
+    (!body.trim().is_empty()).then(|| body.to_owned())
 }
 
 #[derive(Error, Debug)]

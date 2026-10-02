@@ -1,0 +1,32 @@
+---
+source: crates/fec-parser/tests/covers.rs
+expression: "cover(\"F99_1909934.fec\")"
+snapshot_kind: text
+---
+{
+  "form": "Form99",
+  "data": {
+    "form_type": "F99",
+    "filer_committee_id": "C00880856",
+    "committee_name": "ARIZONA MOVEMENT LABS",
+    "address": {
+      "street_1": "1110 N VIRGIL AVE",
+      "street_2": "#375",
+      "city": "LOS ANGELES",
+      "state": "CA",
+      "zip_code": "90029"
+    },
+    "treasurer": {
+      "first_name": "Howie",
+      "last_name": "Stanger",
+      "middle_name": null,
+      "prefix": null,
+      "suffix": null
+    },
+    "date_signed": "2025-08-01",
+    "text_code": null,
+    "filing_frequency": null,
+    "pdf_attachment": false,
+    "text": "To Whom It May Concern: \n \nA late notification for the Mid-Year FEC report was sent to the email address on this committee's Form 1 today, August 1, 2025. \n \nThe committee filed a termination report on March 5, 2025, and received a termination approval from the commission on March 10, 2025. \n \nWe kindly request that the commission's records be updated to reflect that this committee has been terminated. \n \nSincerely, \n \nHowie Stanger \nTreasurer"
+  }
+}
