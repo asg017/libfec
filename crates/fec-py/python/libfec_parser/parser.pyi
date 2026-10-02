@@ -5,7 +5,7 @@ checked against the built extension by `python -m mypy.stubtest` — see
 `crates/fec-py/Makefile`'s `stubs` target.  The implementation is `src/parser.rs`.
 """
 
-from typing import Protocol, final
+from typing import Literal, Protocol, final
 
 __all__ = ["Cover", "Filing", "Header", "Itemization", "fec_header"]
 
@@ -34,6 +34,30 @@ class Header:
     def report_number(self) -> str | None: ...
     @property
     def comment(self) -> str | None: ...
+    @property
+    def style(self) -> Literal["hdr", "legacy_block", "paper"]:
+        """How the header is written: an `HDR` record, a 1.x/2.x `/* Header` block, or paper."""
+    @property
+    def delimiter(self) -> Literal["fs", "comma"]:
+        """Body field delimiter: `"fs"` (0x1C) or `"comma"`."""
+    @property
+    def name_delimiter(self) -> str | None:
+        """Sub-delimiter of combined name fields (3.x-5.x and 1.x/2.x only)."""
+    @property
+    def batch_number(self) -> str | None:
+        """Paper filings: FEC data-entry batch number."""
+    @property
+    def received_date(self) -> str | None:
+        """Paper filings P2.6+: date the FEC received the filing."""
+    @property
+    def is_paper(self) -> bool:
+        """Whether this is FEC data entry of a paper filing."""
+    @property
+    def legacy_fields(self) -> dict[str, str]:
+        """`/* Header` block (1.x/2.x): every `key = value` line, in file order; empty otherwise."""
+    @property
+    def schedule_counts(self) -> dict[str, str]:
+        """`/* Header` block: the `Schedule_Counts:` lines; empty otherwise."""
     def __repr__(self) -> str: ...
 
 @final

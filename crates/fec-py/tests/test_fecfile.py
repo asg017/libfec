@@ -4,6 +4,7 @@ Tests for libfec_parser.fecfile module
 import io
 import urllib.error
 import urllib.request
+from pathlib import Path
 
 import pytest
 from libfec_parser.fecfile import (
