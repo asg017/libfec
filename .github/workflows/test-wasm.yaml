@@ -14,8 +14,11 @@ jobs:
       - run: rustup toolchain install stable --profile minimal
       - run: rustup target add wasm32-unknown-unknown
       - uses: Swatinem/rust-cache@v2
+      # The CLI's schema version must match the wasm-bindgen crate in Cargo.lock exactly.
       - name: Install wasm-bindgen-cli
-        run: cargo install wasm-bindgen-cli
+        run: |
+          version=$(awk '/^name = "wasm-bindgen"$/{getline; gsub(/"/,"",$3); print $3}' Cargo.lock)
+          cargo install wasm-bindgen-cli --locked --version "$version"
       - name: Build WASM package
         run: make build
         working-directory: crates/fec-wasm
