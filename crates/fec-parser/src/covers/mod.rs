@@ -133,6 +133,19 @@ impl Cover {
         }
     }
 
+    /// The filer's name when the cover's generic filer-name column can be
+    /// blank: an individual (not an organization) filing Form 5 or Form 9
+    /// leaves `organization_name` empty and gives a personal name instead.
+    /// `None` for every other form.
+    pub fn filer_name(&self) -> Option<String> {
+        match self {
+            Cover::Form5(f) => Some(f.filer_name()),
+            Cover::Form9(f) => Some(f.filer_name()),
+            _ => None,
+        }
+        .filter(|s| !s.trim().is_empty())
+    }
+
     /// The date the filing was signed, if the form records one.
     pub fn date_signed(&self) -> Option<jiff::civil::Date> {
         match self {

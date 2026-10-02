@@ -240,6 +240,11 @@ impl FilingCover {
             .ok_or_else(|| "Cover record missing filer name field".to_owned())?
             .to_owned();
         let cover_data = covers::cover_from_form_type(&form_type, &cover_record_kv);
+        // Individuals filing F5/F9 leave the organization-name column blank.
+        let filer_name = match cover_data.as_ref().and_then(|c| c.filer_name()) {
+            Some(name) if filer_name.trim().is_empty() => name,
+            _ => filer_name,
+        };
         Ok(Self {
             record: cover_record,
             record_column_names: columns.to_owned(),
