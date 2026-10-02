@@ -147,6 +147,16 @@ HOLDER / "Unused field" in every version a key covers are named
 | SF | `^5.3` / `^5.2…` | 35 `unused_36` / `amended_cd` |
 | SL | `^5.3…5.0` | 39 `amended_cd` (label "AMENDED CODE") |
 
+## 2b. Cover layouts found by value checks (ticket legacy/04)
+
+Found by comparing typed cover values to the raw records over the samples
+(see `wiki/legacy/COVERS.md`). No 8.x list changed.
+
+| form | change | source |
+|---|---|---|
+| `^f1[an]` | `^6.3\|6.2\|6.1` (99 cols, the 6.4–8.3 list) split into `^6.3` (unchanged), `^6.2` (90) and `^6.1` (89). Before, every 6.1/6.2 F1 after field 10 was shifted (custodian name in `effective_date`, committee type in `date_signed`, …). | FEC_Format_v6.1.xls F1 seq 1–89 (COMMITTEE EMAIL, WEB URL, FAX at 11–13, no change-of flags; custodian before treasurer; affiliated block at 57–65 with RELATIONSHIP text + ORGANIZATION TYPE). FEC_Format_v6.2.xls F1 seq 1–90 (5(e) ORGANIZATION TYPE, 5(f) LEADERSHIP PAC at 33–34; affiliated block 35–42 before custodian); the sheet's two stray rows numbered 64/65 between seq 41 and 42 are 6.1 leftovers and were skipped. FEC_Format_v6.3.xls F1 lists 100 rows but two are numbered 13 (a stale FAX row): the real layout is the 99-field 6.4 one. Samples: electronic/337691.fec (6.1, 89 fields), 357167.fec (6.2, 90), 6.3 files 99. New names reuse existing ones: FAX → `committee_fax_number`, 6.1 RELATIONSHIP → `affiliated_relationship_code`, 6.1 "6. ORGANIZATION TYPE" → `organization_type` (the v5 list's names for the same fields). |
+| `(^f3x$)\|(^f3x[ant])` paper `^P1\|^P2\|^P3.0\|^P3.1` and `^P3.2\|^P3.3\|^P3.4` | swapped `col_b_cash_on_hand_jan_1` / `col_b_year` (Line 6(a)). | 106 of the 107 paper F3X samples with a value there have a 4-digit year first and the amount second (the other, paper/1147759.fec, has `990`, `990.00`: a keying error) (e.g. paper/265165.fec P2.2 `2006`, `10961`; 1215766.fec P3.4 `2017`, `32.00`); the paper form prints "Cash on Hand January 1, 20__" with the year before the amount. No paper workbook exists. |
+
 ## 3. Version-regex hardening (proc macro, JSON keys unchanged)
 
 The JSON version keys keep their original text. `gen_form_type_version_set!`

@@ -1,0 +1,126 @@
+---
+source: crates/fec-parser/tests/covers.rs
+expression: "cover(\"F1N_337691.fec\")"
+snapshot_kind: text
+---
+{
+  "form": "Form1",
+  "data": {
+    "form_type": "F1N",
+    "committee_name": "Hargadon for U S Congress",
+    "change_of_committee_name": true,
+    "address": {
+      "street_1": "3618 Granite Rd",
+      "street_2": null,
+      "city": "Woodstock",
+      "state": "MD",
+      "zip_code": "21163"
+    },
+    "change_of_address": false,
+    "committee_email": "mike@hargadonforuscongress.com",
+    "change_of_committee_email": false,
+    "committee_url": "http://hargadonforuscongress.com",
+    "change_of_committee_url": false,
+    "effective_date": "2008-05-07",
+    "filer_committee_id": "C00447755",
+    "committee_type": "A",
+    "candidate": {
+      "candidate_id": null,
+      "name": {
+        "first_name": "Michael",
+        "last_name": "Hargadon",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": "H",
+      "state": "MD",
+      "district": "07"
+    },
+    "party_code": "REP",
+    "party_type": "NAT",
+    "organization_type": null,
+    "pac_flags": {
+      "lobbyist_registrant_pac_ssf": false,
+      "lobbyist_registrant_pac_nonconnected": false,
+      "leadership_pac": false,
+      "lobbyist_registrant_pac_super_pac": false,
+      "lobbyist_registrant_pac_hybrid_pac": false
+    },
+    "affiliated": null,
+    "custodian": {
+      "name": {
+        "first_name": "William",
+        "last_name": "Knell",
+        "middle_name": "Richard",
+        "prefix": "Mr.",
+        "suffix": null
+      },
+      "address": {
+        "street_1": "1707 Underwood Road",
+        "street_2": null,
+        "city": "Sykesville",
+        "state": "MD",
+        "zip_code": "21784"
+      },
+      "title": "TREASURER",
+      "telephone": "4104422632"
+    },
+    "treasurer": {
+      "name": {
+        "first_name": "William",
+        "last_name": "Knell",
+        "middle_name": "Richard",
+        "prefix": "Mr.",
+        "suffix": null
+      },
+      "address": {
+        "street_1": "1707 Underwood Road",
+        "street_2": null,
+        "city": "Sykesville",
+        "state": "MD",
+        "zip_code": "21784"
+      },
+      "title": "Treasurer",
+      "telephone": "4104422632"
+    },
+    "agent": {
+      "name": {
+        "first_name": "John",
+        "last_name": "Orlando",
+        "middle_name": "Crisci",
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "PO Box 3248",
+        "street_2": null,
+        "city": "Catonsville",
+        "state": "MD",
+        "zip_code": "21228"
+      },
+      "title": "Assistant Treasurer",
+      "telephone": "4438018840"
+    },
+    "banks": [
+      {
+        "name": "Susquehanna Bank",
+        "address": {
+          "street_1": "59 West Washington St",
+          "street_2": null,
+          "city": "Hagerstown",
+          "state": "MD",
+          "zip_code": "217410919"
+        }
+      }
+    ],
+    "signer": {
+      "first_name": "William",
+      "last_name": "Knell",
+      "middle_name": "Richard",
+      "prefix": "Mr.",
+      "suffix": null
+    },
+    "date_signed": "2008-05-07"
+  }
+}
