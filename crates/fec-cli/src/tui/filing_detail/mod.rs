@@ -653,12 +653,17 @@ pub(crate) mod tests {
 
     /// Build a [`FilingDetail`] from a cover fixture shared with `fec-parser`'s
     /// tests (`crates/fec-parser/tests/fixtures/covers/{name}`): a real filing
-    /// truncated to its HDR and cover records.
+    /// truncated to its HDR and cover records. `legacy/{name}` names one of
+    /// the legacy-format fixtures instead.
     pub(crate) fn detail_from_fixture(name: &str) -> FilingDetail {
-        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../fec-parser/tests/fixtures/covers")
-            .join(name);
-        // Fixture names are `{FORM_TYPE}_{FILING_ID}.fec`; use the real filing id.
+        let fixtures =
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../fec-parser/tests/fixtures");
+        let path = match name.strip_prefix("legacy/") {
+            Some(legacy) => fixtures.join("legacy").join(legacy),
+            None => fixtures.join("covers").join(name),
+        };
+        // Fixture names are `{FORM_TYPE or VERSION}_{FILING_ID}.fec`; use the
+        // real filing id.
         let filing_id = name
             .trim_end_matches(".fec")
             .rsplit('_')
@@ -690,6 +695,29 @@ pub(crate) mod tests {
         assert_eq!(format_usd(-0.5), "-$0.50");
         assert_eq!(format_usd(0.0), "$0.00");
         assert_eq!(format_usd(-0.001), "$0.00");
+    }
+
+    /// The header metadata sits below the (long) F3 summary, so render tall
+    /// and check the relevant lines rather than snapshot the whole page.
+    #[test]
+    fn filing_detail_paper_badge() {
+        let out = render_fixture("legacy/P2.6_716051.fec", 100, 200);
+        assert!(out.contains("Version: vP2.6 [paper]"), "{out}");
+        assert!(out.contains("Batch: 3280  Received: 2011-02-03"), "{out}");
+    }
+
+    #[test]
+    fn filing_detail_legacy_block_badge() {
+        let out = render_fixture("legacy/1.02_497.fec", 100, 200);
+        assert!(out.contains("Version: v1.02 [legacy /* header]"), "{out}");
+        assert!(!out.contains("Batch:"), "{out}");
+    }
+
+    #[test]
+    fn filing_detail_hdr_no_badge() {
+        let out = render_fixture("F3XN_1926068.fec", 100, 200);
+        assert!(out.contains("Version: v8."), "{out}");
+        assert!(!out.contains("[paper]") && !out.contains("[legacy"), "{out}");
     }
 
     #[test]
