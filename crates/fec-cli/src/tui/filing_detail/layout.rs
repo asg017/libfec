@@ -53,6 +53,11 @@ pub(super) fn bold(text: impl Into<String>) -> Span<'static> {
     Span::styled(text.into(), Style::default().add_modifier(Modifier::BOLD))
 }
 
+/// A dim aside after a value, e.g. a form line reference `(5b)`.
+pub(super) fn dim(text: impl Into<String>) -> Span<'static> {
+    Span::styled(text.into(), Style::default().fg(Color::DarkGray))
+}
+
 /// The "(changed)" flag for a form's "check if changed" boxes.
 pub(super) fn changed() -> Span<'static> {
     Span::styled("(changed)", Style::default().fg(Color::Magenta))
