@@ -127,12 +127,27 @@ else:
     ),
     (
         "compat",
-        "libfec_parser.fecfile.from_file(p) (unchanged until Phase 3)",
+        "libfec_parser.fecfile.from_file(p) -- compare with `real`",
         """
+import warnings
+warnings.simplefilter("ignore")
 from libfec_parser import fecfile
 t0 = time.perf_counter()
 d = fecfile.from_file(path)
-rows = sum(len(v) for v in d["itemizations"].values())
+rows = sum(len(v) for v in d["itemizations"].values()) + len(d["text"])
+dt = time.perf_counter() - t0
+print(f"RESULT {rows} {dt} {_peak_mb()}")
+""",
+    ),
+    (
+        "compat_iter",
+        "libfec_parser.fecfile.iter_file(p) -- compare with `real_iter`",
+        """
+import warnings
+warnings.simplefilter("ignore")
+from libfec_parser import fecfile
+t0 = time.perf_counter()
+rows = sum(1 for _ in fecfile.iter_file(path))
 dt = time.perf_counter() - t0
 print(f"RESULT {rows} {dt} {_peak_mb()}")
 """,
@@ -141,6 +156,8 @@ print(f"RESULT {rows} {dt} {_peak_mb()}")
         "real",
         "PyPI fecfile.from_file(p)",
         """
+import warnings
+warnings.simplefilter("ignore")
 try:
     import fecfile
 except ImportError:
@@ -148,7 +165,7 @@ except ImportError:
 else:
     t0 = time.perf_counter()
     d = fecfile.from_file(path)
-    rows = sum(len(v) for v in d["itemizations"].values())
+    rows = sum(len(v) for v in d["itemizations"].values()) + len(d["text"])
     dt = time.perf_counter() - t0
     print(f"RESULT {rows} {dt} {_peak_mb()}")
 """,
@@ -157,6 +174,8 @@ else:
         "real_iter",
         "PyPI fecfile.iter_file(p)",
         """
+import warnings
+warnings.simplefilter("ignore")
 try:
     import fecfile
 except ImportError:
