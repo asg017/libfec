@@ -1,0 +1,107 @@
+---
+source: crates/fec-parser/tests/covers.rs
+expression: "cover(\"F1MN_1917288.fec\")"
+snapshot_kind: text
+---
+{
+  "form": "Form1M",
+  "data": {
+    "form_type": "F1MN",
+    "committee_name": "MORE JOBS, LESS GOVERNMENT",
+    "address": {
+      "street_1": "C/O BULLDOG COMPLIANCE",
+      "street_2": "138 CONANT STREET STE 401",
+      "city": "BEVERLY",
+      "state": "MA",
+      "zip_code": "01915"
+    },
+    "filer_committee_id": "C00693838",
+    "committee_type": "N",
+    "affiliation": null,
+    "qualification": {
+      "candidates": [
+        {
+          "candidate_id": "S4IN00196",
+          "name": {
+            "first_name": "JAMES E. HON.",
+            "last_name": "BANKS",
+            "middle_name": null,
+            "prefix": null,
+            "suffix": null
+          },
+          "office": "S",
+          "state": "IN",
+          "district": "00",
+          "contribution_date": "2025-06-04"
+        },
+        {
+          "candidate_id": "H4MT01041",
+          "name": {
+            "first_name": "RYAN K",
+            "last_name": "ZINKE",
+            "middle_name": null,
+            "prefix": null,
+            "suffix": null
+          },
+          "office": "H",
+          "state": "MT",
+          "district": "01",
+          "contribution_date": "2025-04-29"
+        },
+        {
+          "candidate_id": "S4MT00183",
+          "name": {
+            "first_name": "TIM",
+            "last_name": "SHEEHY",
+            "middle_name": null,
+            "prefix": null,
+            "suffix": null
+          },
+          "office": "S",
+          "state": "MT",
+          "district": "00",
+          "contribution_date": "2025-04-09"
+        },
+        {
+          "candidate_id": "S6FL00640",
+          "name": {
+            "first_name": "ASHLEY",
+            "last_name": "MOODY",
+            "middle_name": null,
+            "prefix": null,
+            "suffix": null
+          },
+          "office": "S",
+          "state": "FL",
+          "district": "00",
+          "contribution_date": "2025-09-03"
+        },
+        {
+          "candidate_id": "H4MT02098",
+          "name": {
+            "first_name": "TROY",
+            "last_name": "DOWNING",
+            "middle_name": null,
+            "prefix": null,
+            "suffix": null
+          },
+          "office": "H",
+          "state": "MT",
+          "district": "02",
+          "contribution_date": "2025-09-15"
+        }
+      ],
+      "fifty_first_contributor_date": "2025-06-30",
+      "original_registration_date": "2019-01-14",
+      "requirements_met_date": "2025-09-15"
+    },
+    "treasurer": {
+      "first_name": "CHARLES",
+      "last_name": "GANTT",
+      "middle_name": null,
+      "prefix": null,
+      "suffix": null
+    },
+    "date_signed": "2025-10-02"
+  }
+}
