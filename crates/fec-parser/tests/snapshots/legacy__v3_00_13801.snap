@@ -1,0 +1,162 @@
+---
+source: crates/fec-parser/tests/legacy.rs
+expression: "render(\"3.00_13801.fec\")"
+snapshot_kind: text
+---
+FilingHeader {
+    header_record: StringRecord(["HDR", "FEC", "3.00", "Navision AVF", "1.00", "^", "", "0"]),
+    record_type: "HDR",
+    ef_type: "FEC",
+    fec_version: "3.00",
+    software_name: "Navision AVF",
+    software_version: "1.00",
+    report_id: None,
+    report_number: Some(
+        "0",
+    ),
+    comment: None,
+    style: Hdr,
+    delimiter: Comma,
+    name_delimiter: Some(
+        "^",
+    ),
+    batch_number: None,
+    received_date: None,
+    legacy_fields: {},
+    schedule_counts: {},
+}
+cover: form_type="F3XN" filer_id="C00000935" filer_name="Democratic Congressional Campaign Committee - Expenditures" report_code=Some("M4") from=Some(2001-03-01) through=Some(2001-03-31) typed=true
+  form_type = "F3XN"
+  filer_committee_id_number = "C00000935"
+  committee_name = "Democratic Congressional Campaign Committee - Expenditures"
+  street_1 = "430 South Capitol Street, SE"
+  street_2 = "2nd Floor"
+  city = "Washington"
+  state = "DC"
+  zip_code = "20003"
+  change_of_address = ""
+  qualified_committee = "X"
+  report_code = "M4"
+  election_code = ""
+  date_of_election = ""
+  state_of_election = ""
+  coverage_from_date = "20010301"
+  coverage_through_date = "20010331"
+  col_a_cash_on_hand_beginning_period = "843199.96"
+  col_a_total_receipts = "1126349.55"
+  col_a_subtotal = "1969549.51"
+  col_a_total_disbursements = "1567060.48"
+  col_a_cash_on_hand_close_of_period = "402489.03"
+  col_a_debts_to = "0.00"
+  col_a_debts_by = "4877882.87"
+  col_a_individuals_itemized = "0.00"
+  col_a_individuals_unitemized = "0.00"
+  col_a_individual_contribution_total = "0.00"
+  col_a_political_party_committees = "0.00"
+  col_a_other_political_committees_pacs = "0.00"
+  col_a_total_contributions = "0.00"
+  col_a_transfers_from_aff_other_party_cmttees = "835000.00"
+  col_a_total_loans = "0.00"
+  col_a_total_loan_repayments_received = "0.00"
+  col_a_offsets_to_expenditures = "0.00"
+  col_a_federal_refunds = "0.00"
+  col_a_other_federal_receipts = "1385.78"
+  col_a_transfers_from_nonfederal_h3 = "289963.77"
+  col_a_total_federal_receipts = "836385.78"
+  col_a_shared_operating_expenditures_federal = "245486.19"
+  col_a_shared_operating_expenditures_nonfederal = "272340.85"
+  col_a_other_federal_operating_expenditures = "482960.63"
+  col_a_total_operating_expenditures = "1000787.67"
+  col_a_transfers_to_affiliated = "41254.96"
+  col_a_contributions_to_candidates = "25017.85"
+  col_a_independent_expenditures = "0.00"
+  col_a_coordinated_expenditures_by_party_committees = "0.00"
+  col_a_total_loan_repayments_made = "500000.00"
+  col_a_loans_made = "0.00"
+  col_a_refunds_to_individuals = "0.00"
+  col_a_refunds_to_party_committees = "0.00"
+  col_a_refunds_to_other_committees = "0.00"
+  col_a_total_refunds = "0.00"
+  col_a_other_disbursements = "0.00"
+  col_a_total_federal_disbursements = "1294719.63"
+  col_a_total_contributions_refunds = "0.00"
+  col_a_net_contributions = "0.00"
+  col_a_total_federal_operating_expenditures = "728446.82"
+  col_a_total_offsets_to_expenditures = "0.00"
+  col_a_net_operating_expenditures = "728446.82"
+  col_b_cash_on_hand_jan_1 = "694163.86"
+  col_b_year = "2001"
+  col_b_total_receipts = "2446300.88"
+  col_b_subtotal = "3140464.74"
+  col_b_total_disbursements = "2737975.71"
+  col_b_cash_on_hand_close_of_period = "402489.03"
+  col_b_individuals_itemized = "0.00"
+  col_b_individuals_unitemized = "0.00"
+  col_b_individual_contribution_total = "0.00"
+  col_b_political_party_committees = "0.00"
+  col_b_other_political_committees_pacs = "0.00"
+  col_b_total_contributions = "0.00"
+  col_b_transfers_from_aff_other_party_cmttees = "1684000.00"
+  col_b_total_loans = "0.00"
+  col_b_total_loan_repayments_received = "0.00"
+  col_b_offsets_to_expenditures = "0.00"
+  col_b_federal_refunds = "0.00"
+  col_b_other_federal_receipts = "2420.98"
+  col_b_transfers_from_nonfederal_h3 = "759879.90"
+  col_b_total_federal_receipts = "1686420.98"
+  col_b_shared_operating_expenditures_federal = "644158.32"
+  col_b_shared_operating_expenditures_nonfederal = "736649.54"
+  col_b_other_federal_operating_expenditures = "768079.08"
+  col_b_total_operating_expenditures = "2148886.94"
+  col_b_transfers_to_affiliated = "43754.96"
+  col_b_contributions_to_candidates = "34839.36"
+  col_b_independent_expenditures = "0.00"
+  col_b_coordinated_expenditures_by_party_committees = "10494.45"
+  col_b_total_loan_repayments_made = "500000.00"
+  col_b_loans_made = "0.00"
+  col_b_refunds_to_individuals = "0.00"
+  col_b_refunds_to_party_committees = "0.00"
+  col_b_refunds_to_other_committees = "0.00"
+  col_b_total_refunds = "0.00"
+  col_b_other_disbursements = "0.00"
+  col_b_total_federal_disbursements = "2001326.17"
+  col_b_total_contributions_refunds = "0.00"
+  col_b_net_contributions = "0.00"
+  col_b_total_federal_operating_expenditures = "1412237.40"
+  col_b_total_offsets_to_expenditures = "0.00"
+  col_b_net_operating_expenditures = "1412237.40"
+  treasurer_name = "Howard Wolfson"
+  date_signed = "20010420"
+row "H4" line=5 byte=1127 record=2 fields=["H4", "C00000935", "ORG", "MD IPA Health Plan", "PO Box 75223", "", "Baltimore", "MD", "212755223", "Insurance ", "20010301", "3659.13", "1097.74", "2561.39", "", "X", "", "", "110281.63", "HC", "", "", "", "", "", "", "", "", "", "", "", "", "", "H4-22804", "", "", "", ""]
+row "H4" line=6 byte=1364 record=3 fields=["H4", "C00000935", "ORG", "MD IPA Health Plan", "PO Box 75223", "", "Baltimore", "MD", "212755223", "Insurance ", "20010301", "7875.24", "5118.91", "2756.33", "X", "", "", "", "299547.13", "01ADM", "", "", "", "", "", "", "", "", "", "", "", "", "", "H4-22805", "", "", "", ""]
+row "SB22" line=7 byte=1604 record=4 fields=["SB22", "C00000935", "PTY", "Georgia Democratic Party", "1100 Spring Street, Suite 710", "", "Atlanta", "GA", "30309", "", "Transfer ", "", "", "20010316", "3215.00", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "SB22-22899", "", "", ""]
+row "SB22" line=8 byte=1823 record=5 fields=["SB22", "C00000935", "PTY", "Mississippi Democratic Party", "Po Box 1583", "", "Philadelphia", "MS", "32915", "", "Transfer ", "", "", "20010316", "2754.00", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "SB22-22900", "", "", ""]
+row "SB26" line=9 byte=2033 record=6 fields=["SB26", "C00000935", "ORG", "Bank of America, NA", "730 15th Street, NW", "", "Washington", "DC", "20005", "", "Loan Repayment ", "", "", "20010328", "500000.00", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "SB26-23115", "", "", ""]
+row "SB29" line=10 byte=2248 record=7 fields=["SB29", "C00000935", "PTY", "DCCC NF Acct #5 -Contributions", "430 South Capitol Street, SE", "2nd Floor", "Washington", "DC", "20003", "", "Transfer ", "", "", "20010305", "25000.00", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "SB29-22822", "", "", ""]
+row "SB21B" line=11 byte=2485 record=8 fields=["SB21B", "C00000935", "ORG", "Bank of America, NA", "730 15th Street, NW", "", "Washington", "DC", "20005", "", "Bank Fees ", "", "", "20010302", "6.50", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "SB21B-23370", "", "", ""]
+row "SB21B" line=12 byte=2692 record=9 fields=["SB21B", "C00000935", "ORG", "O'Brien McConnell Pearson West", "1726 M Street, NW  Suite 300", "", "Washington", "DC", "200364502", "", "Postage ", "", "", "20010307", "28416.36", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "SB21B-22824", "", "", ""]
+row "H1" line=13 byte=2925 record=10 fields=["H1", "C00000935", ".0000", ".0000", ".6500", ".3500", "0.00", "0.00", ".0000", ".0000", ".0000", "0.00", "0.00", ".0000", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "H1-139"]
+row "H2" line=15 byte=3086 record=11 fields=["H2", "C00000935", "Convention", "X", "", "", "S", ".1000", ".9000", "", "H2-144"]
+row "H2" line=16 byte=3158 record=12 fields=["H2", "C00000935", "Harriman Billable", "X", "", "", "S", ".3000", ".7000", "", "H2-140"]
+row "H3" line=17 byte=3237 record=13 fields=["H3", "C00000935", "H3-231", "Non-Federal Account #3", "", "A", "20010313", "14295.83", "28311.40", "", "H3-231"]
+row "H3" line=18 byte=3340 record=14 fields=["H3", "C00000935", "H3-231", "Non-Federal Account #3", "2CL", "D", "20010313", "2779.59", "28311.40", "", "H3-232"]
+row "SC/10" line=19 byte=3445 record=15 fields=["SC/10", "C00000935", "ORG", "Bank of America, NA", "730 15th Street, NW", "", "Washington", "DC", "20005", "G2000", "", "5000000.00", "500000.00", "4500000.00", "20001005", "03/31/2002", "Prime", "X", "", "", "", "", "", "", "", "SC-138"]
+row "SD10" line=20 byte=3659 record=16 fields=["SD10", "C00000935", "ORG", "Ampro, Inc.", "1301 S. Baylis Street", "Suite 312 Box C-4", "Baltimore", "MD", "21224", "Computer Services", "21525.00", "27252.00", "21525.00", "27252.00", "", "", "", "", "", "", "", "", "", "", "", "", "", "SD-197"]
+row "SD10" line=21 byte=3879 record=17 fields=["SD10", "C00000935", "ORG", "AT & T Wireless Services", "P.O. Box 8220", "", "Aurora", "IL", "605728220", "Telephones ", "3839.36", "3622.95", "3839.36", "3622.95", "", "", "", "", "", "", "", "", "", "", "", "", "", "SD-198"]
+row "SA12" line=22 byte=4078 record=18 fields=["SA12", "C00000935", "PTY", "DCCC Federal Receipts-G", "430 South Capitol Street  SE", "2nd Floor", "Washington", "DC", "20003", "", "", "N/A", "N/A", "450000.00", "20010312", "300000.00", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "D34220", "", "", ""]
+row "SA12" line=23 byte=4246 record=19 fields=["SA12", "C00000935", "PTY", "DCCC Federal Receipts-D", "430 South Capitol Street  SE", "2nd Floor", "Washington", "DC", "20003", "", "", "N/A", "N/A", "1234000.00", "20010326", "285000.00", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "D34390", "", "", ""]
+row "SA17" line=24 byte=4415 record=20 fields=["SA17", "C00000935", "ORG", "Bank of America  N.A.", "730 15th Street  N.W.", "", "Washington", "DC", "20005", "", "", "", "", "2376.33", "20010331", "149.34", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "D34578", "", "", ""]
+row "SA17" line=25 byte=4554 record=21 fields=["SA17", "C00000935", "ORG", "Bank of America  N.A.", "730 15th Street  N.W.", "", "Washington", "DC", "20005", "", "", "", "", "2376.33", "20010331", "71.51", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "D34580", "", "", ""]
+row "SB23" line=26 byte=4692 record=22 fields=["SB23", "C00000935", "PTY", "Democratic Congressional Campaign Cmte", "430 South Capitol Street  S.E.", "", "Washington", "DC", "20003", "", "", "P2002", "", "20010302", "300.00", "C00226522", "", "Richard E. Neal for Congress Committee", "H", "MA", "02", "", "", "", "", "", "", "", "", "", "G23-13135", "", "", ""]
+row "SB23" line=27 byte=4907 record=23 fields=["SB23", "C00000935", "PTY", "Democratic Congressional Campaign Cmte", "430 South Capitol Street  S.E.", "", "Washington", "DC", "20003", "", "", "P2002", "", "20010301", "300.00", "", "", "Boswell for Congress Committee", "H", "IA", "03", "", "", "", "", "", "", "", "", "", "G23-13137", "", "", ""]
+row "SI" line=28 byte=5105 record=24 fields=["SI", "C00000935", "NF #1", "NON-FEDERAL ACCOUNT #1", "20010301", "20010331", "150000.00", "0.00", "43618.63", "0.00", "152845.90", "196464.53", "56810.56", "150000.00", "206810.56", "196464.53", "10346.03", "363459.04", "156781.73", "43618.63", "0.00", "158369.49", "358769.85", "5656.84", "363459.04", "369115.88", "358769.85", "10346.03", "", "SI-29", "C60000080"]
+row "SI" line=29 byte=5442 record=25 fields=["SI", "C00000935", "NF #2", "NON-FEDERAL ACCOUNT #2", "20010301", "20010331", "150004.77", "131689.88", "9645.00", "0.00", "0.00", "141334.88", "1987.16", "150004.77", "151991.93", "141334.88", "10657.05", "150026.09", "131689.88", "9645.00", "0.00", "0.00", "141334.88", "1965.84", "150026.09", "151991.93", "141334.88", "10657.05", "", "SI-30", "C60000098"]
+row "SASI1" line=30 byte=5771 record=26 fields=["SASI1", "C00000935", "PTY", "DCCC NonFederal Receipts-C", "430 South Capitol Street  SE", "2nd Floor", "Washington", "DC", "20003", "", "", "N/A", "N/A", "360000.00", "20010312", "150000.00", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "D34219", "", "", "C60000080"]
+row "SASI1" line=31 byte=5952 record=27 fields=["SASI1", "C00000935", "PTY", "DCCC NonFederal Receipts-L", "430 South Capitol Street  SE", "2nd Floor", "Washington", "DC", "20003", "", "", "N/A", "N/A", "150000.00", "20010321", "150000.00", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "D34334", "", "", "C60000098"]
+row "SBSI2" line=32 byte=6133 record=28 fields=["SBSI2", "C00000935", "PTY", "Democratic Congressional", "Campaign Committee", "430 South Capitol Street, SE", "Washington", "DC", "20003", "", "Transfer ", "", "", "20010313", "28311.40", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "SBSI2-2064", "", "", "C60000106"]
+row "SBSI2" line=33 byte=6383 record=29 fields=["SBSI2", "C00000935", "PTY", "Democratic Congressional", "Campaign Committee", "430 South Capitol Street", "Washington", "DC", "20003", "", "Transfer ", "", "", "20010321", "123565.43", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "SBSI2-2070", "", "", "C60000098"]
+row "SBSI3" line=34 byte=6630 record=30 fields=["SBSI3", "C00000935", "PTY", "Georgia Democratic Party", "1100 Spring Street #710", "", "Atlanta", "GA", "30309", "", "Transfer ", "", "", "20010316", "9645.00", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "SBSI3-2043", "", "", "C60000098"]
+row "SBSI3" line=35 byte=6853 record=31 fields=["SBSI3", "C00000935", "PTY", "Mississippi Democratic Party", "PO Box 1583", "", "Jackson", "MS", "32915", "", "Transfer ", "", "", "20010316", "6426.00", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "SBSI3-2042", "", "", "C60000536"]
+row "SBSI4" line=36 byte=7068 record=32 fields=["SBSI4", "C00000935", "CAN", "Rainaldi for Senate", "1101 Martinelli", "", "Gallup", "NM", "87301", "", "Contribution ", "", "", "20010314", "-2000.00", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "SBSI4-2039", "", "", "C60000510"]
+row "SBSI5" line=37 byte=7282 record=33 fields=["SBSI5", "C00000935", "ORG", "Internal Revenue ServiceCenter", "", "", "Ogden", "UT", "84201", "", "Taxes ", "", "", "20010313", "118400.00", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "SBSI5-2041", "", "", "C60000080"]
+row "SBSI5" line=38 byte=7485 record=34 fields=["SBSI5", "C00000935", "ORG", "D.C. TreasurerOffice Tax and Revenue", "941 N. Capitol Street, NE", "6th Floor", "Washington", "DC", "20002", "", "Taxes ", "", "", "20010315", "33920.00", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "SBSI5-2040", "", "", "C60000080"]

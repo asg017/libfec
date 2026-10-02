@@ -1,0 +1,152 @@
+---
+source: crates/fec-parser/tests/legacy.rs
+expression: "render(\"P1.0_236480.fec\")"
+snapshot_kind: text
+---
+FilingHeader {
+    header_record: StringRecord(["HDR", "P1.0", "SECURE PAPER SOLUTION'S FEC SYSTEM", "2817"]),
+    record_type: "HDR",
+    ef_type: "",
+    fec_version: "P1.0",
+    software_name: "SECURE PAPER SOLUTION'S FEC SYSTEM",
+    software_version: "",
+    report_id: None,
+    report_number: None,
+    comment: None,
+    style: Paper,
+    delimiter: Fs,
+    name_delimiter: None,
+    batch_number: Some(
+        "2817",
+    ),
+    received_date: None,
+    legacy_fields: {},
+    schedule_counts: {},
+}
+cover: form_type="F3XN" filer_id="C00382283" filer_name="OHLONE AREA UNITED DEMOCRATIC CAMPAIGN (FED)" report_code=Some("Q2") from=Some(2006-04-01) through=Some(2006-06-30) typed=true
+  form_type = "F3XN"
+  filer_committee_id_number = "C00382283"
+  committee_name = "OHLONE AREA UNITED DEMOCRATIC CAMPAIGN (FED)"
+  change_of_address = " "
+  street_1 = "PO BOX 223"
+  street_2 = ""
+  city = "SAN LEANDRO"
+  state = "CA"
+  zip_code = "945770022"
+  report_code = "Q2"
+  date_of_election = ""
+  state_of_election = ""
+  coverage_from_date = "20060401"
+  coverage_through_date = "20060630"
+  treasurer_last_name = "PON"
+  treasurer_first_name = "KENNETH"
+  treasurer_middle_name = ""
+  treasurer_prefix = ""
+  treasurer_suffix = "CPA"
+  date_signed = "20060715"
+  col_a_cash_on_hand_beginning_period = "        1839"
+  col_a_total_receipts = "        6700"
+  col_a_subtotal = "        8539"
+  col_a_total_disbursements = "        8462"
+  col_a_cash_on_hand_close_of_period = "          77"
+  col_a_debts_to = "           0"
+  col_a_debts_by = "           0"
+  qualified_committee = ""
+  col_a_individuals_itemized = "        1500"
+  col_a_individuals_unitemized = "        2025"
+  col_a_individual_contribution_total = "        3525"
+  col_a_political_party_committees = "            "
+  col_a_other_political_committees_pacs = "          50"
+  col_a_total_contributions = "        3575"
+  col_a_transfers_from_aff_other_party_cmttees = "            "
+  col_a_total_loans = "            "
+  col_a_total_loan_repayments_received = "            "
+  col_a_offsets_to_expenditures = "            "
+  col_a_federal_refunds = "            "
+  col_a_other_federal_receipts = "            "
+  col_a_transfers_from_nonfederal_h3 = "        3125"
+  col_a_levin_funds = "            "
+  col_a_total_nonfederal_transfers = "        3125"
+  col_a_total_federal_receipts = "        3575"
+  col_a_shared_operating_expenditures_federal = "        5201"
+  col_a_shared_operating_expenditures_nonfederal = "        3125"
+  col_a_other_federal_operating_expenditures = "         136"
+  col_a_total_operating_expenditures = "        8462"
+  col_a_transfers_to_affiliated = "            "
+  col_a_contributions_to_candidates = "            "
+  col_a_independent_expenditures = "            "
+  col_a_coordinated_expenditures_by_party_committees = "            "
+  col_a_total_loan_repayments_made = "            "
+  col_a_loans_made = "            "
+  col_a_refunds_to_individuals = "            "
+  col_a_refunds_to_party_committees = "            "
+  col_a_refunds_to_other_committees = "            "
+  col_a_total_refunds = "            "
+  col_a_other_disbursements = "            "
+  col_a_federal_election_activity_federal_share = "            "
+  col_a_federal_election_activity_levin_share = "            "
+  col_a_federal_election_activity_all_federal = "            "
+  col_a_federal_election_activity_total = "            "
+  col_a_total_federal_disbursements = "        5337"
+  col_a_total_contributions_refunds = "            "
+  col_a_net_contributions = "        3575"
+  col_a_total_federal_operating_expenditures = "        5337"
+  col_a_total_offsets_to_expenditures = "            "
+  col_a_net_operating_expenditures = "        5337"
+  col_b_cash_on_hand_jan_1 = "2006"
+  col_b_year = "        1875"
+  col_b_total_receipts = "        6700"
+  col_b_subtotal = "        8575"
+  col_b_total_disbursements = "        8498"
+  col_b_cash_on_hand_close_of_period = "          77"
+  col_b_individuals_itemized = "        1500"
+  col_b_individuals_unitemized = "        2025"
+  col_b_individual_contribution_total = "        3525"
+  col_b_political_party_committees = "            "
+  col_b_other_political_committees_pacs = "          50"
+  col_b_total_contributions = "        3575"
+  col_b_transfers_from_aff_other_party_cmttees = "            "
+  col_b_total_loans = "            "
+  col_b_total_loan_repayments_received = "            "
+  col_b_offsets_to_expenditures = "            "
+  col_b_federal_refunds = "            "
+  col_b_other_federal_receipts = "            "
+  col_b_transfers_from_nonfederal_h3 = "        3125"
+  col_b_levin_funds = "            "
+  col_b_total_nonfederal_transfers = "        3125"
+  col_b_total_federal_receipts = "        3575"
+  col_b_shared_operating_expenditures_federal = "        5201"
+  col_b_shared_operating_expenditures_nonfederal = "        3125"
+  col_b_other_federal_operating_expenditures = "         172"
+  col_b_total_operating_expenditures = "        8498"
+  col_b_transfers_to_affiliated = "            "
+  col_b_contributions_to_candidates = "            "
+  col_b_independent_expenditures = "            "
+  col_b_coordinated_expenditures_by_party_committees = "            "
+  col_b_total_loan_repayments_made = "            "
+  col_b_loans_made = "            "
+  col_b_refunds_to_individuals = "            "
+  col_b_refunds_to_party_committees = "            "
+  col_b_refunds_to_other_committees = "            "
+  col_b_total_refunds = "            "
+  col_b_other_disbursements = "            "
+  col_b_federal_election_activity_federal_share = "            "
+  col_b_federal_election_activity_levin_share = "            "
+  col_b_federal_election_activity_all_federal = "            "
+  col_b_federal_election_activity_total = "            "
+  col_b_total_federal_disbursements = "        5373"
+  col_b_total_contributions_refunds = "            "
+  col_b_net_contributions = "        3575"
+  col_b_total_federal_operating_expenditures = "        5373"
+  col_b_total_offsets_to_expenditures = "            "
+  col_b_net_operating_expenditures = "        5373"
+  beginning_image_number = "26039164796"
+row "SA11AI" line=3 byte=1516 record=2 fields=["SA11AI", "C00382283", "", "YEE WAN LI", "EVELYN", "EVENS", "", "", "895 YAKIMA DR", "", "FREMONT", "CA", "94539", "20060601", "", "SELF EMPLOYED", "MEDICAL DOCTOR", "", "", "        1000", "         200", "", "", "26039164801"]
+row "SA11AI" line=4 byte=1673 record=3 fields=["SA11AI", "C00382283", "", "YEE WAN LI", "EVELYN", "EVENS", "", "", "895 YAKIMA DR", "", "FREMONT", "CA", "94539", "20060601", "", "SELF EMPLOYED", "MEDICAL DOCTOR", "", "", "        1000", "         800", "", "", "26039164801"]
+row "SA11C" line=5 byte=1830 record=4 fields=["SA11C", "C00382283", "PETE STARK RE-ELECTION COMMITTEE", "", "", "", "", "", "PO BOX 8331", "", "FREMONT", "CA", "94537", "20060508", "C00020974", "", "", "", "", "          50", "          50", "", "", "26039164802"]
+row "SB21B" line=6 byte=1977 record=5 fields=["SB21B", "C00382283", "UNITEMIZED DISBURSEMENTS", "", "", "", "", "", "PO BOX 223", "", "SAN LEANDRO", "CA", "945770022", "", "BANK SERVICE CHARGES & MAILING LISTS", "", "", "", "", "", "", "", "", "", "", "", "         136", "", "", "26039164803"]
+row "H1" line=7 byte=2136 record=6 fields=["H1", "C00382283", "", "", "", "", "", "62.46", "37.54", "X", "X", "", "26039164804"]
+row "H2" line=8 byte=2183 record=7 fields=["H2", "C00382283", "SLATE CARDS", "", "X", "N", "62.46", "37.54", "26039164805"]
+row "H3" line=9 byte=2237 record=8 fields=["H3", "C00382283", "OHLONE AREA UNITED DEMOCRATIC CAMPAIGN CAL", "20060630", "        3125", "", "", "SLATE CARD", "26039164806"]
+row "H4" line=10 byte=2340 record=9 fields=["H4", "C00382283", "AUTUMN PRESS", "", "", "", "", "", "1280 SIXTY FIFTH ST", "", "EMERYVILLE", "CA", "94608", "JUNE 6, 2006 SLATE CARDS PRINTING", "SLATE CARD", "006", "", "X", "", "", "X", "", "        7470", "20060530", "        1286", "         773", "        2060", "26039164807"]
+row "H4" line=11 byte=2542 record=10 fields=["H4", "C00382283", "AUTUMN PRESS", "", "", "", "", "", "1280 SIXTY-FIFTH ST", "", "EMERYVILLE", "CA", "94608", "MASS MAILING STRONG DEMOCRATIC", "SLATE CARD", "006", "", "X", "", "", "X", "", "        7470", "20060630", "        3379", "        2030", "        5410", "26039164807"]
