@@ -1,9 +1,9 @@
 //! Filing Detail TUI Component
 //!
 //! This module provides rendering functions for displaying detailed FEC filing information
-//! within a ratatui application. Each typed cover (F1, F1M, F3, F3P and F3X) has its own
-//! renderer module, all built on the shared line builders in [`layout`], around common
-//! chrome (title, URL, metadata, help bar, yank popup, key handling).
+//! within a ratatui application. Each typed cover (F1, F1M, F3, F3L, F3P, F3X, F4, F7 and
+//! F13) has its own renderer module, all built on the shared line builders in [`layout`],
+//! around common chrome (title, URL, metadata, help bar, yank popup, key handling).
 //!
 //! Keyboard shortcuts:
 //! - Esc/q: Return to previous view
@@ -14,10 +14,14 @@
 //! - j/k: Scroll up/down
 
 pub mod f1;
+pub mod f13;
 pub mod f1m;
 pub mod f3;
+pub mod f3l;
 pub mod f3p;
 pub mod f3x;
+pub mod f4;
+pub mod f7;
 mod layout;
 
 use crate::tui::{navigation_popup_help_line, HelpBar};
@@ -55,8 +59,12 @@ pub enum FilingCoverContent {
     Form1(Box<fec_parser::covers::Form1>),
     Form1M(Box<fec_parser::covers::Form1M>),
     Form3(FilingDetailF3),
+    Form3L(Box<fec_parser::covers::Form3L>),
     Form3P(FilingDetailF3P),
     Form3X(Box<fec_parser::covers::Form3X>),
+    Form4(Box<fec_parser::covers::Form4>),
+    Form7(Box<fec_parser::covers::Form7>),
+    Form13(Box<fec_parser::covers::Form13>),
     /// No typed cover (an unsupported form type or an unparsable cover).
     Unknown,
 }
@@ -109,8 +117,12 @@ impl<R: std::io::Read> From<&fec_parser::Filing<R>> for FilingDetail {
             Some(Cover::Form1(form)) => FilingCoverContent::Form1(Box::new(form.clone())),
             Some(Cover::Form1M(form)) => FilingCoverContent::Form1M(Box::new(form.clone())),
             Some(Cover::Form3(form)) => FilingCoverContent::Form3(FilingDetailF3::from(form)),
+            Some(Cover::Form3L(form)) => FilingCoverContent::Form3L(Box::new(form.clone())),
             Some(Cover::Form3P(form)) => FilingCoverContent::Form3P(FilingDetailF3P::from(form)),
             Some(Cover::Form3X(form)) => FilingCoverContent::Form3X(form.clone()),
+            Some(Cover::Form4(form)) => FilingCoverContent::Form4(form.clone()),
+            Some(Cover::Form7(form)) => FilingCoverContent::Form7(Box::new(form.clone())),
+            Some(Cover::Form13(form)) => FilingCoverContent::Form13(Box::new(form.clone())),
             None => FilingCoverContent::Unknown,
         };
 
@@ -361,8 +373,12 @@ fn render_content(f: &mut Frame, filing: &FilingDetail, state: &FilingDetailStat
         FilingCoverContent::Form1(form) => f1::append_f1_content_lines(&mut d, form),
         FilingCoverContent::Form1M(form) => f1m::append_f1m_content_lines(&mut d, form),
         FilingCoverContent::Form3(data) => f3::append_f3_content_lines(&mut d, data),
+        FilingCoverContent::Form3L(form) => f3l::append_f3l_content_lines(&mut d, form),
         FilingCoverContent::Form3P(data) => f3p::append_f3p_content_lines(&mut d, data),
         FilingCoverContent::Form3X(form) => f3x::append_f3x_content_lines(&mut d, form),
+        FilingCoverContent::Form4(form) => f4::append_f4_content_lines(&mut d, form),
+        FilingCoverContent::Form7(form) => f7::append_f7_content_lines(&mut d, form),
+        FilingCoverContent::Form13(form) => f13::append_f13_content_lines(&mut d, form),
         FilingCoverContent::Unknown => {}
     }
 
@@ -636,6 +652,46 @@ pub(crate) mod tests {
     #[test]
     fn filing_detail_f1_40_cols() {
         assert_snapshot!(render_fixture("F1A_1914988.fec", 40, 80));
+    }
+
+    #[test]
+    fn filing_detail_f3l() {
+        assert_snapshot!(render_fixture("F3LN_1902042.fec", 100, 50));
+    }
+
+    #[test]
+    fn filing_detail_f3l_narrow() {
+        assert_snapshot!(render_fixture("F3LN_1941874.fec", 60, 40));
+    }
+
+    #[test]
+    fn filing_detail_f4() {
+        assert_snapshot!(render_fixture("F4N_1901605.fec", 100, 50));
+    }
+
+    #[test]
+    fn filing_detail_f4_narrow() {
+        assert_snapshot!(render_fixture("F4N_1920068.fec", 60, 40));
+    }
+
+    #[test]
+    fn filing_detail_f7() {
+        assert_snapshot!(render_fixture("F7N_1884734.fec", 100, 50));
+    }
+
+    #[test]
+    fn filing_detail_f7_narrow() {
+        assert_snapshot!(render_fixture("F7N_1919346.fec", 60, 40));
+    }
+
+    #[test]
+    fn filing_detail_f13() {
+        assert_snapshot!(render_fixture("F13A_1910509.fec", 100, 50));
+    }
+
+    #[test]
+    fn filing_detail_f13_narrow() {
+        assert_snapshot!(render_fixture("F13N_1904840.fec", 60, 40));
     }
 
     #[test]
