@@ -13,7 +13,8 @@ use crate::{
     commands::export::sqlite::form_type_parse,
     sourcer::{FilingSourcer, ItemizationProgressBar},
     utils::rows::{
-        all_filings_failed, export_columns, file_stem, remap_by_name, warn, UnmappedRows,
+        all_filings_failed, export_columns, file_stem, legacy_name_delimiter, remap_row, warn,
+        UnmappedRows,
     },
 };
 
@@ -45,8 +46,8 @@ fn new_writer(path: PathBuf, header: &[String]) -> anyhow::Result<csv::Writer<Fi
 /// the columns of its ordinary itemizations
 /// ([`ScheduleType::column_names`]), a cover's or other row type's file
 /// those of [`export_columns`]. Rows of other versions are rearranged by
-/// column name (see [`remap_by_name`]); rows with no known layout are
-/// skipped with a warning.
+/// column name (legacy combined names split, see [`remap_row`]); rows with no
+/// known layout are skipped with a warning.
 pub fn export(
     mut sourcer: FilingSourcer,
     args: ExportArgs,
@@ -87,10 +88,11 @@ pub fn export(
                     e.insert(ItemizationValue { writer, columns })
                 }
             };
-            let fields = remap_by_name(
+            let fields = remap_row(
                 &entry.columns,
                 &filing.cover.record_column_names,
                 &filing.cover.record,
+                legacy_name_delimiter(&filing.header),
             );
             entry.writer.write_record(fields.iter().map(|f| f.as_bytes()))?;
         }
@@ -147,7 +149,12 @@ pub fn export(
             };
 
             entry.writer.write_field(filing.filing_id.as_str())?;
-            let fields = remap_by_name(&entry.columns, row_columns, &row.record);
+            let fields = remap_row(
+                &entry.columns,
+                row_columns,
+                &row.record,
+                legacy_name_delimiter(&filing.header),
+            );
             entry.writer.write_record(fields.iter().map(|f| f.as_bytes()))?;
         }
     }

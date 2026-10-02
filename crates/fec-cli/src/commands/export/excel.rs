@@ -1,7 +1,7 @@
 use crate::{
     cli::ExportArgs,
     sourcer::FilingSourcer,
-    utils::rows::{normalize_fec_date, remap_by_name, warn, UnmappedRows},
+    utils::rows::{legacy_name_delimiter, normalize_fec_date, remap_row, warn, UnmappedRows},
 };
 use fec_parser::{
     mappings::{column_names_for_field, DATE_COLUMNS, FLOAT_COLUMNS},
@@ -69,6 +69,7 @@ fn write_schedule_row(
     schedule: ScheduleType,
     row_columns: &[String],
     row: &FilingRow,
+    name_delimiter: Option<&str>,
 ) -> anyhow::Result<()> {
     let state = match sheets.entry(schedule) {
         Entry::Occupied(e) => e.into_mut(),
@@ -112,7 +113,7 @@ fn write_schedule_row(
         }
     };
 
-    let fields = remap_by_name(&state.columns, row_columns, &row.record);
+    let fields = remap_row(&state.columns, row_columns, &row.record, name_delimiter);
     for (idx, v) in fields.into_iter().enumerate() {
         let c = col(idx)?;
         match state.column_types.get(idx) {
@@ -127,12 +128,12 @@ fn write_schedule_row(
                     )?;
                 }
                 Err(_) => {
-                    state.worksheet.write_string(state.row_idx, c, v)?;
+                    state.worksheet.write_string(state.row_idx, c, &*v)?;
                 }
             },
-            Some(FieldFormat::Date) => write_date(&mut state.worksheet, state.row_idx, c, v)?,
+            Some(FieldFormat::Date) => write_date(&mut state.worksheet, state.row_idx, c, &v)?,
             None | Some(FieldFormat::Text) => {
-                state.worksheet.write_string(state.row_idx, c, v)?;
+                state.worksheet.write_string(state.row_idx, c, &*v)?;
             }
         }
     }
@@ -227,7 +228,13 @@ pub fn cmd_export_excel(
         };
         match form_type_schedule_type(&row.row_type) {
             Some(schedule) => {
-                write_schedule_row(&mut schedule_sheets, schedule, row_columns, &row)?;
+                write_schedule_row(
+                    &mut schedule_sheets,
+                    schedule,
+                    row_columns,
+                    &row,
+                    legacy_name_delimiter(&filing.header),
+                )?;
             }
             None => {
                 write_form_type_row(&mut rowtype_sheets, &filing.filing_id, row_columns, &row)?;

@@ -1,0 +1,734 @@
+---
+source: crates/fec-cli/src/commands/export/sqlite/test.rs
+assertion_line: 230
+expression: names
+---
+t | filing_id | entity_type | org | last | first | middle | prefix | suffix
+==== Row 0 ====
+[t]:schedule_a
+[filing_id]:102196
+[entity_type]:ORG
+[org]:Democratic National Committee
+[last]:
+[first]:
+[middle]:
+[prefix]:
+[suffix]:
+==== Row 1 ====
+[t]:schedule_a
+[filing_id]:102196
+[entity_type]:COM
+[org]:ASDC
+[last]:
+[first]:
+[middle]:
+[prefix]:
+[suffix]:
+==== Row 2 ====
+[t]:schedule_a
+[filing_id]:102196
+[entity_type]:ORG
+[org]:Kentucky State Treasurer
+[last]:
+[first]:
+[middle]:
+[prefix]:
+[suffix]:
+==== Row 3 ====
+[t]:schedule_a
+[filing_id]:102196
+[entity_type]:ORG
+[org]:Farmers Bank
+[last]:
+[first]:
+[middle]:
+[prefix]:
+[suffix]:
+==== Row 4 ====
+[t]:schedule_a
+[filing_id]:10665
+[entity_type]:
+[org]:
+[last]:FEDERAL FUNDS
+[first]:.
+[middle]:
+[prefix]:
+[suffix]:
+==== Row 5 ====
+[t]:schedule_a
+[filing_id]:10665
+[entity_type]:
+[org]:
+[last]:FEDERAL FUNDS
+[first]:.
+[middle]:
+[prefix]:
+[suffix]:
+==== Row 6 ====
+[t]:schedule_a
+[filing_id]:10665
+[entity_type]:
+[org]:
+[last]:ADAMS
+[first]:GEORGE C
+[middle]:
+[prefix]:
+[suffix]:
+==== Row 7 ====
+[t]:schedule_a
+[filing_id]:10665
+[entity_type]:
+[org]:
+[last]:ADAMS
+[first]:GEORGE C
+[middle]:
+[prefix]:
+[suffix]:
+==== Row 8 ====
+[t]:schedule_a
+[filing_id]:1215766
+[entity_type]:
+[org]:
+[last]:SONO
+[first]:KEIKO
+[middle]:
+[prefix]:
+[suffix]:
+==== Row 9 ====
+[t]:schedule_a
+[filing_id]:1215766
+[entity_type]:
+[org]:
+[last]:NAVEAUX
+[first]:MARIE
+[middle]:E
+[prefix]:
+[suffix]:
+==== Row 10 ====
+[t]:schedule_a
+[filing_id]:1215766
+[entity_type]:
+[org]:N/A
+[last]:
+[first]:
+[middle]:
+[prefix]:
+[suffix]:
+==== Row 11 ====
+[t]:schedule_a
+[filing_id]:13801
+[entity_type]:PTY
+[org]:DCCC Federal Receipts-G
+[last]:
+[first]:
+[middle]:
+[prefix]:
+[suffix]:
+==== Row 12 ====
+[t]:schedule_a
+[filing_id]:13801
+[entity_type]:PTY
+[org]:DCCC Federal Receipts-D
+[last]:
+[first]:
+[middle]:
+[prefix]:
+[suffix]:
+==== Row 13 ====
+[t]:schedule_a
+[filing_id]:13801
+[entity_type]:ORG
+[org]:Bank of America  N.A.
+[last]:
+[first]:
+[middle]:
+[prefix]:
+[suffix]:
+==== Row 14 ====
+[t]:schedule_a
+[filing_id]:13801
+[entity_type]:ORG
+[org]:Bank of America  N.A.
+[last]:
+[first]:
+[middle]:
+[prefix]:
+[suffix]:
+==== Row 15 ====
+[t]:schedule_a
+[filing_id]:236480
+[entity_type]:
+[org]:
+[last]:YEE WAN LI
+[first]:EVELYN
+[middle]:EVENS
+[prefix]:
+[suffix]:
+==== Row 16 ====
+[t]:schedule_a
+[filing_id]:236480
+[entity_type]:
+[org]:
+[last]:YEE WAN LI
+[first]:EVELYN
+[middle]:EVENS
+[prefix]:
+[suffix]:
+==== Row 17 ====
+[t]:schedule_a
+[filing_id]:236480
+[entity_type]:
+[org]:PETE STARK RE-ELECTION COMMITTEE
+[last]:
+[first]:
+[middle]:
+[prefix]:
+[suffix]:
+==== Row 18 ====
+[t]:schedule_a
+[filing_id]:342096
+[entity_type]:IND
+[org]:
+[last]:Aplikowski
+[first]:Beverly
+[middle]:
+[prefix]:
+[suffix]:
+==== Row 19 ====
+[t]:schedule_a
+[filing_id]:342096
+[entity_type]:IND
+[org]:
+[last]:Brehm
+[first]:Ward
+[middle]:
+[prefix]:
+[suffix]:
+==== Row 20 ====
+[t]:schedule_a
+[filing_id]:342096
+[entity_type]:IND
+[org]:
+[last]:Rueff
+[first]:Greg
+[middle]:
+[prefix]:
+[suffix]:
+==== Row 21 ====
+[t]:schedule_a
+[filing_id]:342096
+[entity_type]:IND
+[org]:
+[last]:Ruth's Chris Steakhouse
+[first]:International Center
+[middle]:
+[prefix]:
+[suffix]:
+==== Row 22 ====
+[t]:schedule_a
+[filing_id]:391955
+[entity_type]:
+[org]:INDEPENDENCE PARTY OF MN
+[last]:
+[first]:
+[middle]:
+[prefix]:
+[suffix]:
+==== Row 23 ====
+[t]:schedule_a
+[filing_id]:391955
+[entity_type]:
+[org]:INDEPENDENCE PARTY OF NY FEDERAL COMMITTEE
+[last]:
+[first]:
+[middle]:
+[prefix]:
+[suffix]:
+==== Row 24 ====
+[t]:schedule_a
+[filing_id]:391955
+[entity_type]:
+[org]:
+[last]:ALLEN
+[first]:DAVID
+[middle]:W
+[prefix]:
+[suffix]:JR
+==== Row 25 ====
+[t]:schedule_a
+[filing_id]:391955
+[entity_type]:
+[org]:
+[last]:ANDERSON
+[first]:THEODORE
+[middle]:RICHARD
+[prefix]:MR
+[suffix]:
+==== Row 26 ====
+[t]:schedule_a
+[filing_id]:497
+[entity_type]:
+[org]:
+[last]:Tileston
+[first]:Margaret
+[middle]:
+[prefix]:
+[suffix]:
+==== Row 27 ====
+[t]:schedule_a
+[filing_id]:497
+[entity_type]:
+[org]:
+[last]:Harris
+[first]:William
+[middle]:
+[prefix]:
+[suffix]:
+==== Row 28 ====
+[t]:schedule_a
+[filing_id]:497
+[entity_type]:
+[org]:Greater Juneau Democratic Precinct
+[last]:
+[first]:
+[middle]:
+[prefix]:
+[suffix]:
+==== Row 29 ====
+[t]:schedule_a
+[filing_id]:497
+[entity_type]:
+[org]:ATLA PAC
+[last]:
+[first]:
+[middle]:
+[prefix]:
+[suffix]:
+==== Row 30 ====
+[t]:schedule_a
+[filing_id]:716051
+[entity_type]:
+[org]:
+[last]:KELSON
+[first]:JEFFREY
+[middle]:D
+[prefix]:
+[suffix]:
+==== Row 31 ====
+[t]:schedule_a
+[filing_id]:716051
+[entity_type]:
+[org]:
+[last]:KENT
+[first]:IRENE
+[middle]:
+[prefix]:
+[suffix]:
+==== Row 32 ====
+[t]:schedule_a
+[filing_id]:716051
+[entity_type]:
+[org]:DAIRY FARMERS OF AMERICA, INC. PAC
+[last]:
+[first]:
+[middle]:
+[prefix]:
+[suffix]:
+==== Row 33 ====
+[t]:schedule_a
+[filing_id]:716051
+[entity_type]:
+[org]:DAIRY FARMERS OF AMERICA, INC. PAC
+[last]:
+[first]:
+[middle]:
+[prefix]:
+[suffix]:
+==== Row 34 ====
+[t]:schedule_a
+[filing_id]:730663
+[entity_type]:IND
+[org]:
+[last]:Flomo
+[first]:Patrick
+[middle]:
+[prefix]:
+[suffix]:
+==== Row 35 ====
+[t]:schedule_a
+[filing_id]:730663
+[entity_type]:IND
+[org]:
+[last]:Flomo
+[first]:Patrick
+[middle]:
+[prefix]:
+[suffix]:
+==== Row 36 ====
+[t]:schedule_a
+[filing_id]:730663
+[entity_type]:PAC
+[org]:ActBlue
+[last]:
+[first]:
+[middle]:
+[prefix]:
+[suffix]:
+==== Row 37 ====
+[t]:schedule_a
+[filing_id]:730663
+[entity_type]:CCM
+[org]:Driehaus for Congress
+[last]:
+[first]:
+[middle]:
+[prefix]:
+[suffix]:
+t | filing_id | entity_type | org | last | first | middle | prefix | suffix
+==== Row 0 ====
+[t]:schedule_b
+[filing_id]:102196
+[entity_type]:IND
+[org]:
+[last]:Tattrie
+[first]:Richard L.
+[middle]:
+[prefix]:
+[suffix]:
+==== Row 1 ====
+[t]:schedule_b
+[filing_id]:102196
+[entity_type]:ORG
+[org]:ADP Inc.
+[last]:
+[first]:
+[middle]:
+[prefix]:
+[suffix]:
+==== Row 2 ====
+[t]:schedule_b
+[filing_id]:10665
+[entity_type]:
+[org]:ALASKA DEMOCRATIC PARTY
+[last]:
+[first]:
+[middle]:
+[prefix]:
+[suffix]:
+==== Row 3 ====
+[t]:schedule_b
+[filing_id]:10665
+[entity_type]:
+[org]:AM 1290
+[last]:
+[first]:
+[middle]:
+[prefix]:
+[suffix]:
+==== Row 4 ====
+[t]:schedule_b
+[filing_id]:10665
+[entity_type]:
+[org]:BROWN, THOMAS R
+[last]:
+[first]:
+[middle]:
+[prefix]:
+[suffix]:
+==== Row 5 ====
+[t]:schedule_b
+[filing_id]:10665
+[entity_type]:
+[org]:DEFEVERE, BENITA K
+[last]:
+[first]:
+[middle]:
+[prefix]:
+[suffix]:
+==== Row 6 ====
+[t]:schedule_b
+[filing_id]:1215766
+[entity_type]:
+[org]:N/A
+[last]:
+[first]:
+[middle]:
+[prefix]:
+[suffix]:
+==== Row 7 ====
+[t]:schedule_b
+[filing_id]:1215766
+[entity_type]:
+[org]:N/A
+[last]:
+[first]:
+[middle]:
+[prefix]:
+[suffix]:
+==== Row 8 ====
+[t]:schedule_b
+[filing_id]:13801
+[entity_type]:PTY
+[org]:Georgia Democratic Party
+[last]:
+[first]:
+[middle]:
+[prefix]:
+[suffix]:
+==== Row 9 ====
+[t]:schedule_b
+[filing_id]:13801
+[entity_type]:PTY
+[org]:Mississippi Democratic Party
+[last]:
+[first]:
+[middle]:
+[prefix]:
+[suffix]:
+==== Row 10 ====
+[t]:schedule_b
+[filing_id]:13801
+[entity_type]:ORG
+[org]:Bank of America, NA
+[last]:
+[first]:
+[middle]:
+[prefix]:
+[suffix]:
+==== Row 11 ====
+[t]:schedule_b
+[filing_id]:13801
+[entity_type]:PTY
+[org]:DCCC NF Acct #5 -Contributions
+[last]:
+[first]:
+[middle]:
+[prefix]:
+[suffix]:
+==== Row 12 ====
+[t]:schedule_b
+[filing_id]:236480
+[entity_type]:
+[org]:UNITEMIZED DISBURSEMENTS
+[last]:
+[first]:
+[middle]:
+[prefix]:
+[suffix]:
+==== Row 13 ====
+[t]:schedule_b
+[filing_id]:342096
+[entity_type]:CCM
+[org]:2ND CONGRESSIONAL DISTRICT REPUBLICAN
+[last]:
+[first]:
+[middle]:
+[prefix]:
+[suffix]:
+==== Row 14 ====
+[t]:schedule_b
+[filing_id]:342096
+[entity_type]:CCM
+[org]:3RD. CONGRESSIONAL DISTRICT REPUBLICAN
+[last]:
+[first]:
+[middle]:
+[prefix]:
+[suffix]:
+==== Row 15 ====
+[t]:schedule_b
+[filing_id]:342096
+[entity_type]:ORG
+[org]:Alliance Bank
+[last]:
+[first]:
+[middle]:
+[prefix]:
+[suffix]:
+==== Row 16 ====
+[t]:schedule_b
+[filing_id]:342096
+[entity_type]:ORG
+[org]:Affordable Buttons
+[last]:
+[first]:
+[middle]:
+[prefix]:
+[suffix]:
+==== Row 17 ====
+[t]:schedule_b
+[filing_id]:391955
+[entity_type]:
+[org]:
+[last]:GIBSON
+[first]:JAMES
+[middle]:
+[prefix]:
+[suffix]:
+==== Row 18 ====
+[t]:schedule_b
+[filing_id]:391955
+[entity_type]:
+[org]:TRAIL BLAZER CAMPAIGN SERVICES INC.
+[last]:
+[first]:
+[middle]:
+[prefix]:
+[suffix]:
+==== Row 19 ====
+[t]:schedule_b
+[filing_id]:391955
+[entity_type]:
+[org]:WELLS FARGO
+[last]:
+[first]:
+[middle]:
+[prefix]:
+[suffix]:
+==== Row 20 ====
+[t]:schedule_b
+[filing_id]:497
+[entity_type]:
+[org]:Key Bank
+[last]:
+[first]:
+[middle]:
+[prefix]:
+[suffix]:
+==== Row 21 ====
+[t]:schedule_b
+[filing_id]:497
+[entity_type]:
+[org]:Hilton Hotel
+[last]:
+[first]:
+[middle]:
+[prefix]:
+[suffix]:
+==== Row 22 ====
+[t]:schedule_b
+[filing_id]:497
+[entity_type]:
+[org]:Greater Juneau Democratic Precinct
+[last]:
+[first]:
+[middle]:
+[prefix]:
+[suffix]:
+==== Row 23 ====
+[t]:schedule_b
+[filing_id]:716051
+[entity_type]:
+[org]:DELTA AIRLINES
+[last]:
+[first]:
+[middle]:
+[prefix]:
+[suffix]:
+==== Row 24 ====
+[t]:schedule_b
+[filing_id]:716051
+[entity_type]:
+[org]:
+[last]:BARBARA
+[first]:SAL
+[middle]:
+[prefix]:
+[suffix]:
+==== Row 25 ====
+[t]:schedule_b
+[filing_id]:716051
+[entity_type]:
+[org]:JIM GIBBONS FOR CONGRESS
+[last]:
+[first]:
+[middle]:
+[prefix]:
+[suffix]:
+==== Row 26 ====
+[t]:schedule_b
+[filing_id]:716051
+[entity_type]:
+[org]:LANGE FOR CONGRESS
+[last]:
+[first]:
+[middle]:
+[prefix]:
+[suffix]:
+==== Row 27 ====
+[t]:schedule_b
+[filing_id]:730663
+[entity_type]:ORG
+[org]:American Express
+[last]:
+[first]:
+[middle]:
+[prefix]:
+[suffix]:
+==== Row 28 ====
+[t]:schedule_b
+[filing_id]:730663
+[entity_type]:ORG
+[org]:Merchant Services
+[last]:
+[first]:
+[middle]:
+[prefix]:
+[suffix]:
+==== Row 29 ====
+[t]:schedule_b
+[filing_id]:730663
+[entity_type]:IND
+[org]:
+[last]:Becks
+[first]:Karen
+[middle]:
+[prefix]:
+[suffix]:
+==== Row 30 ====
+[t]:schedule_b
+[filing_id]:730663
+[entity_type]:ORG
+[org]:Dewey Square Group LLC
+[last]:
+[first]:
+[middle]:
+[prefix]:
+[suffix]:
+filing_id | treasurer_last_name | treasurer_first_name | treasurer_prefix | treasurer_suffix
+==== Row 0 ====
+[filing_id]:13801
+[treasurer_last_name]:Howard Wolfson
+[treasurer_first_name]:
+[treasurer_prefix]:
+[treasurer_suffix]:
+==== Row 1 ====
+[filing_id]:102196
+[treasurer_last_name]:David Tandy
+[treasurer_first_name]:
+[treasurer_prefix]:
+[treasurer_suffix]:
+==== Row 2 ====
+[filing_id]:342096
+[treasurer_last_name]:Sutton
+[treasurer_first_name]:Anthony
+[treasurer_prefix]:
+[treasurer_suffix]:
+==== Row 3 ====
+[filing_id]:730663
+[treasurer_last_name]:Alberty
+[treasurer_first_name]:Fran
+[treasurer_prefix]:
+[treasurer_suffix]:
+==== Row 4 ====
+[filing_id]:236480
+[treasurer_last_name]:PON
+[treasurer_first_name]:KENNETH
+[treasurer_prefix]:
+[treasurer_suffix]:CPA
+==== Row 5 ====
+[filing_id]:1215766
+[treasurer_last_name]:
+[treasurer_first_name]:MARIE
+[treasurer_prefix]:
+[treasurer_suffix]:
