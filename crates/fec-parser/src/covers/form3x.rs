@@ -170,17 +170,14 @@ impl Form3X {
 
     /// Description of [`Form3X::report_code`], e.g. `Q1` → "April Quarterly".
     ///
-    /// Uses [`crate::report_code_label`]; `MYE`, which the workbook defines as
-    /// the monthly filer's year-end report (workbook field 10), is labelled
-    /// "Monthly Year-End". `None` for an unknown or missing code.
+    /// Uses [`crate::report_code_label`] (which includes `MYE`, the workbook's
+    /// code for a monthly filer's year-end report, workbook field 10). `None`
+    /// for an unknown or missing code.
     pub fn report_code_label(&self) -> Option<&'static str> {
-        match self.report_code.as_deref()? {
-            "MYE" => Some("Monthly Year-End"),
-            code => match crate::report_code_label(code) {
-                "[Unknown report code]" => None,
-                label => Some(label),
-            },
-        }
+        self.report_code
+            .as_deref()
+            .map(crate::report_code_label)
+            .filter(|label| *label != "[Unknown report code]")
     }
 
     /// The election type named by the first letter of
@@ -650,6 +647,7 @@ impl Form3XNetContributionsAndOperatingExpenditures {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

@@ -85,7 +85,10 @@ pub struct Form99 {
     /// Caveat: the body is read through the same CSV reader as the rest of
     /// the file, so a line that *starts* with a double quote has that quoting
     /// interpreted (quotes removed, `""` unescaped). This affected 5 of ~990
-    /// F99 filings in the test corpus.
+    /// F99 filings in the test corpus. A quote that is opened and never
+    /// closed would swallow everything after it — the `[ENDTEXT]` marker and
+    /// any later itemization rows — into this field (no corpus filing does
+    /// this; the same input loses those rows on `main` too).
     pub text: Option<String>,
 }
 

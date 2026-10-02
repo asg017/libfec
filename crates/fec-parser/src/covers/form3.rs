@@ -145,7 +145,10 @@ impl Form3 {
 
     /// Description of [`Form3::report_code`] (see [`crate::report_code_label`]).
     pub fn report_code_label(&self) -> Option<&'static str> {
-        self.report_code.as_deref().map(crate::report_code_label)
+        self.report_code
+            .as_deref()
+            .map(crate::report_code_label)
+            .filter(|label| *label != "[Unknown report code]")
     }
 
     /// Election type named by [`Form3::election_code`] (see [`election_code_label`]).
