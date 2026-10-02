@@ -1,9 +1,9 @@
 //! Helpers for exporting itemization rows of any format family.
 //!
 //! A row's layout depends on its row type *and* the filing's version, and
-//! filings can contain row types that mappings2.json does not describe for
-//! that version. Exports skip such rows with one warning per row type per
-//! filing instead of aborting or panicking.
+//! legacy filings (1.x–5.x, paper) contain row types that mappings2.json
+//! does not (yet) describe for that version. Exports skip such rows with one
+//! warning per row type per filing instead of aborting or panicking.
 
 use std::collections::HashSet;
 
