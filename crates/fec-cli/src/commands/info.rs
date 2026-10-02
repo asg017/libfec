@@ -342,6 +342,22 @@ fn process_filing<R: Read>(
                             .bold()
                     );
                 }
+                Cover::Form13(form) => {
+                    if let Some(signed) = form.date_signed {
+                        println!(
+                            "Signed by {} on {}",
+                            form.designated_officer.to_string().bold(),
+                            signed.to_string().bold()
+                        );
+                    }
+                    let usd = crate::tui::filing_detail::format_usd;
+                    println!(
+                        "Cumulative donations: accepted {}, refunded {}, net {}",
+                        usd(form.line5_total_donations_accepted).bold(),
+                        usd(form.line6_total_donations_refunded).bold(),
+                        usd(form.line7_net_donations).bold()
+                    );
+                }
             }
         }
 

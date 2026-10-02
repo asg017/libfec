@@ -42,6 +42,7 @@
 
 pub(crate) mod fields;
 mod form1;
+mod form13;
 mod form3;
 mod form3l;
 mod form3p;
@@ -49,6 +50,7 @@ mod form4;
 mod form7;
 
 pub use crate::covers::form1::{Form1, Form1Candidate};
+pub use crate::covers::form13::Form13;
 pub use crate::covers::form3::{
     Form3, Form3DetailedSummary, Form3DetailedSummaryDisbursements, Form3DetailedSummaryReceipts,
     Form3Summary,
@@ -76,6 +78,7 @@ pub enum Cover {
     Form3L(Form3L),
     Form4(Box<Form4>),
     Form7(Form7),
+    Form13(Form13),
 }
 
 impl Cover {
@@ -88,6 +91,7 @@ impl Cover {
             Cover::Form3L(f) => Some(&f.treasurer),
             Cover::Form4(f) => Some(&f.treasurer),
             Cover::Form7(f) => Some(&f.person_designated),
+            Cover::Form13(f) => Some(&f.designated_officer),
         }
     }
 
@@ -100,6 +104,7 @@ impl Cover {
             Cover::Form3L(f) => f.date_signed,
             Cover::Form4(f) => f.date_signed,
             Cover::Form7(f) => f.date_signed,
+            Cover::Form13(f) => f.date_signed,
         }
     }
 }
@@ -126,6 +131,7 @@ pub(crate) fn cover_from_form_type(cover_record_form_type: &str, data: &Data) ->
         "F3L" => Form3L::from_data(data).map(Cover::Form3L),
         "F4" => Form4::from_data(data).map(|f| Cover::Form4(Box::new(f))),
         "F7" => Form7::from_data(data).map(Cover::Form7),
+        "F13" => Form13::from_data(data).map(Cover::Form13),
         _ => None,
     }
 }

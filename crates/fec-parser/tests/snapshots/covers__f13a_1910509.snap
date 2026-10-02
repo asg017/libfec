@@ -1,0 +1,35 @@
+---
+source: crates/fec-parser/tests/covers.rs
+expression: "cover(\"F13A_1910509.fec\")"
+snapshot_kind: text
+---
+{
+  "form": "Form13",
+  "data": {
+    "committee_name": "TRUMP VANCE INAUGURAL COMMITTEE, INC.",
+    "committee_id": "C00894162",
+    "address": {
+      "street_1": "C/O RED CURVE SOLUTIONS",
+      "street_2": "138 CONANT ST STE 401",
+      "city": "BEVERLY",
+      "state": "MA",
+      "zip_code": "01915"
+    },
+    "change_of_address": false,
+    "report_code": "90D",
+    "amendment_date": "2025-04-20",
+    "coverage_from": "2024-11-15",
+    "coverage_through": "2025-04-20",
+    "line5_total_donations_accepted": 247699313.67,
+    "line6_total_donations_refunded": 6230697.38,
+    "line7_net_donations": 241468616.29,
+    "designated_officer": {
+      "first_name": "BRADLEY",
+      "last_name": "CRATE",
+      "middle_name": "T.",
+      "prefix": null,
+      "suffix": null
+    },
+    "date_signed": "2025-08-07"
+  }
+}
