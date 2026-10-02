@@ -19,9 +19,12 @@
 //! so the output (including errors) can be hashed and compared across
 //! revisions — see `wiki/legacy/tools/regress_8x.sh` and `diff_fastfec.py`.
 //!
-//! Keep this file compiling against the base revision (b1abe2e): the
-//! regression script overlays it onto older checkouts. New header fields go
-//! in [`header_parsed`].
+//! The header line also carries `legacy_fields` and `schedule_counts` (the
+//! `/*` block, both empty for HDR-style filings), which the FastFEC
+//! differential compares to FastFEC's `header.csv`. Those fields do not exist
+//! at the pre-legacy base (b1abe2e), so `regress_8x.sh` overlays a
+//! base-compatible copy (`wiki/legacy/tools/dump_base.rs`) on both revisions
+//! instead of this file.
 
 use csv::StringRecord;
 use fec_parser::{Filing, FilingHeader};
@@ -69,6 +72,8 @@ fn main() {
         "kind": "header",
         "fields": fields(&filing.header.header_record),
         "parsed": header_parsed(&filing.header),
+        "legacy_fields": filing.header.legacy_fields,
+        "schedule_counts": filing.header.schedule_counts,
     }));
 
     let cover = &filing.cover;
