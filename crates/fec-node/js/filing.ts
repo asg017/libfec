@@ -1,4 +1,4 @@
-import * as native from "#native";
+import * as native from "./native.js";
 import { callNative, MissingMappingError } from "./errors.js";
 import type { Cover, Itemization } from "./generated/index.js";
 import type { Header } from "./header.js";

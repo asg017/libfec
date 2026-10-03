@@ -6,7 +6,7 @@
 // one object shape (plans/nodejs/01-bindings.md: ~2x faster than a loop).
 // Where code generation is blocked the factory is a loop with the same output.
 
-import * as native from "#native";
+import * as native from "./native.js";
 import { callNative } from "./errors.js";
 import type { Itemization } from "./generated/index.js";
 import type { TokenDecoder } from "./tokens.js";

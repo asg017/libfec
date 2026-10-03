@@ -1,7 +1,8 @@
 // The one module in js/ that touches the platform: the napi-rs binding and
-// the `node:*` APIs. Everything else imports it as `#native` (package.json
-// "imports"), so a future browser build can map `#native` to a wasm adapter
-// with the same exports (plans/nodejs/06-wasm-spike.md, W1).
+// the `node:*` APIs. Everything else imports it as "./native.js", so a future
+// browser build can swap this one file for a wasm adapter with the same
+// exports (plans/nodejs/06-wasm-spike.md, W1). Not a package.json "imports"
+// alias: Deno doesn't resolve those when the package is imported by path.
 
 import { constants } from "node:os";
 import { resolve } from "node:path";

@@ -69,8 +69,8 @@ test("the README lists every Itemization and Cover type", () => {
   assert.deepEqual(listed("Every `Cover` `type`").filter((t) => t !== "Cover" && t !== "COVER_TYPES"), [...COVER_TYPES]);
 });
 
-test("js/ reaches the platform only through js/native.ts (#native)", () => {
-  // A future browser build swaps `#native` for a wasm adapter, so no other
+test("js/ reaches the platform only through js/native.ts", () => {
+  // A future browser build swaps js/native.ts for a wasm adapter, so no other
   // module may import the binding or node:* (plans/nodejs/06-wasm-spike.md W1).
   const dir = new URL("../js/", import.meta.url);
   for (const f of readdirSync(dir).filter((f) => f.endsWith(".ts") && f !== "native.ts")) {
