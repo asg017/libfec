@@ -160,6 +160,7 @@ pub struct ScheduleF {
 pub struct ScheduleFCommittee {
     /// The committee's FEC ID; electronic-only.
     pub fec_id: Option<String>,
+    /// The committee's name.
     pub name: Option<String>,
     /// Given for the subordinate committee (v2+) and, in v1 only, the
     /// designating committee; empty otherwise.
