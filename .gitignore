@@ -39,3 +39,5 @@ dist/
 *.so
 # insta pending snapshots
 *.snap.new
+# committed test fixtures for the Node bindings (crates/fec-node/tests/fixtures/make-edge.mjs)
+!crates/fec-node/tests/fixtures/*.fec
