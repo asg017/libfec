@@ -5,7 +5,9 @@ use jiff::civil::Date;
 
 use crate::covers::fields::{amount, amount_opt, date, text, text_or_empty, Fields};
 use crate::covers::Address;
-use crate::itemizations::{category_code_label, support_oppose_label, address_either, text_any, CandidateRef, Entity};
+use crate::itemizations::{
+    address_either, category_code_label, support_oppose_label, text_any, CandidateRef, Entity,
+};
 
 /// "SCHEDULE 5-A ITEMIZED RECEIPTS": one contribution a person other than a
 /// political committee received "for the purpose of furthering the
@@ -269,8 +271,6 @@ impl Form5Expenditure {
     }
 }
 
-
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -336,7 +336,10 @@ mod tests {
             Some("Administrative/Salary/Overhead Expenses")
         );
         assert_eq!(category_code_label("012"), Some("Donations"));
-        assert_eq!(category_code_label("101"), Some("Expenses that are not Allocable"));
+        assert_eq!(
+            category_code_label("101"),
+            Some("Expenses that are not Allocable")
+        );
         assert_eq!(support_oppose_label(" o "), Some("Oppose"));
         assert_eq!(support_oppose_label("X"), None);
     }

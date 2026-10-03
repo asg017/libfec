@@ -120,8 +120,11 @@ def parse_methods(src: Path) -> dict[str, list[tuple[str, str]]]:
 
 
 def union_members(src: Path) -> list[str]:
-    """The ``Itemization`` union: one class per ``itemization_to_py`` match arm."""
-    return re.findall(r"Itemization::(\w+)\(\w+\) =>", (src / "python.rs").read_text())
+    """The ``Itemization`` union: one class per ``itemization_to_py`` match arm,
+    each variant mapped to its struct through the enum (``Text(Box<TextRecord>)``)."""
+    structs = dict(re.findall(r"^\s+(\w+)\(Box<(\w+)>\),", (src / "mod.rs").read_text(), re.M))
+    arms = re.findall(r"Itemization::(\w+)\(\w+\) =>", (src / "python.rs").read_text())
+    return [structs[arm] for arm in arms]
 
 
 #: ``(module, source dir, union name, union members, extra imports)``.
@@ -132,7 +135,7 @@ TARGETS = [
         SRC / "itemizations",
         "Itemization",
         lambda: union_members(SRC / "itemizations"),
-        ["from .covers import Address, PersonName"],
+        ["from .covers import Address, DetailedSummaryRow, PersonName"],
     ),
 ]
 

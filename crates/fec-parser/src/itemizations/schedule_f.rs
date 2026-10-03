@@ -44,7 +44,12 @@ use crate::itemizations::{address_either, text_any, CandidateRef, Entity};
 /// committee IDs but carry an `image_number`.
 #[cfg_attr(
     feature = "python",
-    pyo3::pyclass(module = "libfec_parser.itemizations", frozen, get_all, skip_from_py_object)
+    pyo3::pyclass(
+        module = "libfec_parser.itemizations",
+        frozen,
+        get_all,
+        skip_from_py_object
+    )
 )]
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct ScheduleF {
@@ -142,7 +147,12 @@ pub struct ScheduleF {
 /// `Sch F`, fields 7–15).
 #[cfg_attr(
     feature = "python",
-    pyo3::pyclass(module = "libfec_parser.itemizations", frozen, get_all, skip_from_py_object)
+    pyo3::pyclass(
+        module = "libfec_parser.itemizations",
+        frozen,
+        get_all,
+        skip_from_py_object
+    )
 )]
 #[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize)]
 pub struct ScheduleFCommittee {
@@ -244,7 +254,10 @@ mod tests {
         ]);
         let sf = ScheduleF::from_data(&d).expect("typed");
         assert_eq!(sf.filer_designated, Some(true));
-        assert_eq!(sf.designating_committee.address.city.as_deref(), Some("Washington"));
+        assert_eq!(
+            sf.designating_committee.address.city.as_deref(),
+            Some("Washington")
+        );
         assert!(sf.subordinate_committee.is_empty());
         assert_eq!(sf.payee.organization_name.as_deref(), Some("Acme Media"));
         assert_eq!(sf.candidate.name.last_name, "Smith");
