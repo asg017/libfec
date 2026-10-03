@@ -68,10 +68,13 @@ pub use schedule_a::ScheduleA;
 /// One typed itemization record. `None` from [`Itemization::from_record`]
 /// means the row is not an itemization (the cover, `F3PS`, …) or its record
 /// type has no struct yet.
+///
+/// Serialized with its [`record_family`] as a `"family"` tag (`"SA"`), then
+/// the struct's fields.
 #[derive(Debug, Clone, Serialize)]
-#[serde(tag = "schedule")]
+#[serde(tag = "family")]
 pub enum Itemization {
-    #[serde(rename = "A")]
+    #[serde(rename = "SA")]
     ScheduleA(Box<ScheduleA>),
 }
 
