@@ -1,0 +1,259 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"SB_1907931.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "SB",
+    "form_type": "SB21B",
+    "filer_committee_id": "C00879205",
+    "transaction_id": "SB21B.4178",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "payee": {
+      "entity_type": "ORG",
+      "organization_name": "Blue Wave Political Partners",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "PO Box 699",
+        "street_2": null,
+        "city": "Ringgold",
+        "state": "GA",
+        "zip_code": "30736"
+      }
+    },
+    "election_code": "O2025",
+    "election_other_description": null,
+    "expenditure_date": "2025-01-31",
+    "expenditure_amount": 2000.0,
+    "semi_annual_refunded_bundled_amount": null,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "Compliance/Accounting Fees",
+    "category_code": null,
+    "beneficiary_committee_fec_id": null,
+    "beneficiary_committee_name": null,
+    "beneficiary_candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "memo": false,
+    "memo_text": null,
+    "reference_code": null,
+    "refund_or_disposal_of_excess": false,
+    "communication_date": null,
+    "image_number": null
+  },
+  {
+    "family": "SB",
+    "form_type": "SB21B",
+    "filer_committee_id": "C00879205",
+    "transaction_id": "SB21B.4179",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "payee": {
+      "entity_type": "ORG",
+      "organization_name": "Blue Wave Political Partners",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "PO Box 699",
+        "street_2": null,
+        "city": "Ringgold",
+        "state": "GA",
+        "zip_code": "30736"
+      }
+    },
+    "election_code": "O2025",
+    "election_other_description": null,
+    "expenditure_date": "2025-02-24",
+    "expenditure_amount": 332.94,
+    "semi_annual_refunded_bundled_amount": null,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "Compliance/Accounting Fees",
+    "category_code": null,
+    "beneficiary_committee_fec_id": null,
+    "beneficiary_committee_name": null,
+    "beneficiary_candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "memo": false,
+    "memo_text": null,
+    "reference_code": null,
+    "refund_or_disposal_of_excess": false,
+    "communication_date": null,
+    "image_number": null
+  },
+  {
+    "family": "SB",
+    "form_type": "SB21B",
+    "filer_committee_id": "C00879205",
+    "transaction_id": "SB21B.4188",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "payee": {
+      "entity_type": "IND",
+      "organization_name": null,
+      "name": {
+        "first_name": "Tasha",
+        "last_name": "Ellis",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "3419 Old Anderson Rd",
+        "street_2": null,
+        "city": "Antioch",
+        "state": "TN",
+        "zip_code": "37013"
+      }
+    },
+    "election_code": "O2025",
+    "election_other_description": null,
+    "expenditure_date": "2025-01-31",
+    "expenditure_amount": 285.0,
+    "semi_annual_refunded_bundled_amount": null,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "Reimbursement - PO Box Renewal",
+    "category_code": null,
+    "beneficiary_committee_fec_id": null,
+    "beneficiary_committee_name": null,
+    "beneficiary_candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "memo": false,
+    "memo_text": null,
+    "reference_code": null,
+    "refund_or_disposal_of_excess": false,
+    "communication_date": null,
+    "image_number": null
+  },
+  {
+    "family": "SB",
+    "form_type": "SB21B",
+    "filer_committee_id": "C00879205",
+    "transaction_id": "SB21B.4190",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "payee": {
+      "entity_type": "ORG",
+      "organization_name": "USPS",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "2500 Murfreesboro Road",
+        "street_2": "S105",
+        "city": "Nashville",
+        "state": "TN",
+        "zip_code": "37217"
+      }
+    },
+    "election_code": "O2025",
+    "election_other_description": null,
+    "expenditure_date": "2025-01-31",
+    "expenditure_amount": 285.0,
+    "semi_annual_refunded_bundled_amount": null,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "PO Box Rental",
+    "category_code": null,
+    "beneficiary_committee_fec_id": null,
+    "beneficiary_committee_name": null,
+    "beneficiary_candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "memo": true,
+    "memo_text": null,
+    "reference_code": null,
+    "refund_or_disposal_of_excess": false,
+    "communication_date": null,
+    "image_number": null
+  }
+]
