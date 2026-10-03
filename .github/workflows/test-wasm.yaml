@@ -6,6 +6,10 @@ on:
   pull_request:
 permissions:
   contents: read
+# A newer push to the same PR cancels the older run; runs on main always finish.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   test-wasm:
     runs-on: ubuntu-latest

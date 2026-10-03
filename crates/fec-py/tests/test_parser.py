@@ -22,7 +22,13 @@ def sample_fec_file():
         fec_files = list(bench_dir.glob("*.fec"))
         if fec_files:
             return fec_files[0]
-    
+
+    # Fall back to the small filings committed for the fec-cli tests
+    fixtures_dir = Path(__file__).parent.parent.parent / "fec-cli" / "tests" / "fixtures"
+    fec_files = sorted(fixtures_dir.glob("*.fec"))
+    if fec_files:
+        return fec_files[0]
+
     pytest.skip("No sample FEC files found")
 
 

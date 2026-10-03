@@ -34,7 +34,7 @@ def benchmarks_dir(project_root):
 
 
 @pytest.fixture(scope="session")
-def available_fec_files(cache_dir, benchmarks_dir):
+def available_fec_files(project_root, cache_dir, benchmarks_dir):
     """Get list of all available FEC test files"""
     files = []
     
@@ -43,7 +43,12 @@ def available_fec_files(cache_dir, benchmarks_dir):
     
     if benchmarks_dir.exists():
         files.extend(list(benchmarks_dir.glob("*.fec")))
-    
+
+    # Fall back to the small filings committed for the fec-cli tests
+    if not files:
+        fixtures_dir = project_root / "crates" / "fec-cli" / "tests" / "fixtures"
+        files.extend(sorted(fixtures_dir.glob("*.fec")))
+
     return files
 
 
