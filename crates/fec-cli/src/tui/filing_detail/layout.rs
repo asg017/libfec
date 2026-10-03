@@ -152,6 +152,10 @@ impl<'a> Doc<'a> {
         }
     }
 
+    pub fn width(&self) -> usize {
+        self.width
+    }
+
     /// Push a pre-built line as-is.
     pub fn push(&mut self, line: Line<'static>) {
         self.lines.push(line);

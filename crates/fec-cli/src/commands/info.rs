@@ -571,6 +571,26 @@ fn process_filing<R: Read>(
                         );
                     }
                 }
+                Cover::Form99(form) => {
+                    if let Some(date_signed) = form.date_signed {
+                        println!(
+                            "Signed by {} on {}",
+                            form.treasurer.to_string().bold(),
+                            date_signed.to_string().bold()
+                        );
+                    }
+                    if let Some(ref code) = form.text_code {
+                        println!(
+                            "Text code: {}",
+                            code_with_label(code, form.text_code_label())
+                        );
+                    }
+                    if let Some(ref text) = form.text {
+                        println!();
+                        println!("{text}");
+                        println!();
+                    }
+                }
             }
         }
 

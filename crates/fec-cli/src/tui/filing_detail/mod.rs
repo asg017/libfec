@@ -2,9 +2,9 @@
 //!
 //! This module provides rendering functions for displaying detailed FEC filing information
 //! within a ratatui application. Each typed cover (F1, F1M, F2, F3, F3L, F3P, F3X, F4, F5,
-//! F6, F7, F9, F13 and F24) has its own renderer module, all built on the shared line
-//! builders in [`layout`], around common chrome (title, URL, metadata, help bar, yank
-//! popup, key handling).
+//! F6, F7, F9, F13, F24 and F99) has its own renderer module, all built on the shared line
+//! builders in [`layout`], around common chrome (title, URL, metadata, help bar, yank popup,
+//! key handling).
 //!
 //! Keyboard shortcuts:
 //! - Esc/q: Return to previous view
@@ -28,6 +28,7 @@ pub mod f5;
 pub mod f6;
 pub mod f7;
 pub mod f9;
+pub mod f99;
 mod layout;
 
 use crate::tui::{navigation_popup_help_line, HelpBar};
@@ -35,7 +36,7 @@ use crossterm::event::{KeyCode, KeyEvent};
 use f3::FilingDetailF3;
 use f3p::FilingDetailF3P;
 use fec_parser::{
-    covers::{Cover, Form2},
+    covers::{Cover, Form2, Form99},
     report_code_label,
 };
 use indicatif::HumanBytes;
@@ -79,6 +80,7 @@ pub enum FilingCoverContent {
     Form9(Box<fec_parser::covers::Form9>),
     Form13(Box<fec_parser::covers::Form13>),
     Form24(Box<fec_parser::covers::Form24>),
+    Form99(Box<Form99>),
     /// No typed cover (an unsupported form type or an unparsable cover).
     Unknown,
 }
@@ -142,6 +144,7 @@ impl<R: std::io::Read> From<&fec_parser::Filing<R>> for FilingDetail {
             Some(Cover::Form9(form)) => FilingCoverContent::Form9(form.clone()),
             Some(Cover::Form13(form)) => FilingCoverContent::Form13(Box::new(form.clone())),
             Some(Cover::Form24(form)) => FilingCoverContent::Form24(Box::new(form.clone())),
+            Some(Cover::Form99(form)) => FilingCoverContent::Form99(Box::new(form.clone())),
             None => FilingCoverContent::Unknown,
         };
 
@@ -410,6 +413,7 @@ fn render_content(f: &mut Frame, filing: &FilingDetail, state: &FilingDetailStat
         FilingCoverContent::Form9(form) => f9::append_f9_content_lines(&mut d, form),
         FilingCoverContent::Form13(form) => f13::append_f13_content_lines(&mut d, form),
         FilingCoverContent::Form24(form) => f24::append_f24_content_lines(&mut d, form),
+        FilingCoverContent::Form99(form) => f99::append_f99_content_lines(&mut d, form),
         FilingCoverContent::Unknown => {}
     }
 
@@ -818,5 +822,20 @@ pub(crate) mod tests {
     #[test]
     fn filing_detail_f2a() {
         assert_snapshot!(render_fixture("F2A_1902439.fec", 100, 50));
+    }
+
+    #[test]
+    fn filing_detail_f99() {
+        assert_snapshot!(render_fixture("F99_1945322.fec", 100, 50));
+    }
+
+    #[test]
+    fn filing_detail_f99_narrow() {
+        assert_snapshot!(render_fixture("F99_1945322.fec", 60, 40));
+    }
+
+    #[test]
+    fn filing_detail_f99_v84() {
+        assert_snapshot!(render_fixture("F99_1909934.fec", 100, 50));
     }
 }
