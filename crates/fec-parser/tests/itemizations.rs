@@ -90,3 +90,13 @@ itemization_snapshot!(h4_305041_v5_3, "H4_305041.fec");
 itemization_snapshot!(h4_181668_v5_2, "H4_181668.fec");
 itemization_snapshot!(h5_1948807_v8_5, "H5_1948807.fec");
 itemization_snapshot!(h5_1893062_v8_4, "H5_1893062.fec");
+// Form 5/6/7/9/13 line items
+itemization_snapshot!(f56_1912883_v8_4, "F56_1912883.fec");
+itemization_snapshot!(f56_1920821_v8_5, "F56_1920821.fec");
+itemization_snapshot!(f57_1888833_v8_4, "F57_1888833.fec");
+itemization_snapshot!(f57_1917549_v8_5, "F57_1917549.fec");
+itemization_snapshot!(f65_1912946_v8_4, "F65_1912946.fec");
+itemization_snapshot!(f65_1946674_v8_5, "F65_1946674.fec");
+itemization_snapshot!(f76_1884734_v8_4, "F76_1884734.fec");
+itemization_snapshot!(f132_1904840_v8_4, "F132_1904840.fec");
+itemization_snapshot!(f133_1904839_v8_4, "F133_1904839.fec");
