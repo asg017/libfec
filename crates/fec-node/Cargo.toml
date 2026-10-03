@@ -15,15 +15,17 @@ napi = { version = "=3.12.6", default-features = false, features = ["napi8"] }
 napi-derive = "=3.6.7"
 fec-parser = { path = "../fec-parser" }
 anyhow = "1.0.99"
+csv = "1.2.2"
 indexmap = "2.9.0"
+serde = "1"
+serde_json = "1.0.104"
 
 # `gen-types` only: the TypeScript generator (src/bin/gen-types.rs).
 ts-rs = { version = "=12.0.1", optional = true }
-serde_json = { version = "1.0.104", optional = true }
 
 [features]
 # `make gen-types`: write js/generated/ from fec-parser's typed structs.
-gen-types = ["fec-parser/ts", "dep:ts-rs", "dep:serde_json"]
+gen-types = ["fec-parser/ts", "dep:ts-rs"]
 
 [[bin]]
 name = "gen-types"
