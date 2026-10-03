@@ -17,5 +17,17 @@ fec-parser = { path = "../fec-parser" }
 anyhow = "1.0.99"
 indexmap = "2.9.0"
 
+# `gen-types` only: the TypeScript generator (src/bin/gen-types.rs).
+ts-rs = { version = "=12.0.1", optional = true }
+serde_json = { version = "1.0.104", optional = true }
+
+[features]
+# `make gen-types`: write js/generated/ from fec-parser's typed structs.
+gen-types = ["fec-parser/ts", "dep:ts-rs", "dep:serde_json"]
+
+[[bin]]
+name = "gen-types"
+required-features = ["gen-types"]
+
 [build-dependencies]
 napi-build = "2"
