@@ -10,12 +10,6 @@
       "default": "./dist/index.js"
     }
   },
-  "imports": {
-    "#native": {
-      "types": "./dist/native.d.ts",
-      "default": "./dist/native.js"
-    }
-  },
   "files": [
     "dist",
     "native/*.js",
