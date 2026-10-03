@@ -17,9 +17,10 @@ use fec_parser::covers::Cover;
 use fec_parser::itemizations::Itemization;
 use fec_parser::mappings::{column_kind, column_names_for_field, ColumnKind};
 use fec_parser::Filing;
-use napi::bindgen_prelude::{Uint32Array, Uint8Array};
+use napi::bindgen_prelude::Uint8Array;
 use napi_derive::napi;
 
+use crate::arrays::Copied;
 use crate::errors::{io_error, parse_error, Result};
 use fec_js_core::fields::FieldsWriter;
 
@@ -53,15 +54,18 @@ pub struct NativeCoverSummary {
 /// Up to `n` rows: every field of every row concatenated into `text`, with
 /// UTF-16 end offsets (JS `slice` counts UTF-16 units). No separators, so a
 /// field holding `\n` or `\x1c` survives.
-#[napi(object, use_nullable = true)]
+#[napi(object, object_from_js = false, use_nullable = true)]
 pub struct Batch {
     pub text: String,
     /// `ends[k]`: UTF-16 end offset of field `k` within `text`.
-    pub ends: Uint32Array,
+    #[napi(ts_type = "Uint32Array")]
+    pub ends: Copied<u32>,
     /// `row_ends[i]`: index into `ends` one past row `i`'s last field.
-    pub row_ends: Uint32Array,
+    #[napi(ts_type = "Uint32Array")]
+    pub row_ends: Copied<u32>,
     /// `lines[i]`: row `i`'s 1-based physical line.
-    pub lines: Uint32Array,
+    #[napi(ts_type = "Uint32Array")]
+    pub lines: Copied<u32>,
     /// Typed mode: one itemization per row of this batch. `None` in raw mode.
     pub typed: Option<TokenBatch>,
 }
