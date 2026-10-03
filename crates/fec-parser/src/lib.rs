@@ -889,4 +889,35 @@ mod tests {
         );
         assert_eq!(rows, [["SA11AI", "C00776393", "JANE DOE", "50.00"]]);
     }
+
+    #[test]
+    fn row_lines_are_file_lines() {
+        let path = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../fec-py/tests/fixtures/1921705.fec"
+        );
+        let mut filing = Filing::<std::fs::File>::from_path(std::path::Path::new(path)).unwrap();
+        let mut lines = vec![];
+        while let Some(row) = filing.next_row() {
+            lines.push(row.unwrap().line);
+        }
+        assert_eq!(lines, (3..=22).collect::<Vec<u64>>());
+    }
+
+    #[test]
+    fn row_after_endtext_has_its_line() {
+        // LF line ends: with CRLF ones every row's `line` is currently one
+        // short (the csv reader starts the record at the previous `\n`).
+        let src = HEADER_AND_COVER.replace("\r\n", "\n")
+            + "SA11AI\x1cC00776393\x1cJANE DOE\x1c50.00\n\
+               [BEGINTEXT]\nsome text\n[ENDTEXT]\n\
+               SA11AI\x1cC00776393\x1cJOHN DOE\x1c25.00\n";
+        let mut filing =
+            Filing::from_reader(src.as_bytes(), "FEC-1".to_owned(), src.len()).unwrap();
+        let mut lines = vec![];
+        while let Some(row) = filing.next_row() {
+            lines.push(row.unwrap().line);
+        }
+        assert_eq!(lines, [3, 7]);
+    }
 }
