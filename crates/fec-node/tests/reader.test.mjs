@@ -192,3 +192,12 @@ test("open errors: ENOENT, FecParseError", () => {
   assert.throws(() => open("nope.fec"), { code: "ENOENT", path: "nope.fec" });
   assert.throws(() => open(new TextEncoder().encode("garbage")), FecParseError);
 });
+
+test("id option: names a bytes source; overrides a path's", () => {
+  const bytes = new Uint8Array(readFileSync(SAMPLE));
+  assert.equal(open(bytes).id, null);
+  assert.equal(open(bytes, { id: "1921705" }).id, "1921705");
+  assert.equal(open(SAMPLE).id, "1921705");
+  assert.equal(open(SAMPLE, { id: "custom" }).id, "custom");
+  assert.throws(() => open(bytes, { id: 1921705 }), TypeError);
+});

@@ -14,8 +14,8 @@ crate-type = ["cdylib"]
 napi = { version = "=3.12.6", default-features = false, features = ["napi8"] }
 napi-derive = "=3.6.7"
 fec-parser = { path = "../fec-parser" }
+fec-js-core = { path = "../fec-js-core" }
 anyhow = "1.0.99"
-csv = "1.2.2"
 indexmap = "2.9.0"
 serde = "1"
 serde_json = "1.0.104"

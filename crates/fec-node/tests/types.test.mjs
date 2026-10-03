@@ -68,3 +68,18 @@ test("the README lists every Itemization and Cover type", () => {
   assert.deepEqual(listed("Every `Itemization` `type`").filter((t) => t !== "Itemization" && t !== "ITEMIZATION_TYPES"), [...ITEMIZATION_TYPES]);
   assert.deepEqual(listed("Every `Cover` `type`").filter((t) => t !== "Cover" && t !== "COVER_TYPES"), [...COVER_TYPES]);
 });
+
+test("js/ reaches the platform only through js/native.ts (#native)", () => {
+  // A future browser build swaps `#native` for a wasm adapter, so no other
+  // module may import the binding or node:* (plans/nodejs/06-wasm-spike.md W1).
+  const dir = new URL("../js/", import.meta.url);
+  for (const f of readdirSync(dir).filter((f) => f.endsWith(".ts") && f !== "native.ts")) {
+    const src = readFileSync(new URL(f, dir), "utf8");
+    assert.doesNotMatch(src, /^import .*from "(node:[^"]*|[^"]*native\/native[^"]*)"/m, f);
+  }
+  for (const f of readdirSync(GENERATED).filter((f) => f.endsWith(".ts"))) {
+    const src = readFileSync(new URL(f, GENERATED), "utf8");
+    // W5: generated code is pure (labels.ts included): no imports but its siblings.
+    for (const m of src.matchAll(/^(?:import|export) .* from "([^"]+)";$/gm)) assert.match(m[1], /^\.\/\w+\.js$/, `${f}: ${m[1]}`);
+  }
+});

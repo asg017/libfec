@@ -1,4 +1,4 @@
-import { fileURLToPath } from "node:url";
+import { urlToPath } from "#native";
 
 /**
  * Where a filing comes from. A `string` is always a path (never `.fec` text);
@@ -17,7 +17,7 @@ export function normalizeSource(source: Source): NormalizedSource {
     if (source.protocol !== "file:") {
       throw new TypeError("only file: URLs are supported");
     }
-    return { kind: "path", path: fileURLToPath(source) };
+    return { kind: "path", path: urlToPath(source) };
   }
   // Buffer is a Uint8Array subclass.
   if (source instanceof Uint8Array) return { kind: "bytes", bytes: source };
