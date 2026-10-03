@@ -70,6 +70,30 @@ jobs:
         run: node scripts/examples.mjs "${RUNTIME%%[0-9]*}"
         env:
           RUNTIME: ${{ matrix.runtime }}
+      - name: Import dist/index.js by path from outside the package
+        # How the README tells Deno users to load the extracted tarball. Tests
+        # and examples run inside the package, where the runtime resolves more.
+        run: |
+          node -e '
+            const { pathToFileURL } = require("node:url");
+            const path = require("node:path");
+            const url = pathToFileURL(path.resolve("dist/index.js")).href;
+            const fixture = path.resolve("../fec-py/tests/fixtures/1921705.fec").replaceAll("\\", "/");
+            require("node:fs").writeFileSync(path.join(process.env.RUNNER_TEMP, "outside.mjs"), [
+              `import { open } from ${JSON.stringify(url)};`,
+              `const f = open(${JSON.stringify(fixture)});`,
+              `let n = 0; for (const _ of f.itemizations()) n++; f.close();`,
+              `if (n !== 20) throw new Error("expected 20 itemizations, got " + n);`,
+            ].join("\n"));
+          '
+          cd "$RUNNER_TEMP"
+          case "$RUNTIME" in
+            deno) deno run -A outside.mjs ;;
+            bun) bun outside.mjs ;;
+            *) node outside.mjs ;;
+          esac
+        env:
+          RUNTIME: ${{ matrix.runtime }}
       - name: TypeDoc (no undocumented exports, no broken links)
         if: matrix.os == 'ubuntu-latest' && matrix.runtime == 'node24'
         run: make docs

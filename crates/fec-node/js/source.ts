@@ -1,4 +1,4 @@
-import { urlToPath } from "#native";
+import { urlToPath } from "./native.js";
 
 /**
  * Where a filing comes from. A `string` is always a path (never `.fec` text);

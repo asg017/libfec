@@ -12,7 +12,7 @@
 //   `family` and starts with `type: "<StructName>"`;
 // - the cover (`Cover { form, data }`) is flattened to `{ type: form, ...data }`.
 
-import type * as native from "#native";
+import type * as native from "./native.js";
 
 const NULL = 0;
 const STR = 1;

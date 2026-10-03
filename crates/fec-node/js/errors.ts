@@ -1,4 +1,4 @@
-import { errnoOf, messagePath } from "#native";
+import { errnoOf, messagePath } from "./native.js";
 
 /**
  * Base class of every error this package raises about a filing. `code` says

@@ -1,4 +1,4 @@
-import * as native from "#native";
+import * as native from "./native.js";
 import { callNative } from "./errors.js";
 import { normalizeSource, type Source } from "./source.js";
 
