@@ -15,11 +15,13 @@ export function urlToPath(url: URL): string {
 }
 
 /**
- * The path as Node's own `fs` errors print it in their message: as given on
- * POSIX, absolute on Windows (libuv reports the resolved path there).
+ * The path as this runtime's own `fs` errors print it in their message: as
+ * given, except under Node on Windows, where libuv reports the resolved path.
+ * Deno and Bun keep it as given everywhere.
  */
 export function messagePath(path: string): string {
-  return process.platform === "win32" ? resolve(path) : path;
+  const node = !("Deno" in globalThis) && !("Bun" in globalThis);
+  return node && process.platform === "win32" ? resolve(path) : path;
 }
 
 /** Node's (negative) `errno` for a system error code like `"ENOENT"`, if known. */
