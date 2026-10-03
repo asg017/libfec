@@ -1,4 +1,4 @@
-import { constants } from "node:os";
+import { errnoOf } from "#native";
 
 /**
  * Base class of every error this package raises about a filing. `code` says
@@ -74,10 +74,10 @@ const IO_CODES: Record<string, string> = {
 /** A Node-style system error, shaped like `fs.openSync`'s. */
 function systemError(code: string, path: string, cause: unknown): Error {
   const err = new Error(`${code}: ${IO_CODES[code]}, open '${path}'`, { cause });
-  const errno = (constants.errno as Record<string, number | undefined>)[code];
+  const errno = errnoOf(code);
   return Object.assign(err, {
     code,
-    ...(errno === undefined ? {} : { errno: -errno }),
+    ...(errno === undefined ? {} : { errno }),
     syscall: "open",
     path,
   });
@@ -90,15 +90,18 @@ function systemError(code: string, path: string, cause: unknown): Error {
  * @internal
  */
 export function fromNative(e: unknown, context: { path?: string } = {}): unknown {
-  if (!(e instanceof Error) || e instanceof FecError) return e;
-  const code = (e as { code?: unknown }).code;
+  // Only the `code` matters, not how the binding built the error, so any
+  // backend that throws `{ code, message }` (napi, a wasm adapter) maps alike.
+  if (e === null || typeof e !== "object" || e instanceof FecError) return e;
+  const { code, message } = e as { code?: unknown; message?: unknown };
+  const msg = typeof message === "string" ? message : String(code);
   switch (code) {
     case "FEC_PARSE":
-      return new FecParseError(e.message);
+      return new FecParseError(msg);
     case "ERR_FILING_CLOSED":
     case "ERR_FILING_CONSUMED":
     case "FEC_MISSING_MAPPING":
-      return new FecError(e.message, { code });
+      return new FecError(msg, { code });
     default:
       if (typeof code === "string" && code in IO_CODES) {
         return systemError(code, context.path ?? "", e);
