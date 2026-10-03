@@ -72,7 +72,7 @@
 //! [`base_form_type`] strips the suffix; dispatch in `cover_from_form_type`
 //! matches on the base.
 
-pub(crate) mod fields;
+pub mod fields;
 #[cfg(feature = "python")]
 pub mod python;
 pub use crate::covers::fields::split_legacy_name;
@@ -125,7 +125,7 @@ pub use crate::covers::form6::{Form6, Form6Candidate};
 pub use crate::covers::form7::Form7;
 pub use crate::covers::form9::{Form9, Form9Custodian};
 pub use crate::covers::form99::Form99;
-use fields::{text, text_or_empty, Data};
+use fields::{key, text, text_or_empty, Data};
 use indexmap::IndexMap;
 use serde::Serialize;
 
@@ -357,13 +357,13 @@ impl std::fmt::Display for PersonName {
 impl PersonName {
     /// Read `{prefix}last_name`, `{prefix}first_name`, `{prefix}middle_name`,
     /// `{prefix}prefix` and `{prefix}suffix`.
-    pub(crate) fn from_prefixed(data: &Data, prefix: &str) -> Self {
+    pub(crate) fn from_prefixed<F: fields::Fields + ?Sized>(data: &F, prefix: &str) -> Self {
         Self {
-            first_name: text_or_empty(data, &format!("{prefix}first_name")),
-            last_name: text_or_empty(data, &format!("{prefix}last_name")),
-            middle_name: text(data, &format!("{prefix}middle_name")),
-            prefix: text(data, &format!("{prefix}prefix")),
-            suffix: text(data, &format!("{prefix}suffix")),
+            first_name: text_or_empty(data, &key(prefix, "first_name")),
+            last_name: text_or_empty(data, &key(prefix, "last_name")),
+            middle_name: text(data, &key(prefix, "middle_name")),
+            prefix: text(data, &key(prefix, "prefix")),
+            suffix: text(data, &key(prefix, "suffix")),
         }
     }
 
@@ -374,7 +374,12 @@ impl PersonName {
 
     /// True when every part of the name is blank.
     pub fn is_empty(&self) -> bool {
-        self.to_string().is_empty()
+        let blank = |s: &str| s.trim().is_empty();
+        blank(&self.first_name)
+            && blank(&self.last_name)
+            && [&self.middle_name, &self.prefix, &self.suffix]
+                .into_iter()
+                .all(|part| part.as_deref().is_none_or(blank))
     }
 }
 
@@ -398,13 +403,13 @@ pub struct Address {
 
 impl Address {
     #[allow(dead_code)] // used by the per-form cover modules as they land
-    pub(crate) fn from_prefixed(data: &Data, prefix: &str) -> Self {
+    pub(crate) fn from_prefixed<F: fields::Fields + ?Sized>(data: &F, prefix: &str) -> Self {
         Self {
-            street_1: text(data, &format!("{prefix}street_1")),
-            street_2: text(data, &format!("{prefix}street_2")),
-            city: text(data, &format!("{prefix}city")),
-            state: text(data, &format!("{prefix}state")),
-            zip_code: text(data, &format!("{prefix}zip_code")),
+            street_1: text(data, &key(prefix, "street_1")),
+            street_2: text(data, &key(prefix, "street_2")),
+            city: text(data, &key(prefix, "city")),
+            state: text(data, &key(prefix, "state")),
+            zip_code: text(data, &key(prefix, "zip_code")),
         }
     }
 

@@ -13,6 +13,7 @@ from types import TracebackType
 from typing import Any, Literal, Protocol, Self, TypeAlias, final, overload
 
 from .covers import CoverData
+from .itemizations import Itemization
 
 __all__ = [
     "Cover",
@@ -124,6 +125,12 @@ class Row:
     @property
     def line(self) -> int:
         """The row's 1-based physical line in the file."""
+
+    @property
+    def itemization(self) -> Itemization | None:
+        """The row as a typed itemization (`ScheduleA`, … from
+        `libfec_parser.itemizations`), or `None` for a row that is not one or
+        whose schedule has no class yet.  Typed anew on every access."""
 
     @property
     def extra_fields(self) -> list[str]:

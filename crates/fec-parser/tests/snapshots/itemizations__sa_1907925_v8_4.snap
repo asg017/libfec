@@ -1,0 +1,255 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"SA_1907925.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "schedule": "A",
+    "form_type": "SA11AI",
+    "filer_committee_id": "C00770412",
+    "transaction_id": "16241100",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "contributor": {
+      "entity_type": "IND",
+      "organization_name": null,
+      "name": {
+        "first_name": "Carol",
+        "last_name": "Browne",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "53 Stuart St",
+        "street_2": null,
+        "city": "Watertown",
+        "state": "MA",
+        "zip_code": "024721629"
+      }
+    },
+    "election_code": null,
+    "election_other_description": null,
+    "contribution_date": "2025-01-25",
+    "contribution_amount": 50.0,
+    "contribution_aggregate": 50.0,
+    "contribution_purpose_code": null,
+    "contribution_purpose_description": null,
+    "contributor_employer": "Not Employed",
+    "contributor_occupation": "Not Employed",
+    "donor_committee_fec_id": null,
+    "donor_committee_name": null,
+    "donor_candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "memo": false,
+    "memo_text": "* Earmarked Contribution through ACTBLUE on 01/26/2025",
+    "reference_code": null,
+    "image_number": null
+  },
+  {
+    "schedule": "A",
+    "form_type": "SA11AI",
+    "filer_committee_id": "C00770412",
+    "transaction_id": "16315976",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "contributor": {
+      "entity_type": "IND",
+      "organization_name": null,
+      "name": {
+        "first_name": "Carol",
+        "last_name": "Browne",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "53 Stuart St",
+        "street_2": null,
+        "city": "Watertown",
+        "state": "MA",
+        "zip_code": "024721629"
+      }
+    },
+    "election_code": null,
+    "election_other_description": null,
+    "contribution_date": "2025-02-25",
+    "contribution_amount": 50.0,
+    "contribution_aggregate": 100.0,
+    "contribution_purpose_code": null,
+    "contribution_purpose_description": null,
+    "contributor_employer": "Not Employed",
+    "contributor_occupation": "Not Employed",
+    "donor_committee_fec_id": null,
+    "donor_committee_name": null,
+    "donor_candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "memo": false,
+    "memo_text": "* Earmarked Contribution through ACTBLUE on 02/28/2025",
+    "reference_code": null,
+    "image_number": null
+  },
+  {
+    "schedule": "A",
+    "form_type": "SA11AI",
+    "filer_committee_id": "C00770412",
+    "transaction_id": "16323876",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "contributor": {
+      "entity_type": "IND",
+      "organization_name": null,
+      "name": {
+        "first_name": "Carol",
+        "last_name": "Browne",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "53 Stuart St",
+        "street_2": null,
+        "city": "Watertown",
+        "state": "MA",
+        "zip_code": "024721629"
+      }
+    },
+    "election_code": null,
+    "election_other_description": null,
+    "contribution_date": "2025-03-25",
+    "contribution_amount": 50.0,
+    "contribution_aggregate": 150.0,
+    "contribution_purpose_code": null,
+    "contribution_purpose_description": null,
+    "contributor_employer": "Not Employed",
+    "contributor_occupation": "Not Employed",
+    "donor_committee_fec_id": null,
+    "donor_committee_name": null,
+    "donor_candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "memo": false,
+    "memo_text": "* Earmarked Contribution through ACTBLUE on 03/30/2025",
+    "reference_code": null,
+    "image_number": null
+  },
+  {
+    "schedule": "A",
+    "form_type": "SA17",
+    "filer_committee_id": "C00770412",
+    "transaction_id": "16468377",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "contributor": {
+      "entity_type": "ORG",
+      "organization_name": "Fraiser LLC",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "80 M St SE",
+        "street_2": "Ste 100",
+        "city": "Washington",
+        "state": "DC",
+        "zip_code": "200033550"
+      }
+    },
+    "election_code": null,
+    "election_other_description": null,
+    "contribution_date": "2025-04-17",
+    "contribution_amount": 365.75,
+    "contribution_aggregate": 5000.0,
+    "contribution_purpose_code": null,
+    "contribution_purpose_description": null,
+    "contributor_employer": null,
+    "contributor_occupation": null,
+    "donor_committee_fec_id": null,
+    "donor_committee_name": null,
+    "donor_candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "memo": false,
+    "memo_text": "Refund for overpayment of invoice",
+    "reference_code": null,
+    "image_number": null
+  }
+]
