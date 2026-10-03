@@ -14,7 +14,7 @@ import type { Entity } from "./Entity.js";
  * communication identifies are {@link Form9Candidate} (`F94`) rows that
  * back-reference this one's `transaction_id`.
  *
- * # Versions
+ * #### Versions
  *
  * v8.0–8.5 have the 25-field layout; v6.1–7.0 add
  * `expenditure_purpose_code`. The v5.x `F93` layout is the Schedule B one
@@ -25,6 +25,8 @@ import type { Entity } from "./Entity.js";
  * columns the layout names there are not read. Paper layouts have no back
  * reference, entity type or election code but carry a memo text (P1–P3.1)
  * and an `image_number`.
+ *
+ * @category Itemizations
  */
 export type Form9Disbursement = { 
 /**

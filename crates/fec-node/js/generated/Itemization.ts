@@ -41,32 +41,115 @@ import type { TextRecord } from "./TextRecord.js";
  *
  * Rust and `libfec`'s JSON output tag these with a `family` field (`"SA"`)
  * instead; the JS layer replaces it with `type`.
+ *
+ * @category Itemizations
  */
 export type Itemization =
-  | ({ type: "ScheduleA" } & ScheduleA)
-  | ({ type: "ScheduleB" } & ScheduleB)
-  | ({ type: "ScheduleD" } & ScheduleD)
-  | ({ type: "ScheduleF" } & ScheduleF)
-  | ({ type: "ScheduleH1" } & ScheduleH1)
-  | ({ type: "ScheduleH2" } & ScheduleH2)
-  | ({ type: "ScheduleH3" } & ScheduleH3)
-  | ({ type: "ScheduleH4" } & ScheduleH4)
-  | ({ type: "ScheduleH5" } & ScheduleH5)
-  | ({ type: "ScheduleH6" } & ScheduleH6)
-  | ({ type: "Form5Contribution" } & Form5Contribution)
-  | ({ type: "Form5Expenditure" } & Form5Expenditure)
-  | ({ type: "Form6Contribution" } & Form6Contribution)
-  | ({ type: "Form7Communication" } & Form7Communication)
-  | ({ type: "Form9ControllingPerson" } & Form9ControllingPerson)
-  | ({ type: "Form9Donation" } & Form9Donation)
-  | ({ type: "Form9Disbursement" } & Form9Disbursement)
-  | ({ type: "Form9Candidate" } & Form9Candidate)
-  | ({ type: "Form13Donation" } & Form13Donation)
-  | ({ type: "Form13Refund" } & Form13Refund)
-  | ({ type: "ScheduleL" } & ScheduleL)
-  | ({ type: "TextRecord" } & TextRecord)
-  | ({ type: "ScheduleA3L" } & ScheduleA3L)
-  | ({ type: "ScheduleE" } & ScheduleE)
-  | ({ type: "ScheduleC" } & ScheduleC)
-  | ({ type: "ScheduleC1" } & ScheduleC1)
-  | ({ type: "ScheduleC2" } & ScheduleC2);
+  | ({
+      /** Always `"ScheduleA"`. */
+      type: "ScheduleA";
+    } & ScheduleA)
+  | ({
+      /** Always `"ScheduleB"`. */
+      type: "ScheduleB";
+    } & ScheduleB)
+  | ({
+      /** Always `"ScheduleD"`. */
+      type: "ScheduleD";
+    } & ScheduleD)
+  | ({
+      /** Always `"ScheduleF"`. */
+      type: "ScheduleF";
+    } & ScheduleF)
+  | ({
+      /** Always `"ScheduleH1"`. */
+      type: "ScheduleH1";
+    } & ScheduleH1)
+  | ({
+      /** Always `"ScheduleH2"`. */
+      type: "ScheduleH2";
+    } & ScheduleH2)
+  | ({
+      /** Always `"ScheduleH3"`. */
+      type: "ScheduleH3";
+    } & ScheduleH3)
+  | ({
+      /** Always `"ScheduleH4"`. */
+      type: "ScheduleH4";
+    } & ScheduleH4)
+  | ({
+      /** Always `"ScheduleH5"`. */
+      type: "ScheduleH5";
+    } & ScheduleH5)
+  | ({
+      /** Always `"ScheduleH6"`. */
+      type: "ScheduleH6";
+    } & ScheduleH6)
+  | ({
+      /** Always `"Form5Contribution"`. */
+      type: "Form5Contribution";
+    } & Form5Contribution)
+  | ({
+      /** Always `"Form5Expenditure"`. */
+      type: "Form5Expenditure";
+    } & Form5Expenditure)
+  | ({
+      /** Always `"Form6Contribution"`. */
+      type: "Form6Contribution";
+    } & Form6Contribution)
+  | ({
+      /** Always `"Form7Communication"`. */
+      type: "Form7Communication";
+    } & Form7Communication)
+  | ({
+      /** Always `"Form9ControllingPerson"`. */
+      type: "Form9ControllingPerson";
+    } & Form9ControllingPerson)
+  | ({
+      /** Always `"Form9Donation"`. */
+      type: "Form9Donation";
+    } & Form9Donation)
+  | ({
+      /** Always `"Form9Disbursement"`. */
+      type: "Form9Disbursement";
+    } & Form9Disbursement)
+  | ({
+      /** Always `"Form9Candidate"`. */
+      type: "Form9Candidate";
+    } & Form9Candidate)
+  | ({
+      /** Always `"Form13Donation"`. */
+      type: "Form13Donation";
+    } & Form13Donation)
+  | ({
+      /** Always `"Form13Refund"`. */
+      type: "Form13Refund";
+    } & Form13Refund)
+  | ({
+      /** Always `"ScheduleL"`. */
+      type: "ScheduleL";
+    } & ScheduleL)
+  | ({
+      /** Always `"TextRecord"`. */
+      type: "TextRecord";
+    } & TextRecord)
+  | ({
+      /** Always `"ScheduleA3L"`. */
+      type: "ScheduleA3L";
+    } & ScheduleA3L)
+  | ({
+      /** Always `"ScheduleE"`. */
+      type: "ScheduleE";
+    } & ScheduleE)
+  | ({
+      /** Always `"ScheduleC"`. */
+      type: "ScheduleC";
+    } & ScheduleC)
+  | ({
+      /** Always `"ScheduleC1"`. */
+      type: "ScheduleC1";
+    } & ScheduleC1)
+  | ({
+      /** Always `"ScheduleC2"`. */
+      type: "ScheduleC2";
+    } & ScheduleC2);

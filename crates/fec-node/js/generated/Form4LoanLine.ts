@@ -5,6 +5,8 @@ import type { DetailedSummaryRow } from "./DetailedSummaryRow.js";
  * Loans and loan repayments, Form 4 Lines 16 (received) and 23 (made):
  * (a) loans, (b) loan repayments, (c) subtotal
  * ([fecfrm4.pdf p2](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm4.pdf#page=2)).
+ *
+ * @category Covers
  */
 export type Form4LoanLine = { 
 /**

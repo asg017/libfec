@@ -8,6 +8,8 @@
  * box under 5(f) ([fecfrm1.pdf p2](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm1.pdf#page=2));
  * each box is its own column, `X` = yes (fields 35–39). The 5(g) and 5(h)
  * columns exist from format v8.4 on; earlier records read as `false`.
+ *
+ * @category Covers
  */
 export type Form1PacFlags = { 
 /**

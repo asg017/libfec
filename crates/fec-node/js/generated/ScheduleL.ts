@@ -22,7 +22,7 @@ import type { DetailedSummaryRow } from "./DetailedSummaryRow.js";
  * Schedule I or L" (FEC format workbook v8.4, sheet `Sch A` field 45, sheet
  * `Sch B` field 44); see {@link ScheduleL.record_id}.
  *
- * # Columns A and B
+ * #### Columns A and B
  *
  * Every line is a {@link DetailedSummaryRow} with `column_a` = "Total This
  * Period" and `column_b` = "Calendar Year-to-Date"; blank reads as `0.0`, as
@@ -30,7 +30,7 @@ import type { DetailedSummaryRow } from "./DetailedSummaryRow.js";
  * start of the period
  * ([fecfrm3xi.pdf p33](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm3xi.pdf#page=33)).
  *
- * # Versions
+ * #### Versions
  *
  * v6.1–8.5 have all 41 fields; Column A's Lines 10 and 11 (fields 23–24)
  * are named `col_b_disbursements_period` and
@@ -43,6 +43,8 @@ import type { DetailedSummaryRow } from "./DetailedSummaryRow.js";
  * have no transaction or record ID or coverage dates but carry an
  * `image_number`. Only v8.4 and v8.5 Schedule L rows were seen in the
  * corpus.
+ *
+ * @category Itemizations
  */
 export type ScheduleL = { 
 /**

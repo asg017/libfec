@@ -23,7 +23,7 @@ import type { Entity } from "./Entity.js";
  * gives name, address, date and amount
  * ([fecfrm6i.pdf p1](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm6i.pdf#page=1)).
  *
- * # Versions
+ * #### Versions
  *
  * v6.1–8.5 share the 20-field layout. v2–5.x (FEC format workbook v5.3,
  * sheet `F65`) have one combined `contributor_name` (split per
@@ -34,6 +34,8 @@ import type { Entity } from "./Entity.js";
  * ignored)"). v1 has no entity type and no transaction ID (its
  * `sequence_number` is not read). Paper layouts have no transaction ID,
  * entity type or contributor FEC ID but carry an `image_number`.
+ *
+ * @category Itemizations
  */
 export type Form6Contribution = { 
 /**

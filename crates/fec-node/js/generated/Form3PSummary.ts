@@ -9,6 +9,8 @@
  * Expenditures", are computed from Column B (cycle-to-date) lines even though
  * the record files them in its Column A block
  * ([fecfrm3pi.pdf p4](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm3pi.pdf#page=4)).
+ *
+ * @category Covers
  */
 export type Form3PSummary = { 
 /**

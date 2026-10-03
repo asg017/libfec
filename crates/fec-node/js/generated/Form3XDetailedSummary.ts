@@ -8,6 +8,8 @@ import type { Form3XReceipts } from "./Form3XReceipts.js";
  * ([fecfrm3x.pdf p3–5](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm3x.pdf#page=3)),
  * in the form's three sections. Column A is This Period, Column B Calendar
  * Year-to-Date; see {@link Form3X}.
+ *
+ * @category Covers
  */
 export type Form3XDetailedSummary = { 
 /**

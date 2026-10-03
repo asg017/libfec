@@ -41,9 +41,13 @@ export interface InvalidValue {
 
 /** How {@link Row.toJSON} serializes a row. */
 export interface RowJSON<I extends Itemization | null = Itemization | null> {
+  /** {@link Row.rowType} */
   rowType: string;
+  /** {@link Row.line} */
   line: number;
+  /** {@link Row.values} */
   values: RowValues;
+  /** {@link Row.itemization} */
   itemization: I;
 }
 
@@ -185,6 +189,7 @@ export function parseDate(t: string): [number, number, number] | undefined {
   return [Math.floor(n / 10000), Math.floor(n / 100) % 100, n % 100];
 }
 
+/** How date columns of {@link Row.values} come out: ISO strings or `Date`s. */
 export type DatesOption = "iso" | "date";
 
 /** The converters a values factory calls; one per reader (it owns the sink). */

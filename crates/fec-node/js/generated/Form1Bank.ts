@@ -4,6 +4,8 @@ import type { Address } from "./Address.js";
 /**
  * Line 9: a bank, depository, etc. — "Name of Bank, Depository, etc." and
  * its mailing address ([fecfrm1.pdf p4](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm1.pdf#page=4)).
+ *
+ * @category Covers
  */
 export type Form1Bank = { 
 /**

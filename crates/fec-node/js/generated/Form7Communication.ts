@@ -18,7 +18,7 @@ import type { CandidateRef } from "./CandidateRef.js";
  * so one mailing can be several rows. The cover's `total_costs` is the sum
  * of these rows (FEC format workbook v8.4, sheet `F7`, field 15).
  *
- * # Versions
+ * #### Versions
  *
  * v6.1–8.5 share the 20-field layout. v1–5.x (FEC format workbook v5.3,
  * sheet `F76`) have one combined `candidate_name` (split per
@@ -27,6 +27,8 @@ import type { CandidateRef } from "./CandidateRef.js";
  * the v5.3 specification says (`FEC_v530.rtf`, "Amend Code … Unused
  * Field"). Paper layouts have no transaction ID or candidate ID but carry
  * an `image_number`.
+ *
+ * @category Itemizations
  */
 export type Form7Communication = { 
 /**

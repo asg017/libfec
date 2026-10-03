@@ -27,20 +27,67 @@ import type { Form99 } from "./Form99.js";
  *
  * Rust and `libfec info -f json` nest these as `{ form, data }`; the JS layer
  * flattens them to `{ type, ...data }`.
+ *
+ * @category Covers
  */
 export type Cover =
-  | ({ type: "Form1" } & Form1)
-  | ({ type: "Form3" } & Form3)
-  | ({ type: "Form3P" } & Form3P)
-  | ({ type: "Form1M" } & Form1M)
-  | ({ type: "Form3X" } & Form3X)
-  | ({ type: "Form3L" } & Form3L)
-  | ({ type: "Form4" } & Form4)
-  | ({ type: "Form7" } & Form7)
-  | ({ type: "Form13" } & Form13)
-  | ({ type: "Form24" } & Form24)
-  | ({ type: "Form5" } & Form5)
-  | ({ type: "Form6" } & Form6)
-  | ({ type: "Form9" } & Form9)
-  | ({ type: "Form2" } & Form2)
-  | ({ type: "Form99" } & Form99);
+  | ({
+      /** Always `"Form1"`. */
+      type: "Form1";
+    } & Form1)
+  | ({
+      /** Always `"Form3"`. */
+      type: "Form3";
+    } & Form3)
+  | ({
+      /** Always `"Form3P"`. */
+      type: "Form3P";
+    } & Form3P)
+  | ({
+      /** Always `"Form1M"`. */
+      type: "Form1M";
+    } & Form1M)
+  | ({
+      /** Always `"Form3X"`. */
+      type: "Form3X";
+    } & Form3X)
+  | ({
+      /** Always `"Form3L"`. */
+      type: "Form3L";
+    } & Form3L)
+  | ({
+      /** Always `"Form4"`. */
+      type: "Form4";
+    } & Form4)
+  | ({
+      /** Always `"Form7"`. */
+      type: "Form7";
+    } & Form7)
+  | ({
+      /** Always `"Form13"`. */
+      type: "Form13";
+    } & Form13)
+  | ({
+      /** Always `"Form24"`. */
+      type: "Form24";
+    } & Form24)
+  | ({
+      /** Always `"Form5"`. */
+      type: "Form5";
+    } & Form5)
+  | ({
+      /** Always `"Form6"`. */
+      type: "Form6";
+    } & Form6)
+  | ({
+      /** Always `"Form9"`. */
+      type: "Form9";
+    } & Form9)
+  | ({
+      /** Always `"Form2"`. */
+      type: "Form2";
+    } & Form2)
+  | ({
+      /** Always `"Form99"`. */
+      type: "Form99";
+    } & Form99);

@@ -32,6 +32,8 @@ import type { PersonName } from "./PersonName.js";
  * **Versions.** v6.1–v8.5 share one layout. The legacy v3/v5 layout has a
  * single caret-delimited `person_designated_name` column, split into the
  * parts of {@link Form7.person_designated}.
+ *
+ * @category Covers
  */
 export type Form7 = { 
 /**

@@ -13,13 +13,15 @@ import type { CandidateRef } from "./CandidateRef.js";
  * `F94`, "FORM 94 - FEDERAL CANDIDATE LIST FOR FORM 93 TRANSACTIONS") whose
  * back reference names the {@link Form9Disbursement}. It has no amount.
  *
- * # Versions
+ * #### Versions
  *
  * v6.1–8.5 share the 16-field layout. v5.x has one combined
  * `candidate_name` (split per `CandidateRef::from_prefixed`) and the
  * transaction ID and back reference at the end (FEC format workbook v5.3,
  * sheet `F94`). Paper layouts have no transaction ID, back-reference
  * schedule or candidate ID but carry an `image_number`.
+ *
+ * @category Itemizations
  */
 export type Form9Candidate = { 
 /**

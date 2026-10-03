@@ -5,6 +5,8 @@
  * {@link Form2.personal_funds_declaration}. The meaning of the amounts beyond
  * the column names and the v6.4 change note is not documented in the FEC
  * sources indexed for this crate.
+ *
+ * @category Covers
  */
 export type Form2PersonalFundsDeclaration = { 
 /**

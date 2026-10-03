@@ -2,7 +2,11 @@ import * as native from "../native/native.js";
 import { callNative } from "./errors.js";
 import { normalizeSource, type Source } from "./source.js";
 
-/** A filing's header: the `HDR` record, or a 1.x/2.x `/* Header` block. */
+/**
+ * A filing's header: the `HDR` record, or a 1.x/2.x `/* Header` block.
+ *
+ * @category Header
+ */
 export interface Header {
   /** `"HDR"`, or `"/*"` for a 1.x/2.x `/* Header` block. */
   readonly recordType: string;
@@ -10,10 +14,15 @@ export interface Header {
   readonly efType: string;
   /** The format version, e.g. `"8.4"` (`"P3.4"` for paper). */
   readonly fecVersion: string;
+  /** The software that produced the filing (`"FECfile"`, `"NGP"`). */
   readonly softwareName: string;
+  /** Its version, as the software reports it. */
   readonly softwareVersion: string;
+  /** For an amendment, the FEC ID of the report it amends (`"FEC-1228863"`). */
   readonly reportId: string | null;
+  /** The amendment number: `"1"` for the first amendment, … */
   readonly reportNumber: string | null;
+  /** The filer's free-text header comment. */
   readonly comment: string | null;
   /** How the header is written: `"hdr"`, `"legacy_block"` or `"paper"`. */
   readonly style: "hdr" | "legacy_block" | "paper";
@@ -53,6 +62,8 @@ function toRecord(fields: native.NativeHeaderField[]): Readonly<Record<string, s
 /**
  * Read only a filing's header. Nothing after it is read, so this works on a
  * filing whose cover or rows can't be parsed.
+ *
+ * @category Header
  */
 export function readHeader(source: Source): Header {
   const src = normalizeSource(source);

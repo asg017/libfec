@@ -11,7 +11,7 @@ import type { PersonName } from "./PersonName.js";
  * Form 3 and presidential committees Form 3P instead
  * ([fecfrm3xi.pdf p3](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm3xi.pdf#page=3)).
  *
- * # Columns A and B
+ * #### Columns A and B
  *
  * Both summary pages have two columns: **Column A, "This Period"** and
  * **Column B, "Calendar Year-to-Date"**
@@ -28,6 +28,8 @@ import type { PersonName } from "./PersonName.js";
  * (Line 6(a)) only in Column B, cash at the beginning of the period (6(b))
  * and debts (Lines 9, 10) only in Column A (workbook fields 23, 28–29, 74–75).
  * Those are plain `f64`s, not rows.
+ *
+ * @category Covers
  */
 export type Form3X = { 
 /**

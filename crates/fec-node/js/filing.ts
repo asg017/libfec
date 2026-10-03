@@ -22,15 +22,21 @@ export class Filing implements Iterable<Row<null>> {
   readonly id: string | null;
   /** The filing's format version. */
   readonly fecVersion: string;
+  /** The filing's header. */
   readonly header: Header;
   /** The typed cover; see {@link FilingReader.cover}. */
   readonly cover: Cover | null;
+  /** The six cover fields every form has. */
   readonly coverSummary: CoverSummary;
+  /** The cover record as a raw {@link Row}. */
   readonly coverRow: Row<null>;
   /** Every row after the cover, untyped (`itemization` is `null`). */
   readonly rows: readonly Row<null>[];
+  /** Amounts and dates in {@link rows} that didn't parse: the first 1,000. */
   readonly invalidValues: readonly InvalidValue[];
+  /** How many amounts and dates didn't parse, uncapped. */
   readonly invalidValueCount: number;
+  /** Rows skipped with `unknownRows: "skip"`. */
   readonly skippedRows: readonly SkippedRow[];
 
   readonly #source: Source;
@@ -77,6 +83,7 @@ export class Filing implements Iterable<Row<null>> {
     return this.#itemizations;
   }
 
+  /** Iterate {@link rows}; a `Filing` can be iterated any number of times. */
   [Symbol.iterator](): IterableIterator<Row<null>> {
     return this.rows.values();
   }
@@ -99,7 +106,11 @@ export function read(source: Source, options: OpenOptions = {}): Filing {
   }
 }
 
-/** A column of a row type's layout; see {@link columns}. */
+/**
+ * A column of a row type's layout; see {@link columns}.
+ *
+ * @category Columns
+ */
 export interface Column {
   /** The FEC column name: `"contribution_amount"`. */
   name: string;
@@ -118,6 +129,8 @@ const columnCache = new Map<string, readonly Column[]>();
  * ```
  *
  * @throws {@link MissingMappingError} (with `line: 0`) if there is no mapping.
+ *
+ * @category Columns
  */
 export function columns(rowType: string, fecVersion: string): Column[] {
   const key = `${rowType}\0${fecVersion}`;

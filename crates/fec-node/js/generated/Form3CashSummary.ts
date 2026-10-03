@@ -4,6 +4,8 @@
  * Form 3 page 4, Detailed Summary Page Part III, Cash Summary (Lines 23–27),
  * single amounts for this period
  * ([fecfrm3.pdf p4](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm3.pdf#page=4)).
+ *
+ * @category Covers
  */
 export type Form3CashSummary = { 
 /**

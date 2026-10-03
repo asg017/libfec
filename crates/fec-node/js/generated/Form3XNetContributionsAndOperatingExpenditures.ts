@@ -5,6 +5,8 @@ import type { DetailedSummaryRow } from "./DetailedSummaryRow.js";
  * Detailed Summary Page, Section III — Net Contributions/Operating
  * Expenditures, Lines 33–38: earlier lines repeated to compute two net
  * figures ([fecfrm3x.pdf p5](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm3x.pdf#page=5)).
+ *
+ * @category Covers
  */
 export type Form3XNetContributionsAndOperatingExpenditures = { 
 /**

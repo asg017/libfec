@@ -14,13 +14,15 @@ import type { PersonName } from "./PersonName.js";
  * The `F91` record (FEC format workbook v8.4, sheet `F91`, "FORM 9 / PERSONS
  * SHARING/EXERCISING CONTROL (FOR EACH PERSON)"); it has no amounts.
  *
- * # Versions
+ * #### Versions
  *
  * v6.1–8.5 share the 15-field layout. v5.x has one combined name, read
  * from the `controller_last_name` column (FEC format workbook v5.3, sheet
  * `F91`, field 3, "IND/NAME") and split on the name delimiter, and the
  * transaction ID at the end. Paper layouts have no transaction ID but carry
  * an `image_number`.
+ *
+ * @category Itemizations
  */
 export type Form9ControllingPerson = { 
 /**

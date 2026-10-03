@@ -27,7 +27,7 @@ import type { Entity } from "./Entity.js";
  * so summing a filing's Schedule B rows does not give its total
  * disbursements. Unlike Schedule A there is no aggregate column.
  *
- * # Versions
+ * #### Versions
  *
  * v8.0–8.5 have all 44 fields. v6.4–7.0 add `expenditure_purpose_code`;
  * v6.1–6.3 also have `refund_or_disposal_of_excess` and
@@ -37,6 +37,8 @@ import type { Entity } from "./Entity.js";
  * `Entity::from_prefixed` (v5.1–5.3 also carry the split payee columns at
  * the end of the row, which win when filled). Paper layouts have no
  * transaction IDs or entity type but carry an `image_number`.
+ *
+ * @category Itemizations
  */
 export type ScheduleB = { 
 /**

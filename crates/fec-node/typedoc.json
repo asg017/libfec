@@ -1,0 +1,40 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "name": "@asg017/libfec",
+  "entryPoints": [
+    "js/index.ts"
+  ],
+  "tsconfig": "tsconfig.json",
+  "out": "../../site/reference/node",
+  "plugin": [
+    "typedoc-plugin-markdown",
+    "typedoc-vitepress-theme"
+  ],
+  "docsRoot": "../../site",
+  "readme": "none",
+  "excludeInternal": true,
+  "excludePrivate": true,
+  "excludeExternals": true,
+  "validation": {
+    "notDocumented": true,
+    "invalidLink": true,
+    "notExported": true
+  },
+  "treatWarningsAsErrors": true,
+  "defaultCategory": "Reading filings",
+  "categoryOrder": [
+    "Reading filings",
+    "Itemizations",
+    "Covers",
+    "Shared",
+    "Labels",
+    "Errors",
+    "Header",
+    "Columns",
+    "*"
+  ],
+  "sort": [
+    "kind",
+    "source-order"
+  ]
+}

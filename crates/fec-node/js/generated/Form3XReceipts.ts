@@ -5,6 +5,8 @@ import type { DetailedSummaryRow } from "./DetailedSummaryRow.js";
  * Detailed Summary Page, Section I — Receipts, Lines 11–20
  * ([fecfrm3x.pdf p3](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm3x.pdf#page=3);
  * line instructions [fecfrm3xi.pdf p6–7](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm3xi.pdf#page=6)).
+ *
+ * @category Covers
  */
 export type Form3XReceipts = { 
 /**

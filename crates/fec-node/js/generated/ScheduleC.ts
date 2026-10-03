@@ -27,7 +27,7 @@ import type { ScheduleCGuarantor } from "./ScheduleCGuarantor.js";
  * {@link ScheduleC2} rows, both pointing back at this
  * row's `transaction_id`.
  *
- * # Amounts
+ * #### Amounts
  *
  * The three amounts are the schedule's three printed money boxes and are
  * all `f64`, blank read as `0.0`: each is required (FEC format workbook
@@ -37,7 +37,7 @@ import type { ScheduleCGuarantor } from "./ScheduleCGuarantor.js";
  * summary page
  * ([fecfrm3xi.pdf p16](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm3xi.pdf#page=16)).
  *
- * # Terms
+ * #### Terms
  *
  * The date incurred is a `YYYYMMDD` date in every version (workbook field
  * 22, `NUM-8`) and is typed. The due date and interest rate are 15-character
@@ -48,7 +48,7 @@ import type { ScheduleCGuarantor } from "./ScheduleCGuarantor.js";
  * `Prime+2%`. They are kept as written; `ScheduleC::loan_due_date` reads
  * the due date when it is one.
  *
- * # Versions
+ * #### Versions
  *
  * v6.2–8.5 have all 38 fields (v6.1 lacks `personal_funds` and the memo).
  * v2–5.x have one combined `lender_name` and `lender_candidate_name`, split
@@ -58,6 +58,8 @@ import type { ScheduleCGuarantor } from "./ScheduleCGuarantor.js";
  * `Fec_v1.rtf`, Schedule C field 3) and lists up to three endorsers or
  * guarantors inline, read into `guarantors`. Paper layouts have no
  * transaction ID or entity type but carry an `image_number`.
+ *
+ * @category Itemizations
  */
 export type ScheduleC = { 
 /**

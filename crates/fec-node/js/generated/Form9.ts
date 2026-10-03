@@ -34,7 +34,7 @@ import type { PersonName } from "./PersonName.js";
  * format workbook v8.4, sheet F9, fields 38-39). Docs here use the paper
  * numbering.
  *
- * # Versions
+ * #### Versions
  *
  * v8.3–8.5 is the layout documented here. v6.2–8.2 lack
  * `original_amendment_date`. v6.1 and v5.x have `qualified_non_profit` in
@@ -46,6 +46,8 @@ import type { PersonName } from "./PersonName.js";
  *
  * The test fixture is a real `F9A` (FEC-2015422, v8.5); no `F9N` was
  * available locally.
+ *
+ * @category Covers
  */
 export type Form9 = { 
 /**

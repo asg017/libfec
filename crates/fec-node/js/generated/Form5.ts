@@ -35,7 +35,7 @@ import type { PersonName } from "./PersonName.js";
  * ([fecfrm5.pdf p2](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm5.pdf#page=2),
  * [p3](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm5.pdf#page=3)).
  *
- * # Versions
+ * #### Versions
  *
  * v8.1–8.5 is the layout documented here. v6.1–8.0 also carry
  * `qualified_nonprofit` and lack `original_amendment_date`. v3 and v5.x name
@@ -43,6 +43,8 @@ import type { PersonName } from "./PersonName.js";
  * (`report_pgi`, `election_date`, `election_state`), and give the person
  * completing the form as one caret-delimited name (`person_completing_name`);
  * all are read here where present (FEC format workbook v5.2, sheet F5).
+ *
+ * @category Covers
  */
 export type Form5 = { 
 /**
