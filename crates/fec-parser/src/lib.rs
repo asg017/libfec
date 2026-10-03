@@ -435,11 +435,17 @@ mod tests {
 
     fn rows(body: &str) -> Vec<Vec<String>> {
         let src = format!("{HEADER_AND_COVER}{body}");
-        let mut filing =
-            Filing::from_reader(src.as_bytes(), "FEC-1".to_owned(), src.len()).unwrap();
+        let mut filing = Filing::from_reader(src.as_bytes(), "FEC-1".to_owned(), src.len())
+            .expect("test filing should parse");
         let mut rows = vec![];
         while let Some(row) = filing.next_row() {
-            rows.push(row.unwrap().record.iter().map(str::to_owned).collect());
+            rows.push(
+                row.expect("test row should parse")
+                    .record
+                    .iter()
+                    .map(str::to_owned)
+                    .collect(),
+            );
         }
         rows
     }

@@ -866,7 +866,7 @@ mod tests {
             },
         ];
 
-        let exclude = vec![
+        let exclude = [
             CommitteeId::new("C00401224").unwrap(),
             CommitteeId::new("C00694323").unwrap(),
         ];

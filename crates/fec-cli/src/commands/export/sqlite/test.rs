@@ -7,8 +7,12 @@ mod tests {
     /// Macro to easily load test filings by ID
     macro_rules! filing {
         ($id:expr) => {{
-            let bytes: &[u8] =
-                include_bytes!(concat!("../../../../../../.test-files/", $id, ".fec"));
+            let bytes: &[u8] = include_bytes!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/tests/fixtures/",
+                $id,
+                ".fec"
+            ));
             Filing::from_reader(bytes, $id.to_string(), bytes.len()).unwrap()
         }};
     }

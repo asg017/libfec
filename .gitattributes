@@ -1,0 +1,2 @@
+# Test filings must stay byte-exact (CRLF, \x1c separators)
+crates/fec-cli/tests/fixtures/*.fec -text

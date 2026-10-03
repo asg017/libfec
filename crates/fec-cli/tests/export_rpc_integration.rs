@@ -515,6 +515,7 @@ fn test_export_rpc_creates_database_schema() {
 
     std::thread::sleep(Duration::from_millis(100));
     let _ = child.kill();
+    let _ = child.wait();
 
     // Verify database was created with schema
     let db = rusqlite::Connection::open(&db_path).expect("Should open database");
@@ -579,6 +580,7 @@ fn test_export_rpc_empty_export_has_no_filings() {
 
     std::thread::sleep(Duration::from_millis(100));
     let _ = child.kill();
+    let _ = child.wait();
 
     // Verify no filings were inserted
     let db = rusqlite::Connection::open(&db_path).expect("Should open database");

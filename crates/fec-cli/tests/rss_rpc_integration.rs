@@ -21,7 +21,7 @@ struct RpcClient {
 impl RpcClient {
     fn new() -> Self {
         let mut child = Command::new(env!("CARGO_BIN_EXE_libfec"))
-            .args(&["rss", "--rpc"])
+            .args(["rss", "--rpc"])
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
@@ -84,7 +84,7 @@ impl RpcClient {
             let message = self.read_line().expect("Failed to read response");
 
             // Skip notifications
-            if !message.get("id").is_some() {
+            if message.get("id").is_none() {
                 continue;
             }
 
