@@ -56,3 +56,25 @@ type SA = Extract<Itemization, { type: "ScheduleA" }>;
 const _sa: SA["contribution_amount"] = 1;
 const _plain: ScheduleA["form_type"] = "SA11AI";
 void [_sa, _plain];
+
+// The reader API.
+import { open, type Row } from "../js/index.js";
+
+const filing = open("x.fec");
+for (const row of filing.itemizations()) {
+  switch (row.itemization.type) {
+    case "ScheduleA":
+      row.itemization.contribution_amount satisfies number;
+      // @ts-expect-error: a ScheduleB field
+      row.itemization.expenditure_amount;
+      break;
+  }
+}
+for (const row of filing.rows()) {
+  row.itemization satisfies null;
+  row.values.contribution_amount satisfies string | number | Date | null | undefined;
+}
+for (const row of filing) row satisfies Row<null>;
+if (filing.cover?.type === "Form3X") filing.cover.summary.line6c_total_receipts.column_a satisfies number;
+// @ts-expect-error: no filter argument
+filing.rows("SA");

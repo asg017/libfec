@@ -5,6 +5,14 @@ export const version: string = native.version();
 
 export { FecError, FecParseError, MissingMappingError } from "./errors.js";
 export { readHeader, type Header } from "./header.js";
+export {
+  open,
+  FilingReader,
+  type CoverSummary,
+  type OpenOptions,
+  type RawRecord,
+  type SkippedRow,
+} from "./reader.js";
 export { Row, type InvalidValue, type RowJSON, type RowValues, type Value } from "./row.js";
 export type { Source } from "./source.js";
 
