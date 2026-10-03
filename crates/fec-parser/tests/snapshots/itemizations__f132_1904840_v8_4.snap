@@ -1,0 +1,103 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"F132_1904840.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "F132",
+    "form_type": "F132",
+    "filer_committee_id": "C00894162",
+    "transaction_id": "F132.155229180",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "donor": {
+      "entity_type": "IND",
+      "organization_name": null,
+      "name": {
+        "first_name": "ROBYNE",
+        "last_name": "JOHNSTON",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "1200 N. NASH  ST",
+        "street_2": "NO. 239",
+        "city": "ARLINGTON",
+        "state": "VA",
+        "zip_code": "22209"
+      }
+    },
+    "donation_date": "2025-05-15",
+    "donation_amount": 1000.0,
+    "donation_aggregate_amount": 1500.0,
+    "memo": false,
+    "memo_text": null,
+    "image_number": null
+  },
+  {
+    "family": "F132",
+    "form_type": "F132",
+    "filer_committee_id": "C00894162",
+    "transaction_id": "F132.155256873",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "donor": {
+      "entity_type": "IND",
+      "organization_name": null,
+      "name": {
+        "first_name": "ROBYNE",
+        "last_name": "JOHNSTON",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "1200 N. NASH ST",
+        "street_2": "APT 239",
+        "city": "ARLINGTON",
+        "state": "VA",
+        "zip_code": "22209"
+      }
+    },
+    "donation_date": "2025-05-15",
+    "donation_amount": 500.0,
+    "donation_aggregate_amount": 1500.0,
+    "memo": false,
+    "memo_text": null,
+    "image_number": null
+  },
+  {
+    "family": "F132",
+    "form_type": "F132",
+    "filer_committee_id": "C00894162",
+    "transaction_id": "F132.155256874",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "donor": {
+      "entity_type": "IND",
+      "organization_name": null,
+      "name": {
+        "first_name": "KUMUDU",
+        "last_name": "RATNAYAKE",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "5526 ALDINE BENDER RD",
+        "street_2": null,
+        "city": "HOUSTON",
+        "state": "TX",
+        "zip_code": "77032"
+      }
+    },
+    "donation_date": "2025-05-15",
+    "donation_amount": 500.0,
+    "donation_aggregate_amount": 500.0,
+    "memo": false,
+    "memo_text": null,
+    "image_number": null
+  }
+]
