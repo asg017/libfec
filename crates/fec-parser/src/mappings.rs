@@ -13,6 +13,26 @@ lazy_static::lazy_static! {
   pub static ref FLOAT_COLUMNS: HashSet<String> = HashSet::from(gen_float_columns!(""));
 }
 
+/// How a column's raw value is typed by the bindings and exporters.
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum ColumnKind {
+    Text,
+    Amount,
+    Date,
+}
+
+/// The kind of a column, by name. Dates win over amounts (same precedence as the
+/// CLI's Excel/SQLite export and the Python bindings).
+pub fn column_kind(name: &str) -> ColumnKind {
+    if DATE_COLUMNS.contains(name) {
+        ColumnKind::Date
+    } else if FLOAT_COLUMNS.contains(name) {
+        ColumnKind::Amount
+    } else {
+        ColumnKind::Text
+    }
+}
+
 pub static FORM_TYPES: &[&str] = &gen_form_types!("");
 
 lazy_static::lazy_static! {
@@ -72,4 +92,33 @@ pub fn column_names_for_field<'a>(
             ))
         })?;
     Ok(columns)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn column_kind_by_name() {
+        assert_eq!(column_kind("contribution_date"), ColumnKind::Date);
+        assert_eq!(column_kind("contribution_amount"), ColumnKind::Amount);
+        assert_eq!(column_kind("contributor_last_name"), ColumnKind::Text);
+        assert_eq!(column_kind("expenditure_date"), ColumnKind::Date);
+        assert_eq!(column_kind("col_a_total_receipts"), ColumnKind::Amount);
+    }
+
+    #[test]
+    fn column_kind_dates_win_over_amounts() {
+        let mut both: Vec<_> = DATE_COLUMNS.intersection(&FLOAT_COLUMNS).collect();
+        both.sort();
+        // Both are cycle-to-date *amounts* that the mappings also list as dates;
+        // the precedence (shared with the CLI exporters) types them as dates.
+        assert_eq!(
+            both,
+            ["expenditure_total_cycle_to_date", "loan_payment_to_date"]
+        );
+        for name in both {
+            assert_eq!(column_kind(name), ColumnKind::Date, "{name}");
+        }
+    }
 }
