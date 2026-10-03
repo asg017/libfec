@@ -1,4 +1,4 @@
-.PHONY: install build build-release test test-node test-deno test-bun test-slow bench typecheck gen-types docs clean
+.PHONY: install build build-release test test-node test-deno test-bun test-slow bench typecheck gen-types docs examples clean
 
 install:                       ## one-time: npm ci
 	npm ci
@@ -33,6 +33,12 @@ bench: build-release           ## benchmarks/node/bench.mjs on BENCH_FILE under 
 typecheck:                     ## tsc --noEmit (needs `make build` for native/native.d.ts)
 	npx tsc --noEmit -p tsconfig.json
 	npx tsc -p tests/tsconfig.json
+	npx tsc -p examples/tsconfig.json
+
+examples:                      ## run every examples/*.mjs under node, deno and bun
+	node scripts/examples.mjs node
+	node scripts/examples.mjs deno
+	node scripts/examples.mjs bun
 
 GEN_SCRATCH := ../../target/gen-types
 

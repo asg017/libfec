@@ -57,3 +57,14 @@ test("keys.json has every struct in serde key order", () => {
   assert.equal(keys.ScheduleA[0], "form_type");
   for (const t of [...ITEMIZATION_TYPES, ...COVER_TYPES]) assert.ok(keys[t], t);
 });
+
+test("the README lists every Itemization and Cover type", () => {
+  const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8");
+  const listed = (heading) => {
+    const start = readme.indexOf(heading);
+    const para = readme.slice(start, readme.indexOf("\n\n", start));
+    return [...para.matchAll(/`(\w+)`/g)].map((m) => m[1]).filter((t) => /^[A-Z]/.test(t));
+  };
+  assert.deepEqual(listed("Every `Itemization` `type`").filter((t) => t !== "Itemization" && t !== "ITEMIZATION_TYPES"), [...ITEMIZATION_TYPES]);
+  assert.deepEqual(listed("Every `Cover` `type`").filter((t) => t !== "Cover" && t !== "COVER_TYPES"), [...COVER_TYPES]);
+});

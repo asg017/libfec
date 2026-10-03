@@ -60,6 +60,11 @@ jobs:
       - name: tsc --noEmit
         if: matrix.os == 'ubuntu-latest' && matrix.runtime == 'node24'
         run: make typecheck
+      - name: Examples
+        # Every examples/*.mjs under the leg's runtime.
+        run: node scripts/examples.mjs "${RUNTIME%%[0-9]*}"
+        env:
+          RUNTIME: ${{ matrix.runtime }}
       - name: TypeDoc (no undocumented exports, no broken links)
         if: matrix.os == 'ubuntu-latest' && matrix.runtime == 'node24'
         run: make docs
