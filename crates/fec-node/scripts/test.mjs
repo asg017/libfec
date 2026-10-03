@@ -1,4 +1,4 @@
-// Run tests/*.test.mjs under one runtime: `node scripts/test.mjs node|deno|bun`.
+// Run tests/*.test.mjs under one runtime: `node scripts/test.mjs node|deno|bun [--slow]`.
 //
 // A script rather than Makefile globs so it runs the same on Windows CI, and
 // because each runtime needs a different invocation:
@@ -11,8 +11,10 @@ import { spawnSync } from "node:child_process";
 import { readdirSync } from "node:fs";
 
 const runtime = process.argv[2];
+// `--slow`: only the *.slow.test.mjs files (perf guards on the 91 MB filing).
+const slow = process.argv.includes("--slow");
 let files = readdirSync(new URL("../tests/", import.meta.url))
-  .filter((f) => f.endsWith(".test.mjs"))
+  .filter((f) => f.endsWith(".test.mjs") && f.endsWith(".slow.test.mjs") === slow)
   .sort()
   .map((f) => `./tests/${f}`);
 
