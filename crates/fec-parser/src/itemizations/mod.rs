@@ -66,6 +66,10 @@ mod schedule_b;
 
 pub use schedule_a::ScheduleA;
 pub use schedule_b::ScheduleB;
+mod schedule_d;
+mod schedule_f;
+pub use schedule_d::ScheduleD;
+pub use schedule_f::{ScheduleF, ScheduleFCommittee};
 
 /// One typed itemization record. `None` from [`Itemization::from_record`]
 /// means the row is not an itemization (the cover, `F3PS`, …) or its record
@@ -80,6 +84,10 @@ pub enum Itemization {
     ScheduleA(Box<ScheduleA>),
     #[serde(rename = "SB")]
     ScheduleB(Box<ScheduleB>),
+    #[serde(rename = "SD")]
+    ScheduleD(Box<ScheduleD>),
+    #[serde(rename = "SF")]
+    ScheduleF(Box<ScheduleF>),
 }
 
 /// The record family of a row type: `SA11AI` → `SA`, `SC1/10` → `SC1`,
@@ -127,6 +135,8 @@ impl Itemization {
         Some(match record_family(row_type)? {
             "SA" => Itemization::ScheduleA(Box::new(ScheduleA::from_data(data)?)),
             "SB" => Itemization::ScheduleB(Box::new(ScheduleB::from_data(data)?)),
+            "SD" => Itemization::ScheduleD(Box::new(ScheduleD::from_data(data)?)),
+            "SF" => Itemization::ScheduleF(Box::new(ScheduleF::from_data(data)?)),
             _ => return None,
         })
     }
@@ -136,6 +146,8 @@ impl Itemization {
         match self {
             Itemization::ScheduleA(s) => &s.form_type,
             Itemization::ScheduleB(s) => &s.form_type,
+            Itemization::ScheduleD(s) => &s.form_type,
+            Itemization::ScheduleF(s) => &s.form_type,
         }
     }
 
@@ -145,6 +157,8 @@ impl Itemization {
         match self {
             Itemization::ScheduleA(s) => s.transaction_id.as_deref(),
             Itemization::ScheduleB(s) => s.transaction_id.as_deref(),
+            Itemization::ScheduleD(s) => s.transaction_id.as_deref(),
+            Itemization::ScheduleF(s) => s.transaction_id.as_deref(),
         }
     }
 

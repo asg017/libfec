@@ -1,0 +1,335 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"SF_1903343.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "SF",
+    "form_type": "SF",
+    "filer_committee_id": "C00143230",
+    "transaction_id": "500577198",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "filer_designated": false,
+    "designating_committee": {
+      "fec_id": null,
+      "name": null,
+      "address": {
+        "street_1": null,
+        "street_2": null,
+        "city": null,
+        "state": null,
+        "zip_code": null
+      }
+    },
+    "subordinate_committee": {
+      "fec_id": "C00143230",
+      "name": "New York State Democratic Committee",
+      "address": {
+        "street_1": "64 Beaver St. #210",
+        "street_2": null,
+        "city": "New York",
+        "state": "NY",
+        "zip_code": "10004"
+      }
+    },
+    "payee": {
+      "entity_type": "ORG",
+      "organization_name": "American Express",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "PO Box 1270",
+        "street_2": null,
+        "city": "Newark",
+        "state": "NJ",
+        "zip_code": "071011270"
+      }
+    },
+    "expenditure_date": "2024-12-17",
+    "expenditure_amount": 15650.78,
+    "aggregate_general_election_expended": 510550.03,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "Credit Card Payment-see below",
+    "category_code": null,
+    "payee_committee_fec_id": null,
+    "candidate": {
+      "fec_id": "S0NY00410",
+      "name": {
+        "first_name": "KIRSTEN ELIZABETH",
+        "last_name": "GILLIBRAND",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": "S",
+      "state": "NY",
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "memo": false,
+    "memo_text": null,
+    "increased_limit": null,
+    "notice_24_hour": null,
+    "image_number": null
+  },
+  {
+    "family": "SF",
+    "form_type": "SF",
+    "filer_committee_id": "C00143230",
+    "transaction_id": "500577199",
+    "back_reference_transaction_id": "500577198",
+    "back_reference_schedule_name": "SF",
+    "filer_designated": false,
+    "designating_committee": {
+      "fec_id": null,
+      "name": null,
+      "address": {
+        "street_1": null,
+        "street_2": null,
+        "city": null,
+        "state": null,
+        "zip_code": null
+      }
+    },
+    "subordinate_committee": {
+      "fec_id": "C00143230",
+      "name": "New York State Democratic Committee",
+      "address": {
+        "street_1": "64 Beaver St. #210",
+        "street_2": null,
+        "city": "New York",
+        "state": "NY",
+        "zip_code": "10004"
+      }
+    },
+    "payee": {
+      "entity_type": "ORG",
+      "organization_name": "The Hotel Chelsea",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "222 W 23rd St",
+        "street_2": null,
+        "city": "New York",
+        "state": "NY",
+        "zip_code": "100112301"
+      }
+    },
+    "expenditure_date": "2024-12-17",
+    "expenditure_amount": 15650.78,
+    "aggregate_general_election_expended": 510550.03,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "Venue Rental and Food & Beverages",
+    "category_code": null,
+    "payee_committee_fec_id": null,
+    "candidate": {
+      "fec_id": "S0NY00410",
+      "name": {
+        "first_name": "KIRSTEN ELIZABETH",
+        "last_name": "GILLIBRAND",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": "S",
+      "state": "NY",
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "memo": true,
+    "memo_text": "*",
+    "increased_limit": null,
+    "notice_24_hour": null,
+    "image_number": null
+  },
+  {
+    "family": "SF",
+    "form_type": "SF",
+    "filer_committee_id": "C00143230",
+    "transaction_id": "500577089",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "filer_designated": false,
+    "designating_committee": {
+      "fec_id": null,
+      "name": null,
+      "address": {
+        "street_1": null,
+        "street_2": null,
+        "city": null,
+        "state": null,
+        "zip_code": null
+      }
+    },
+    "subordinate_committee": {
+      "fec_id": "C00143230",
+      "name": "New York State Democratic Committee",
+      "address": {
+        "street_1": "64 Beaver St. #210",
+        "street_2": null,
+        "city": "New York",
+        "state": "NY",
+        "zip_code": "10004"
+      }
+    },
+    "payee": {
+      "entity_type": "ORG",
+      "organization_name": "Industrious Bkn 594 Dean LLC",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "594 Dean Street",
+        "street_2": null,
+        "city": "Brooklyn",
+        "state": "NY",
+        "zip_code": "112383009"
+      }
+    },
+    "expenditure_date": "2024-12-13",
+    "expenditure_amount": 3695.0,
+    "aggregate_general_election_expended": 510550.03,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "Office Rent",
+    "category_code": null,
+    "payee_committee_fec_id": null,
+    "candidate": {
+      "fec_id": "S0NY00410",
+      "name": {
+        "first_name": "KIRSTEN ELIZABETH",
+        "last_name": "GILLIBRAND",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": "S",
+      "state": "NY",
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "memo": false,
+    "memo_text": null,
+    "increased_limit": null,
+    "notice_24_hour": null,
+    "image_number": null
+  },
+  {
+    "family": "SF",
+    "form_type": "SF",
+    "filer_committee_id": "C00143230",
+    "transaction_id": "500577090",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "filer_designated": false,
+    "designating_committee": {
+      "fec_id": null,
+      "name": null,
+      "address": {
+        "street_1": null,
+        "street_2": null,
+        "city": null,
+        "state": null,
+        "zip_code": null
+      }
+    },
+    "subordinate_committee": {
+      "fec_id": "C00143230",
+      "name": "New York State Democratic Committee",
+      "address": {
+        "street_1": "64 Beaver St. #210",
+        "street_2": null,
+        "city": "New York",
+        "state": "NY",
+        "zip_code": "10004"
+      }
+    },
+    "payee": {
+      "entity_type": "IND",
+      "organization_name": null,
+      "name": {
+        "first_name": "C. Landon",
+        "last_name": "Parvin",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "113 Falcon Drive",
+        "street_2": null,
+        "city": "Charlottesville",
+        "state": "VA",
+        "zip_code": "229012035"
+      }
+    },
+    "expenditure_date": "2024-12-16",
+    "expenditure_amount": 20000.0,
+    "aggregate_general_election_expended": 510550.03,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "Writing Services",
+    "category_code": null,
+    "payee_committee_fec_id": null,
+    "candidate": {
+      "fec_id": "S0NY00410",
+      "name": {
+        "first_name": "KIRSTEN ELIZABETH",
+        "last_name": "GILLIBRAND",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": "S",
+      "state": "NY",
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "memo": false,
+    "memo_text": null,
+    "increased_limit": null,
+    "notice_24_hour": null,
+    "image_number": null
+  }
+]

@@ -1,0 +1,215 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"SD_509001.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "SD",
+    "form_type": "SD9",
+    "filer_committee_id": "C00167585",
+    "transaction_id": "D9-4109",
+    "creditor": {
+      "entity_type": "CCM",
+      "organization_name": "JOHN KERRY FOR PRESIDENT INC",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "901 15th Street NW",
+        "street_2": null,
+        "city": "Washington",
+        "state": "DC",
+        "zip_code": "20005"
+      }
+    },
+    "purpose_of_debt_or_obligation": "Expenses for mailing: See AO 2004-37",
+    "beginning_balance": 12246.54,
+    "incurred_amount": 0.0,
+    "payment_amount": 0.0,
+    "balance_at_close": 12246.54,
+    "committee_fec_id": null,
+    "candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "image_number": null
+  },
+  {
+    "family": "SD",
+    "form_type": "SD10",
+    "filer_committee_id": "C00167585",
+    "transaction_id": "D10-3134-V",
+    "creditor": {
+      "entity_type": "ORG",
+      "organization_name": "Comm.to Re-Elect Mayor Dorn",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "555 S Flower St # 4210",
+        "street_2": null,
+        "city": "Los Angeles",
+        "state": "CA",
+        "zip_code": "90071"
+      }
+    },
+    "purpose_of_debt_or_obligation": "Return of overpayment(See AO 2004-37)",
+    "beginning_balance": 1974.27,
+    "incurred_amount": 0.0,
+    "payment_amount": 0.0,
+    "balance_at_close": 1974.27,
+    "committee_fec_id": null,
+    "candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "image_number": null
+  },
+  {
+    "family": "SD",
+    "form_type": "SD10",
+    "filer_committee_id": "C00167585",
+    "transaction_id": "D10-18-V",
+    "creditor": {
+      "entity_type": "ORG",
+      "organization_name": "David L. Gould Company",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "555 S Flower St # 4210",
+        "street_2": null,
+        "city": "Los Angeles",
+        "state": "CA",
+        "zip_code": "90071"
+      }
+    },
+    "purpose_of_debt_or_obligation": "Political Reporting Services",
+    "beginning_balance": 13487.85,
+    "incurred_amount": 0.0,
+    "payment_amount": 0.0,
+    "balance_at_close": 13487.85,
+    "committee_fec_id": null,
+    "candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "image_number": null
+  },
+  {
+    "family": "SD",
+    "form_type": "SD10",
+    "filer_committee_id": "C00167585",
+    "transaction_id": "D10-1694-V",
+    "creditor": {
+      "entity_type": "ORG",
+      "organization_name": "Harris & Harris Sound",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "4312 4th Ave.",
+        "street_2": null,
+        "city": "Los Angeles",
+        "state": "CA",
+        "zip_code": "90008"
+      }
+    },
+    "purpose_of_debt_or_obligation": "Sound for event",
+    "beginning_balance": 500.0,
+    "incurred_amount": 0.0,
+    "payment_amount": 0.0,
+    "balance_at_close": 500.0,
+    "committee_fec_id": null,
+    "candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "image_number": null
+  }
+]

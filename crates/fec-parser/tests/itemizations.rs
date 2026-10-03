@@ -55,3 +55,19 @@ itemization_snapshot!(sb_398066_v6_2, "SB_398066.fec");
 itemization_snapshot!(sb_269708_v5_3, "SB_269708.fec");
 itemization_snapshot!(sb_84285_v5_0, "SB_84285.fec");
 itemization_snapshot!(sb_27475_v3, "SB_27475.fec");
+// Schedule D
+itemization_snapshot!(sd_1916849_v8_5, "SD_1916849.fec");
+itemization_snapshot!(sd_1913965_v8_5_f3p, "SD_1913965.fec");
+itemization_snapshot!(sd_1887446_v8_4, "SD_1887446.fec");
+itemization_snapshot!(sd_853272_v8_0, "SD_853272.fec");
+itemization_snapshot!(sd_509001_v6_4, "SD_509001.fec");
+itemization_snapshot!(sd_279768_v5_3, "SD_279768.fec");
+itemization_snapshot!(sd_163291_v5_1, "SD_163291.fec");
+itemization_snapshot!(sd_98650_v5_0, "SD_98650.fec");
+itemization_snapshot!(sd_53060_v3, "SD_53060.fec");
+
+// Schedule F
+itemization_snapshot!(sf_1903343_v8_4, "SF_1903343.fec");
+itemization_snapshot!(sf_1904186_v8_4, "SF_1904186.fec");
+itemization_snapshot!(sf_1955691_v8_5, "SF_1955691.fec");
+itemization_snapshot!(sf_1954205_v8_5, "SF_1954205.fec");

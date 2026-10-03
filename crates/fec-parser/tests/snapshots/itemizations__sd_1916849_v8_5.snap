@@ -1,0 +1,267 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"SD_1916849.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "SD",
+    "form_type": "SD9",
+    "filer_committee_id": "C00606962",
+    "transaction_id": "SD9.9965",
+    "creditor": {
+      "entity_type": "PAC",
+      "organization_name": "AARON REGUNBERG FOR CONGRESS",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "50 DUNCAN AVENUE",
+        "street_2": null,
+        "city": "PROVIDENCE",
+        "state": "RI",
+        "zip_code": "02906"
+      }
+    },
+    "purpose_of_debt_or_obligation": "Personnel - Fee for Service",
+    "beginning_balance": 8466.5,
+    "incurred_amount": 0.0,
+    "payment_amount": 0.0,
+    "balance_at_close": 8466.5,
+    "committee_fec_id": null,
+    "candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "image_number": null
+  },
+  {
+    "family": "SD",
+    "form_type": "SD9",
+    "filer_committee_id": "C00606962",
+    "transaction_id": "SD9.9963",
+    "creditor": {
+      "entity_type": "COM",
+      "organization_name": "People for Joann Bryn Smith",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "PO Box 4156",
+        "street_2": null,
+        "city": "Wyoming",
+        "state": "PA",
+        "zip_code": "18644"
+      }
+    },
+    "purpose_of_debt_or_obligation": "Refund of Contribution",
+    "beginning_balance": 1500.0,
+    "incurred_amount": 0.0,
+    "payment_amount": 0.0,
+    "balance_at_close": 1500.0,
+    "committee_fec_id": null,
+    "candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "image_number": null
+  },
+  {
+    "family": "SD",
+    "form_type": "SD10",
+    "filer_committee_id": "C00606962",
+    "transaction_id": "SD10.9906",
+    "creditor": {
+      "entity_type": "ORG",
+      "organization_name": "Action Saint Louis Power Project",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "2857 Sidney Street",
+        "street_2": null,
+        "city": "Saint Louis",
+        "state": "MO",
+        "zip_code": "63104"
+      }
+    },
+    "purpose_of_debt_or_obligation": "In person canvassing for Cori Bush",
+    "beginning_balance": 20000.0,
+    "incurred_amount": 0.0,
+    "payment_amount": 0.0,
+    "balance_at_close": 20000.0,
+    "committee_fec_id": null,
+    "candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "image_number": null
+  },
+  {
+    "family": "SD",
+    "form_type": "SD10",
+    "filer_committee_id": "C00606962",
+    "transaction_id": "SD10.9799",
+    "creditor": {
+      "entity_type": "ORG",
+      "organization_name": "Base Builder",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "77 Sands Street",
+        "street_2": null,
+        "city": "Brooklyn",
+        "state": "NY",
+        "zip_code": "11201"
+      }
+    },
+    "purpose_of_debt_or_obligation": "Phone Bank",
+    "beginning_balance": 11000.0,
+    "incurred_amount": 0.0,
+    "payment_amount": 0.0,
+    "balance_at_close": 11000.0,
+    "committee_fec_id": null,
+    "candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "image_number": null
+  },
+  {
+    "family": "SD",
+    "form_type": "SD10",
+    "filer_committee_id": "C00606962",
+    "transaction_id": "SD10.9800",
+    "creditor": {
+      "entity_type": "ORG",
+      "organization_name": "Base Builder",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "77 Sands Street",
+        "street_2": null,
+        "city": "Brooklyn",
+        "state": "NY",
+        "zip_code": "11201"
+      }
+    },
+    "purpose_of_debt_or_obligation": "In person canvassing",
+    "beginning_balance": 36000.0,
+    "incurred_amount": 0.0,
+    "payment_amount": 0.0,
+    "balance_at_close": 36000.0,
+    "committee_fec_id": null,
+    "candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "image_number": null
+  }
+]

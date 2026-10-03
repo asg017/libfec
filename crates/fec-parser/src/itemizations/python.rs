@@ -38,11 +38,23 @@ cover_class!(
     "line_number" py_line_number = line_number -> Option<&str>,
 );
 
+cover_class!(
+    ScheduleD,
+    "line_number" py_line_number = line_number -> Option<&str>,
+);
+cover_class!(
+    ScheduleFCommittee,
+    "is_empty" py_is_empty = is_empty -> bool,
+);
+cover_class!(ScheduleF);
+
 /// An [`Itemization`] as an instance of its schedule's class.
 pub fn itemization_to_py(py: Python<'_>, item: Itemization) -> PyResult<Bound<'_, PyAny>> {
     Ok(match item {
         Itemization::ScheduleA(s) => Bound::new(py, *s)?.into_any(),
         Itemization::ScheduleB(s) => Bound::new(py, *s)?.into_any(),
+        Itemization::ScheduleD(s) => Bound::new(py, *s)?.into_any(),
+        Itemization::ScheduleF(s) => Bound::new(py, *s)?.into_any(),
     })
 }
 
@@ -51,6 +63,14 @@ pub fn add_classes(module: &Bound<'_, PyModule>) -> PyResult<()> {
     macro_rules! add {
         ($($ty:ty),+ $(,)?) => { $(module.add_class::<$ty>()?;)+ };
     }
-    add!(Entity, CandidateRef, ScheduleA, ScheduleB);
+    add!(
+        Entity,
+        CandidateRef,
+        ScheduleA,
+        ScheduleB,
+        ScheduleD,
+        ScheduleFCommittee,
+        ScheduleF,
+    );
     Ok(())
 }
