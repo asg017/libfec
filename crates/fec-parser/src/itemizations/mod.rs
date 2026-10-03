@@ -302,7 +302,7 @@ impl Itemization {
 
 /// The summary-page line an itemization's row type carries: `SA11AI` →
 /// `11AI`, `SB21B` → `21B`, `SC/10` and `SC1/10` → `10`, `SD9` → `9`.
-/// `None` for row types without one (`SE`, `SF`). The line belongs to the
+/// `None` for row types without one (`SE`, `SF`, Form 3L's `SA3L`/`SB3L`). The line belongs to the
 /// parent form: `11AI` is line 11(a)(i) on Forms 3 and 3X but itemized
 /// individual contributions are line 17(a)(i) on Form 3P (FEC format
 /// specification v8.4, `FEC_Format_v8.4.pdf` Appendix A p18–19; see
@@ -317,7 +317,8 @@ pub fn line_number(form_type: &str) -> Option<&str> {
                 .is_some_and(|head| head.eq_ignore_ascii_case(p))
         })?;
     let line = form_type[prefix.len()..].trim_start_matches('/');
-    (!line.is_empty()).then_some(line)
+    // `SA3L`/`SB3L` name Form 3L's schedules, not a summary-page line.
+    (!line.is_empty() && !line.eq_ignore_ascii_case("3L")).then_some(line)
 }
 
 /// The FEC's name for an `entity_type` code: `CAN` Candidate, `CCM`
@@ -593,6 +594,8 @@ mod tests {
         assert_eq!(line_number("SC2/10"), Some("10"));
         assert_eq!(line_number("SD10"), Some("10"));
         assert_eq!(line_number("SE"), None);
+        assert_eq!(line_number("SA3L"), None);
+        assert_eq!(line_number("SB3L"), None);
         assert_eq!(line_number("F3XN"), None);
     }
 

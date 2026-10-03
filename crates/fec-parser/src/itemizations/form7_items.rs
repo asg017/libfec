@@ -4,7 +4,7 @@
 use jiff::civil::Date;
 
 use crate::covers::fields::{amount, date, text, text_or_empty, Fields};
-use crate::itemizations::form5_items::support_oppose_label;
+use crate::itemizations::support_oppose_label;
 use crate::itemizations::CandidateRef;
 
 /// One line of Form 7's "Summary of Communication Costs": a communication a
