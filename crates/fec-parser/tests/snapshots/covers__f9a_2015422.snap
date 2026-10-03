@@ -1,0 +1,68 @@
+---
+source: crates/fec-parser/tests/covers.rs
+expression: "cover(\"F9A_2015422.fec\")"
+snapshot_kind: text
+---
+{
+  "form": "Form9",
+  "data": {
+    "form_type": "F9A",
+    "filer_committee_id": "C30003628",
+    "entity_type": "ORG",
+    "organization_name": "ALLIANCE FOR A BETTER FUTURE INC",
+    "individual": {
+      "first_name": "",
+      "last_name": "",
+      "middle_name": null,
+      "prefix": null,
+      "suffix": null
+    },
+    "change_of_address": false,
+    "address": {
+      "street_1": "614 N DUPONT HWY SUITE 210",
+      "street_2": null,
+      "city": "DOVER",
+      "state": "DE",
+      "zip_code": "19901"
+    },
+    "individual_employer": null,
+    "individual_occupation": null,
+    "original_amendment_date": "2026-09-16",
+    "coverage_from_date": "2026-09-15",
+    "coverage_through_date": "2026-09-15",
+    "date_public_distribution": "2026-09-15",
+    "communication_title": "TRUST",
+    "filer_code": "CLQ",
+    "filer_code_description": null,
+    "qualified_nonprofit": null,
+    "segregated_bank_account": "N",
+    "custodian": {
+      "name": {
+        "first_name": "CASSIDY",
+        "last_name": "KING",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "421 OFFICE PARK DRIVE",
+        "street_2": null,
+        "city": "MOUNTAIN BROOK",
+        "state": "AL",
+        "zip_code": "35223"
+      },
+      "employer": "CROSBY OTTENHOFF GROUP",
+      "occupation": "ACCOUNTANT"
+    },
+    "total_donations": 0.0,
+    "total_disbursements": 368558.0,
+    "person_completing": {
+      "first_name": "CASSIDY",
+      "last_name": "KING",
+      "middle_name": null,
+      "prefix": null,
+      "suffix": null
+    },
+    "date_signed": "2026-09-28"
+  }
+}

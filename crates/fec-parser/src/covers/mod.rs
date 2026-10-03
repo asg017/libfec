@@ -76,6 +76,7 @@ pub(crate) mod fields;
 mod form1;
 mod form13;
 mod form1m;
+mod form24;
 mod form3;
 mod form3l;
 mod form3p;
@@ -89,6 +90,11 @@ mod form4;
 mod form7;
 
 pub use crate::covers::form13::Form13;
+mod form5;
+mod form6;
+mod form9;
+
+pub use crate::covers::form24::Form24;
 
 pub use crate::covers::form3::{
     Form3, Form3CashSummary, Form3DetailedSummary, Form3DetailedSummaryDisbursements,
@@ -107,7 +113,10 @@ pub use crate::covers::form4::{
     Form4, Form4DetailedSummary, Form4Disbursements, Form4ItemizedLine, Form4LoanLine,
     Form4Receipts, Form4Summary,
 };
+pub use crate::covers::form5::Form5;
+pub use crate::covers::form6::{Form6, Form6Candidate};
 pub use crate::covers::form7::Form7;
+pub use crate::covers::form9::{Form9, Form9Custodian};
 use fields::{text, text_or_empty, Data};
 use indexmap::IndexMap;
 use serde::Serialize;
@@ -127,6 +136,10 @@ pub enum Cover {
     Form4(Box<Form4>),
     Form7(Form7),
     Form13(Form13),
+    Form24(Form24),
+    Form5(Box<Form5>),
+    Form6(Form6),
+    Form9(Box<Form9>),
 }
 
 impl Cover {
@@ -146,7 +159,24 @@ impl Cover {
             Cover::Form4(f) => Some(&f.treasurer),
             Cover::Form7(f) => Some(&f.person_designated),
             Cover::Form13(f) => Some(&f.designated_officer),
+            Cover::Form24(f) => Some(&f.treasurer),
+            Cover::Form5(f) => Some(&f.person_completing),
+            Cover::Form6(f) => Some(&f.signer),
+            Cover::Form9(f) => Some(&f.person_completing),
         }
+    }
+
+    /// The filer's name when the cover's generic filer-name column can be
+    /// blank: an individual (not an organization) filing Form 5 or Form 9
+    /// leaves `organization_name` empty and gives a personal name instead.
+    /// `None` for every other form.
+    pub fn filer_name(&self) -> Option<String> {
+        match self {
+            Cover::Form5(f) => Some(f.filer_name()),
+            Cover::Form9(f) => Some(f.filer_name()),
+            _ => None,
+        }
+        .filter(|s| !s.trim().is_empty())
     }
 
     /// The date the filing was signed, if the form records one.
@@ -161,6 +191,10 @@ impl Cover {
             Cover::Form4(f) => f.date_signed,
             Cover::Form7(f) => f.date_signed,
             Cover::Form13(f) => f.date_signed,
+            Cover::Form24(f) => f.date_signed,
+            Cover::Form5(f) => f.date_signed,
+            Cover::Form6(f) => f.date_signed,
+            Cover::Form9(f) => f.date_signed,
         }
     }
 }
@@ -255,6 +289,10 @@ pub(crate) fn cover_from_form_type(cover_record_form_type: &str, data: &Data) ->
         "F4" => Form4::from_data(data).map(|f| Cover::Form4(Box::new(f))),
         "F7" => Form7::from_data(data).map(Cover::Form7),
         "F13" => Form13::from_data(data).map(Cover::Form13),
+        "F24" => Form24::from_data(data).map(Cover::Form24),
+        "F5" => Form5::from_data(data).map(|f| Cover::Form5(Box::new(f))),
+        "F6" => Form6::from_data(data).map(Cover::Form6),
+        "F9" => Form9::from_data(data).map(|f| Cover::Form9(Box::new(f))),
         _ => None,
     }
 }

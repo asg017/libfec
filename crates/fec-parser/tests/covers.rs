@@ -61,3 +61,37 @@ cover_snapshot!(f3n_1858438, "F3N_1858438.fec");
 cover_snapshot!(f3t_1917347, "F3T_1917347.fec");
 cover_snapshot!(f3pa_1863008, "F3PA_1863008.fec");
 cover_snapshot!(f3pn_1920459, "F3PN_1920459.fec");
+cover_snapshot!(f24n_1946204, "F24N_1946204.fec");
+cover_snapshot!(f24a_1952541, "F24A_1952541.fec");
+cover_snapshot!(f5n_1888248, "F5N_1888248.fec");
+cover_snapshot!(f5n_1914346, "F5N_1914346.fec");
+cover_snapshot!(f5a_1900837, "F5A_1900837.fec");
+cover_snapshot!(f6n_1947008, "F6N_1947008.fec");
+cover_snapshot!(f6a_1952182, "F6A_1952182.fec");
+cover_snapshot!(f9a_2015422, "F9A_2015422.fec");
+
+/// An individual F5 filer leaves `organization_name` blank; `filer_name`
+/// falls back to the individual's name. No corpus filing has one, so this
+/// edits a real F5N cover: entity type `IND`, blank organization, a person.
+#[test]
+fn f5_individual_filer_name() {
+    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/covers/F5N_1888248.fec");
+    let raw = std::fs::read(&path).unwrap();
+    let text = String::from_utf8_lossy(&raw);
+    let mut lines = text.lines();
+    let hdr = lines.next().unwrap();
+    let mut cover: Vec<String> = lines
+        .next()
+        .unwrap()
+        .split('\x1c')
+        .map(str::to_owned)
+        .collect();
+    cover[2] = "IND".into();
+    cover[3] = String::new();
+    cover[4] = "Doe".into();
+    cover[5] = "Jane".into();
+    let bytes = format!("{hdr}\n{}\n", cover.join("\x1c")).into_bytes();
+    let len = bytes.len();
+    let filing = Filing::from_reader(bytes.as_slice(), "1888248".into(), len).unwrap();
+    assert_eq!(filing.cover.filer_name, "Jane Doe");
+}
