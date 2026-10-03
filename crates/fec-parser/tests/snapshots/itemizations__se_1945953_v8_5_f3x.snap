@@ -1,0 +1,80 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"SE_1945953.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "SE",
+    "form_type": "SE",
+    "filer_committee_id": "C00902254",
+    "transaction_id": "SE.4144",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "payee": {
+      "entity_type": "ORG",
+      "organization_name": "Activate Change LLC",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "8 The Green",
+        "street_2": "Suite R",
+        "city": "Dover",
+        "state": "DE",
+        "zip_code": "19901"
+      }
+    },
+    "payee_committee_fec_id": "C00902254",
+    "election_code": "P2026",
+    "election_other_description": null,
+    "dissemination_date": "2026-01-14",
+    "disbursement_date": "2026-01-31",
+    "expenditure_amount": 750.0,
+    "calendar_ytd_per_election_office": 750.0,
+    "expenditure_purpose_description": "Text Messages",
+    "expenditure_purpose_code": null,
+    "category_code": null,
+    "support_oppose_code": "S",
+    "candidate": {
+      "fec_id": "S6MI00426",
+      "name": {
+        "first_name": "Haley",
+        "last_name": "Stevens",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": "S",
+      "state": "MI",
+      "district": "00"
+    },
+    "signer_name": {
+      "first_name": "Jay",
+      "last_name": "Petterson",
+      "middle_name": null,
+      "prefix": null,
+      "suffix": null
+    },
+    "date_signed": "2026-02-11",
+    "memo": false,
+    "memo_text": null,
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "payee_candidate": null,
+    "date_notarized": null,
+    "notary_commission_expires": null,
+    "notary_name": null,
+    "image_number": null
+  }
+]
