@@ -64,6 +64,7 @@ use crate::itemizations::{text_any, CandidateRef, Entity};
     pyo3::pyclass(module = "libfec.itemizations", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, serde::Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct ScheduleC {
     /// The row type as filed, `SC/` plus the line number: `SC/10`. Column
     /// `form_type` (FEC format workbook v8.4, sheet `Sch C`, field 1).
@@ -151,6 +152,7 @@ pub struct ScheduleC {
     pyo3::pyclass(module = "libfec.itemizations", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, serde::Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct ScheduleCGuarantor {
     /// Name and address. Columns `guarantor_N_name` ("IND/NAME
     /// (ENDORSER/GUARANTOR)", split per [`Entity::from_prefixed`]),

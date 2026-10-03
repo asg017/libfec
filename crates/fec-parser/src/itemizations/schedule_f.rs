@@ -47,6 +47,7 @@ use crate::itemizations::{address_either, text_any, CandidateRef, Entity};
     pyo3::pyclass(module = "libfec.itemizations", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, serde::Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct ScheduleF {
     /// The row type as filed, `SF`. Column `form_type` (FEC format workbook
     /// v8.4, sheet `Sch F`, field 1).
@@ -145,6 +146,7 @@ pub struct ScheduleF {
     pyo3::pyclass(module = "libfec.itemizations", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct ScheduleFCommittee {
     /// The committee's FEC ID; electronic-only.
     pub fec_id: Option<String>,

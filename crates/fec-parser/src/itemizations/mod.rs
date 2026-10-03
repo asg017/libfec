@@ -116,6 +116,7 @@ pub use text::TextRecord;
 /// Serialized with its [`record_family`] as a `"family"` tag (`"SA"`), then
 /// the struct's fields.
 #[derive(Debug, Clone, Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[serde(tag = "family")]
 pub enum Itemization {
     #[serde(rename = "SA")]
@@ -374,6 +375,7 @@ pub fn entity_type_label(code: &str) -> Option<&'static str> {
     pyo3::pyclass(module = "libfec.itemizations", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct Entity {
     /// `IND`, `ORG`, `COM`, … — see [`Entity::entity_type_label`]. Absent
     /// before v5.0 and on paper filings.
@@ -455,6 +457,7 @@ impl Entity {
     pyo3::pyclass(module = "libfec.itemizations", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct CandidateRef {
     /// The candidate's FEC ID (`H0VA01234`).
     pub fec_id: Option<String>,
