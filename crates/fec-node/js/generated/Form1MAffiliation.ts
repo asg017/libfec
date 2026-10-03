@@ -6,6 +6,8 @@
  * multicandidate committee through its affiliation with: Committee Name: ___
  * FEC Identification Number: ___"
  * ([fecfrm1m.pdf p1](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm1m.pdf#page=1)).
+ *
+ * @category Covers
  */
 export type Form1MAffiliation = { 
 /**

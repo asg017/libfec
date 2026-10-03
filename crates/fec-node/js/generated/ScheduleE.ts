@@ -30,7 +30,7 @@ import type { PersonName } from "./PersonName.js";
  * total goes to Form 3X Line 24
  * ([fecfrm3xi.pdf p8](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm3xi.pdf#page=8)).
  *
- * # Versions
+ * #### Versions
  *
  * v8.1–8.5 have all 44 fields. v8.0 and earlier have one date column
  * (see {@link ScheduleE.disbursement_date}). v6.1–7.0 add
@@ -42,6 +42,8 @@ import type { PersonName } from "./PersonName.js";
  * schedules' amend codes are "unnecessary and the field is ignored"
  * (`FEC_v530.rtf`, "Amend Code"). Paper layouts have no transaction IDs,
  * entity type or candidate ID but carry an `image_number`.
+ *
+ * @category Itemizations
  */
 export type ScheduleE = { 
 /**

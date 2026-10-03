@@ -22,7 +22,7 @@
  * Fundraising and direct candidate support ratios are on Schedule H2
  * instead ([fecfrm3xi.pdf p25](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm3xi.pdf#page=25)).
  *
- * # Versions
+ * #### Versions
  *
  * v8.2–8.5 have all 12 fields. v5.2–8.1 add a `flat_minimum_federal_percentage`
  * column, as do paper layouts before P3.4 (paper layouts have no transaction
@@ -31,6 +31,8 @@
  * describe a different allocation method (national party percentages, a
  * ballot-composition point count, …); of those only the identification
  * fields, the percentages and the v5.0–5.1 election-year boxes are read.
+ *
+ * @category Itemizations
  */
 export type ScheduleH1 = { 
 /**

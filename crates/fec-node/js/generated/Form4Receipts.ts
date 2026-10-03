@@ -6,6 +6,8 @@ import type { Form4LoanLine } from "./Form4LoanLine.js";
 /**
  * Detailed Summary Page, receipts (Lines 13–20)
  * ([fecfrm4i.pdf p2–3](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm4i.pdf#page=2)).
+ *
+ * @category Covers
  */
 export type Form4Receipts = { 
 /**

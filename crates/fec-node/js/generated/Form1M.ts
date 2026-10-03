@@ -31,6 +31,8 @@ import type { PersonName } from "./PersonName.js";
  * used", "Req if any 51st Contrib fields used"; FEC format workbook v8.4,
  * sheet `F1M`, fields 10–12 and 63–65), so normally one of the two is
  * `None`. Real filings occasionally populate both; both are kept.
+ *
+ * @category Covers
  */
 export type Form1M = { 
 /**

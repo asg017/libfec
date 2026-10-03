@@ -33,7 +33,7 @@ import type { Entity } from "./Entity.js";
  * included in the period's payment here (same page). The layout has no
  * memo code (FEC format workbook v8.4, sheet `Sch D`, fields 1–20).
  *
- * # Amounts
+ * #### Amounts
  *
  * The four balance columns are all `f64`, blank read as `0.0`: every one is
  * a box on the paper schedule (fields 17–20, "Outstanding Balance Beginning
@@ -42,7 +42,7 @@ import type { Entity } from "./Entity.js";
  * means no activity, as on the covers' summary pages. Together they are one
  * period's account, so none of them is "the" amount of the record.
  *
- * # Versions
+ * #### Versions
  *
  * v6.1–8.5 have all 20 fields. v3–5.x have one combined `creditor_name`,
  * split per `Entity::from_prefixed`, and add a committee ID, a candidate
@@ -51,6 +51,8 @@ import type { Entity } from "./Entity.js";
  * {@link ScheduleD.conduit_address}); v1 has neither entity type nor
  * transaction ID. Paper layouts have no transaction ID or entity type but
  * carry an `image_number`.
+ *
+ * @category Itemizations
  */
 export type ScheduleD = { 
 /**

@@ -86,10 +86,18 @@ export type { ScheduleL } from "./ScheduleL.js";
 export type { TextRecord } from "./TextRecord.js";
 export { electionCodeLabel, officeLabel, partyLabel, entityTypeLabel, supportOpposeLabel, categoryCodeLabel } from "./labels.js";
 
-/** Every {@link Itemization} `type`, in Rust's declaration order. */
+/**
+ * Every {@link Itemization} `type`, in Rust's declaration order.
+ *
+ * @category Itemizations
+ */
 export const ITEMIZATION_TYPES = ["ScheduleA","ScheduleB","ScheduleD","ScheduleF","ScheduleH1","ScheduleH2","ScheduleH3","ScheduleH4","ScheduleH5","ScheduleH6","Form5Contribution","Form5Expenditure","Form6Contribution","Form7Communication","Form9ControllingPerson","Form9Donation","Form9Disbursement","Form9Candidate","Form13Donation","Form13Refund","ScheduleL","TextRecord","ScheduleA3L","ScheduleE","ScheduleC","ScheduleC1","ScheduleC2"] as const;
 
-/** Every {@link Cover} `type`, in Rust's declaration order. */
+/**
+ * Every {@link Cover} `type`, in Rust's declaration order.
+ *
+ * @category Covers
+ */
 export const COVER_TYPES = ["Form1","Form3","Form3P","Form1M","Form3X","Form3L","Form4","Form7","Form13","Form24","Form5","Form6","Form9","Form2","Form99"] as const;
 
 import type { Itemization } from "./Itemization.js";

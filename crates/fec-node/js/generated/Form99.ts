@@ -20,7 +20,7 @@ import type { PersonName } from "./PersonName.js";
  * ([RAD_FAQ-Candidate_Committees_last_visited_may_5_2021.pdf p16](https://www.fec.gov/resources/cms-content/documents/policy-guidance/RAD_FAQ-Candidate_Committees_last_visited_may_5_2021.pdf#page=16)).
  * There is no paper form, and no financial fields.
  *
- * # Where the text lives
+ * #### Where the text lives
  *
  * The delimited record is only the header fields (committee, address,
  * treasurer, date, text code). The workbook says the *next line* of the file
@@ -33,6 +33,8 @@ import type { PersonName } from "./PersonName.js";
  * all of them. `Filing::from_reader` therefore reads the
  * `[BEGINTEXT]` block right after an F99 cover and stores it in
  * {@link Form99.text | text}.
+ *
+ * @category Covers
  */
 export type Form99 = { 
 /**

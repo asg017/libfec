@@ -22,7 +22,7 @@ import type { Entity } from "./Entity.js";
  * direct candidate support the federal share is also disclosed on Schedule
  * B, E or F (same page).
  *
- * # Versions
+ * #### Versions
  *
  * v8.0–8.5 have all 33 fields; v6.1–7.0 add `expenditure_purpose_code`.
  * v2–5.x have one combined `payee_name`, split per `Entity::from_prefixed`,
@@ -30,6 +30,8 @@ import type { Entity } from "./Entity.js";
  * (blank in every corpus row); v5.0–5.1 have two administrative columns,
  * either of which sets `administrative_activity`. Paper layouts have no
  * transaction IDs or entity type but an `image_number`.
+ *
+ * @category Itemizations
  */
 export type ScheduleH4 = { 
 /**

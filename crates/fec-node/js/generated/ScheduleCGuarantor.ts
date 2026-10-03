@@ -5,6 +5,8 @@ import type { Entity } from "./Entity.js";
  * One endorser or guarantor listed inline on a v1 Schedule C row
  * (FEC format v1, `Fec_v1.rtf`, Schedule C fields 19–27, 28–36, 37–45).
  * The same facts as a {@link ScheduleC2} row.
+ *
+ * @category Itemizations
  */
 export type ScheduleCGuarantor = { 
 /**

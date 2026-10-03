@@ -32,12 +32,14 @@ import type { PersonName } from "./PersonName.js";
  * expenditures on {@link Form5}
  * ([fecfrm5i.pdf p1](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm5i.pdf#page=1)).
  *
- * # Versions
+ * #### Versions
  *
  * v8.0–8.5 carry all 16 fields. v6.1–7.0 lack `original_amendment_date`.
  * v3 and v5.x have one caret-delimited `treasurer_name` column ("NAME/
  * TREASURER (as signed)") instead of the five name columns; it is split like
  * every legacy name (see {@link Form24.treasurer}). v3 also lacks `report_type`.
+ *
+ * @category Covers
  */
 export type Form24 = { 
 /**

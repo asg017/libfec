@@ -4,6 +4,8 @@ import type { Address } from "./Address.js";
 /**
  * A committee designated on Form 2: the principal campaign committee (Line 7)
  * or an other authorized committee (Line 8).
+ *
+ * @category Covers
  */
 export type Form2Committee = { 
 /**

@@ -6,6 +6,8 @@ import type { Form3PDetailedSummaryReceipts } from "./Form3PDetailedSummaryRecei
  * Form 3P pages 3–4, the Detailed Summary Page
  * ([fecfrm3p.pdf p3](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm3p.pdf#page=3),
  * [p4](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm3p.pdf#page=4)).
+ *
+ * @category Covers
  */
 export type Form3PDetailedSummary = { 
 /**

@@ -9,6 +9,8 @@ import type { DetailedSummaryRow } from "./DetailedSummaryRow.js";
  * schedule's total is added to the unitemized amount for its category before
  * being entered here, so summing Schedule A rows will not generally reproduce
  * these lines ([fecfrm3i.pdf p6](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm3i.pdf#page=6)).
+ *
+ * @category Covers
  */
 export type Form3DetailedSummaryReceipts = { 
 /**

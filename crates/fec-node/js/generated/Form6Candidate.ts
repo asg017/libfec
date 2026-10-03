@@ -3,6 +3,8 @@ import type { PersonName } from "./PersonName.js";
 
 /**
  * The candidate on a Form 6 (Lines 2-3).
+ *
+ * @category Covers
  */
 export type Form6Candidate = { 
 /**

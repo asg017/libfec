@@ -20,12 +20,14 @@ import type { Entity } from "./Entity.js";
  * [fecfrm3xi.pdf p6](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm3xi.pdf#page=6)),
  * so summing a filing's Schedule A rows does not give its total receipts.
  *
- * # Versions
+ * #### Versions
  *
  * v8.0–8.5 have all 45 fields. v6.x–7.0 add `contribution_purpose_code`.
  * v3–5.x have one combined `contributor_name` (and `donor_candidate_name`),
  * split per `Entity::from_prefixed`. Paper layouts have no transaction IDs
  * or entity type but carry an `image_number`.
+ *
+ * @category Itemizations
  */
 export type ScheduleA = { 
 /**

@@ -7,6 +7,8 @@ import type { PersonName } from "./PersonName.js";
  * designated agent. Each has a name, mailing address, "Title or Position"
  * and optional "Telephone number"
  * ([fecfrm1.pdf p3–4](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm1.pdf#page=3)).
+ *
+ * @category Covers
  */
 export type Form1Contact = { 
 /**

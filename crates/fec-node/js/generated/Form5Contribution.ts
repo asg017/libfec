@@ -20,7 +20,7 @@ import type { Entity } from "./Entity.js";
  * There is no aggregate column (FEC format workbook v8.4, sheet `F56`,
  * fields 1–20).
  *
- * # Versions
+ * #### Versions
  *
  * v6.1–8.5 share the 20-field layout. v2–5.x (FEC format workbook v5.3,
  * sheet `F56`) have one combined `contributor_name` (split per
@@ -30,6 +30,8 @@ import type { Entity } from "./Entity.js";
  * format specification v5.3, `FEC_v530.rtf`, "Amend Code"). v1 has no entity
  * type and no transaction ID (its `sequence_number` is not read). Paper
  * layouts have no transaction ID or entity type but carry an `image_number`.
+ *
+ * @category Itemizations
  */
 export type Form5Contribution = { 
 /**

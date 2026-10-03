@@ -17,12 +17,14 @@
  * (FEC format workbook v8.4, sheet `Sch H3`, fields 4–10). Sum
  * `transferred_amount`, not `total_amount_transferred`.
  *
- * # Versions
+ * #### Versions
  *
  * v6.1–8.5 have all 10 fields. v3–5.x have the same fields in another order
  * (transaction ID last). v1–2 and paper layouts have no breakdown rows (v1
  * lists events in columns of one row) and are read only for the transfer
  * itself; paper layouts have no transaction IDs but an `image_number`.
+ *
+ * @category Itemizations
  */
 export type ScheduleH3 = { 
 /**

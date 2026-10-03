@@ -6,5 +6,16 @@
  * What the columns mean depends on the form. On Forms 3 and 3P Column A is
  * "Total This Period" and Column B "Election Cycle-to-Date"; on Form 3X
  * Column B is "Calendar Year-to-Date". Each form's struct documents its own.
+ *
+ * @category Shared
  */
-export type DetailedSummaryRow = { column_a: number, column_b: number, };
+export type DetailedSummaryRow = { 
+/**
+ * Column A: on Forms 3, 3P and 3X, "Total This Period".
+ */
+column_a: number, 
+/**
+ * Column B: "Election Cycle-to-Date" (Forms 3, 3P) or "Calendar
+ * Year-to-Date" (Form 3X).
+ */
+column_b: number, };

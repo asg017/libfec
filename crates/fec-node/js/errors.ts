@@ -13,6 +13,8 @@ import { constants } from "node:os";
  *
  * A missing or unreadable path is not a `FecError`: it throws the same error
  * Node's `fs.openSync` would (`code: "ENOENT"`, `path`, `syscall: "open"`).
+ *
+ * @category Errors
  */
 export class FecError extends Error {
   /** What went wrong; see the table above. */
@@ -25,7 +27,11 @@ export class FecError extends Error {
   }
 }
 
-/** The header, cover or a row of a filing can't be parsed. `code: "FEC_PARSE"`. */
+/**
+ * The header, cover or a row of a filing can't be parsed. `code: "FEC_PARSE"`.
+ *
+ * @category Errors
+ */
 export class FecParseError extends FecError {
   constructor(message: string, options?: { cause?: unknown }) {
     super(message, { ...options, code: "FEC_PARSE" });
@@ -36,6 +42,8 @@ export class FecParseError extends FecError {
  * A row's type has no column mapping in the filing's FEC version, so its
  * columns can't be named. Raised by `rows()` (unless `unknownRows: "skip"`)
  * and {@link columns}. `code: "FEC_MISSING_MAPPING"`.
+ *
+ * @category Errors
  */
 export class MissingMappingError extends FecError {
   /**

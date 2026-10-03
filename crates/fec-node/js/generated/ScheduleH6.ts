@@ -18,13 +18,15 @@ import type { Entity } from "./Entity.js";
  * A payment covering several activities is a memo entry followed by a
  * breakdown (same page), so leave out `memo` rows when summing.
  *
- * # Versions
+ * #### Versions
  *
  * v8.0–8.5 have all 31 fields; v6.1–7.0 add `expenditure_purpose_code`.
  * v5.x have one combined `payee_name`, split per `Entity::from_prefixed`,
  * and also carry candidate, committee and conduit columns that are not
  * read. Paper layouts have no transaction IDs, entity type or activity
  * identifier but an `image_number`.
+ *
+ * @category Itemizations
  */
 export type ScheduleH6 = { 
 /**

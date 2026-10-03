@@ -6,6 +6,8 @@ import type { Form4LoanLine } from "./Form4LoanLine.js";
 /**
  * Detailed Summary Page, disbursements (Lines 21–25)
  * ([fecfrm4i.pdf p3](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm4i.pdf#page=3)).
+ *
+ * @category Covers
  */
 export type Form4Disbursements = { 
 /**
