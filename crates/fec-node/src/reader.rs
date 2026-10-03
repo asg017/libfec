@@ -292,3 +292,24 @@ pub fn schema(row_type: String, fec_version: String) -> Result<Vec<Column>> {
         })
         .collect())
 }
+
+#[cfg(test)]
+mod tests {
+    /// `js/row.ts` keys `row.values` by column name and counts columns with
+    /// `Object.keys`; both assume no layout repeats a name.
+    #[test]
+    fn mappings_have_no_duplicate_column_names() {
+        let mut dups = vec![];
+        for (f, versions) in fec_parser::mappings::COLUMN_NAMES.iter().enumerate() {
+            for (v, cols) in versions.iter().enumerate() {
+                let mut seen = std::collections::HashSet::new();
+                for c in cols {
+                    if !seen.insert(c) {
+                        dups.push(format!("{} v{v}: {c}", fec_parser::mappings::FORM_TYPES[f]));
+                    }
+                }
+            }
+        }
+        assert!(dups.is_empty(), "{dups:#?}");
+    }
+}
