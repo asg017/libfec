@@ -5,7 +5,7 @@ pub mod mappings;
 pub mod schedules;
 
 use crate::covers::Cover;
-use csv::{ByteRecordsIntoIter, StringRecord};
+use csv::{ByteRecord, ByteRecordsIntoIter, StringRecord};
 use indexmap::IndexMap;
 use jiff::civil::Date;
 use mappings::column_names_for_field;
@@ -275,7 +275,8 @@ impl<R: Read> Filing<R> {
         // .fec files have no quoting: the spec forbids `"` in fields, but
         // filings contain them anyway (`"BUD" SMITH`). With quoting on, a
         // field that starts with `"` swallows the following delimiters and
-        // lines until the next `"`, silently merging rows.
+        // lines until the next `"`, silently merging rows. Fields wrapped in
+        // quotes are unwrapped afterwards, one field at a time (`unquote_record`).
         let csv_reader = csv::ReaderBuilder::new()
             .delimiter(b"\x1c"[0])
             .flexible(true)
@@ -301,16 +302,13 @@ impl<R: Read> Filing<R> {
             ));
         }
 
-        let hdr_record = StringRecord::from_byte_record_lossy(hdr);
+        let hdr_record = unquote_record(hdr);
         let cover_record = records_iter
             .next()
             .ok_or_else(|| anyhow::anyhow!("No cover record found (2nd record missing)"))??;
         let header = FilingHeader::from_record(hdr_record)?;
-        let cover = FilingCover::from_record(
-            &header.fec_version,
-            StringRecord::from_byte_record_lossy(cover_record),
-        )
-        .map_err(|e| anyhow::anyhow!("Error parsing cover record: {}", e))?;
+        let cover = FilingCover::from_record(&header.fec_version, unquote_record(cover_record))
+            .map_err(|e| anyhow::anyhow!("Error parsing cover record: {}", e))?;
 
         Ok(Self {
             filing_id: filing_id
@@ -342,7 +340,7 @@ impl<R: Read> Filing<R> {
             Some(Ok(record)) => {
                 let n = record.as_slice().len();
                 let byte_offset = record.position().map(|p| p.byte()).unwrap_or(0);
-                (StringRecord::from_byte_record_lossy(record), n, byte_offset)
+                (unquote_record(record), n, byte_offset)
             }
             Some(Err(err)) => return Some(Err(FilingRowReadError::CsvError(err))),
             None => return None,
@@ -371,7 +369,7 @@ impl<R: Read> Filing<R> {
                                 };
                                 let original_size = record.as_slice().len();
                                 let byte_offset = record.position().map(|p| p.byte()).unwrap_or(0);
-                                let record = StringRecord::from_byte_record_lossy(record);
+                                let record = unquote_record(record);
                                 let row_type = record
                                     .get(0)
                                     .map(|s| s.to_owned())
@@ -416,6 +414,48 @@ pub enum FilingRowReadError {
     EmptyRecord(u64),
     #[error("Error reading contents of a [BEGINTEXT] record: `{0}`")]
     TextRecordError(#[source] csv::Error),
+}
+
+/// Convert a raw record to a [`StringRecord`], stripping one pair of double
+/// quotes from every field they wrap entirely (`"CMDI"` → `CMDI`, `""` → empty),
+/// with `""` inside such a field read as one `"`, as fecfile and fastfec do.
+/// The reader itself doesn't quote (see [`Filing::from_reader`]), so a stray
+/// quote (`"BUD" SMITH`, `O"BRIEN`) is kept as written and never spans
+/// delimiters or lines.
+pub fn unquote_record(record: ByteRecord) -> StringRecord {
+    if !record.iter().any(is_wrapped_in_quotes) {
+        return StringRecord::from_byte_record_lossy(record);
+    }
+    let mut unquoted: ByteRecord = record
+        .iter()
+        .map(|field| {
+            if is_wrapped_in_quotes(field) {
+                unquote(field)
+            } else {
+                field.to_vec()
+            }
+        })
+        .collect();
+    unquoted.set_position(record.position().cloned());
+    StringRecord::from_byte_record_lossy(unquoted)
+}
+
+fn is_wrapped_in_quotes(field: &[u8]) -> bool {
+    field.len() >= 2 && field.starts_with(b"\"") && field.ends_with(b"\"")
+}
+
+fn unquote(field: &[u8]) -> Vec<u8> {
+    let inner = &field[1..field.len() - 1];
+    let mut out = Vec::with_capacity(inner.len());
+    let mut i = 0;
+    while i < inner.len() {
+        out.push(inner[i]);
+        if inner[i] == b'"' && inner.get(i + 1) == Some(&b'"') {
+            i += 1;
+        }
+        i += 1;
+    }
+    out
 }
 
 pub struct FilingRow {
@@ -464,11 +504,33 @@ mod tests {
     }
 
     #[test]
-    fn quotes_are_kept_verbatim() {
-        let rows = rows("SA11AI\x1c\"CMDI\"\x1c\"\"\x1c\"BUD\" SMITH\x1cO\"BRIEN\r\n");
+    fn wrapping_quotes_are_stripped_stray_quotes_kept() {
+        let rows =
+            rows("SA11AI\x1c\"CMDI\"\x1c\"\"\x1c\"BUD\" SMITH\x1cO\"BRIEN\x1c\"X\"\"Y\"\x1c\"\r\n");
         assert_eq!(
             rows,
-            [["SA11AI", "\"CMDI\"", "\"\"", "\"BUD\" SMITH", "O\"BRIEN"]]
+            [[
+                "SA11AI",
+                "CMDI",
+                "",
+                "\"BUD\" SMITH",
+                "O\"BRIEN",
+                "X\"Y",
+                "\""
+            ]]
+        );
+    }
+
+    #[test]
+    fn quoted_header_fields_are_unwrapped() {
+        let src = "HDR\x1cFEC\x1c8.5\x1cCampaign Manager 360\x1c1.0\x1c\"\"\x1c\"\"\x1c\r\n\
+            F99\x1cC00776393\x1c\"COMMITTEE TO ELECT MIKE EZELL\"\r\n";
+        let filing = Filing::from_reader(src.as_bytes(), "FEC-1".to_owned(), src.len())
+            .expect("test filing should parse");
+        assert_eq!(filing.header.report_id, None);
+        assert_eq!(
+            filing.cover.record.get(2),
+            Some("COMMITTEE TO ELECT MIKE EZELL")
         );
     }
 

@@ -185,9 +185,10 @@ pub fn parse_header<'py>(
         .from_reader(hdr_str.as_bytes());
 
     let record = rdr
-        .records()
+        .byte_records()
         .next()
         .ok_or_else(|| pyo3::exceptions::PyValueError::new_err("Empty header"))?
+        .map(fec_parser::unquote_record)
         .map_err(|e| pyo3::exceptions::PyValueError::new_err(format!("CSV parse error: {}", e)))?;
 
     // Build header dict
@@ -245,9 +246,10 @@ pub fn parse_line<'py>(
         .from_reader(line.as_bytes());
 
     let record = rdr
-        .records()
+        .byte_records()
         .next()
         .ok_or_else(|| pyo3::exceptions::PyValueError::new_err("Empty line"))?
+        .map(fec_parser::unquote_record)
         .map_err(|e| pyo3::exceptions::PyValueError::new_err(format!("CSV parse error: {}", e)))?;
 
     let form_type = record
