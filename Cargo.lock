@@ -933,11 +933,13 @@ name = "fec-node"
 version = "0.0.32"
 dependencies = [
  "anyhow",
+ "csv",
  "fec-parser",
  "indexmap",
  "napi",
  "napi-build",
  "napi-derive",
+ "serde",
  "serde_json",
  "ts-rs",
 ]
