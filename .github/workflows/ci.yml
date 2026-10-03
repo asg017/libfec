@@ -1,0 +1,24 @@
+name: "ci"
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+permissions:
+  contents: read
+# A newer push to the same PR cancels the older run; runs on main always finish.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+jobs:
+  rust:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: rustup toolchain install stable --profile minimal --component clippy,rustfmt
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo fmt --all -- --check
+      - run: cargo clippy --workspace --all-targets -- -D warnings
+      # libfec_parser is a cdylib PyO3 extension module, so its test binary can't
+      # link without libpython; test-python covers it with pytest instead.
+      - run: cargo test --workspace --exclude libfec_parser

@@ -6,11 +6,16 @@ on:
   pull_request:
 permissions:
   contents: read
+# A newer push to the same PR cancels the older run; runs on main always finish.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   test-python:
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, macos-15-intel, windows-latest]
+        # PRs build on Linux only; main builds every platform we ship wheels for.
+        os: ${{ github.event_name == 'pull_request' && fromJSON('["ubuntu-latest"]') || fromJSON('["ubuntu-latest", "macos-latest", "macos-15-intel", "windows-latest"]') }}
       fail-fast: false
     runs-on: ${{ matrix.os }}
     steps:
@@ -21,6 +26,10 @@ jobs:
       - run: uv tool install maturin
       - name: Build Python wheels
         run: make build
+        working-directory: crates/fec-py
+      - name: Run pytest against the built wheel
+        shell: bash
+        run: uv run --no-project --isolated --with pytest --with "$(ls dist/*.whl | head -1)" pytest tests -q
         working-directory: crates/fec-py
       - name: Upload wheels
         uses: actions/upload-artifact@v4
