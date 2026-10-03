@@ -4,6 +4,7 @@ import * as native from "../native/native.js";
 export const version: string = native.version();
 
 export { FecError, FecParseError, MissingMappingError } from "./errors.js";
+export { columns, Filing, read, type Column } from "./filing.js";
 export { readHeader, type Header } from "./header.js";
 export {
   open,

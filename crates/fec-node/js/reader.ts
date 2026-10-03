@@ -89,12 +89,19 @@ export function checkOptions(options: OpenOptions): Required<OpenOptions> {
   return { dates, unknownRows, batchSize };
 }
 
-/** @internal */
-export function openNative(source: Source): native.NativeReader {
+/** Open a {@link FilingReader}; the native reader is closed if that fails. @internal */
+export function openReader(source: Source, options: Required<OpenOptions>): FilingReader {
   const src = normalizeSource(source);
-  return src.kind === "path"
-    ? callNative(() => native.NativeReader.openPath(src.path), { path: src.path })
-    : callNative(() => native.NativeReader.openBytes(src.bytes));
+  const reader =
+    src.kind === "path"
+      ? callNative(() => native.NativeReader.openPath(src.path), { path: src.path })
+      : callNative(() => native.NativeReader.openBytes(src.bytes));
+  try {
+    return new FilingReader(reader, options);
+  } catch (e) {
+    reader.close();
+    throw e;
+  }
 }
 
 /**
@@ -126,8 +133,7 @@ export function openNative(source: Source): native.NativeReader {
  *   or {@link FecParseError} if the header or cover can't be parsed.
  */
 export function open(source: Source, options: OpenOptions = {}): FilingReader {
-  const opts = checkOptions(options);
-  return new FilingReader(openNative(source), opts);
+  return openReader(source, checkOptions(options));
 }
 
 /**
