@@ -74,10 +74,10 @@ jobs:
         if: matrix.os == 'ubuntu-latest' && matrix.runtime == 'node24'
         run: make docs
       - name: Generated types are up to date
-        # js/generated/ is committed; regenerating from fec-parser must not
-        # change it (edit the Rust structs, then `make gen-types`).
+        # js/generated/ and native/native.d.ts are committed; regenerating them
+        # (`make gen-types`, and `npm run build` above) must not change them.
         if: matrix.os == 'ubuntu-latest' && matrix.runtime == 'node24'
         run: |
           make gen-types
-          git diff --exit-code -- js/generated
-          test -z "$(git status --porcelain -- js/generated)"
+          git diff --exit-code -- js/generated native/native.d.ts
+          test -z "$(git status --porcelain -- js/generated native/native.d.ts)"
