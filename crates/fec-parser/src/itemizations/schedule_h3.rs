@@ -28,7 +28,12 @@ use crate::covers::fields::{amount, amount_opt, date, text, text_or_empty, Field
 /// itself; paper layouts have no transaction IDs but an `image_number`.
 #[cfg_attr(
     feature = "python",
-    pyo3::pyclass(module = "libfec_parser.itemizations", frozen, get_all, skip_from_py_object)
+    pyo3::pyclass(
+        module = "libfec_parser.itemizations",
+        frozen,
+        get_all,
+        skip_from_py_object
+    )
 )]
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct ScheduleH3 {
@@ -94,14 +99,22 @@ impl ScheduleH3 {
     /// Party (made by PAC) (FEC format workbook v8.4, sheet `Sch H3`,
     /// field 6). `None` for any other value.
     pub fn event_type_label(&self) -> Option<&'static str> {
-        Some(match self.event_type.as_deref()?.trim().to_ascii_uppercase().as_str() {
-            "AD" => "Administrative",
-            "GV" => "Generic Voter Drive",
-            "DF" => "Direct Fundraising",
-            "DC" => "Direct Candidate Support",
-            "EA" => "Exempt Activities",
-            "PC" => "Public Communications Referring Only to Party (made by PAC)",
-            _ => return None,
-        })
+        Some(
+            match self
+                .event_type
+                .as_deref()?
+                .trim()
+                .to_ascii_uppercase()
+                .as_str()
+            {
+                "AD" => "Administrative",
+                "GV" => "Generic Voter Drive",
+                "DF" => "Direct Fundraising",
+                "DC" => "Direct Candidate Support",
+                "EA" => "Exempt Activities",
+                "PC" => "Public Communications Referring Only to Party (made by PAC)",
+                _ => return None,
+            },
+        )
     }
 }

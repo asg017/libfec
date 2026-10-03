@@ -41,7 +41,9 @@ struct Totals {
 /// `SA11AI` → `SA`, `SC1/10` → `SC1`, `H4` → `H4`, `F3PS` → `F3PS`.
 fn family(row_type: &str) -> String {
     let t = row_type.trim().to_ascii_uppercase();
-    for p in ["SC1", "SC2", "SA3L", "SA", "SB", "SC", "SD", "SE", "SF", "SI", "SL"] {
+    for p in [
+        "SC1", "SC2", "SA3L", "SA", "SB", "SC", "SD", "SE", "SF", "SI", "SL",
+    ] {
         if t.starts_with(p) {
             return p.to_owned();
         }
@@ -52,45 +54,125 @@ fn family(row_type: &str) -> String {
 /// The date and amount columns a typed row must not lose, per family.
 fn checked_columns(family: &str) -> (&'static [&'static str], &'static [&'static str]) {
     match family {
-        "SA" => (&["contribution_date"], &["contribution_amount", "contribution_aggregate"]),
+        "SA" => (
+            &["contribution_date"],
+            &["contribution_amount", "contribution_aggregate"],
+        ),
         "SB" => (&["expenditure_date"], &["expenditure_amount"]),
         // The due dates (SC `loan_due_date_terms`, SC1 `loan_due_date`) are
         // free text, kept as written, so they are not checked.
-        "SC" => (&["loan_incurred_date_terms"], &["loan_amount_original", "loan_payment_to_date", "loan_balance"]),
+        "SC" => (
+            &["loan_incurred_date_terms"],
+            &[
+                "loan_amount_original",
+                "loan_payment_to_date",
+                "loan_balance",
+            ],
+        ),
         "SC1" => (
-            &["loan_incurred_date", "loan_incurred_date_original", "established_date", "deposit_acct_auth_date_presidential", "date_signed", "authorized_date"],
-            &["loan_amount", "credit_amount_this_draw", "total_balance", "collateral_value_amount", "estimated_value"],
+            &[
+                "loan_incurred_date",
+                "loan_incurred_date_original",
+                "established_date",
+                "deposit_acct_auth_date_presidential",
+                "date_signed",
+                "authorized_date",
+            ],
+            &[
+                "loan_amount",
+                "credit_amount_this_draw",
+                "total_balance",
+                "collateral_value_amount",
+                "estimated_value",
+            ],
         ),
         "SC2" => (&[], &["guaranteed_amount"]),
         "SD" => (
             &[],
-            &["beginning_balance_this_period", "incurred_amount_this_period", "payment_amount_this_period", "balance_at_close_this_period"],
+            &[
+                "beginning_balance_this_period",
+                "incurred_amount_this_period",
+                "payment_amount_this_period",
+                "balance_at_close_this_period",
+            ],
         ),
-        "SE" => (&["dissemination_date", "disbursement_date"], &["expenditure_amount", "calendar_y_t_d_per_election_office"]),
-        "SF" => (&["expenditure_date"], &["expenditure_amount", "aggregate_general_elec_expended"]),
+        "SE" => (
+            &["dissemination_date", "disbursement_date"],
+            &["expenditure_amount", "calendar_y_t_d_per_election_office"],
+        ),
+        "SF" => (
+            &["expenditure_date"],
+            &["expenditure_amount", "aggregate_general_elec_expended"],
+        ),
         "H1" => (&[], &["federal_percent", "nonfederal_percent"]),
         "H2" => (&[], &["federal_percentage", "nonfederal_percentage"]),
-        "H3" => (&["receipt_date"], &["total_amount_transferred", "transferred_amount"]),
-        "H4" => (&["expenditure_date"], &["total_amount", "federal_share", "nonfederal_share", "event_year_to_date"]),
+        "H3" => (
+            &["receipt_date"],
+            &["total_amount_transferred", "transferred_amount"],
+        ),
+        "H4" => (
+            &["expenditure_date"],
+            &[
+                "total_amount",
+                "federal_share",
+                "nonfederal_share",
+                "event_year_to_date",
+            ],
+        ),
         "H5" => (
             &["receipt_date"],
-            &["total_amount_transferred", "voter_registration_amount", "voter_id_amount", "gotv_amount", "generic_campaign_amount"],
+            &[
+                "total_amount_transferred",
+                "voter_registration_amount",
+                "voter_id_amount",
+                "gotv_amount",
+                "generic_campaign_amount",
+            ],
         ),
-        "H6" => (&["expenditure_date"], &["total_amount", "federal_share", "levin_share", "event_year_to_date"]),
+        "H6" => (
+            &["expenditure_date"],
+            &[
+                "total_amount",
+                "federal_share",
+                "levin_share",
+                "event_year_to_date",
+            ],
+        ),
         "F56" | "F65" => (&["contribution_date"], &["contribution_amount"]),
-        "F57" => (&["dissemination_date"], &["expenditure_amount", "calendar_y_t_d_per_election_office"]),
+        "F57" => (
+            &["dissemination_date"],
+            &["expenditure_amount", "calendar_y_t_d_per_election_office"],
+        ),
         "F76" => (&["communication_date"], &["communication_cost"]),
         "F92" => (&["contribution_date"], &["contribution_amount"]),
-        "F93" => (&["expenditure_date", "communication_date"], &["expenditure_amount"]),
-        "F132" => (&["donation_date"], &["donation_amount", "donation_aggregate_amount"]),
+        "F93" => (
+            &["expenditure_date", "communication_date"],
+            &["expenditure_amount"],
+        ),
+        "F132" => (
+            &["donation_date"],
+            &["donation_amount", "donation_aggregate_amount"],
+        ),
         "F133" => (&["refund_date"], &["refund_amount"]),
         "SL" => (
             &["coverage_from_date", "coverage_through_date"],
-            &["col_a_total_receipts", "col_b_total_receipts", "col_a_total_disbursements", "col_b_total_disbursements", "col_b_cash_on_hand_close_of_period", "col_b_cash_on_hand_close_of_period_TODO_DUP"],
+            &[
+                "col_a_total_receipts",
+                "col_b_total_receipts",
+                "col_a_total_disbursements",
+                "col_b_total_disbursements",
+                "col_b_cash_on_hand_close_of_period",
+                "col_b_cash_on_hand_close_of_period_TODO_DUP",
+            ],
         ),
         "SA3L" => (
             &["contribution_date"],
-            &["bundled_amount_period", "bundled_amount_semi_annual", "contribution_amount", "contribution_aggregate"],
+            &[
+                "bundled_amount_period",
+                "bundled_amount_semi_annual",
+                "contribution_amount",
+                "contribution_aggregate",
+            ],
         ),
         _ => (&[], &[]),
     }
@@ -119,21 +201,31 @@ fn census(paths: &[PathBuf]) -> Totals {
             typing += s.elapsed();
             if typed.is_none() {
                 *tally.untyped_versions.entry(version.clone()).or_default() += 1;
-                tally.untyped_example.get_or_insert_with(|| format!("{filing_id}:{}", row.line));
+                tally
+                    .untyped_example
+                    .get_or_insert_with(|| format!("{filing_id}:{}", row.line));
                 continue;
             }
             tally.typed += 1;
             // Lossy reads: re-read the raw column and compare with the JSON.
             let (dates, amounts) = checked_columns(&fam);
-            let Some(layout) = Layout::get(&row.row_type, &version) else { continue };
-            let raw = RecordFields { layout: &layout, record: &row.record, name_delimiter: "^" };
+            let Some(layout) = Layout::get(&row.row_type, &version) else {
+                continue;
+            };
+            let raw = RecordFields {
+                layout: &layout,
+                record: &row.record,
+                name_delimiter: "^",
+            };
             for col in dates {
                 if let Some(v) = raw.raw(col).map(str::trim).filter(|v| !v.is_empty()) {
                     let ok = jiff::civil::Date::strptime("%Y%m%d", v).is_ok()
                         || jiff::civil::Date::strptime("%m/%d/%Y", v).is_ok();
                     if !ok {
                         tally.bad_date += 1;
-                        tally.bad_example.get_or_insert_with(|| format!("{filing_id}:{} {col}={v:?}", row.line));
+                        tally
+                            .bad_example
+                            .get_or_insert_with(|| format!("{filing_id}:{} {col}={v:?}", row.line));
                     }
                 }
             }
@@ -141,7 +233,9 @@ fn census(paths: &[PathBuf]) -> Totals {
                 if let Some(v) = raw.raw(col).map(str::trim).filter(|v| !v.is_empty()) {
                     if v.parse::<f64>().is_err() {
                         tally.bad_amount += 1;
-                        tally.bad_example.get_or_insert_with(|| format!("{filing_id}:{} {col}={v:?}", row.line));
+                        tally
+                            .bad_example
+                            .get_or_insert_with(|| format!("{filing_id}:{} {col}={v:?}", row.line));
                     }
                 }
             }
@@ -153,7 +247,9 @@ fn census(paths: &[PathBuf]) -> Totals {
 }
 
 fn main() {
-    let dir = std::env::args().nth(1).expect("usage: itemization_census DIR");
+    let dir = std::env::args()
+        .nth(1)
+        .expect("usage: itemization_census DIR");
     let mut paths: Vec<PathBuf> = std::fs::read_dir(&dir)
         .expect("read dir")
         .map(|e| e.expect("dir entry").path())
@@ -199,12 +295,19 @@ fn main() {
         total.read_time.as_secs_f64(),
         total.type_time.as_secs_f64()
     );
-    println!("{:<8} {:>10} {:>10} {:>7} {:>8} {:>8}  untyped versions / examples", "family", "rows", "typed", "%", "bad_dt", "bad_amt");
+    println!(
+        "{:<8} {:>10} {:>10} {:>7} {:>8} {:>8}  untyped versions / examples",
+        "family", "rows", "typed", "%", "bad_dt", "bad_amt"
+    );
     let mut fams: Vec<_> = total.families.into_iter().collect();
     fams.sort_by_key(|(_, t)| std::cmp::Reverse(t.rows));
     for (fam, t) in fams {
         let pct = 100.0 * t.typed as f64 / t.rows.max(1) as f64;
-        let versions: Vec<String> = t.untyped_versions.iter().map(|(v, n)| format!("{v}:{n}")).collect();
+        let versions: Vec<String> = t
+            .untyped_versions
+            .iter()
+            .map(|(v, n)| format!("{v}:{n}"))
+            .collect();
         println!(
             "{:<8} {:>10} {:>10} {:>6.1}% {:>8} {:>8}  {} {} {}",
             fam,
@@ -213,7 +316,11 @@ fn main() {
             pct,
             t.bad_date,
             t.bad_amount,
-            if t.typed < t.rows { versions.join(",") } else { String::new() },
+            if t.typed < t.rows {
+                versions.join(",")
+            } else {
+                String::new()
+            },
             t.untyped_example.unwrap_or_default(),
             t.bad_example.unwrap_or_default(),
         );

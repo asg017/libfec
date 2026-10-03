@@ -56,25 +56,27 @@ use std::sync::{Arc, OnceLock, RwLock};
 use csv::StringRecord;
 use serde::Serialize;
 
-use crate::covers::fields::{key, person_name, person_name_or_legacy, split_legacy_name, text, Fields};
+use crate::covers::fields::{
+    key, person_name, person_name_or_legacy, split_legacy_name, text, Fields,
+};
 use crate::covers::{Address, PersonName};
 
-#[cfg(feature = "python")]
-pub mod python;
 mod form13_items;
 mod form5_items;
 mod form6_items;
 mod form7_items;
 mod form9_items;
+#[cfg(feature = "python")]
+pub mod python;
 mod schedule_a;
-mod schedule_b;
-mod schedule_l;
-mod text;
 mod schedule_a3l;
-mod schedule_e;
+mod schedule_b;
 mod schedule_c;
 mod schedule_c1;
 mod schedule_c2;
+mod schedule_e;
+mod schedule_l;
+mod text;
 
 pub use form13_items::{Form13Donation, Form13Refund};
 pub use form5_items::{Form5Contribution, Form5Expenditure};
@@ -93,6 +95,11 @@ mod schedule_h3;
 mod schedule_h4;
 mod schedule_h5;
 mod schedule_h6;
+pub use schedule_a3l::ScheduleA3L;
+pub use schedule_c::{ScheduleC, ScheduleCGuarantor};
+pub use schedule_c1::ScheduleC1;
+pub use schedule_c2::ScheduleC2;
+pub use schedule_e::{category_code_label, support_oppose_label, ScheduleE};
 pub use schedule_h1::ScheduleH1;
 pub use schedule_h2::ScheduleH2;
 pub use schedule_h3::ScheduleH3;
@@ -101,11 +108,6 @@ pub use schedule_h5::ScheduleH5;
 pub use schedule_h6::ScheduleH6;
 pub use schedule_l::ScheduleL;
 pub use text::TextRecord;
-pub use schedule_a3l::ScheduleA3L;
-pub use schedule_e::{category_code_label, support_oppose_label, ScheduleE};
-pub use schedule_c::{ScheduleC, ScheduleCGuarantor};
-pub use schedule_c1::ScheduleC1;
-pub use schedule_c2::ScheduleC2;
 
 /// One typed itemization record. `None` from [`Itemization::from_record`]
 /// means the row is not an itemization (the cover, `F3PS`, …) or its record
@@ -178,9 +180,9 @@ pub enum Itemization {
 /// (covers, summary records).
 pub fn record_family(row_type: &str) -> Option<&'static str> {
     const FAMILIES: &[&str] = &[
-        "SA3L", "SC1", "SC2", "SA", "SB", "SC", "SD", "SE", "SF", "SI", "SL", "H1", "H2",
-        "H3", "H4", "H5", "H6", "TEXT", "F56", "F57", "F65", "F76", "F91", "F92", "F93",
-        "F94", "F132", "F133",
+        "SA3L", "SC1", "SC2", "SA", "SB", "SC", "SD", "SE", "SF", "SI", "SL", "H1", "H2", "H3",
+        "H4", "H5", "H6", "TEXT", "F56", "F57", "F65", "F76", "F91", "F92", "F93", "F94", "F132",
+        "F133",
     ];
     let row_type = row_type.trim();
     FAMILIES.iter().copied().find(|family| {
@@ -228,7 +230,9 @@ impl Itemization {
             "F56" => Itemization::Form5Contribution(Box::new(Form5Contribution::from_data(data)?)),
             "F57" => Itemization::Form5Expenditure(Box::new(Form5Expenditure::from_data(data)?)),
             "F65" => Itemization::Form6Contribution(Box::new(Form6Contribution::from_data(data)?)),
-            "F76" => Itemization::Form7Communication(Box::new(Form7Communication::from_data(data)?)),
+            "F76" => {
+                Itemization::Form7Communication(Box::new(Form7Communication::from_data(data)?))
+            }
             "F91" => Itemization::Form9ControllingPerson(Box::new(
                 Form9ControllingPerson::from_data(data)?,
             )),
@@ -367,7 +371,12 @@ pub fn entity_type_label(code: &str) -> Option<&'static str> {
 /// (e.g. FEC format workbook v8.4, sheet `Sch A`, fields 6–17).
 #[cfg_attr(
     feature = "python",
-    pyo3::pyclass(module = "libfec_parser.itemizations", frozen, get_all, skip_from_py_object)
+    pyo3::pyclass(
+        module = "libfec_parser.itemizations",
+        frozen,
+        get_all,
+        skip_from_py_object
+    )
 )]
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
 pub struct Entity {
@@ -448,7 +457,12 @@ impl Entity {
 /// fields 28–36).
 #[cfg_attr(
     feature = "python",
-    pyo3::pyclass(module = "libfec_parser.itemizations", frozen, get_all, skip_from_py_object)
+    pyo3::pyclass(
+        module = "libfec_parser.itemizations",
+        frozen,
+        get_all,
+        skip_from_py_object
+    )
 )]
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
 pub struct CandidateRef {
@@ -507,7 +521,11 @@ impl Hasher for Fnv {
     }
 
     fn write(&mut self, bytes: &[u8]) {
-        let mut hash = if self.0 == 0 { 0xcbf2_9ce4_8422_2325 } else { self.0 };
+        let mut hash = if self.0 == 0 {
+            0xcbf2_9ce4_8422_2325
+        } else {
+            self.0
+        };
         for b in bytes {
             hash = (hash ^ u64::from(*b)).wrapping_mul(0x0100_0000_01b3);
         }
@@ -537,7 +555,11 @@ impl Layout {
             return layout;
         }
         let layout = Self::lookup(row_type, fec_version);
-        LAST.set(Some((row_type.to_owned(), fec_version.to_owned(), layout.clone())));
+        LAST.set(Some((
+            row_type.to_owned(),
+            fec_version.to_owned(),
+            layout.clone(),
+        )));
         layout
     }
 
@@ -550,7 +572,8 @@ impl Layout {
         let layout = crate::mappings::column_names_for_field(&key.0, fec_version)
             .ok()
             .map(|columns| {
-                let mut index = HashMap::with_capacity_and_hasher(columns.len(), Default::default());
+                let mut index =
+                    HashMap::with_capacity_and_hasher(columns.len(), Default::default());
                 for (i, name) in columns.iter().enumerate() {
                     // As on covers, a repeated name keeps its first column.
                     index.entry(name.clone()).or_insert(i);
@@ -644,13 +667,11 @@ mod tests {
         assert_eq!(e.name.last_name, "Smith");
         assert_eq!(e.display_name(), "Ms. Jane Smith");
 
-        let data: crate::covers::fields::Data = [
-            ("entity_type", "ORG"),
-            ("contributor_name", "ACME Corp"),
-        ]
-        .into_iter()
-        .map(|(k, v)| (k.to_owned(), v.to_owned()))
-        .collect();
+        let data: crate::covers::fields::Data =
+            [("entity_type", "ORG"), ("contributor_name", "ACME Corp")]
+                .into_iter()
+                .map(|(k, v)| (k.to_owned(), v.to_owned()))
+                .collect();
         let e = Entity::from_prefixed(&data, "contributor_", "contributor_name");
         assert_eq!(e.organization_name.as_deref(), Some("ACME Corp"));
         assert_eq!(e.display_name(), "ACME Corp");

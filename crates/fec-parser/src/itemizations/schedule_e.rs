@@ -3,7 +3,8 @@
 use jiff::civil::Date;
 
 use crate::covers::fields::{
-    amount, amount_opt, date, flag, person_name_or_legacy, split_legacy_name, text, text_or_empty, Fields,
+    amount, amount_opt, date, flag, person_name_or_legacy, split_legacy_name, text, text_or_empty,
+    Fields,
 };
 use crate::covers::{Address, PersonName};
 use crate::itemizations::{address_either, text_any, CandidateRef, Entity};
@@ -47,7 +48,12 @@ use crate::itemizations::{address_either, text_any, CandidateRef, Entity};
 /// entity type or candidate ID but carry an `image_number`.
 #[cfg_attr(
     feature = "python",
-    pyo3::pyclass(module = "libfec_parser.itemizations", frozen, get_all, skip_from_py_object)
+    pyo3::pyclass(
+        module = "libfec_parser.itemizations",
+        frozen,
+        get_all,
+        skip_from_py_object
+    )
 )]
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct ScheduleE {
@@ -196,11 +202,15 @@ impl ScheduleE {
         // that is the disbursement date (see the field docs).
         let split_dates = data.raw("disbursement_date").is_some();
         let (dissemination_date, disbursement_date) = if split_dates {
-            (date(data, "dissemination_date"), date(data, "disbursement_date"))
+            (
+                date(data, "dissemination_date"),
+                date(data, "disbursement_date"),
+            )
         } else {
             (None, date(data, "dissemination_date"))
         };
-        let payee_candidate = CandidateRef::from_prefixed(data, "payee_candidate_id_number", "payee_candidate_");
+        let payee_candidate =
+            CandidateRef::from_prefixed(data, "payee_candidate_id_number", "payee_candidate_");
         Some(Self {
             form_type: text_or_empty(data, "form_type"),
             filer_committee_id: text_or_empty(data, "filer_committee_id_number"),
@@ -214,7 +224,10 @@ impl ScheduleE {
             dissemination_date,
             disbursement_date,
             expenditure_amount: amount(data, "expenditure_amount"),
-            calendar_ytd_per_election_office: amount_opt(data, "calendar_y_t_d_per_election_office"),
+            calendar_ytd_per_election_office: amount_opt(
+                data,
+                "calendar_y_t_d_per_election_office",
+            ),
             expenditure_purpose_description: text(data, "expenditure_purpose_descrip"),
             expenditure_purpose_code: text(data, "expenditure_purpose_code"),
             category_code: text(data, "category_code"),
@@ -229,7 +242,8 @@ impl ScheduleE {
             payee_candidate: (!payee_candidate.is_empty()).then_some(payee_candidate),
             date_notarized: date(data, "date_notarized"),
             notary_commission_expires: date(data, "date_notary_commission_expires"),
-            notary_name: text(data, "ind_name_notary").map(|raw| split_legacy_name(&raw, data.name_delimiter())),
+            notary_name: text(data, "ind_name_notary")
+                .map(|raw| split_legacy_name(&raw, data.name_delimiter())),
             image_number: text(data, "image_number"),
         })
     }
@@ -312,7 +326,10 @@ mod tests {
     use crate::covers::fields::Data;
 
     fn data(pairs: &[(&str, &str)]) -> Data {
-        pairs.iter().map(|(k, v)| ((*k).to_owned(), (*v).to_owned())).collect()
+        pairs
+            .iter()
+            .map(|(k, v)| ((*k).to_owned(), (*v).to_owned()))
+            .collect()
     }
 
     #[test]
@@ -358,7 +375,10 @@ mod tests {
         assert_eq!(se.candidate.name.last_name, "Smith");
         assert_eq!(se.candidate.fec_id.as_deref(), Some("H4MA01234"));
         assert_eq!(se.signer_name.first_name, "Rick");
-        assert_eq!(se.notary_name.as_ref().map(|n| n.last_name.as_str()), Some("Notary"));
+        assert_eq!(
+            se.notary_name.as_ref().map(|n| n.last_name.as_str()),
+            Some("Notary")
+        );
         assert_eq!(se.conduit_address.street_1.as_deref(), Some("1 Main St"));
         assert!(se.payee_candidate.is_none());
         assert_eq!(se.support_oppose_label(), Some("Oppose"));
@@ -377,7 +397,10 @@ mod tests {
         let pc = se.payee_candidate.expect("payee candidate");
         assert_eq!(pc.fec_id.as_deref(), Some("S2NY00001"));
         assert_eq!(pc.name.first_name, "Carl");
-        assert_eq!(se.payee.organization_name.as_deref(), Some("Committee to Elect"));
+        assert_eq!(
+            se.payee.organization_name.as_deref(),
+            Some("Committee to Elect")
+        );
     }
 
     /// v8.1+ has both dates; a blank dissemination date stays `None`.

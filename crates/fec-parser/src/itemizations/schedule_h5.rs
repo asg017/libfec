@@ -24,7 +24,12 @@ use crate::covers::fields::{amount, date, text, text_or_empty, Fields};
 /// ID last). Paper layouts have no transaction ID but an `image_number`.
 #[cfg_attr(
     feature = "python",
-    pyo3::pyclass(module = "libfec_parser.itemizations", frozen, get_all, skip_from_py_object)
+    pyo3::pyclass(
+        module = "libfec_parser.itemizations",
+        frozen,
+        get_all,
+        skip_from_py_object
+    )
 )]
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct ScheduleH5 {

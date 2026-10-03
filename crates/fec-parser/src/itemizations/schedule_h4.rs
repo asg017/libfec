@@ -35,7 +35,12 @@ use crate::itemizations::Entity;
 /// transaction IDs or entity type but an `image_number`.
 #[cfg_attr(
     feature = "python",
-    pyo3::pyclass(module = "libfec_parser.itemizations", frozen, get_all, skip_from_py_object)
+    pyo3::pyclass(
+        module = "libfec_parser.itemizations",
+        frozen,
+        get_all,
+        skip_from_py_object
+    )
 )]
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct ScheduleH4 {
@@ -150,7 +155,10 @@ impl ScheduleH4 {
             exempt_activity: flag(data, "exempt_activity"),
             generic_voter_drive_activity: flag(data, "generic_voter_drive_activity"),
             direct_candidate_support_activity: flag(data, "direct_candidate_support_activity"),
-            public_communications_party_activity: flag(data, "public_communications_party_activity"),
+            public_communications_party_activity: flag(
+                data,
+                "public_communications_party_activity",
+            ),
             memo: flag(data, "memo_code"),
             memo_text: text(data, "memo_text"),
             image_number: text(data, "image_number"),
@@ -168,7 +176,10 @@ impl ScheduleH4 {
             (self.fundraising_activity, "Direct Fundraising"),
             (self.exempt_activity, "Exempt Activity"),
             (self.generic_voter_drive_activity, "Generic Voter Drive"),
-            (self.direct_candidate_support_activity, "Direct Candidate Support"),
+            (
+                self.direct_candidate_support_activity,
+                "Direct Candidate Support",
+            ),
             (
                 self.public_communications_party_activity,
                 "Public Communications Referring Only to Party",

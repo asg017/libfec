@@ -49,7 +49,12 @@ use crate::itemizations::text_any;
 /// corpus.
 #[cfg_attr(
     feature = "python",
-    pyo3::pyclass(module = "libfec_parser.itemizations", frozen, get_all, skip_from_py_object)
+    pyo3::pyclass(
+        module = "libfec_parser.itemizations",
+        frozen,
+        get_all,
+        skip_from_py_object
+    )
 )]
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct ScheduleL {
@@ -180,7 +185,11 @@ impl ScheduleL {
                 "col_a_voter_registration_disbursements",
                 "col_b_voter_registration_disbursements",
             ),
-            line4b_voter_id: row(data, "col_a_voter_id_disbursements", "col_b_voter_id_disbursements"),
+            line4b_voter_id: row(
+                data,
+                "col_a_voter_id_disbursements",
+                "col_b_voter_id_disbursements",
+            ),
             line4c_gotv: row(data, "col_a_gotv_disbursements", "col_b_gotv_disbursements"),
             line4d_generic_campaign: row(
                 data,

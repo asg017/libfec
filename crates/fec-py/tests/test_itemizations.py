@@ -32,7 +32,7 @@ def snapshots() -> list[tuple[Path, list[dict[str, Any] | None]]]:
     """Every `itemizations("…")` JSON snapshot of `tests/itemizations.rs`."""
     found = []
     for snap in sorted((PARSER_TESTS / "snapshots").glob("itemizations__*.snap")):
-        _, header, body = snap.read_text().split("---\n", 2)
+        _, header, body = snap.read_text(encoding="utf-8").split("---\n", 2)
         m = re.search(r'^expression: "itemizations\(\\"(.+?)\\"\)"$', header, re.M)
         assert m, snap
         found.append((FIXTURES / m.group(1), json.loads(body)))
@@ -122,7 +122,7 @@ def test_classes_are_frozen():
 
 
 def test_module_exports_match_stub():
-    stub = (Path(itemizations.__file__).with_suffix(".pyi")).read_text()
+    stub = (Path(itemizations.__file__).with_suffix(".pyi")).read_text(encoding="utf-8")
     for name in itemizations.__all__:
         assert f'"{name}"' in stub, name
 
