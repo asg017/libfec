@@ -83,7 +83,7 @@ test("readHeader: bad source types are TypeErrors", () => {
 });
 
 test("readHeader: a missing path throws", () => {
-  assert.throws(() => readHeader("missing.fec"), /NotFound/);
+  assert.throws(() => readHeader("missing.fec"), { code: "ENOENT" });
 });
 
 test("readHeader: a file with no HDR throws", () => {
