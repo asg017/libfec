@@ -1,0 +1,839 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"SD_98650.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "SD",
+    "form_type": "SD10",
+    "filer_committee_id": "C00326363",
+    "transaction_id": "PAY:D:20143",
+    "creditor": {
+      "entity_type": "ORG",
+      "organization_name": "Creative Impressions, L.L.C.",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "3408 N. Pershing Drive",
+        "street_2": null,
+        "city": "Arlington",
+        "state": "VA",
+        "zip_code": "22201"
+      }
+    },
+    "purpose_of_debt_or_obligation": "Catering",
+    "beginning_balance": 1439.75,
+    "incurred_amount": 0.0,
+    "payment_amount": 0.0,
+    "balance_at_close": 1439.75,
+    "committee_fec_id": null,
+    "candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "image_number": null
+  },
+  {
+    "family": "SD",
+    "form_type": "SD10",
+    "filer_committee_id": "C00326363",
+    "transaction_id": "PAY:D:20074",
+    "creditor": {
+      "entity_type": "ORG",
+      "organization_name": "Fire & Light Originals L.P.",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "45 Ericson Court",
+        "street_2": null,
+        "city": "Arcata",
+        "state": "CA",
+        "zip_code": "955184791"
+      }
+    },
+    "purpose_of_debt_or_obligation": "Gifts & Cards",
+    "beginning_balance": 0.0,
+    "incurred_amount": 678.12,
+    "payment_amount": 0.0,
+    "balance_at_close": 678.12,
+    "committee_fec_id": null,
+    "candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "image_number": null
+  },
+  {
+    "family": "SD",
+    "form_type": "SD10",
+    "filer_committee_id": "C00326363",
+    "transaction_id": "PAY:D:20068",
+    "creditor": {
+      "entity_type": "ORG",
+      "organization_name": "James R. Santos Bookkeeping Services",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "2244 Ione Street",
+        "street_2": null,
+        "city": "Sacramento",
+        "state": "CA",
+        "zip_code": "95864"
+      }
+    },
+    "purpose_of_debt_or_obligation": "Data Entry",
+    "beginning_balance": 0.0,
+    "incurred_amount": 500.0,
+    "payment_amount": 0.0,
+    "balance_at_close": 500.0,
+    "committee_fec_id": null,
+    "candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "image_number": null
+  },
+  {
+    "family": "SD",
+    "form_type": "SD10",
+    "filer_committee_id": "C00326363",
+    "transaction_id": "PAY:D:20069",
+    "creditor": {
+      "entity_type": "ORG",
+      "organization_name": "James R. Santos Bookkeeping Services",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "2244 Ione Street",
+        "street_2": null,
+        "city": "Sacramento",
+        "state": "CA",
+        "zip_code": "95864"
+      }
+    },
+    "purpose_of_debt_or_obligation": "Phones",
+    "beginning_balance": 0.0,
+    "incurred_amount": 2.29,
+    "payment_amount": 0.0,
+    "balance_at_close": 2.29,
+    "committee_fec_id": null,
+    "candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "image_number": null
+  },
+  {
+    "family": "SD",
+    "form_type": "SD10",
+    "filer_committee_id": "C00326363",
+    "transaction_id": "PAY:D:20468",
+    "creditor": {
+      "entity_type": "ORG",
+      "organization_name": "James R. Santos Bookkeeping Services",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "2244 Ione Street",
+        "street_2": null,
+        "city": "Sacramento",
+        "state": "CA",
+        "zip_code": "95864"
+      }
+    },
+    "purpose_of_debt_or_obligation": "Data Entry",
+    "beginning_balance": 500.0,
+    "incurred_amount": 0.0,
+    "payment_amount": 500.0,
+    "balance_at_close": 0.0,
+    "committee_fec_id": null,
+    "candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "image_number": null
+  },
+  {
+    "family": "SD",
+    "form_type": "SD10",
+    "filer_committee_id": "C00326363",
+    "transaction_id": "PAY:D:20476",
+    "creditor": {
+      "entity_type": "ORG",
+      "organization_name": "Napa Valley Party Services",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "365 La Fata Street",
+        "street_2": null,
+        "city": "St. Helena",
+        "state": "CA",
+        "zip_code": "94574"
+      }
+    },
+    "purpose_of_debt_or_obligation": "Equipment Rental",
+    "beginning_balance": 3014.0,
+    "incurred_amount": 0.0,
+    "payment_amount": 3014.0,
+    "balance_at_close": 0.0,
+    "committee_fec_id": null,
+    "candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "image_number": null
+  },
+  {
+    "family": "SD",
+    "form_type": "SD10",
+    "filer_committee_id": "C00326363",
+    "transaction_id": "PAY:D:20348",
+    "creditor": {
+      "entity_type": "ORG",
+      "organization_name": "National Democratic Club",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "30 Ivy Street, S.E.",
+        "street_2": null,
+        "city": "Washington",
+        "state": "DC",
+        "zip_code": "200034071"
+      }
+    },
+    "purpose_of_debt_or_obligation": "Catering",
+    "beginning_balance": 0.0,
+    "incurred_amount": 1195.61,
+    "payment_amount": 0.0,
+    "balance_at_close": 1195.61,
+    "committee_fec_id": null,
+    "candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "image_number": null
+  },
+  {
+    "family": "SD",
+    "form_type": "SD10",
+    "filer_committee_id": "C00326363",
+    "transaction_id": "PAY:D:20183",
+    "creditor": {
+      "entity_type": "ORG",
+      "organization_name": "Pasta King - Art Ibleto",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "1492 Lowell Avenue",
+        "street_2": null,
+        "city": "Cotati",
+        "state": "CA",
+        "zip_code": "94928"
+      }
+    },
+    "purpose_of_debt_or_obligation": "Catering",
+    "beginning_balance": 0.0,
+    "incurred_amount": 2580.0,
+    "payment_amount": 0.0,
+    "balance_at_close": 2580.0,
+    "committee_fec_id": null,
+    "candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "image_number": null
+  },
+  {
+    "family": "SD",
+    "form_type": "SD10",
+    "filer_committee_id": "C00326363",
+    "transaction_id": "PAY:D:20122",
+    "creditor": {
+      "entity_type": "ORG",
+      "organization_name": "Platinum Plus For Business",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "P. O. Box 15469",
+        "street_2": null,
+        "city": "Wilmington",
+        "state": "DE",
+        "zip_code": "198865649"
+      }
+    },
+    "purpose_of_debt_or_obligation": "See Individual Credit Card Payees",
+    "beginning_balance": 0.0,
+    "incurred_amount": 701.34,
+    "payment_amount": 0.0,
+    "balance_at_close": 701.34,
+    "committee_fec_id": null,
+    "candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "Mike Thompson",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": "H",
+      "state": "CA",
+      "district": "1"
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "image_number": null
+  },
+  {
+    "family": "SD",
+    "form_type": "SD10",
+    "filer_committee_id": "C00326363",
+    "transaction_id": "PAY:D:20498",
+    "creditor": {
+      "entity_type": "ORG",
+      "organization_name": "Platinum Plus For Business",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "P. O. Box 15469",
+        "street_2": null,
+        "city": "Wilmington",
+        "state": "DE",
+        "zip_code": "198865649"
+      }
+    },
+    "purpose_of_debt_or_obligation": "See Individual Credit Card Payees",
+    "beginning_balance": 4242.94,
+    "incurred_amount": 0.0,
+    "payment_amount": 4242.94,
+    "balance_at_close": 0.0,
+    "committee_fec_id": null,
+    "candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "Mike Thompson",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": "H",
+      "state": "CA",
+      "district": "1"
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "image_number": null
+  },
+  {
+    "family": "SD",
+    "form_type": "SD10",
+    "filer_committee_id": "C00326363",
+    "transaction_id": "PAY:D:20137",
+    "creditor": {
+      "entity_type": "ORG",
+      "organization_name": "River City Business Services",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "5435 Madison Ave.",
+        "street_2": null,
+        "city": "Sacramento",
+        "state": "CA",
+        "zip_code": "95841"
+      }
+    },
+    "purpose_of_debt_or_obligation": "Bookkeeping",
+    "beginning_balance": 0.0,
+    "incurred_amount": 1421.25,
+    "payment_amount": 0.0,
+    "balance_at_close": 1421.25,
+    "committee_fec_id": null,
+    "candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "image_number": null
+  },
+  {
+    "family": "SD",
+    "form_type": "SD10",
+    "filer_committee_id": "C00326363",
+    "transaction_id": "PAY:D:20138",
+    "creditor": {
+      "entity_type": "ORG",
+      "organization_name": "River City Business Services",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "5435 Madison Ave.",
+        "street_2": null,
+        "city": "Sacramento",
+        "state": "CA",
+        "zip_code": "95841"
+      }
+    },
+    "purpose_of_debt_or_obligation": "Phones,Copies,Postage,Fedex,Software Fee",
+    "beginning_balance": 0.0,
+    "incurred_amount": 402.83,
+    "payment_amount": 0.0,
+    "balance_at_close": 402.83,
+    "committee_fec_id": null,
+    "candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "image_number": null
+  },
+  {
+    "family": "SD",
+    "form_type": "SD10",
+    "filer_committee_id": "C00326363",
+    "transaction_id": "PAY:D:20480",
+    "creditor": {
+      "entity_type": "ORG",
+      "organization_name": "River City Business Services",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "5435 Madison Ave.",
+        "street_2": null,
+        "city": "Sacramento",
+        "state": "CA",
+        "zip_code": "95841"
+      }
+    },
+    "purpose_of_debt_or_obligation": "Bkkping, Postage, Copies, Fedex",
+    "beginning_balance": 1832.75,
+    "incurred_amount": 0.0,
+    "payment_amount": 1832.75,
+    "balance_at_close": 0.0,
+    "committee_fec_id": null,
+    "candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "image_number": null
+  },
+  {
+    "family": "SD",
+    "form_type": "SD10",
+    "filer_committee_id": "C00326363",
+    "transaction_id": "PAY:D:20184",
+    "creditor": {
+      "entity_type": "ORG",
+      "organization_name": "Sonoma Printers",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "831 Alameda Street",
+        "street_2": null,
+        "city": "Vallejo",
+        "state": "CA",
+        "zip_code": "94590"
+      }
+    },
+    "purpose_of_debt_or_obligation": "Printing",
+    "beginning_balance": 0.0,
+    "incurred_amount": 1124.59,
+    "payment_amount": 0.0,
+    "balance_at_close": 1124.59,
+    "committee_fec_id": null,
+    "candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "image_number": null
+  },
+  {
+    "family": "SD",
+    "form_type": "SD10",
+    "filer_committee_id": "C00326363",
+    "transaction_id": "PAY:D:20489",
+    "creditor": {
+      "entity_type": "ORG",
+      "organization_name": "Springer Associates",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "436 New Jersey Ave., S.E.",
+        "street_2": null,
+        "city": "Washington",
+        "state": "DC",
+        "zip_code": "20003"
+      }
+    },
+    "purpose_of_debt_or_obligation": "Fundraising Commission, Phones, Fedex",
+    "beginning_balance": 3581.56,
+    "incurred_amount": 0.0,
+    "payment_amount": 3581.56,
+    "balance_at_close": 0.0,
+    "committee_fec_id": null,
+    "candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "image_number": null
+  },
+  {
+    "family": "SD",
+    "form_type": "SD10",
+    "filer_committee_id": "C00326363",
+    "transaction_id": "PDT:D:16",
+    "creditor": {
+      "entity_type": "ORG",
+      "organization_name": "U S House of Represent",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "B-217 Longworth Bldg.",
+        "street_2": null,
+        "city": "Washington",
+        "state": "DC",
+        "zip_code": "20515"
+      }
+    },
+    "purpose_of_debt_or_obligation": "(MEMO)Food",
+    "beginning_balance": 0.0,
+    "incurred_amount": 221.1,
+    "payment_amount": 0.0,
+    "balance_at_close": 0.0,
+    "committee_fec_id": null,
+    "candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": "Platinum Plus For Business",
+    "conduit_address": {
+      "street_1": "P. O. Box 15469",
+      "street_2": null,
+      "city": "Wilmington",
+      "state": "DE",
+      "zip_code": "198865649"
+    },
+    "image_number": null
+  }
+]
