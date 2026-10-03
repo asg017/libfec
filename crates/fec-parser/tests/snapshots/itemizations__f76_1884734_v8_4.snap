@@ -1,0 +1,63 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"F76_1884734.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "F76",
+    "form_type": "F76",
+    "filer_committee_id": "C70002563",
+    "transaction_id": "E6CF1E07591DA44E9AB6",
+    "communication_type": "DM",
+    "communication_type_description": null,
+    "communication_class": "M",
+    "communication_date": "2025-01-09",
+    "communication_cost": 1800.0,
+    "election_code": "O2025",
+    "election_other_description": "Special Primary2025",
+    "support_oppose_code": "S",
+    "candidate": {
+      "fec_id": "H6FL01390",
+      "name": {
+        "first_name": "Jimmy",
+        "last_name": "Patronis",
+        "middle_name": null,
+        "prefix": "Rep.",
+        "suffix": "Jr."
+      },
+      "office": "H",
+      "state": "FL",
+      "district": "01"
+    },
+    "image_number": null
+  },
+  {
+    "family": "F76",
+    "form_type": "F76",
+    "filer_committee_id": "C70002563",
+    "transaction_id": "E331D6EFA1B6F4DE6AAD",
+    "communication_type": "DM",
+    "communication_type_description": null,
+    "communication_class": "M",
+    "communication_date": "2025-01-09",
+    "communication_cost": 24852.38,
+    "election_code": "O2025",
+    "election_other_description": "Special Primary2025",
+    "support_oppose_code": "S",
+    "candidate": {
+      "fec_id": "H6FL01390",
+      "name": {
+        "first_name": "Jimmy",
+        "last_name": "Patronis",
+        "middle_name": null,
+        "prefix": "Rep.",
+        "suffix": "Jr."
+      },
+      "office": "H",
+      "state": "FL",
+      "district": "01"
+    },
+    "image_number": null
+  }
+]

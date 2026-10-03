@@ -1,0 +1,63 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"F57_1917549.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "F57",
+    "form_type": "F57",
+    "filer_committee_id": "C90023292",
+    "transaction_id": "F57.4108",
+    "payee": {
+      "entity_type": "ORG",
+      "organization_name": "Brushfire Strategies",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "3050 K Street NW",
+        "street_2": "# 210",
+        "city": "Washington",
+        "state": "DC",
+        "zip_code": "20007"
+      }
+    },
+    "payee_committee_fec_id": null,
+    "election_code": "S2025",
+    "election_other_description": "Special-Primary",
+    "dissemination_date": "2025-10-04",
+    "expenditure_amount": 20000.0,
+    "calendar_ytd_per_election_office": 80000.0,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "GOTV Phone Calls",
+    "category_code": "004",
+    "support_oppose_code": "S",
+    "candidate": {
+      "fec_id": "H6TN07229",
+      "name": {
+        "first_name": "VINCENT",
+        "last_name": "DIXIE",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": "H",
+      "state": "TN",
+      "district": "07"
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "image_number": null
+  }
+]
