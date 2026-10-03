@@ -1,0 +1,86 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"SL_1893062.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "SL",
+    "form_type": "SL",
+    "filer_committee_id": "C00190934",
+    "transaction_id": "SL7",
+    "record_id": "7",
+    "account_name": "Levin - 9598",
+    "coverage_from_date": "2025-04-01",
+    "coverage_through_date": "2025-04-30",
+    "line1a_itemized_receipts_from_persons": {
+      "column_a": 10000.0,
+      "column_b": 20000.0
+    },
+    "line1b_unitemized_receipts_from_persons": {
+      "column_a": 0.0,
+      "column_b": 0.0
+    },
+    "line1c_total_receipts_from_persons": {
+      "column_a": 10000.0,
+      "column_b": 20000.0
+    },
+    "line2_other_receipts": {
+      "column_a": 0.0,
+      "column_b": 19211.79
+    },
+    "line3_total_receipts": {
+      "column_a": 10000.0,
+      "column_b": 39211.79
+    },
+    "line4a_voter_registration": {
+      "column_a": 0.0,
+      "column_b": 0.0
+    },
+    "line4b_voter_id": {
+      "column_a": 0.0,
+      "column_b": 0.0
+    },
+    "line4c_gotv": {
+      "column_a": 16903.19,
+      "column_b": 21337.76
+    },
+    "line4d_generic_campaign": {
+      "column_a": 0.0,
+      "column_b": 0.0
+    },
+    "line4e_total_federal_election_activity": {
+      "column_a": 16903.19,
+      "column_b": 21337.76
+    },
+    "line5_other_disbursements": {
+      "column_a": 0.0,
+      "column_b": 0.0
+    },
+    "line6_total_disbursements": {
+      "column_a": 16903.19,
+      "column_b": 21337.76
+    },
+    "line7_beginning_cash_on_hand": {
+      "column_a": 25045.88,
+      "column_b": 268.66
+    },
+    "line8_receipts": {
+      "column_a": 10000.0,
+      "column_b": 39211.79
+    },
+    "line9_subtotal": {
+      "column_a": 35045.88,
+      "column_b": 39480.45
+    },
+    "line10_disbursements": {
+      "column_a": 16903.19,
+      "column_b": 21337.76
+    },
+    "line11_ending_cash_on_hand": {
+      "column_a": 18142.69,
+      "column_b": 18142.69
+    },
+    "image_number": null
+  }
+]

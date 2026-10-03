@@ -1,0 +1,52 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"TEXT_472783.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "TEXT",
+    "form_type": "TEXT",
+    "filer_committee_id": "C00461061",
+    "transaction_id": "TINCA2500IDTA200",
+    "back_reference_transaction_id": "INC.A.2500.IDTA200",
+    "back_reference_schedule_name": "SA11C",
+    "text": "Total earmarked through conduit PAC limit not affected"
+  },
+  {
+    "family": "TEXT",
+    "form_type": "TEXT",
+    "filer_committee_id": "C00461061",
+    "transaction_id": "TIDTA200",
+    "back_reference_transaction_id": "IDT.A.200",
+    "back_reference_schedule_name": "SA11C",
+    "text": "Earmarked through ActBlue"
+  },
+  {
+    "family": "TEXT",
+    "form_type": "TEXT",
+    "filer_committee_id": "C00461061",
+    "transaction_id": "TINCA2501IDTA171",
+    "back_reference_transaction_id": "INC.A.2501.IDTA171",
+    "back_reference_schedule_name": "SA11AI",
+    "text": "Total earmarked through conduit PAC limit not affected"
+  },
+  {
+    "family": "TEXT",
+    "form_type": "TEXT",
+    "filer_committee_id": "C00461061",
+    "transaction_id": "TIDTA171",
+    "back_reference_transaction_id": "IDT.A.171",
+    "back_reference_schedule_name": "SA11AI",
+    "text": "Earmarked through ActBlue"
+  },
+  {
+    "family": "TEXT",
+    "form_type": "TEXT",
+    "filer_committee_id": "C00461061",
+    "transaction_id": "TINCA2428IDTA167",
+    "back_reference_transaction_id": "INC.A.2428.IDTA167",
+    "back_reference_schedule_name": "SA11AI",
+    "text": "Total earmarked through conduit PAC limit not affected"
+  }
+]
