@@ -9,6 +9,8 @@ use napi_derive::napi;
 
 #[cfg(debug_assertions)]
 pub mod debug;
+pub mod errors;
+pub mod reader;
 pub mod tokens;
 
 /// The crate version (lockstep with the workspace).
@@ -18,6 +20,7 @@ pub fn version() -> &'static str {
 }
 
 /// One `key = value` line of a 1.x/2.x `/* Header` block, in file order.
+#[derive(Clone)]
 #[napi(object)]
 pub struct NativeHeaderField {
     pub key: String,
@@ -25,6 +28,7 @@ pub struct NativeHeaderField {
 }
 
 /// `fec_parser::FilingHeader`, field for field (camelCased by napi-rs).
+#[derive(Clone)]
 #[napi(object, use_nullable = true)]
 pub struct NativeHeader {
     pub record_type: String,
@@ -45,30 +49,33 @@ pub struct NativeHeader {
     pub schedule_counts: Vec<NativeHeaderField>,
 }
 
-impl From<fec_parser::FilingHeader> for NativeHeader {
-    fn from(h: fec_parser::FilingHeader) -> Self {
-        let fields = |m: indexmap::IndexMap<String, String>| {
-            m.into_iter()
-                .map(|(key, value)| NativeHeaderField { key, value })
+impl From<&fec_parser::FilingHeader> for NativeHeader {
+    fn from(h: &fec_parser::FilingHeader) -> Self {
+        let fields = |m: &indexmap::IndexMap<String, String>| {
+            m.iter()
+                .map(|(key, value)| NativeHeaderField {
+                    key: key.clone(),
+                    value: value.clone(),
+                })
                 .collect()
         };
         NativeHeader {
             is_paper: h.is_paper(),
             style: h.style.as_str().to_owned(),
             delimiter: h.delimiter.as_str().to_owned(),
-            record_type: h.record_type,
-            ef_type: h.ef_type,
-            fec_version: h.fec_version,
-            software_name: h.software_name,
-            software_version: h.software_version,
-            report_id: h.report_id,
-            report_number: h.report_number,
-            comment: h.comment,
-            name_delimiter: h.name_delimiter,
-            batch_number: h.batch_number,
-            received_date: h.received_date,
-            legacy_fields: fields(h.legacy_fields),
-            schedule_counts: fields(h.schedule_counts),
+            record_type: h.record_type.clone(),
+            ef_type: h.ef_type.clone(),
+            fec_version: h.fec_version.clone(),
+            software_name: h.software_name.clone(),
+            software_version: h.software_version.clone(),
+            report_id: h.report_id.clone(),
+            report_number: h.report_number.clone(),
+            comment: h.comment.clone(),
+            name_delimiter: h.name_delimiter.clone(),
+            batch_number: h.batch_number.clone(),
+            received_date: h.received_date.clone(),
+            legacy_fields: fields(&h.legacy_fields),
+            schedule_counts: fields(&h.schedule_counts),
         }
     }
 }
@@ -86,7 +93,7 @@ fn parse_err(e: anyhow::Error) -> napi::Error {
 /// Read only the header (the `HDR` record, or a 1.x/2.x `/* Header` block).
 fn read_header(rdr: impl Read) -> napi::Result<NativeHeader> {
     fec_parser::read_header(rdr)
-        .map(|(header, _lines)| header.into())
+        .map(|(header, _lines)| (&header).into())
         .map_err(parse_err)
 }
 
