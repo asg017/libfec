@@ -1,0 +1,87 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"SA3L_1922835.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "SA3L",
+    "form_type": "SA3L",
+    "filer_committee_id": "C00000935",
+    "transaction_id": "3LA107332134",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "lobbyist_registrant": {
+      "entity_type": "IND",
+      "organization_name": null,
+      "name": {
+        "first_name": "Jennifer",
+        "last_name": "Van der Heide",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "853 New Jersey Ave SE",
+        "street_2": null,
+        "city": "Washington",
+        "state": "DC",
+        "zip_code": "200035079"
+      }
+    },
+    "lobbyist_registrant_employer": "Spirit Rock Consulting Inc.",
+    "lobbyist_registrant_occupation": "Partner",
+    "lobbyist_registrant_pac_fec_id": null,
+    "lobbyist_registrant_pac_name": null,
+    "election_code": null,
+    "election_other_description": null,
+    "contribution_date": null,
+    "bundled_amount": 145900.0,
+    "bundled_amount_semi_annual": 0.0,
+    "contribution_purpose_code": null,
+    "contribution_purpose_description": null,
+    "memo": false,
+    "memo_text": null,
+    "image_number": null
+  },
+  {
+    "family": "SA3L",
+    "form_type": "SA3L",
+    "filer_committee_id": "C00000935",
+    "transaction_id": "3LA106187523",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "lobbyist_registrant": {
+      "entity_type": "IND",
+      "organization_name": null,
+      "name": {
+        "first_name": "Tim",
+        "last_name": "Wolfmeyer",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "119 Kentucky Ave SE",
+        "street_2": null,
+        "city": "Washington",
+        "state": "DC",
+        "zip_code": "200031447"
+      }
+    },
+    "lobbyist_registrant_employer": "Cornerstone Government Affairs",
+    "lobbyist_registrant_occupation": "Principal",
+    "lobbyist_registrant_pac_fec_id": null,
+    "lobbyist_registrant_pac_name": null,
+    "election_code": null,
+    "election_other_description": null,
+    "contribution_date": null,
+    "bundled_amount": 54300.0,
+    "bundled_amount_semi_annual": 0.0,
+    "contribution_purpose_code": null,
+    "contribution_purpose_description": null,
+    "memo": false,
+    "memo_text": null,
+    "image_number": null
+  }
+]

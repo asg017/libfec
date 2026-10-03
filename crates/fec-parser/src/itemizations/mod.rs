@@ -70,6 +70,8 @@ mod schedule_a;
 mod schedule_b;
 mod schedule_l;
 mod text;
+mod schedule_a3l;
+mod schedule_e;
 
 pub use form13_items::{Form13Donation, Form13Refund};
 pub use form5_items::{Form5Contribution, Form5Expenditure};
@@ -96,6 +98,8 @@ pub use schedule_h5::ScheduleH5;
 pub use schedule_h6::ScheduleH6;
 pub use schedule_l::ScheduleL;
 pub use text::TextRecord;
+pub use schedule_a3l::ScheduleA3L;
+pub use schedule_e::{category_code_label, support_oppose_label, ScheduleE};
 
 /// One typed itemization record. `None` from [`Itemization::from_record`]
 /// means the row is not an itemization (the cover, `F3PS`, …) or its record
@@ -150,6 +154,10 @@ pub enum Itemization {
     ScheduleL(Box<ScheduleL>),
     #[serde(rename = "TEXT")]
     Text(Box<TextRecord>),
+    #[serde(rename = "SA3L")]
+    ScheduleA3L(Box<ScheduleA3L>),
+    #[serde(rename = "SE")]
+    ScheduleE(Box<ScheduleE>),
 }
 
 /// The record family of a row type: `SA11AI` → `SA`, `SC1/10` → `SC1`,
@@ -219,6 +227,8 @@ impl Itemization {
             "F133" => Itemization::Form13Refund(Box::new(Form13Refund::from_data(data)?)),
             "SL" => Itemization::ScheduleL(Box::new(ScheduleL::from_data(data)?)),
             "TEXT" => Itemization::Text(Box::new(TextRecord::from_data(data)?)),
+            "SA3L" => Itemization::ScheduleA3L(Box::new(ScheduleA3L::from_data(data)?)),
+            "SE" => Itemization::ScheduleE(Box::new(ScheduleE::from_data(data)?)),
             _ => return None,
         })
     }
@@ -248,6 +258,8 @@ impl Itemization {
             Itemization::Form13Refund(s) => &s.form_type,
             Itemization::ScheduleL(s) => &s.form_type,
             Itemization::Text(s) => &s.form_type,
+            Itemization::ScheduleA3L(s) => &s.form_type,
+            Itemization::ScheduleE(s) => &s.form_type,
         }
     }
 
@@ -277,6 +289,8 @@ impl Itemization {
             Itemization::Form13Refund(s) => s.transaction_id.as_deref(),
             Itemization::ScheduleL(s) => s.transaction_id.as_deref(),
             Itemization::Text(s) => s.transaction_id.as_deref(),
+            Itemization::ScheduleA3L(s) => s.transaction_id.as_deref(),
+            Itemization::ScheduleE(s) => s.transaction_id.as_deref(),
         }
     }
 
