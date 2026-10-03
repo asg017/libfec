@@ -3,7 +3,7 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "target": "ES2023",
-    "lib": ["ES2024", "ESNext.Disposable"],
+    "lib": ["ES2024", "ESNext.Disposable", "ESNext.Iterator"],
     "types": ["node"],
     "rootDir": "js",
     "outDir": "dist",
