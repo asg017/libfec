@@ -541,30 +541,27 @@ impl<R: Read> Filing<R> {
                 match self.records_iter.next() {
                     Some(Err(e)) => return Some(Err(FilingRowReadError::TextRecordError(e))),
                     Some(Ok(record)) => match record.get(0) {
-                        Some(f) if is_end_text(f) => match self.records_iter.next() {
-                            Some(record) => {
-                                let record = match record {
-                                    Ok(r) => r,
-                                    Err(e) => return Some(Err(FilingRowReadError::CsvError(e))),
-                                };
-                                let original_size = record.as_slice().len();
-                                let byte_offset = record.position().map(|p| p.byte()).unwrap_or(0);
-                                let line = record.position().map(|p| p.line()).unwrap_or(0);
-                                let record = string_record(self.header.delimiter, record);
-                                let row_type = record
-                                    .get(0)
-                                    .map(|s| s.trim().to_owned())
-                                    .unwrap_or_else(|| String::from(""));
-                                return Some(Ok(FilingRow {
-                                    row_type,
-                                    record,
-                                    original_size,
-                                    byte_offset,
-                                    line,
-                                }));
-                            }
-                            None => return None,
-                        },
+                        Some(f) if is_end_text(f) => {
+                            let record = match self.records_iter.next()? {
+                                Ok(r) => r,
+                                Err(e) => return Some(Err(FilingRowReadError::CsvError(e))),
+                            };
+                            let original_size = record.as_slice().len();
+                            let byte_offset = record.position().map(|p| p.byte()).unwrap_or(0);
+                            let line = record.position().map(|p| p.line()).unwrap_or(0);
+                            let record = string_record(self.header.delimiter, record);
+                            let row_type = record
+                                .get(0)
+                                .map(|s| s.trim().to_owned())
+                                .unwrap_or_else(|| String::from(""));
+                            return Some(Ok(FilingRow {
+                                row_type,
+                                record,
+                                original_size,
+                                byte_offset,
+                                line,
+                            }));
+                        }
                         Some(_) => {
                             contents += &String::from_utf8_lossy(record.as_slice());
                             contents += "\n";
