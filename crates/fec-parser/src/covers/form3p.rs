@@ -1,14 +1,16 @@
-use crate::covers::Treasurer;
+use crate::covers::{DetailedSummaryRow, Treasurer};
 use indexmap::IndexMap;
 use jiff::civil::Date;
 
 /// "FORM 3P - Report Of Receipts And Disbursements By An Authorized Committee Of A Candidate For The Office Of President Or Vice-President"
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct Form3P {
     pub treasurer: Treasurer,
     pub signed: Date,
     pub summary: Form3PSummary,
     pub detailed_summary: Form3PDetailedSummary,
 }
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct Form3PSummary {
     pub line6_cash_on_hand_beginning_period: f64,
     pub line7_total_receipts: f64,
@@ -21,30 +23,6 @@ pub struct Form3PSummary {
     pub line13_expenditures_subject_to_limits: f64,
     pub line14_net_contributions_other_than_loans: f64,
     pub line15_net_operating_expenditures: f64,
-}
-
-pub struct DetailedSummaryRow {
-    pub column_a: f64,
-    pub column_b: f64,
-}
-
-impl DetailedSummaryRow {
-    pub fn from_data(
-        data: &IndexMap<String, String>,
-        column_a_key: &str,
-        column_b_key: &str,
-    ) -> Self {
-        Self {
-            column_a: data
-                .get(column_a_key)
-                .and_then(|s| s.parse::<f64>().ok())
-                .unwrap_or(0.0),
-            column_b: data
-                .get(column_b_key)
-                .and_then(|s| s.parse::<f64>().ok())
-                .unwrap_or(0.0),
-        }
-    }
 }
 
 /*
@@ -130,6 +108,7 @@ use these inside data hashmaps
 
       "col_b_totals"
 */
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct Form3PDetailedSummaryReceipts {
     pub line16_federal_funds: DetailedSummaryRow,
     pub line17a_i_contributions_from_individuals_itemized: DetailedSummaryRow,
@@ -249,6 +228,7 @@ impl Form3PDetailedSummaryReceipts {
 }
 
 #[allow(dead_code)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct Form3PDetailedSummaryDisbursements {
     pub line_23_operating_expenditures: DetailedSummaryRow,
     pub line_24_transfers_to_other_authorized_committee: DetailedSummaryRow,
@@ -271,6 +251,7 @@ impl Form3PDetailedSummaryDisbursements {
     }
 }
 
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct Form3PDetailedSummary {
     pub receipts: Form3PDetailedSummaryReceipts,
     //pub disbursements: Form3PDetailedSummaryDisbursements,
@@ -282,19 +263,17 @@ impl Form3PDetailedSummary {
         Self {
             receipts: Form3PDetailedSummaryReceipts::from_data(data),
             //disbursements: Form3PDetailedSummaryDisbursements::from_data(data),
-            items_on_hand_to_be_liquidated: data
-                .get("col_a_items_on_hand_to_be_liquidated")
-                .and_then(|v| v.parse().ok())
-                .unwrap_or(0.0),
+            items_on_hand_to_be_liquidated: crate::covers::fields::amount(
+                data,
+                "col_a_items_on_hand_to_be_liquidated",
+            ),
         }
     }
 }
 
 impl Form3P {
     pub fn from_data(data: &IndexMap<String, String>) -> Option<Self> {
-        let signed = data
-            .get("date_signed")
-            .and_then(|s| Date::strptime("%Y%m%d", s).ok())?;
+        let signed = crate::covers::fields::date(data, "date_signed")?;
 
         let summary = Form3PSummary {
             line6_cash_on_hand_beginning_period: data
