@@ -4,7 +4,7 @@ use jiff::civil::Date;
 
 use crate::covers::fields::{amount, amount_opt, date, flag, text, text_or_empty, Fields};
 use crate::covers::Address;
-use crate::itemizations::{address_either, text_any, CandidateRef, Entity};
+use crate::itemizations::{category_code_label, address_either, text_any, CandidateRef, Entity};
 
 /// "SCHEDULE B - ITEMIZED DISBURSEMENTS": one disbursement a committee
 /// itemizes, with the payee's name and mailing address and the date, amount
@@ -202,7 +202,7 @@ impl ScheduleB {
         crate::covers::election_code_label(self.election_code.as_deref()?)
     }
 
-    /// See [`category_code_label`].
+    /// See [`crate::itemizations::category_code_label`].
     pub fn category_code_label(&self) -> Option<&'static str> {
         category_code_label(self.category_code.as_deref()?)
     }
@@ -213,33 +213,6 @@ impl ScheduleB {
     }
 }
 
-/// The non-Presidential disbursement categories `001`–`012` of Schedule B's
-/// `category_code` (also read unpadded, `1`, as in the workbook's sample),
-/// by the category titles the Form 3X instructions print
-/// ([fecfrm3xi.pdf p13](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm3xi.pdf#page=13)).
-/// `None` for anything else, including the Presidential codes `101`–`107`,
-/// which the instructions at hand do not define.
-pub(crate) fn category_code_label(code: &str) -> Option<&'static str> {
-    let code = code.trim();
-    if code.is_empty() || !code.bytes().all(|b| b.is_ascii_digit()) {
-        return None;
-    }
-    Some(match code.parse::<u32>().ok()? {
-        1 => "Administrative/Salary/Overhead Expenses",
-        2 => "Travel Expenses",
-        3 => "Solicitation and Fundraising Expenses",
-        4 => "Advertising Expenses",
-        5 => "Polling Expenses",
-        6 => "Campaign Materials",
-        7 => "Campaign Event Expenses",
-        8 => "Transfers",
-        9 => "Loans",
-        10 => "Refunds of Contributions",
-        11 => "Political Contributions",
-        12 => "Donations",
-        _ => return None,
-    })
-}
 
 #[cfg(test)]
 mod tests {
@@ -256,7 +229,7 @@ mod tests {
             Some("Administrative/Salary/Overhead Expenses")
         );
         assert_eq!(category_code_label(" 012 "), Some("Donations"));
-        assert_eq!(category_code_label("101"), None);
+        assert_eq!(category_code_label("101"), Some("Expenses that are not Allocable"));
         assert_eq!(category_code_label("24U"), None);
         assert_eq!(category_code_label(""), None);
     }

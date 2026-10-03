@@ -5,7 +5,7 @@ use jiff::civil::Date;
 
 use crate::covers::fields::{amount, amount_opt, date, text, text_or_empty, Fields};
 use crate::covers::Address;
-use crate::itemizations::{address_either, text_any, CandidateRef, Entity};
+use crate::itemizations::{category_code_label, support_oppose_label, address_either, text_any, CandidateRef, Entity};
 
 /// "SCHEDULE 5-A ITEMIZED RECEIPTS": one contribution a person other than a
 /// political committee received "for the purpose of furthering the
@@ -269,43 +269,7 @@ impl Form5Expenditure {
     }
 }
 
-/// "Support" or "Oppose" for a support/oppose code `S` / `O`
-/// (case-insensitive; anything else is `None`). The workbook allows `S, O`
-/// (FEC format workbook v8.4, sheet `F57`, field 24; sheet `F76`, field 11);
-/// the printed boxes are "Check One: Support Oppose"
-/// ([fecfrm5.pdf p3](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm5.pdf#page=3),
-/// [fecfrm7.pdf p1](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm7.pdf#page=1)).
-pub(crate) fn support_oppose_label(code: &str) -> Option<&'static str> {
-    match code.trim().to_ascii_uppercase().as_str() {
-        "S" => Some("Support"),
-        "O" => Some("Oppose"),
-        _ => None,
-    }
-}
 
-/// The disbursement category for codes `001`–`012`, "for use by any
-/// non-Presidential filing committee" on F57, SB, SE, SF, H4 and H6 (FEC
-/// format specification v8.4, `FEC_Format_v8.4.pdf` p16, "Category {of
-/// disbursement} Codes"). Labels are the specification's headings without
-/// their examples. Leading zeros may be dropped (`4` → `004`); the
-/// Presidential codes `101`–`107` and anything else are `None`.
-pub(crate) fn category_code_label(code: &str) -> Option<&'static str> {
-    Some(match code.trim().parse::<u16>().ok()? {
-        1 => "Administrative/Salary/Overhead Expenses",
-        2 => "Travel Expenses",
-        3 => "Solicitation and Fundraising Expenses",
-        4 => "Advertising Expenses",
-        5 => "Polling Expenses",
-        6 => "Campaign Materials",
-        7 => "Campaign Event Expenses",
-        8 => "Transfers",
-        9 => "Loan Repayments",
-        10 => "Refunds of Contributions",
-        11 => "Political Contributions",
-        12 => "Donations",
-        _ => return None,
-    })
-}
 
 #[cfg(test)]
 mod tests {
@@ -372,7 +336,7 @@ mod tests {
             Some("Administrative/Salary/Overhead Expenses")
         );
         assert_eq!(category_code_label("012"), Some("Donations"));
-        assert_eq!(category_code_label("101"), None);
+        assert_eq!(category_code_label("101"), Some("Expenses that are not Allocable"));
         assert_eq!(support_oppose_label(" o "), Some("Oppose"));
         assert_eq!(support_oppose_label("X"), None);
     }
