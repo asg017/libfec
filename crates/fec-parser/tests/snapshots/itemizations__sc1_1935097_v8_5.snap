@@ -1,0 +1,77 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"SC1_1935097.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "SC1",
+    "form_type": "SC1/10",
+    "filer_committee_id": "C00932483",
+    "transaction_id": "SC/10.4144.SC1",
+    "back_reference_transaction_id": "SC/10.4144",
+    "lender": {
+      "entity_type": null,
+      "organization_name": "Kabulay Limited Liability Co",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "2021 Fillmore St",
+        "street_2": "#173",
+        "city": "SAN FRANCISCO",
+        "state": "CA",
+        "zip_code": "94115"
+      }
+    },
+    "loan_amount": 34968.0,
+    "loan_interest_rate_terms": "0.0000",
+    "loan_incurred_date": "2025-10-20",
+    "loan_due_date_terms": "12/31/2026",
+    "loan_restructured": false,
+    "loan_incurred_date_original": null,
+    "credit_amount_this_draw": 34968.0,
+    "total_balance": 34968.0,
+    "others_liable": false,
+    "collateral": false,
+    "collateral_description": "Unsecured loan",
+    "collateral_value": 0.0,
+    "perfected_interest": false,
+    "future_income": false,
+    "future_income_description": "Candidate loan to fund initial campaign web and digital infrastructure expenses",
+    "future_income_estimated_value": 0.0,
+    "depository_account_established_date": null,
+    "depository_account_location": null,
+    "depository_account_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "depository_account_authorization_date": null,
+    "basis_of_loan_description": null,
+    "treasurer": {
+      "first_name": "OMED",
+      "last_name": "HAMID",
+      "middle_name": null,
+      "prefix": null,
+      "suffix": null
+    },
+    "date_signed": "2025-12-31",
+    "authorized_representative": {
+      "first_name": "OMED",
+      "last_name": "HAMID",
+      "middle_name": null,
+      "prefix": null,
+      "suffix": null
+    },
+    "authorized_representative_title": "Managing Member",
+    "authorized_date": "2025-12-31",
+    "image_number": null
+  }
+]
