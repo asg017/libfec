@@ -24,8 +24,6 @@
 //! [`StructTable`]; each batch lists the ids it introduced in `new_structs`
 //! as `"id\x1fName\x1fkey1\x1fkey2…"`.
 
-use std::collections::HashMap;
-
 use napi::bindgen_prelude::{Float64Array, Uint32Array, Uint8Array};
 use napi_derive::napi;
 use serde::ser::{self, Serialize};
@@ -54,17 +52,37 @@ pub struct TokenBatch {
 }
 
 /// Struct ids, keyed by `(name, keys)`, for the life of a reader.
+///
+/// Looked up once per serialized struct, so it's a flat list compared by
+/// pointer first: serde passes the same `&'static str`s every time.
 #[derive(Default)]
 pub struct StructTable {
-    by_name: HashMap<&'static str, Vec<(Vec<&'static str>, u32)>>,
+    by_name: Vec<(&'static str, Vec<Variant>)>,
     next: u32,
+}
+
+/// One key list a struct name was seen with, and its id.
+type Variant = (Vec<&'static str>, u32);
+
+fn same(a: &str, b: &str) -> bool {
+    (a.as_ptr() == b.as_ptr() && a.len() == b.len()) || a == b
 }
 
 impl StructTable {
     /// The id for `(name, keys)`, and whether it is new.
     fn intern(&mut self, name: &'static str, keys: &[&'static str]) -> (u32, bool) {
-        let variants = self.by_name.entry(name).or_default();
-        if let Some((_, id)) = variants.iter().find(|(k, _)| k == keys) {
+        let i = match self.by_name.iter().position(|(n, _)| same(n, name)) {
+            Some(i) => i,
+            None => {
+                self.by_name.push((name, Vec::new()));
+                self.by_name.len() - 1
+            }
+        };
+        let variants = &mut self.by_name[i].1;
+        let found = variants
+            .iter()
+            .find(|(k, _)| k.len() == keys.len() && k.iter().zip(keys).all(|(a, b)| same(a, b)));
+        if let Some((_, id)) = found {
             return (*id, false);
         }
         let id = self.next;
@@ -376,6 +394,7 @@ mod tests {
     use fec_parser::covers::{Address, PersonName};
     use fec_parser::itemizations::{CandidateRef, Entity, Itemization};
     use serde_json::{json, Map, Value};
+    use std::collections::HashMap;
 
     /// A Rust decoder for the token stream, for comparing with serde_json.
     struct Decoder<'a> {

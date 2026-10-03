@@ -1,4 +1,4 @@
-.PHONY: install build build-release test test-node test-deno test-bun typecheck gen-types clean
+.PHONY: install build build-release test test-node test-deno test-bun test-slow bench typecheck gen-types clean
 
 install:                       ## one-time: npm ci
 	npm ci
@@ -19,6 +19,16 @@ test-deno:
 
 test-bun:
 	node scripts/test.mjs bun
+
+test-slow: build-release        ## perf guards on benchmarks/1805248.fec (all three runtimes)
+	node scripts/test.mjs node --slow
+	node scripts/test.mjs deno --slow
+	node scripts/test.mjs bun --slow
+
+BENCH_FILE ?= ../../benchmarks/1805248.fec
+
+bench: build-release           ## benchmarks/node/bench.mjs on BENCH_FILE under node, deno, bun
+	node ../../benchmarks/node/bench.mjs $(BENCH_FILE)
 
 typecheck:                     ## tsc --noEmit (needs `make build` for native/native.d.ts)
 	npx tsc --noEmit -p tsconfig.json

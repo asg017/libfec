@@ -127,7 +127,6 @@ export class Row<I extends Itemization | null = Itemization | null> {
 // `Number()`, which also takes "0x10", "0b1", "" and "Infinity".
 const AMOUNT = /^[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?$/;
 const SPECIAL = /^([+-]?)(inf|infinity|nan)$/i;
-const DATE = /^(\d{4})(\d{2})(\d{2})$/;
 
 /** Collects invalid amounts and dates: the first 1,000, plus a total count. */
 export class InvalidValueSink {
@@ -152,17 +151,38 @@ export function parseAmount(t: string): number | undefined {
 
 const DAYS = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 
+/** The digit at `i` of `t`, or -1. */
+function digit(t: string, i: number): number {
+  const c = t.charCodeAt(i) - 48;
+  return c >= 0 && c <= 9 ? c : -1;
+}
+
+/**
+ * `YYYYMMDD` (trimmed) as `y * 10000 + m * 100 + d` if it is a real
+ * calendar date, else -1. Digit arithmetic, no regex: this runs for every
+ * date field.
+ */
+function dateNumber(t: string): number {
+  if (t.length !== 8) return -1;
+  let n = 0;
+  for (let i = 0; i < 8; i++) {
+    const d = digit(t, i);
+    if (d < 0) return -1;
+    n = n * 10 + d;
+  }
+  const y = Math.floor(n / 10000);
+  const mo = Math.floor(n / 100) % 100;
+  const d = n % 100;
+  if (mo < 1 || mo > 12 || d < 1) return -1;
+  const leap = mo === 2 && y % 4 === 0 && (y % 100 !== 0 || y % 400 === 0);
+  return d > DAYS[mo - 1]! + (leap ? 1 : 0) ? -1 : n;
+}
+
 /** `YYYYMMDD` (trimmed) → `[y, m, d]` if it is a real calendar date. */
 export function parseDate(t: string): [number, number, number] | undefined {
-  const m = DATE.exec(t);
-  if (m === null) return undefined;
-  const y = Number(m[1]);
-  const mo = Number(m[2]);
-  const d = Number(m[3]);
-  if (mo < 1 || mo > 12 || d < 1) return undefined;
-  const leap = mo === 2 && (y % 4 === 0 && (y % 100 !== 0 || y % 400 === 0));
-  if (d > DAYS[mo - 1]! + (leap ? 1 : 0)) return undefined;
-  return [y, mo, d];
+  const n = dateNumber(t);
+  if (n < 0) return undefined;
+  return [Math.floor(n / 10000), Math.floor(n / 100) % 100, n % 100];
 }
 
 export type DatesOption = "iso" | "date";
@@ -175,7 +195,7 @@ export class Converters {
   ) {}
 
   amount(raw: string | undefined, column: string, line: number): Value {
-    if (raw === undefined) return null;
+    if (raw === undefined || raw === "") return null;
     const t = raw.trim();
     if (t === "") return null;
     const n = parseAmount(t);
@@ -185,20 +205,21 @@ export class Converters {
   }
 
   date(raw: string | undefined, column: string, line: number): Value {
-    if (raw === undefined) return null;
-    const t = raw.trim();
+    if (raw === undefined || raw === "") return null;
+    // Trim only when needed: almost every date is exactly 8 digits.
+    const t = raw.length === 8 ? raw : raw.trim();
     if (t === "") return null;
-    const ymd = parseDate(t);
-    if (ymd === undefined) {
+    const n = dateNumber(t);
+    if (n < 0) {
       this.sink.push(line, column, raw);
       return null;
     }
     if (this.dates === "date") {
       const date = new Date(0);
-      date.setUTCFullYear(ymd[0], ymd[1] - 1, ymd[2]);
+      date.setUTCFullYear(Math.floor(n / 10000), (Math.floor(n / 100) % 100) - 1, n % 100);
       return date;
     }
-    return `${t.slice(0, 4)}-${t.slice(4, 6)}-${t.slice(6, 8)}`;
+    return `${t.slice(0, 4)}-${t.slice(4, 6)}-${t.slice(6)}`;
   }
 }
 
