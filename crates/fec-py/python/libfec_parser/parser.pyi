@@ -158,7 +158,12 @@ class Row:
     def __repr__(self) -> str: ...
 
 def _row_from_parts(
-    row_type: str, version: str, fields: list[str], line: int, /
+    row_type: str,
+    version: str,
+    fields: list[str],
+    line: int,
+    name_delimiter: str | None = None,
+    /,
 ) -> Row:
     """Rebuild a `Row` from its pickled parts; named by `Row.__reduce__`."""
 
