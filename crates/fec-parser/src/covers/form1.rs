@@ -57,6 +57,7 @@ use jiff::civil::Date;
     pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, serde::Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct Form1 {
     /// Form type as filed, e.g. `F1N`: the base form plus the
     /// amendment-indicator suffix (see [`crate::covers::base_form_type`]).
@@ -179,6 +180,7 @@ pub struct Form1 {
     pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, serde::Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct Form1PacFlags {
     /// 5(e) separate segregated fund is also a Lobbyist/Registrant PAC
     /// (`lobbyist_registrant_pac`, field 35).
@@ -224,6 +226,7 @@ impl Form1PacFlags {
     pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct Form1Candidate {
     /// The candidate's FEC ID (`candidate_id_number`, field 23). Not printed
     /// on the paper form; often blank for new candidates.
@@ -285,6 +288,7 @@ impl Form1Candidate {
     pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct Form1Affiliated {
     /// FEC ID of the affiliated committee (`affiliated_committee_id_number`,
     /// field 40). Not printed on the paper form.
@@ -370,6 +374,7 @@ impl Form1Affiliated {
     pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct Form1Contact {
     /// Full name (`{role}_last_name` … `{role}_suffix`; the single
     /// caret-delimited `{role}_name` column of pre-v6 formats is split into
@@ -414,6 +419,7 @@ impl Form1Contact {
     pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct Form1Bank {
     /// `bank_name` / `bank2_name` (fields 90 and 96).
     pub name: Option<String>,

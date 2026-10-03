@@ -37,6 +37,7 @@ use crate::itemizations::record_family;
     )
 )]
 #[derive(Debug, Clone, serde::Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct TextRecord {
     /// The row type as filed, `TEXT`. Column `rec_type` (FEC format workbook
     /// v8.4, sheet `Text`, field 1).

@@ -48,6 +48,7 @@ use jiff::civil::Date;
     pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, serde::Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct Form2 {
     /// Form type as filed, e.g. `F2N`: the base form plus the
     /// amendment-indicator suffix (see [`crate::covers::base_form_type`]).
@@ -173,6 +174,7 @@ pub struct Form2 {
     pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct Form2Committee {
     /// FEC committee ID. Columns `committee_id_number` (Line 7, "PCC
     /// COMMITTEE ID NUMBER") and `authorized_committee_id_number` (Line 8,
@@ -216,6 +218,7 @@ impl Form2Committee {
     pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, Copy, Default, PartialEq, serde::Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct Form2PersonalFundsDeclaration {
     /// Column `primary_personal_funds_declared`.
     pub primary: Option<f64>,
