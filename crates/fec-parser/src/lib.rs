@@ -262,10 +262,15 @@ pub struct Filing<R: Read> {
 
 impl<R: Read> Filing<R> {
     pub fn from_reader(rdr: R, filing_id: String, source_length: usize) -> anyhow::Result<Self> {
+        // .fec files have no quoting: the spec forbids `"` in fields, but
+        // filings contain them anyway (`"BUD" SMITH`). With quoting on, a
+        // field that starts with `"` swallows the following delimiters and
+        // lines until the next `"`, silently merging rows.
         let csv_reader = csv::ReaderBuilder::new()
             .delimiter(b"\x1c"[0])
             .flexible(true)
             .has_headers(false)
+            .quoting(false)
             .from_reader(rdr);
 
         let mut records_iter = csv_reader.into_byte_records();
@@ -407,6 +412,52 @@ pub struct FilingRow {
 
 #[cfg(test)]
 mod tests {
-    #[allow(unused_imports)]
     use crate::*;
+
+    const HEADER_AND_COVER: &str = "HDR\x1cFEC\x1c8.5\x1cCMDI CRIMSON FILER\x1c8.0\x1c\x1c\r\n\
+        F99\x1cC00776393\x1cCOMMITTEE TO ELECT MIKE EZELL\x1cP.O. BOX 17784\x1c\x1cHATTIESBURG\x1cMS\x1c39404\x1cHOBBS\x1cCABELL\x1c\x1c\x1c\x1c20250902\x1cMST\x1c\x1c\r\n";
+
+    fn rows(body: &str) -> Vec<Vec<String>> {
+        let src = format!("{HEADER_AND_COVER}{body}");
+        let mut filing =
+            Filing::from_reader(src.as_bytes(), "FEC-1".to_owned(), src.len()).unwrap();
+        let mut rows = vec![];
+        while let Some(row) = filing.next_row() {
+            rows.push(row.unwrap().record.iter().map(str::to_owned).collect());
+        }
+        rows
+    }
+
+    #[test]
+    fn unbalanced_quote_does_not_merge_rows() {
+        let rows = rows(
+            "SA11AI\x1cC00776393\x1c\"BUD SMITH\x1c100.00\r\n\
+             SA11AI\x1cC00776393\x1cJANE DOE\x1c50.00\r\n\
+             SA11AI\x1cC00776393\x1cJOHN DOE\x1c25.00\r\n",
+        );
+        assert_eq!(rows.len(), 3);
+        assert_eq!(rows[0], ["SA11AI", "C00776393", "\"BUD SMITH", "100.00"]);
+        assert_eq!(rows[1][2], "JANE DOE");
+        assert_eq!(rows[2][2], "JOHN DOE");
+    }
+
+    #[test]
+    fn quotes_are_kept_verbatim() {
+        let rows = rows("SA11AI\x1c\"CMDI\"\x1c\"\"\x1c\"BUD\" SMITH\x1cO\"BRIEN\r\n");
+        assert_eq!(
+            rows,
+            [["SA11AI", "\"CMDI\"", "\"\"", "\"BUD\" SMITH", "O\"BRIEN"]]
+        );
+    }
+
+    #[test]
+    fn quoted_text_block_line_does_not_swallow_endtext() {
+        let rows = rows(
+            "[BEGINTEXT]\r\n\
+             \"credit card pymt\r\n\
+             [ENDTEXT]\r\n\
+             SA11AI\x1cC00776393\x1cJANE DOE\x1c50.00\r\n",
+        );
+        assert_eq!(rows, [["SA11AI", "C00776393", "JANE DOE", "50.00"]]);
+    }
 }
