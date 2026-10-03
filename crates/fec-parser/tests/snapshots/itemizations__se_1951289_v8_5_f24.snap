@@ -1,0 +1,153 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"SE_1951289.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "SE",
+    "form_type": "SE",
+    "filer_committee_id": "C00722884",
+    "transaction_id": "EDT.E.7",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "payee": {
+      "entity_type": "IND",
+      "organization_name": null,
+      "name": {
+        "first_name": "NATHAN",
+        "last_name": "DICAMILLO",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "29 WADSWORTH AVE., APT. 6E",
+        "street_2": null,
+        "city": "NEW YORK",
+        "state": "NY",
+        "zip_code": "10033"
+      }
+    },
+    "payee_committee_fec_id": null,
+    "election_code": "P2026",
+    "election_other_description": null,
+    "dissemination_date": "2026-02-26",
+    "disbursement_date": "2026-02-26",
+    "expenditure_amount": 745.68,
+    "calendar_ytd_per_election_office": 1076.5,
+    "expenditure_purpose_description": "SALARY",
+    "expenditure_purpose_code": null,
+    "category_code": "24A",
+    "support_oppose_code": "O",
+    "candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "SCOTT",
+        "last_name": "PERRY",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": "H",
+      "state": "PA",
+      "district": "10"
+    },
+    "signer_name": {
+      "first_name": "NATHAN",
+      "last_name": "HARDY",
+      "middle_name": null,
+      "prefix": null,
+      "suffix": null
+    },
+    "date_signed": "2026-03-02",
+    "memo": false,
+    "memo_text": null,
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "payee_candidate": null,
+    "date_notarized": null,
+    "notary_commission_expires": null,
+    "notary_name": null,
+    "image_number": null
+  },
+  {
+    "family": "SE",
+    "form_type": "SE",
+    "filer_committee_id": "C00722884",
+    "transaction_id": "EDT.E.6",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "payee": {
+      "entity_type": "ORG",
+      "organization_name": "PAYROLL TAXES",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "P.O. BOX 280904",
+        "street_2": null,
+        "city": "HARRISBURG",
+        "state": "PA",
+        "zip_code": "17128"
+      }
+    },
+    "payee_committee_fec_id": null,
+    "election_code": "P2026",
+    "election_other_description": null,
+    "dissemination_date": "2026-02-26",
+    "disbursement_date": "2026-02-26",
+    "expenditure_amount": 330.82,
+    "calendar_ytd_per_election_office": 1076.5,
+    "expenditure_purpose_description": "PAYROLL TAXES",
+    "expenditure_purpose_code": null,
+    "category_code": "24A",
+    "support_oppose_code": "O",
+    "candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "SCOTT",
+        "last_name": "PERRY",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": "H",
+      "state": "PA",
+      "district": "10"
+    },
+    "signer_name": {
+      "first_name": "NATHAN",
+      "last_name": "HARDY",
+      "middle_name": null,
+      "prefix": null,
+      "suffix": null
+    },
+    "date_signed": "2026-03-02",
+    "memo": false,
+    "memo_text": null,
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "payee_candidate": null,
+    "date_notarized": null,
+    "notary_commission_expires": null,
+    "notary_name": null,
+    "image_number": null
+  }
+]
