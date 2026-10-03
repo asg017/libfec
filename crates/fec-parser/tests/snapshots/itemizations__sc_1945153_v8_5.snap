@@ -1,0 +1,60 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"SC_1945153.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "SC",
+    "form_type": "SC/9",
+    "filer_committee_id": "C00041038",
+    "transaction_id": "SC/9.4383",
+    "receipt_line_number": null,
+    "lender": {
+      "entity_type": "CAN",
+      "organization_name": null,
+      "name": {
+        "first_name": "Steve",
+        "last_name": "Daines for Montana",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "PO Box 1598",
+        "street_2": null,
+        "city": "Helena",
+        "state": "MT",
+        "zip_code": "59624"
+      }
+    },
+    "election_code": "P2014",
+    "election_other_description": null,
+    "loan_amount_original": 153.45,
+    "loan_payment_to_date": 0.0,
+    "loan_balance": 153.45,
+    "loan_incurred_date": "2013-04-29",
+    "loan_due_date_terms": "NONE",
+    "loan_interest_rate_terms": "0.0000",
+    "secured": false,
+    "personal_funds": false,
+    "lender_committee_id": null,
+    "lender_candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "Steve",
+        "last_name": "Daines for Montana",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": "S",
+      "state": "MT",
+      "district": null
+    },
+    "memo": false,
+    "memo_text": null,
+    "guarantors": [],
+    "image_number": null
+  }
+]
