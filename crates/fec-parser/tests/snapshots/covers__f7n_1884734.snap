@@ -1,0 +1,36 @@
+---
+source: crates/fec-parser/tests/covers.rs
+expression: "cover(\"F7N_1884734.fec\")"
+snapshot_kind: text
+---
+{
+  "form": "Form7",
+  "data": {
+    "form_type": "F7N",
+    "organization_name": "National Association of REALTORS",
+    "filer_committee_id": "C70002563",
+    "address": {
+      "street_1": "430 N. Michigan Avenue",
+      "street_2": null,
+      "city": "Chicago",
+      "state": "IL",
+      "zip_code": "606114011"
+    },
+    "organization_type": "M",
+    "report_code": "Q1",
+    "election_date": null,
+    "election_state": null,
+    "coverage_from_date": "2025-01-01",
+    "coverage_through_date": "2025-03-31",
+    "total_communication_costs": 26652.38,
+    "person_designated": {
+      "first_name": "Craig",
+      "last_name": "Sanford",
+      "middle_name": "W",
+      "prefix": "Mr.",
+      "suffix": null
+    },
+    "person_designated_title": "Treasurer",
+    "date_signed": "2025-04-09"
+  }
+}
