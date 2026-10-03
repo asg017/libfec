@@ -70,6 +70,18 @@ mod schedule_d;
 mod schedule_f;
 pub use schedule_d::ScheduleD;
 pub use schedule_f::{ScheduleF, ScheduleFCommittee};
+mod schedule_h1;
+mod schedule_h2;
+mod schedule_h3;
+mod schedule_h4;
+mod schedule_h5;
+mod schedule_h6;
+pub use schedule_h1::ScheduleH1;
+pub use schedule_h2::ScheduleH2;
+pub use schedule_h3::ScheduleH3;
+pub use schedule_h4::ScheduleH4;
+pub use schedule_h5::ScheduleH5;
+pub use schedule_h6::ScheduleH6;
 
 /// One typed itemization record. `None` from [`Itemization::from_record`]
 /// means the row is not an itemization (the cover, `F3PS`, …) or its record
@@ -88,6 +100,18 @@ pub enum Itemization {
     ScheduleD(Box<ScheduleD>),
     #[serde(rename = "SF")]
     ScheduleF(Box<ScheduleF>),
+    #[serde(rename = "H1")]
+    ScheduleH1(Box<ScheduleH1>),
+    #[serde(rename = "H2")]
+    ScheduleH2(Box<ScheduleH2>),
+    #[serde(rename = "H3")]
+    ScheduleH3(Box<ScheduleH3>),
+    #[serde(rename = "H4")]
+    ScheduleH4(Box<ScheduleH4>),
+    #[serde(rename = "H5")]
+    ScheduleH5(Box<ScheduleH5>),
+    #[serde(rename = "H6")]
+    ScheduleH6(Box<ScheduleH6>),
 }
 
 /// The record family of a row type: `SA11AI` → `SA`, `SC1/10` → `SC1`,
@@ -137,6 +161,12 @@ impl Itemization {
             "SB" => Itemization::ScheduleB(Box::new(ScheduleB::from_data(data)?)),
             "SD" => Itemization::ScheduleD(Box::new(ScheduleD::from_data(data)?)),
             "SF" => Itemization::ScheduleF(Box::new(ScheduleF::from_data(data)?)),
+            "H1" => Itemization::ScheduleH1(Box::new(ScheduleH1::from_data(data)?)),
+            "H2" => Itemization::ScheduleH2(Box::new(ScheduleH2::from_data(data)?)),
+            "H3" => Itemization::ScheduleH3(Box::new(ScheduleH3::from_data(data)?)),
+            "H4" => Itemization::ScheduleH4(Box::new(ScheduleH4::from_data(data)?)),
+            "H5" => Itemization::ScheduleH5(Box::new(ScheduleH5::from_data(data)?)),
+            "H6" => Itemization::ScheduleH6(Box::new(ScheduleH6::from_data(data)?)),
             _ => return None,
         })
     }
@@ -148,6 +178,12 @@ impl Itemization {
             Itemization::ScheduleB(s) => &s.form_type,
             Itemization::ScheduleD(s) => &s.form_type,
             Itemization::ScheduleF(s) => &s.form_type,
+            Itemization::ScheduleH1(s) => &s.form_type,
+            Itemization::ScheduleH2(s) => &s.form_type,
+            Itemization::ScheduleH3(s) => &s.form_type,
+            Itemization::ScheduleH4(s) => &s.form_type,
+            Itemization::ScheduleH5(s) => &s.form_type,
+            Itemization::ScheduleH6(s) => &s.form_type,
         }
     }
 
@@ -159,6 +195,12 @@ impl Itemization {
             Itemization::ScheduleB(s) => s.transaction_id.as_deref(),
             Itemization::ScheduleD(s) => s.transaction_id.as_deref(),
             Itemization::ScheduleF(s) => s.transaction_id.as_deref(),
+            Itemization::ScheduleH1(s) => s.transaction_id.as_deref(),
+            Itemization::ScheduleH2(s) => s.transaction_id.as_deref(),
+            Itemization::ScheduleH3(s) => s.transaction_id.as_deref(),
+            Itemization::ScheduleH4(s) => s.transaction_id.as_deref(),
+            Itemization::ScheduleH5(s) => s.transaction_id.as_deref(),
+            Itemization::ScheduleH6(s) => s.transaction_id.as_deref(),
         }
     }
 

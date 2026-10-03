@@ -63,6 +63,15 @@ fn checked_columns(family: &str) -> (&'static [&'static str], &'static [&'static
         ),
         "SE" => (&["dissemination_date", "disbursement_date"], &["expenditure_amount", "calendar_y_t_d_per_election_office"]),
         "SF" => (&["expenditure_date"], &["expenditure_amount", "aggregate_general_elec_expended"]),
+        "H1" => (&[], &["federal_percent", "nonfederal_percent"]),
+        "H2" => (&[], &["federal_percentage", "nonfederal_percentage"]),
+        "H3" => (&["receipt_date"], &["total_amount_transferred", "transferred_amount"]),
+        "H4" => (&["expenditure_date"], &["total_amount", "federal_share", "nonfederal_share", "event_year_to_date"]),
+        "H5" => (
+            &["receipt_date"],
+            &["total_amount_transferred", "voter_registration_amount", "voter_id_amount", "gotv_amount", "generic_campaign_amount"],
+        ),
+        "H6" => (&["expenditure_date"], &["total_amount", "federal_share", "levin_share", "event_year_to_date"]),
         _ => (&[], &[]),
     }
 }
