@@ -4,7 +4,7 @@ use jiff::civil::Date;
 
 use crate::covers::fields::{amount, amount_opt, date, flag, text, text_or_empty, Fields};
 use crate::covers::Address;
-use crate::itemizations::{category_code_label, address_either, text_any, CandidateRef, Entity};
+use crate::itemizations::{address_either, category_code_label, text_any, CandidateRef, Entity};
 
 /// "SCHEDULE B - ITEMIZED DISBURSEMENTS": one disbursement a committee
 /// itemizes, with the payee's name and mailing address and the date, amount
@@ -41,7 +41,12 @@ use crate::itemizations::{category_code_label, address_either, text_any, Candida
 /// transaction IDs or entity type but carry an `image_number`.
 #[cfg_attr(
     feature = "python",
-    pyo3::pyclass(module = "libfec_parser.itemizations", frozen, get_all, skip_from_py_object)
+    pyo3::pyclass(
+        module = "libfec_parser.itemizations",
+        frozen,
+        get_all,
+        skip_from_py_object
+    )
 )]
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct ScheduleB {
@@ -213,7 +218,6 @@ impl ScheduleB {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -229,7 +233,10 @@ mod tests {
             Some("Administrative/Salary/Overhead Expenses")
         );
         assert_eq!(category_code_label(" 012 "), Some("Donations"));
-        assert_eq!(category_code_label("101"), Some("Expenses that are not Allocable"));
+        assert_eq!(
+            category_code_label("101"),
+            Some("Expenses that are not Allocable")
+        );
         assert_eq!(category_code_label("24U"), None);
         assert_eq!(category_code_label(""), None);
     }
