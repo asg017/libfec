@@ -1,0 +1,59 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"SD_1887446.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "SD",
+    "form_type": "SD10",
+    "filer_committee_id": "C00472704",
+    "transaction_id": "SD10.4107",
+    "creditor": {
+      "entity_type": "IND",
+      "organization_name": null,
+      "name": {
+        "first_name": "Pamela",
+        "last_name": "Peiper",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "PO Box 1503",
+        "street_2": null,
+        "city": "Ridgefield",
+        "state": "WA",
+        "zip_code": "98642"
+      }
+    },
+    "purpose_of_debt_or_obligation": "Salary",
+    "beginning_balance": 10000.0,
+    "incurred_amount": 0.0,
+    "payment_amount": 0.0,
+    "balance_at_close": 10000.0,
+    "committee_fec_id": null,
+    "candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "image_number": null
+  }
+]

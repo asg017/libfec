@@ -1,0 +1,253 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"SF_1904186.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "SF",
+    "form_type": "SF",
+    "filer_committee_id": "C00099259",
+    "transaction_id": "F3A8229CBB42C4BAC8DC",
+    "back_reference_transaction_id": "F3A8229CBB42C4BAC8DC",
+    "back_reference_schedule_name": "SF",
+    "filer_designated": false,
+    "designating_committee": {
+      "fec_id": null,
+      "name": null,
+      "address": {
+        "street_1": null,
+        "street_2": null,
+        "city": null,
+        "state": null,
+        "zip_code": null
+      }
+    },
+    "subordinate_committee": {
+      "fec_id": null,
+      "name": null,
+      "address": {
+        "street_1": null,
+        "street_2": null,
+        "city": null,
+        "state": null,
+        "zip_code": null
+      }
+    },
+    "payee": {
+      "entity_type": "ORG",
+      "organization_name": "High Ground Consulting",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "12585 SE 141st Avenue Rd",
+        "street_2": null,
+        "city": "Ocklawaha",
+        "state": "FL",
+        "zip_code": "321795390"
+      }
+    },
+    "expenditure_date": "2025-03-05",
+    "expenditure_amount": 2590.7,
+    "aggregate_general_election_expended": 2590.7,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "Text Messages",
+    "category_code": null,
+    "payee_committee_fec_id": null,
+    "candidate": {
+      "fec_id": "H6FL01390",
+      "name": {
+        "first_name": "Jimmy",
+        "last_name": "Patronis",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": "Jr."
+      },
+      "office": "H",
+      "state": "FL",
+      "district": "01"
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "memo": false,
+    "memo_text": null,
+    "increased_limit": null,
+    "notice_24_hour": null,
+    "image_number": null
+  },
+  {
+    "family": "SF",
+    "form_type": "SF",
+    "filer_committee_id": "C00099259",
+    "transaction_id": "F3D85E236B8DE456F8AC",
+    "back_reference_transaction_id": "F3D85E236B8DE456F8AC",
+    "back_reference_schedule_name": "SF",
+    "filer_designated": false,
+    "designating_committee": {
+      "fec_id": null,
+      "name": null,
+      "address": {
+        "street_1": null,
+        "street_2": null,
+        "city": null,
+        "state": null,
+        "zip_code": null
+      }
+    },
+    "subordinate_committee": {
+      "fec_id": null,
+      "name": null,
+      "address": {
+        "street_1": null,
+        "street_2": null,
+        "city": null,
+        "state": null,
+        "zip_code": null
+      }
+    },
+    "payee": {
+      "entity_type": "ORG",
+      "organization_name": "American Express",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "P.O. Box 6031",
+        "street_2": null,
+        "city": "Carol Stream",
+        "state": "IL",
+        "zip_code": "601976031"
+      }
+    },
+    "expenditure_date": "2025-03-27",
+    "expenditure_amount": 1500.0,
+    "aggregate_general_election_expended": 4090.7,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "Credit Card: See Below",
+    "category_code": null,
+    "payee_committee_fec_id": null,
+    "candidate": {
+      "fec_id": "H6FL01390",
+      "name": {
+        "first_name": "Jimmy",
+        "last_name": "Patronis",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": "Jr."
+      },
+      "office": "H",
+      "state": "FL",
+      "district": "01"
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "memo": false,
+    "memo_text": null,
+    "increased_limit": null,
+    "notice_24_hour": null,
+    "image_number": null
+  },
+  {
+    "family": "SF",
+    "form_type": "SF",
+    "filer_committee_id": "C00099259",
+    "transaction_id": "F75B82314D78D4BF2B0F",
+    "back_reference_transaction_id": "F75B82314D78D4BF2B0F",
+    "back_reference_schedule_name": "SF",
+    "filer_designated": false,
+    "designating_committee": {
+      "fec_id": null,
+      "name": null,
+      "address": {
+        "street_1": null,
+        "street_2": null,
+        "city": null,
+        "state": null,
+        "zip_code": null
+      }
+    },
+    "subordinate_committee": {
+      "fec_id": null,
+      "name": null,
+      "address": {
+        "street_1": null,
+        "street_2": null,
+        "city": null,
+        "state": null,
+        "zip_code": null
+      }
+    },
+    "payee": {
+      "entity_type": "ORG",
+      "organization_name": "Numinar Analytics",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "1201 WILSON BLVD",
+        "street_2": null,
+        "city": "Arlington",
+        "state": "VA",
+        "zip_code": "222092300"
+      }
+    },
+    "expenditure_date": "2025-03-27",
+    "expenditure_amount": 1500.0,
+    "aggregate_general_election_expended": 4090.7,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "texting software",
+    "category_code": null,
+    "payee_committee_fec_id": null,
+    "candidate": {
+      "fec_id": "H6FL01390",
+      "name": {
+        "first_name": "Jimmy",
+        "last_name": "Patronis",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": "Jr."
+      },
+      "office": "H",
+      "state": "FL",
+      "district": "01"
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "memo": true,
+    "memo_text": null,
+    "increased_limit": null,
+    "notice_24_hour": null,
+    "image_number": null
+  }
+]
