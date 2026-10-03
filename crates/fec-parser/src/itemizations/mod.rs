@@ -68,6 +68,8 @@ mod form7_items;
 mod form9_items;
 mod schedule_a;
 mod schedule_b;
+mod schedule_l;
+mod text;
 
 pub use form13_items::{Form13Donation, Form13Refund};
 pub use form5_items::{Form5Contribution, Form5Expenditure};
@@ -92,6 +94,8 @@ pub use schedule_h3::ScheduleH3;
 pub use schedule_h4::ScheduleH4;
 pub use schedule_h5::ScheduleH5;
 pub use schedule_h6::ScheduleH6;
+pub use schedule_l::ScheduleL;
+pub use text::TextRecord;
 
 /// One typed itemization record. `None` from [`Itemization::from_record`]
 /// means the row is not an itemization (the cover, `F3PS`, …) or its record
@@ -142,6 +146,10 @@ pub enum Itemization {
     Form13Donation(Box<Form13Donation>),
     #[serde(rename = "F133")]
     Form13Refund(Box<Form13Refund>),
+    #[serde(rename = "SL")]
+    ScheduleL(Box<ScheduleL>),
+    #[serde(rename = "TEXT")]
+    Text(Box<TextRecord>),
 }
 
 /// The record family of a row type: `SA11AI` → `SA`, `SC1/10` → `SC1`,
@@ -209,6 +217,8 @@ impl Itemization {
             "F94" => Itemization::Form9Candidate(Box::new(Form9Candidate::from_data(data)?)),
             "F132" => Itemization::Form13Donation(Box::new(Form13Donation::from_data(data)?)),
             "F133" => Itemization::Form13Refund(Box::new(Form13Refund::from_data(data)?)),
+            "SL" => Itemization::ScheduleL(Box::new(ScheduleL::from_data(data)?)),
+            "TEXT" => Itemization::Text(Box::new(TextRecord::from_data(data)?)),
             _ => return None,
         })
     }
@@ -236,6 +246,8 @@ impl Itemization {
             Itemization::Form9Candidate(s) => &s.form_type,
             Itemization::Form13Donation(s) => &s.form_type,
             Itemization::Form13Refund(s) => &s.form_type,
+            Itemization::ScheduleL(s) => &s.form_type,
+            Itemization::Text(s) => &s.form_type,
         }
     }
 
@@ -263,6 +275,8 @@ impl Itemization {
             Itemization::Form9Candidate(s) => s.transaction_id.as_deref(),
             Itemization::Form13Donation(s) => s.transaction_id.as_deref(),
             Itemization::Form13Refund(s) => s.transaction_id.as_deref(),
+            Itemization::ScheduleL(s) => s.transaction_id.as_deref(),
+            Itemization::Text(s) => s.transaction_id.as_deref(),
         }
     }
 

@@ -1,0 +1,70 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"TEXT_1893403.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "TEXT",
+    "form_type": "TEXT",
+    "filer_committee_id": "C00104471",
+    "transaction_id": "X1",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": "F3XN",
+    "text": "Line 18(a) Non-Federal Transfers - The committee's report correctly reflects transfers of non-federal funds. The committee makes transfers from its non-federal account(s) to its federal account(s) within the statutory 70-day time period. Transfers typically occur toward the conclusion of a 60-day post disbursement period.  Schedule A, Line 11b & Schedule B, Line 21b: In-Kind Received - The report discloses an in-kind contribution from the Democratic National Committee for access to its on-line voter file; the transaction does not relate to any voter identification, generic campaign or get-out-the-vote activities undertaken by the committee.  Schedule H4: Salary & Insurance - No transactions reported this period on Schedule H4 for salary or insurance relate to employees who spent more than 25% of their time on FEA.  Schedule H4: Digital Communications & Media Consulting Services - The committee's report discloses payments for digital communications and media consulting services, which are descriptions that represent administrative and general consulting services.  No disbursement identified on Schedule H4 as digital communications services or media consulting services is for the purpose of public communications that refer to any clearly identified Federal candidate."
+  },
+  {
+    "family": "TEXT",
+    "form_type": "TEXT",
+    "filer_committee_id": "C00104471",
+    "transaction_id": "8758423T",
+    "back_reference_transaction_id": "8758423",
+    "back_reference_schedule_name": "SA11B",
+    "text": "This transaction relates to access provided by the DNC to its on-line voter file.  The transaction does not relate to any voter identification, generic campaign or get-out-the-vote activities undertaken by the committee."
+  },
+  {
+    "family": "TEXT",
+    "form_type": "TEXT",
+    "filer_committee_id": "C00104471",
+    "transaction_id": "500245403T",
+    "back_reference_transaction_id": "500245403",
+    "back_reference_schedule_name": "H4",
+    "text": "Administrative - General Consulting Services"
+  },
+  {
+    "family": "TEXT",
+    "form_type": "TEXT",
+    "filer_committee_id": "C00104471",
+    "transaction_id": "500245393T",
+    "back_reference_transaction_id": "500245393",
+    "back_reference_schedule_name": "H4",
+    "text": "General Fundraising"
+  },
+  {
+    "family": "TEXT",
+    "form_type": "TEXT",
+    "filer_committee_id": "C00104471",
+    "transaction_id": "500245508T",
+    "back_reference_transaction_id": "500245508",
+    "back_reference_schedule_name": "SB22",
+    "text": "The 12/27/2024 transfer that was included on the committee's 2024 Year-End reported was voided and reissued in the current period."
+  },
+  {
+    "family": "TEXT",
+    "form_type": "TEXT",
+    "filer_committee_id": "C00104471",
+    "transaction_id": "323ADT",
+    "back_reference_transaction_id": "323AD",
+    "back_reference_schedule_name": "H3",
+    "text": "Allocable Activity - Admin 23/24"
+  },
+  {
+    "family": "TEXT",
+    "form_type": "TEXT",
+    "filer_committee_id": "C00104471",
+    "transaction_id": "322ADT",
+    "back_reference_transaction_id": "322AD",
+    "back_reference_schedule_name": "H3",
+    "text": "Allocable Activity - Admin 25/26"
+  }
+]
