@@ -1,0 +1,359 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"H4_1907825.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "H4",
+    "form_type": "H4",
+    "filer_committee_id": "C00716803",
+    "transaction_id": "EH4713",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "payee": {
+      "entity_type": "IND",
+      "organization_name": null,
+      "name": {
+        "first_name": "Andrea",
+        "last_name": "Gallardo",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "53 Lobos Street",
+        "street_2": null,
+        "city": "San Francisco",
+        "state": "CA",
+        "zip_code": "94112"
+      }
+    },
+    "activity_event_identifier": "Administrative",
+    "expenditure_date": "2025-01-30",
+    "total_amount": 444.0,
+    "federal_share": 222.0,
+    "nonfederal_share": 222.0,
+    "event_year_to_date": 3863.57,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "Retreat Venue",
+    "category_code": "001",
+    "administrative_activity": true,
+    "fundraising_activity": false,
+    "exempt_activity": false,
+    "generic_voter_drive_activity": false,
+    "direct_candidate_support_activity": false,
+    "public_communications_party_activity": false,
+    "memo": false,
+    "memo_text": null,
+    "image_number": null
+  },
+  {
+    "family": "H4",
+    "form_type": "H4",
+    "filer_committee_id": "C00716803",
+    "transaction_id": "XH447",
+    "back_reference_transaction_id": "EH4713",
+    "back_reference_schedule_name": "H4",
+    "payee": {
+      "entity_type": "ORG",
+      "organization_name": "Peerspace",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "548 Market Street, # 96966",
+        "street_2": null,
+        "city": "San Francisco",
+        "state": "CA",
+        "zip_code": "94104"
+      }
+    },
+    "activity_event_identifier": "Administrative",
+    "expenditure_date": "2025-01-30",
+    "total_amount": 444.0,
+    "federal_share": 222.0,
+    "nonfederal_share": 222.0,
+    "event_year_to_date": 3863.57,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "Retreat Venue",
+    "category_code": "001",
+    "administrative_activity": true,
+    "fundraising_activity": false,
+    "exempt_activity": false,
+    "generic_voter_drive_activity": false,
+    "direct_candidate_support_activity": false,
+    "public_communications_party_activity": false,
+    "memo": true,
+    "memo_text": null,
+    "image_number": null
+  },
+  {
+    "family": "H4",
+    "form_type": "H4",
+    "filer_committee_id": "C00716803",
+    "transaction_id": "EH4721",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "payee": {
+      "entity_type": "IND",
+      "organization_name": null,
+      "name": {
+        "first_name": "Ernesto",
+        "last_name": "Cuellar",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "4056 18th Street",
+        "street_2": null,
+        "city": "San Francisco",
+        "state": "CA",
+        "zip_code": "94114"
+      }
+    },
+    "activity_event_identifier": "Administrative",
+    "expenditure_date": "2025-02-07",
+    "total_amount": 449.1,
+    "federal_share": 224.55,
+    "nonfederal_share": 224.55,
+    "event_year_to_date": 3863.57,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "Food and Supplies",
+    "category_code": "001",
+    "administrative_activity": true,
+    "fundraising_activity": false,
+    "exempt_activity": false,
+    "generic_voter_drive_activity": false,
+    "direct_candidate_support_activity": false,
+    "public_communications_party_activity": false,
+    "memo": false,
+    "memo_text": null,
+    "image_number": null
+  },
+  {
+    "family": "H4",
+    "form_type": "H4",
+    "filer_committee_id": "C00716803",
+    "transaction_id": "XH448",
+    "back_reference_transaction_id": "EH4721",
+    "back_reference_schedule_name": "H4",
+    "payee": {
+      "entity_type": "ORG",
+      "organization_name": "Amazon.com",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "440 Terry Avenue N",
+        "street_2": null,
+        "city": "Seattle",
+        "state": "WA",
+        "zip_code": "98109"
+      }
+    },
+    "activity_event_identifier": "Administrative",
+    "expenditure_date": "2025-02-07",
+    "total_amount": 266.39,
+    "federal_share": 133.2,
+    "nonfederal_share": 133.19,
+    "event_year_to_date": 3863.57,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "Supplies",
+    "category_code": "001",
+    "administrative_activity": true,
+    "fundraising_activity": false,
+    "exempt_activity": false,
+    "generic_voter_drive_activity": false,
+    "direct_candidate_support_activity": false,
+    "public_communications_party_activity": false,
+    "memo": true,
+    "memo_text": null,
+    "image_number": null
+  },
+  {
+    "family": "H4",
+    "form_type": "H4",
+    "filer_committee_id": "C00716803",
+    "transaction_id": "XH449",
+    "back_reference_transaction_id": "EH4721",
+    "back_reference_schedule_name": "H4",
+    "payee": {
+      "entity_type": "ORG",
+      "organization_name": "Panda Express",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "1480 Fillmore Street",
+        "street_2": null,
+        "city": "San Francisco",
+        "state": "CA",
+        "zip_code": "94115"
+      }
+    },
+    "activity_event_identifier": "Administrative",
+    "expenditure_date": "2025-02-07",
+    "total_amount": 182.71,
+    "federal_share": 91.35,
+    "nonfederal_share": 91.36,
+    "event_year_to_date": 3863.57,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "Food",
+    "category_code": "001",
+    "administrative_activity": true,
+    "fundraising_activity": false,
+    "exempt_activity": false,
+    "generic_voter_drive_activity": false,
+    "direct_candidate_support_activity": false,
+    "public_communications_party_activity": false,
+    "memo": true,
+    "memo_text": null,
+    "image_number": null
+  },
+  {
+    "family": "H4",
+    "form_type": "H4",
+    "filer_committee_id": "C00716803",
+    "transaction_id": "EH4765",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "payee": {
+      "entity_type": "IND",
+      "organization_name": null,
+      "name": {
+        "first_name": "Ernesto",
+        "last_name": "Cuellar",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "4056 18th Street",
+        "street_2": null,
+        "city": "San Francisco",
+        "state": "CA",
+        "zip_code": "94114"
+      }
+    },
+    "activity_event_identifier": null,
+    "expenditure_date": "2025-06-03",
+    "total_amount": 4099.67,
+    "federal_share": 2049.83,
+    "nonfederal_share": 2049.84,
+    "event_year_to_date": 4366.06,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "2025 Ball in Blue: Food and Beverages",
+    "category_code": "003",
+    "administrative_activity": false,
+    "fundraising_activity": true,
+    "exempt_activity": false,
+    "generic_voter_drive_activity": false,
+    "direct_candidate_support_activity": false,
+    "public_communications_party_activity": false,
+    "memo": false,
+    "memo_text": null,
+    "image_number": null
+  },
+  {
+    "family": "H4",
+    "form_type": "H4",
+    "filer_committee_id": "C00716803",
+    "transaction_id": "XH450",
+    "back_reference_transaction_id": "EH4765",
+    "back_reference_schedule_name": "H4",
+    "payee": {
+      "entity_type": "ORG",
+      "organization_name": "Toy Soldier",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "52 Belden Place",
+        "street_2": null,
+        "city": "San Francisco",
+        "state": "CA",
+        "zip_code": "94104"
+      }
+    },
+    "activity_event_identifier": null,
+    "expenditure_date": "2025-06-03",
+    "total_amount": 4099.67,
+    "federal_share": 2049.83,
+    "nonfederal_share": 2049.84,
+    "event_year_to_date": 4366.06,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "2025 Ball in Blue: Food and Beverages",
+    "category_code": "003",
+    "administrative_activity": false,
+    "fundraising_activity": true,
+    "exempt_activity": false,
+    "generic_voter_drive_activity": false,
+    "direct_candidate_support_activity": false,
+    "public_communications_party_activity": false,
+    "memo": true,
+    "memo_text": null,
+    "image_number": null
+  },
+  {
+    "family": "H4",
+    "form_type": "H4",
+    "filer_committee_id": "C00716803",
+    "transaction_id": "EH4776",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "payee": {
+      "entity_type": "IND",
+      "organization_name": null,
+      "name": {
+        "first_name": "Andrea",
+        "last_name": "Gallardo",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "53 Lobos Street",
+        "street_2": null,
+        "city": "San Francisco",
+        "state": "CA",
+        "zip_code": "94112"
+      }
+    },
+    "activity_event_identifier": null,
+    "expenditure_date": "2025-06-27",
+    "total_amount": 266.39,
+    "federal_share": 133.2,
+    "nonfederal_share": 133.19,
+    "event_year_to_date": 4366.06,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "2025 Ball In Blue: Decorations",
+    "category_code": "003",
+    "administrative_activity": false,
+    "fundraising_activity": true,
+    "exempt_activity": false,
+    "generic_voter_drive_activity": false,
+    "direct_candidate_support_activity": false,
+    "public_communications_party_activity": false,
+    "memo": false,
+    "memo_text": null,
+    "image_number": null
+  }
+]

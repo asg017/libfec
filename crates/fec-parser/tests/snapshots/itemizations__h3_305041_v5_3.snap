@@ -1,0 +1,21 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"H3_305041.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "H3",
+    "form_type": "H3",
+    "filer_committee_id": "C00401224",
+    "transaction_id": "2007M9_H3_1",
+    "back_reference_transaction_id": "2007M9_H3_1",
+    "account_name": "ActBlue non-Federal Unrestricted",
+    "event_type": "AD",
+    "event_activity_name": null,
+    "receipt_date": "2007-08-23",
+    "total_amount_transferred": 11400.0,
+    "transferred_amount": 11400.0,
+    "image_number": null
+  }
+]

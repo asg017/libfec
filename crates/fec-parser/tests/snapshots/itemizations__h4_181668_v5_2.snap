@@ -1,0 +1,139 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"H4_181668.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "H4",
+    "form_type": "H4",
+    "filer_committee_id": "C00401224",
+    "transaction_id": "SH4-18",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "payee": {
+      "entity_type": "ORG",
+      "organization_name": "37 Signals",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "400 North May Street #301",
+        "street_2": null,
+        "city": "Chicago",
+        "state": "IL",
+        "zip_code": "60622"
+      }
+    },
+    "activity_event_identifier": null,
+    "expenditure_date": "2005-06-21",
+    "total_amount": 12.0,
+    "federal_share": 6.0,
+    "nonfederal_share": 6.0,
+    "event_year_to_date": 30315.22,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "Licenses and Permits",
+    "category_code": null,
+    "administrative_activity": true,
+    "fundraising_activity": false,
+    "exempt_activity": false,
+    "generic_voter_drive_activity": false,
+    "direct_candidate_support_activity": false,
+    "public_communications_party_activity": false,
+    "memo": false,
+    "memo_text": null,
+    "image_number": null
+  },
+  {
+    "family": "H4",
+    "form_type": "H4",
+    "filer_committee_id": "C00401224",
+    "transaction_id": "SH4-16",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "payee": {
+      "entity_type": "ORG",
+      "organization_name": "Bob Slate Stationery",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "1288 Massachusetts Ave.",
+        "street_2": null,
+        "city": "Cambridge",
+        "state": "MA",
+        "zip_code": "02138"
+      }
+    },
+    "activity_event_identifier": null,
+    "expenditure_date": "2005-06-17",
+    "total_amount": 31.5,
+    "federal_share": 15.75,
+    "nonfederal_share": 15.75,
+    "event_year_to_date": 30315.22,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "Office Supplies",
+    "category_code": null,
+    "administrative_activity": true,
+    "fundraising_activity": false,
+    "exempt_activity": false,
+    "generic_voter_drive_activity": false,
+    "direct_candidate_support_activity": false,
+    "public_communications_party_activity": false,
+    "memo": false,
+    "memo_text": null,
+    "image_number": null
+  },
+  {
+    "family": "H4",
+    "form_type": "H4",
+    "filer_committee_id": "C00401224",
+    "transaction_id": "SH4-17",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "payee": {
+      "entity_type": "ORG",
+      "organization_name": "EFax",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "c/o j2 Global Communications",
+        "street_2": "6922 Hollywood Blvd., 5th floor",
+        "city": "Los Angeles",
+        "state": "CA",
+        "zip_code": "90028"
+      }
+    },
+    "activity_event_identifier": null,
+    "expenditure_date": "2005-06-20",
+    "total_amount": 12.95,
+    "federal_share": 6.48,
+    "nonfederal_share": 6.47,
+    "event_year_to_date": 30315.22,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "Telephone",
+    "category_code": null,
+    "administrative_activity": true,
+    "fundraising_activity": false,
+    "exempt_activity": false,
+    "generic_voter_drive_activity": false,
+    "direct_candidate_support_activity": false,
+    "public_communications_party_activity": false,
+    "memo": false,
+    "memo_text": null,
+    "image_number": null
+  }
+]

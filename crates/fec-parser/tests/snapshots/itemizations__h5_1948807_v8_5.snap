@@ -1,0 +1,21 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"H5_1948807.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "H5",
+    "form_type": "H5",
+    "filer_committee_id": "C00005926",
+    "transaction_id": "HD4EF0E40DE0A470D96B",
+    "account_name": "ILLINOIS REPUBLICAN PARTY - FEDERAL",
+    "receipt_date": "2026-01-12",
+    "total_amount_transferred": 10000.0,
+    "voter_registration_amount": 0.0,
+    "voter_id_amount": 0.0,
+    "gotv_amount": 0.0,
+    "generic_campaign_amount": 10000.0,
+    "image_number": null
+  }
+]

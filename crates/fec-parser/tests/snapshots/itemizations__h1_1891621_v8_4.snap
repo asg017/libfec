@@ -1,0 +1,24 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"H1_1891621.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "H1",
+    "form_type": "H1",
+    "filer_committee_id": "C00845669",
+    "transaction_id": "H1.4235",
+    "presidential_only_election_year": false,
+    "presidential_senate_election_year": false,
+    "senate_only_election_year": false,
+    "non_presidential_non_senate_election_year": false,
+    "federal_percent": 0.5,
+    "nonfederal_percent": 0.5,
+    "administrative_ratio_applies": true,
+    "generic_voter_drive_ratio_applies": true,
+    "public_communications_referencing_party_ratio_applies": true,
+    "flat_minimum_federal_percentage": null,
+    "image_number": null
+  }
+]

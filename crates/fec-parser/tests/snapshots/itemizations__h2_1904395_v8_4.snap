@@ -1,0 +1,21 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"H2_1904395.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "H2",
+    "form_type": "H2",
+    "filer_committee_id": "C00406645",
+    "transaction_id": "H2.17108",
+    "activity_event_name": "100% State - Local Candidate Support (06/01/2025)",
+    "direct_fundraising": false,
+    "direct_candidate_support": true,
+    "exempt_activity": false,
+    "ratio_code": "N",
+    "federal_percent": 0.0,
+    "nonfederal_percent": 1.0,
+    "image_number": null
+  }
+]
