@@ -1,0 +1,49 @@
+{
+  "name": "@asg017/libfec",
+  "version": "0.0.32",
+  "description": "Parse FEC electronic filings (.fec) in Node, Deno and Bun. Rust parser via napi-rs.",
+  "license": "MIT OR Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "native/*.js",
+    "native/*.d.ts",
+    "native/*.node",
+    "LICENSE-MIT",
+    "LICENSE-APACHE"
+  ],
+  "engines": {
+    "node": ">=22",
+    "deno": ">=2",
+    "bun": ">=1.2"
+  },
+  "napi": {
+    "binaryName": "libfec",
+    "targets": [
+      "aarch64-apple-darwin",
+      "x86_64-apple-darwin",
+      "x86_64-unknown-linux-gnu",
+      "aarch64-unknown-linux-gnu",
+      "x86_64-unknown-linux-musl",
+      "aarch64-unknown-linux-musl",
+      "x86_64-pc-windows-msvc"
+    ]
+  },
+  "scripts": {
+    "build:native": "napi build --platform --esm --output-dir native --js native.js --dts native.d.ts",
+    "build:native:release": "napi build --platform --esm --release --strip --output-dir native --js native.js --dts native.d.ts",
+    "build:js": "tsc -p tsconfig.json",
+    "build": "npm run build:native && npm run build:js"
+  },
+  "devDependencies": {
+    "@napi-rs/cli": "3.10.4",
+    "@types/node": "~22",
+    "typescript": "~5.9"
+  }
+}

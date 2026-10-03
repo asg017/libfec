@@ -1,0 +1,19 @@
+[package]
+name = "fec-node"
+version = "0.0.32"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+publish = false
+
+[lib]
+# Loaded by the generated native/native.js; the public API is js/index.ts.
+crate-type = ["cdylib"]
+
+[dependencies]
+# Pinned exactly: napi-rs ships often and loader churn is the main risk.
+napi = { version = "=3.12.6", default-features = false, features = ["napi8"] }
+napi-derive = "=3.6.7"
+fec-parser = { path = "../fec-parser" }
+
+[build-dependencies]
+napi-build = "2"
