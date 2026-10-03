@@ -932,7 +932,9 @@ dependencies = [
 name = "fec-node"
 version = "0.0.32"
 dependencies = [
+ "anyhow",
  "fec-parser",
+ "indexmap",
  "napi",
  "napi-build",
  "napi-derive",

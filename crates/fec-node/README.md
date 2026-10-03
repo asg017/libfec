@@ -2,7 +2,7 @@
 
 Parse FEC electronic filings (`.fec`) in Node, Deno and Bun, with libfec's Rust parser
 via [napi-rs](https://napi.rs). **Pre-alpha:** the API is being built
-(`plans/nodejs/`); only `version` exists so far.
+(`plans/nodejs/`); only `version` and `readHeader` exist so far.
 
 ## Development
 
