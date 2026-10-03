@@ -5,7 +5,7 @@ snapshot_kind: text
 ---
 [
   {
-    "schedule": "A",
+    "family": "SA",
     "form_type": "SA11AI",
     "filer_committee_id": "C00727529",
     "transaction_id": "19148100",
@@ -67,7 +67,7 @@ snapshot_kind: text
     "image_number": null
   },
   {
-    "schedule": "A",
+    "family": "SA",
     "form_type": "SA11B",
     "filer_committee_id": "C00727529",
     "transaction_id": "19334030",
@@ -129,7 +129,7 @@ snapshot_kind: text
     "image_number": null
   },
   {
-    "schedule": "A",
+    "family": "SA",
     "form_type": "SA11C",
     "filer_committee_id": "C00727529",
     "transaction_id": "19174210",
@@ -191,7 +191,7 @@ snapshot_kind: text
     "image_number": null
   },
   {
-    "schedule": "A",
+    "family": "SA",
     "form_type": "SA12",
     "filer_committee_id": "C00727529",
     "transaction_id": "19333180",
