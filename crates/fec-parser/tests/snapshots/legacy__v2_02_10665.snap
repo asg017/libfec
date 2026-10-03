@@ -1,0 +1,250 @@
+---
+source: crates/fec-parser/tests/legacy.rs
+expression: "render(\"2.02_10665.fec\")"
+snapshot_kind: text
+---
+FilingHeader {
+    header_record: StringRecord(["2.02", "(Filer's own software)", "1.0", "DEC", "CCYYMMDD", "^", "F3PA", "C00329706", "LaRouche's Committee for a New Bretton Woods"]),
+    record_type: "/*",
+    ef_type: "",
+    fec_version: "2.02",
+    software_name: "(Filer's own software)",
+    software_version: "1.0",
+    report_id: None,
+    report_number: None,
+    comment: None,
+    style: LegacyBlock,
+    delimiter: Comma,
+    name_delimiter: Some(
+        "^",
+    ),
+    batch_number: None,
+    received_date: None,
+    legacy_fields: {
+        "FEC_VER_#": "2.02",
+        "Soft_Name": "(Filer's own software)",
+        "Soft_Ver#": "1.0",
+        "Dec/NoDec": "DEC",
+        "Date_Fmat": "CCYYMMDD",
+        "NameDelim": "^",
+        "Form_Name": "F3PA",
+        "FEC_Idnum": "C00329706",
+        "Committee": "LaRouche's Committee for a New Bretton Woods",
+    },
+    schedule_counts: {
+        "SA16": "00002",
+        "SA17A": "00312",
+        "SB23": "00292",
+        "SB28A": "00013",
+        "SD12": "00209",
+    },
+}
+cover: form_type="F3PA" filer_id="C00329706" filer_name="LaRouche's Committee for a New Bretton Woods" report_code=Some("M2") from=Some(2000-01-01) through=Some(2000-01-31) typed=true
+  form_type = "F3PA"
+  filer_committee_id_number = "C00329706"
+  committee_name = "LaRouche's Committee for a New Bretton Woods"
+  street_1 = "P.O. Box 89"
+  street_2 = ""
+  city = "Leesburg"
+  state = "VA"
+  zip_code = "20178"
+  change_of_address = ""
+  activity_primary = "X"
+  activity_general = ""
+  report_code = "M2"
+  election_code = "P"
+  date_of_election = ""
+  state_of_election = ""
+  coverage_from_date = "20000101"
+  coverage_through_date = "20000131"
+  col_a_cash_on_hand_beginning_period = "18635.62"
+  col_a_total_receipts = "569482.40"
+  col_a_subtotal = "588118.02"
+  col_a_total_disbursements = "478683.61"
+  col_a_cash_on_hand_close_of_period = "109434.41"
+  col_a_debts_to = "0.00"
+  col_a_debts_by = "354032.43"
+  col_a_expenditures_subject_to_limits = "2509097.40"
+  col_a_net_contributions = "200256.64"
+  col_a_net_operating_expenditures = "476947.62"
+  col_a_federal_funds = "367489.77"
+  col_a_individual_contribution_total = "201833.68"
+  col_a_political_party_committees_receipts = "0.00"
+  col_a_other_political_committees_pacs = "0.00"
+  col_a_the_candidate = "0.00"
+  col_a_total_contributions = "201833.68"
+  col_a_transfers_from_aff_other_party_cmttees = "0.00"
+  col_a_received_from_or_guaranteed_by_cand = "0.00"
+  col_a_other_loans = "0.00"
+  col_a_total_loans = "0.00"
+  col_a_operating = "158.95"
+  col_a_fundraising = "0.00"
+  col_a_legal_and_accounting = "0.00"
+  col_a_total_offsets_to_expenditures = "158.95"
+  col_a_other_receipts = "0.00"
+  col_a_total_receipts_TODO_DUP = "569482.40"
+  col_a_operating_expenditures = "477106.57"
+  col_a_transfers_to_other_authorized_committees = "0.00"
+  col_a_fundraising_disbursements = "0.00"
+  col_a_exempt_legal_accounting_disbursement = "0.00"
+  col_a_made_or_guaranteed_by_candidate = "0.00"
+  col_a_other_repayments = "0.00"
+  col_a_total_loan_repayments_made = "0.00"
+  col_a_individuals = "1577.04"
+  col_a_political_party_committees_refunds = "0.00"
+  col_a_other_political_committees = "0.00"
+  col_a_total_contributions_refunds = "1577.04"
+  col_a_other_disbursements = "0.00"
+  col_a_total_disbursements_TODO_DUP = "478683.61"
+  col_a_items_on_hand_to_be_liquidated = "0.00"
+  col_a_alabama = "1623.22"
+  col_a_alaska = "1526.98"
+  col_a_arizona = "3923.33"
+  col_a_arkansas = "139.27"
+  col_a_california = "38251.98"
+  col_a_colorado = "515.63"
+  col_a_connecticut = "1992.01"
+  col_a_delaware = "20442.87"
+  col_a_dist_of_columbia = "2039.96"
+  col_a_florida = "1105.14"
+  col_a_georgia = "1377.79"
+  col_a_hawaii = "1871.39"
+  col_a_idaho = "852.18"
+  col_a_illinois = "12392.51"
+  col_a_indiana = "3427.42"
+  col_a_iowa = "3971.67"
+  col_a_kansas = "1778.80"
+  col_a_kentucky = "1575.65"
+  col_a_louisiana = "1657.16"
+  col_a_maine = "137.78"
+  col_a_maryland = "26722.79"
+  col_a_massachusetts = "15083.21"
+  col_a_michigan = "23019.78"
+  col_a_minnesota = "2767.76"
+  col_a_mississippi = "2348.99"
+  col_a_missouri = "1077.92"
+  col_a_montana = "333.86"
+  col_a_nebraska = "234.97"
+  col_a_nevada = "139.46"
+  col_a_new_hampshire = "40714.32"
+  col_a_new_jersey = "35576.10"
+  col_a_new_mexico = "1481.68"
+  col_a_new_york = "22471.36"
+  col_a_north_carolina = "131.04"
+  col_a_north_dakota = "784.56"
+  col_a_ohio = "8948.77"
+  col_a_oklahoma = "2889.71"
+  col_a_oregon = "1328.30"
+  col_a_pennsylvania = "18298.40"
+  col_a_rhode_island = "413.29"
+  col_a_south_carolina = "5258.02"
+  col_a_south_dakota = "337.08"
+  col_a_tennessee = "4036.96"
+  col_a_texas = "4605.22"
+  col_a_utah = "32.29"
+  col_a_vermont = "113.21"
+  col_a_virginia = "35560.29"
+  col_a_washington = "6080.54"
+  col_a_west_virginia = "4798.11"
+  col_a_wisconsin = "1195.70"
+  col_a_wyoming = "159.78"
+  col_a_puerto_rico = "22.79"
+  col_a_guam = "4.93"
+  col_a_virgin_islands = "3.52"
+  col_a_totals = "367577.45"
+  col_b_federal_funds = "367489.77"
+  col_b_individual_contribution_total = "201833.68"
+  col_b_political_party_committees_receipts = "0.00"
+  col_b_other_political_committees_pacs = "0.00"
+  col_b_the_candidate = "0.00"
+  col_b_total_contributions_other_than_loans = "201833.68"
+  col_b_transfers_from_aff_other_party_cmttees = "0.00"
+  col_b_received_from_or_guaranteed_by_cand = "0.00"
+  col_b_other_loans = "0.00"
+  col_b_total_loans = "0.00"
+  col_b_operating = "158.95"
+  col_b_fundraising = "0.00"
+  col_b_legal_and_accounting = "0.00"
+  col_b_total_offsets_to_operating_expenditures = "158.95"
+  col_b_other_receipts = "0.00"
+  col_b_total_receipts = "569482.40"
+  col_b_operating_expenditures = "477106.57"
+  col_b_transfers_to_other_authorized_committees = "0.00"
+  col_b_fundraising_disbursements = "0.00"
+  col_b_exempt_legal_accounting_disbursement = "0.00"
+  col_b_made_or_guaranteed_by_the_candidate = "0.00"
+  col_b_other_repayments = "0.00"
+  col_b_total_loan_repayments_made = "0.00"
+  col_b_individuals = "1577.04"
+  col_b_political_party_committees_refunds = "0.00"
+  col_b_other_political_committees = "0.00"
+  col_b_total_contributions_refunds = "1577.04"
+  col_b_other_disbursements = "0.00"
+  col_b_total_disbursements = "478683.61"
+  col_b_alabama = "15230.55"
+  col_b_alaska = "4059.32"
+  col_b_arizona = "17875.40"
+  col_b_arkansas = "2865.78"
+  col_b_california = "255078.27"
+  col_b_colorado = "11445.45"
+  col_b_connecticut = "3508.46"
+  col_b_delaware = "29480.17"
+  col_b_dist_of_columbia = "18560.60"
+  col_b_florida = "7264.28"
+  col_b_georgia = "5130.81"
+  col_b_hawaii = "3721.43"
+  col_b_idaho = "5969.07"
+  col_b_illinois = "101916.53"
+  col_b_indiana = "17104.60"
+  col_b_iowa = "11372.68"
+  col_b_kansas = "15484.43"
+  col_b_kentucky = "5725.99"
+  col_b_louisiana = "7126.15"
+  col_b_maine = "8380.55"
+  col_b_maryland = "230295.49"
+  col_b_massachusetts = "37749.01"
+  col_b_michigan = "64453.65"
+  col_b_minnesota = "24887.56"
+  col_b_mississippi = "8289.48"
+  col_b_missouri = "10765.38"
+  col_b_montana = "4343.56"
+  col_b_nebraska = "4313.06"
+  col_b_nevada = "2450.77"
+  col_b_new_hampshire = "46467.29"
+  col_b_new_jersey = "174918.14"
+  col_b_new_mexico = "9729.34"
+  col_b_new_york = "80271.62"
+  col_b_north_carolina = "2988.64"
+  col_b_north_dakota = "7370.32"
+  col_b_ohio = "51691.09"
+  col_b_oklahoma = "5300.27"
+  col_b_oregon = "8304.83"
+  col_b_pennsylvania = "137414.76"
+  col_b_rhode_island = "2526.52"
+  col_b_south_carolina = "7371.97"
+  col_b_south_dakota = "5397.61"
+  col_b_tennessee = "13464.75"
+  col_b_texas = "146272.91"
+  col_b_utah = "563.00"
+  col_b_vermont = "3873.88"
+  col_b_virginia = "250118.93"
+  col_b_washington = "58399.28"
+  col_b_west_virginia = "16566.07"
+  col_b_wisconsin = "8533.08"
+  col_b_wyoming = "3688.80"
+  col_b_puerto_rico = "22.79"
+  col_b_guam = "7.02"
+  col_b_virgin_islands = "32.00"
+  col_b_totals = "1976143.39"
+  treasurer_name = "Kathy A. Magraw"
+  date_signed = "20001229"
+row "SA16" line=19 byte=2254 record=1 fields=["SA16", "C00329706", "", "FEDERAL FUNDS^.", "DEPARTMENT OF TREASURY", "15TH & PENNSYLVANIA", "WASHINGTON", "DC", "20220", "", "", "", "", "367489.77", "20000103", "364467.91", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "N", "0012214-00001"]
+row "SA16" line=20 byte=2482 record=2 fields=["SA16", "C00329706", "", "FEDERAL FUNDS^.", "DEPARTMENT OF TREASURY", "15TH & PENNSYLVANIA", "WASHINGTON", "DC", "20220", "", "", "", "", "367489.77", "20000118", "3021.86", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "N", "0012214-00002"]
+row "SA17A" line=21 byte=2708 record=3 fields=["SA17A", "C00329706", "", "ADAMS^GEORGE C", "106-10 DITMARS BLVD", "", "E ELMHURST", "NY", "11369", "", "", "ETS AFFILIATES", "MANAGER", "300.00", "20000104", "100.00", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "N", "0003464-00010"]
+row "SA17A" line=22 byte=2929 record=4 fields=["SA17A", "C00329706", "", "ADAMS^GEORGE C", "106-10 DITMARS BLVD", "", "E ELMHURST", "NY", "11369", "", "", "ETS AFFILIATES", "MANAGER", "300.00", "20000111", "100.00", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "N", "0003464-00009"]
+row "SB23" line=23 byte=3150 record=5 fields=["SB23", "C00329706", "", "ALASKA DEMOCRATIC PARTY", "PO BOX 104199", "", "ANCHORAGE", "AK", "99501", "", "", "", "", "20000127", "1000.00", "", "", "", "", "", "", "", "", "", "", "", "", "", "FILING FEE", "C", "9000288-00001"]
+row "SB23" line=24 byte=3347 record=6 fields=["SB23", "C00329706", "", "AM 1290", "3001 PHILADELPHIA PIKE", "", "CLAYMONT", "DE", "19703", "", "", "", "", "20000128", "1760.00", "", "", "", "", "", "", "", "", "", "", "", "", "", "ADVERTISING", "C", "9000267-00001"]
+row "SB28A" line=25 byte=3537 record=7 fields=["SB28A", "C00329706", "", "BROWN, THOMAS R", "21325 NORWALK BLVD #41", "", "HAWAIIAN GARDENS", "CA", "90716", "", "", "", "", "20000120", "50.00", "", "", "", "", "", "", "", "", "", "", "", "", "", "CONTRIBUTION REFUND", "C", "0001111-00011"]
+row "SB28A" line=26 byte=3750 record=8 fields=["SB28A", "C00329706", "", "DEFEVERE, BENITA K", "RT 161 LLOYDS LN", "", "MT WASHINGTON", "KY", "40047", "", "", "", "", "20000120", "100.00", "", "", "", "", "", "", "", "", "", "", "", "", "", "CONTRIBUTION REFUND", "C", "0000938-00009"]
+row "SD12" line=27 byte=3958 record=9 fields=["SD12", "C00329706", "", "21ST CENTURY SCIENCE & TECH", "PO BOX 16285", "", "WASHINGTON", "DC", "20041", "ADVERTISING", "0.00", "150.00", "0.00", "150.00", "", "", "", "", "", "", "", "", "", "", "", "", "N", "9000212-00001"]
+row "SD12" line=28 byte=4156 record=10 fields=["SD12", "C00329706", "", "AMERITECH", "BILL PAYMENT CENTER", "", "SAGINAW", "MI", "48663", "PHONE", "0.00", "168.68", "0.00", "168.68", "", "", "", "", "", "", "", "", "", "", "", "", "N", "9000298-00001"]

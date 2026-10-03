@@ -1,0 +1,167 @@
+---
+source: crates/fec-parser/tests/legacy.rs
+expression: "render(\"P3.4_1215766.fec\")"
+snapshot_kind: text
+---
+FilingHeader {
+    header_record: StringRecord(["HDR", "P3.4", "\"Aurotech/Captricity\"", "1", "20180322"]),
+    record_type: "HDR",
+    ef_type: "",
+    fec_version: "P3.4",
+    software_name: "\"Aurotech/Captricity\"",
+    software_version: "",
+    report_id: None,
+    report_number: None,
+    comment: None,
+    style: Paper,
+    delimiter: Fs,
+    name_delimiter: None,
+    batch_number: Some(
+        "1",
+    ),
+    received_date: Some(
+        "20180322",
+    ),
+    legacy_fields: {},
+    schedule_counts: {},
+}
+cover: form_type="F3XN" filer_id="C00617753" filer_name="COPPER STATE RURAL" report_code=Some("YE") from=Some(2017-01-01) through=Some(2017-12-31) typed=true
+  form_type = "F3XN"
+  filer_committee_id_number = "C00617753"
+  committee_name = "COPPER STATE RURAL"
+  change_of_address = ""
+  street_1 = "PO BOX 332"
+  street_2 = ""
+  city = "AJO"
+  state = "AZ"
+  zip_code = "85321"
+  report_code = "YE"
+  date_of_election = ""
+  state_of_election = ""
+  coverage_from_date = "20170101"
+  coverage_through_date = "20171231"
+  treasurer_last_name = ""
+  treasurer_first_name = "MARIE"
+  treasurer_middle_name = ""
+  treasurer_prefix = ""
+  treasurer_suffix = ""
+  date_signed = "20180222"
+  col_a_cash_on_hand_beginning_period = "32.00"
+  col_a_total_receipts = "2477.09"
+  col_a_subtotal = "2509.09"
+  col_a_total_disbursements = "2414.31"
+  col_a_cash_on_hand_close_of_period = "94.78"
+  col_a_debts_to = ""
+  col_a_debts_by = ""
+  qualified_committee = ""
+  col_a_individuals_itemized = "1.00"
+  col_a_individuals_unitemized = "2477.09"
+  col_a_individual_contribution_total = "2477.09"
+  col_a_political_party_committees = ""
+  col_a_other_political_committees_pacs = ""
+  col_a_total_contributions = "2477.09"
+  col_a_transfers_from_aff_other_party_cmttees = ""
+  col_a_total_loans = ""
+  col_a_total_loan_repayments_received = ""
+  col_a_offsets_to_expenditures = ""
+  col_a_federal_refunds = ""
+  col_a_other_federal_receipts = ""
+  col_a_transfers_from_nonfederal_h3 = ""
+  col_a_levin_funds = ""
+  col_a_total_nonfederal_transfers = ""
+  col_a_total_receipts_TODO_DUP = "2477.09"
+  col_a_total_federal_receipts = "2477.09"
+  col_a_shared_operating_expenditures_federal = ""
+  col_a_shared_operating_expenditures_nonfederal = ""
+  col_a_other_federal_operating_expenditures = ""
+  col_a_total_operating_expenditures = ""
+  col_a_transfers_to_affiliated = ""
+  col_a_contributions_to_candidates = ""
+  col_a_independent_expenditures = "2414.31"
+  col_a_coordinated_expenditures_by_party_committees = ""
+  col_a_total_loan_repayments_made = ""
+  col_a_loans_made = ""
+  col_a_refunds_to_individuals = ""
+  col_a_refunds_to_party_committees = ""
+  col_a_refunds_to_other_committees = ""
+  col_a_total_refunds = ""
+  col_a_other_disbursements = ""
+  col_a_federal_election_activity_federal_share = ""
+  col_a_federal_election_activity_levin_share = ""
+  col_a_federal_election_activity_all_federal = ""
+  col_a_federal_election_activity_total = ""
+  col_a_total_disbursements_TODO_DUP = "2414.31"
+  col_a_total_federal_disbursements = "2414.31"
+  col_a_total_contributions_TODO_DUP = "2477.09"
+  col_a_total_contributions_refunds = ""
+  col_a_net_contributions = "2477.09"
+  col_a_total_federal_operating_expenditures = ""
+  col_a_total_offsets_to_expenditures = ""
+  col_a_net_operating_expenditures = ""
+  col_b_year = "2017"
+  col_b_cash_on_hand_jan_1 = "32.00"
+  col_b_total_receipts = "2477.09"
+  col_b_subtotal = "2509.09"
+  col_b_total_disbursements = "2414.31"
+  col_b_cash_on_hand_close_of_period = "94.78"
+  col_b_individuals_itemized = "0.00"
+  col_b_individuals_unitemized = "2477.09"
+  col_b_individual_contribution_total = "2477.09"
+  col_b_political_party_committees = ""
+  col_b_other_political_committees_pacs = ""
+  col_b_total_contributions = "2477.09"
+  col_b_transfers_from_aff_other_party_cmttees = ""
+  col_b_total_loans = ""
+  col_b_total_loan_repayments_received = ""
+  col_b_offsets_to_expenditures = ""
+  col_b_federal_refunds = ""
+  col_b_other_federal_receipts = ""
+  col_b_transfers_from_nonfederal_h3 = ""
+  col_b_levin_funds = ""
+  col_b_total_nonfederal_transfers = ""
+  col_b_total_receipts_TODO_DUP = "2477.09"
+  col_b_total_federal_receipts = "2477.09"
+  col_b_shared_operating_expenditures_federal = ""
+  col_b_shared_operating_expenditures_nonfederal = ""
+  col_b_other_federal_operating_expenditures = ""
+  col_b_total_operating_expenditures = ""
+  col_b_transfers_to_affiliated = ""
+  col_b_contributions_to_candidates = ""
+  col_b_independent_expenditures = "2414.31"
+  col_b_coordinated_expenditures_by_party_committees = ""
+  col_b_total_loan_repayments_made = ""
+  col_b_loans_made = ""
+  col_b_refunds_to_individuals = ""
+  col_b_refunds_to_party_committees = ""
+  col_b_refunds_to_other_committees = ""
+  col_b_total_refunds = ""
+  col_b_other_disbursements = ""
+  col_b_federal_election_activity_federal_share = ""
+  col_b_federal_election_activity_levin_share = ""
+  col_b_federal_election_activity_all_federal = ""
+  col_b_federal_election_activity_total = ""
+  col_b_total_disbursements_TODO_DUP = "2414.31"
+  col_b_total_federal_disbursements = "2414.31"
+  col_b_total_contributions_TODO_DUP = "2477.09"
+  col_b_total_contributions_refunds = ""
+  col_b_net_contributions = "2477.09"
+  col_b_total_federal_operating_expenditures = ""
+  col_b_total_offsets_to_expenditures = ""
+  col_b_net_operating_expenditures = ""
+  beginning_image_number = "201802280300197569"
+  end_image_number = "201802280300197594"
+  receipt_date = "20180226"
+row "SA11AI" line=3 byte=511 record=2 fields=["SA11AI", "C00617753", "", "SONO", "KEIKO", "", "", "", "15 SHALE DR", "", "BEARSVILLE", "NY", "12409", "20170612", "", "", "", "", "", "25.00", "25.00", "", "", "201802280300197574"]
+row "SA11AI" line=4 byte=623 record=3 fields=["SA11AI", "C00617753", "", "NAVEAUX", "MARIE", "E", "", "", "301 E2ND AVE", "", "AJO", "AZ", "85321", "20170605", "", "", "", "", "", "110.00", "110.00", "", "", "201802280300197574"]
+row "SB21B" line=5 byte=735 record=4 fields=["SB21B", "C00617753", "N/A", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "201802280300197575", ""]
+row "SC/10" line=6 byte=803 record=5 fields=["SC/10", "C00617753", "13", "N/A", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "201802280300197576", ""]
+row "SD10" line=7 byte=867 record=6 fields=["SD10", "C00617753", "N/A", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "201802280300197578"]
+row "SE" line=8 byte=920 record=7 fields=["SE", "C00617753", "DELUXE", "", "", "", "", "", "3680 VICTORIA STREET NORTH", "", "SHOREVIEW", "MN", "551262966", "20140614", "121.99", "20170614", "PURCHASE BANK CHECKS", "", "", "", "", "", "", "", "", "", "", "", "", "", "NAVEAUX", "", "", "", "", "", "", "DELUXE", "201802280300197579"]
+row "SE" line=9 byte=1095 record=8 fields=["SE", "C00617753", "", "BARRON", "MATT", "L", "", "", "54 STAGE RD", "", "WILLIAMSBURG", "MA", "01096", "20170927", "26.56", "20170927", "AD RESEARCH", "04", "", "", "", "", "", "", "", "", "", "", "", "", "NAVEAUX", "", "", "", "", "", "", "MATT L BARRON", "201802280300197579"]
+row "H1" line=10 byte=1258 record=9 fields=["H1", "C00617753", "", "", "", "", "1.00", "0", "", "", "X", "201802280300197584"]
+row "H2" line=11 byte=1305 record=10 fields=["H2", "C00617753", "N/A", "", "", "", "", "", "201802280300197585"]
+row "H2" line=12 byte=1346 record=11 fields=["H2", "C00617753", "ACTIVITY OR EVENT IDENTIFIER", "", "", "", "", "", "201802280300197585"]
+row "H4" line=13 byte=1412 record=12 fields=["H4", "C00617753", "N/A", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "201802280300197587"]
+row "SL" line=14 byte=1474 record=13 fields=["SL", "C00617753", "N/A", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "201802280300197590"]
+row "SA1A" line=15 byte=1544 record=14 fields=["SA1A", "C00617753", "N/A", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "201802280300197591"]
+row "SB4A" line=16 byte=1602 record=15 fields=["SB4A", "C00617753", "N/A", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "201802280300197592", ""]

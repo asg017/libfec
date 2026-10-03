@@ -1,0 +1,188 @@
+---
+source: crates/fec-parser/tests/legacy.rs
+expression: "render(\"7.0_730663.fec\")"
+snapshot_kind: text
+---
+FilingHeader {
+    header_record: StringRecord(["HDR", "FEC", "7.0", "Patton Technologies LLC", "3.00", "FEC-709411", "1", ""]),
+    record_type: "HDR",
+    ef_type: "FEC",
+    fec_version: "7.0",
+    software_name: "Patton Technologies LLC",
+    software_version: "3.00",
+    report_id: Some(
+        "FEC-709411",
+    ),
+    report_number: Some(
+        "1",
+    ),
+    comment: None,
+    style: Hdr,
+    delimiter: Fs,
+    name_delimiter: None,
+    batch_number: None,
+    received_date: None,
+    legacy_fields: {},
+    schedule_counts: {},
+}
+cover: form_type="F3XA" filer_id="C00016899" filer_name="Ohio Democratic Party" report_code=Some("YE") from=Some(2010-11-23) through=Some(2010-12-31) typed=true
+  form_type = "F3XA"
+  filer_committee_id_number = "C00016899"
+  committee_name = "Ohio Democratic Party"
+  change_of_address = ""
+  street_1 = "340 East Fulton Street"
+  street_2 = ""
+  city = "Columbus"
+  state = "OH"
+  zip_code = "43215"
+  report_code = "YE"
+  election_code = ""
+  date_of_election = ""
+  state_of_election = ""
+  coverage_from_date = "20101123"
+  coverage_through_date = "20101231"
+  qualified_committee = "X"
+  treasurer_last_name = "Alberty"
+  treasurer_first_name = "Fran"
+  treasurer_middle_name = ""
+  treasurer_prefix = ""
+  treasurer_suffix = ""
+  date_signed = "20110607"
+  col_a_cash_on_hand_beginning_period = "59845.77"
+  col_a_total_receipts = "425808.94"
+  col_a_subtotal = "485654.71"
+  col_a_total_disbursements = "454771.63"
+  col_a_cash_on_hand_close_of_period = "30883.08"
+  col_a_debts_to = "0.00"
+  col_a_debts_by = "334711.59"
+  col_a_individuals_itemized = "13115.05"
+  col_a_individuals_unitemized = "12148.23"
+  col_a_individual_contribution_total = "25263.28"
+  col_a_political_party_committees = "0.00"
+  col_a_other_political_committees_pacs = "9148.45"
+  col_a_total_contributions = "34411.73"
+  col_a_transfers_from_aff_other_party_cmttees = "27821.90"
+  col_a_total_loans = "0.00"
+  col_a_total_loan_repayments_received = "0.00"
+  col_a_offsets_to_expenditures = "9047.52"
+  col_a_federal_refunds = "0.00"
+  col_a_other_federal_receipts = "96.79"
+  col_a_transfers_from_nonfederal_h3 = "330815.62"
+  col_a_levin_funds = "23615.38"
+  col_a_total_nonfederal_transfers = "354431.00"
+  col_a_total_receipts_TODO_DUP = "425808.94"
+  col_a_total_federal_receipts = "71377.94"
+  col_a_shared_operating_expenditures_federal = "87202.17"
+  col_a_shared_operating_expenditures_nonfederal = "328059.10"
+  col_a_other_federal_operating_expenditures = "5826.73"
+  col_a_total_operating_expenditures = "421088.00"
+  col_a_transfers_to_affiliated = "0.00"
+  col_a_contributions_to_candidates = "0.00"
+  col_a_independent_expenditures = "0.00"
+  col_a_coordinated_expenditures_by_party_committees = "0.00"
+  col_a_total_loan_repayments_made = "0.00"
+  col_a_loans_made = "0.00"
+  col_a_refunds_to_individuals = "50.00"
+  col_a_refunds_to_party_committees = "0.00"
+  col_a_refunds_to_other_committees = "0.00"
+  col_a_total_refunds = "50.00"
+  col_a_other_disbursements = "0.00"
+  col_a_federal_election_activity_federal_share = "3702.17"
+  col_a_federal_election_activity_levin_share = "13927.13"
+  col_a_federal_election_activity_all_federal = "16004.33"
+  col_a_federal_election_activity_total = "33633.63"
+  col_a_total_disbursements_TODO_DUP = "454771.63"
+  col_a_total_federal_disbursements = "112785.40"
+  col_a_total_contributions_TODO_DUP = "34411.73"
+  col_a_total_contributions_refunds = "50.00"
+  col_a_net_contributions = "34361.73"
+  col_a_total_federal_operating_expenditures = "93028.90"
+  col_a_total_offsets_to_expenditures = "9047.52"
+  col_a_net_operating_expenditures = "83981.38"
+  col_b_cash_on_hand_jan_1 = "56301.32"
+  col_b_year = "2010"
+  col_b_total_receipts = "14615885.51"
+  col_b_subtotal = "14672186.83"
+  col_b_total_disbursements = "14641303.75"
+  col_b_cash_on_hand_close_of_period = "30883.08"
+  col_b_individuals_itemized = "1533207.44"
+  col_b_individuals_unitemized = "387310.39"
+  col_b_individual_contribution_total = "1920517.83"
+  col_b_political_party_committees = "0.00"
+  col_b_other_political_committees_pacs = "826975.46"
+  col_b_total_contributions = "2747493.29"
+  col_b_transfers_from_aff_other_party_cmttees = "3735478.40"
+  col_b_total_loans = "0.00"
+  col_b_total_loan_repayments_received = "0.00"
+  col_b_offsets_to_expenditures = "65781.14"
+  col_b_federal_refunds = "0.00"
+  col_b_other_federal_receipts = "764.05"
+  col_b_transfers_from_nonfederal_h3 = "6400463.60"
+  col_b_levin_funds = "1665905.03"
+  col_b_total_nonfederal_transfers = "8066368.63"
+  col_b_total_receipts_TODO_DUP = "14615885.51"
+  col_b_total_federal_receipts = "6549516.88"
+  col_b_shared_operating_expenditures_federal = "1686072.45"
+  col_b_shared_operating_expenditures_nonfederal = "6351776.99"
+  col_b_other_federal_operating_expenditures = "350194.92"
+  col_b_total_operating_expenditures = "8388044.36"
+  col_b_transfers_to_affiliated = "2785.00"
+  col_b_contributions_to_candidates = "16100.00"
+  col_b_independent_expenditures = "0.00"
+  col_b_coordinated_expenditures_by_party_committees = "48469.13"
+  col_b_total_loan_repayments_made = "0.00"
+  col_b_loans_made = "0.00"
+  col_b_refunds_to_individuals = "22604.20"
+  col_b_refunds_to_party_committees = "0.00"
+  col_b_refunds_to_other_committees = "1500.00"
+  col_b_total_refunds = "24104.20"
+  col_b_other_disbursements = "0.00"
+  col_b_federal_election_activity_federal_share = "804174.82"
+  col_b_federal_election_activity_levin_share = "3025228.94"
+  col_b_federal_election_activity_all_federal = "2332397.30"
+  col_b_federal_election_activity_total = "6161801.06"
+  col_b_total_disbursements_TODO_DUP = "14641303.75"
+  col_b_total_federal_disbursements = "5264297.82"
+  col_b_total_contributions_TODO_DUP = "2747493.29"
+  col_b_total_contributions_refunds = "24104.20"
+  col_b_net_contributions = "2723389.09"
+  col_b_total_federal_operating_expenditures = "2036267.37"
+  col_b_total_offsets_to_expenditures = "65781.14"
+  col_b_net_operating_expenditures = "1970486.23"
+row "SA11AI" line=3 byte=1046 record=2 fields=["SA11AI", "C00016899", "11ai-000406102", "", "", "IND", "", "Flomo", "Patrick", "", "", "", "2958 Stonebluff Drive", "", "Columbus", "OH", "43232", "", "", "20101124", "25.00", "325.00", "", "", "The Flomoenterprise", "Owner", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
+row "SA11AI" line=4 byte=1215 record=3 fields=["SA11AI", "C00016899", "11ai-000406103", "", "", "IND", "", "Flomo", "Patrick", "", "", "", "2958 Stonebluff Drive", "", "Columbus", "OH", "43232", "", "", "20101124", "25.00", "350.00", "", "", "The Flomoenterprise", "Owner", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
+row "SA11C" line=5 byte=1384 record=4 fields=["SA11C", "C00016899", "11c-000406376", "", "", "PAC", "ActBlue", "", "", "", "", "", "P O Box 382110", "", "Cambridge", "MA", "02238", "", "", "20101206", "19.21", "817.30", "", "", "", "", "C00401224", "ActBlue", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
+row "SA11C" line=6 byte=1532 record=5 fields=["SA11C", "C00016899", "11c-000406628", "", "", "CCM", "Driehaus for Congress", "", "", "", "", "", "650 Fox Trails Lane", "", "Cincinnati", "OH", "45233", "", "", "20101215", "9129.24", "91079.24", "", "", "", "", "C00434662", "Driehaus for Congress", "H6OH18157", "Driehaus", "Steve", "", "", "", "H", "OH", "01", "", "", "", "", "", "", "", "Transfer", ""]
+row "SA12" line=7 byte=1753 record=6 fields=["SA12", "C00016899", "12-18-00692-00736", "", "", "PTY", "Democratic National Committee", "", "", "", "", "", "C/O Brad Marshall", "430 S Capitol St SE", "Washington", "DC", "20003", "", "", "20101201", "8000.00", "2056217.20", "", "Transfer", "", "", "C00010603", "Democratic National Committee", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
+row "SA12" line=8 byte=1985 record=7 fields=["SA12", "C00016899", "12-18-00696-00740", "", "", "PTY", "Democratic National Committee", "", "", "", "", "", "C/O Brad Marshall", "430 S Capitol St SE", "Washington", "DC", "20003", "", "", "20101222", "5000.00", "2061217.20", "", "Transfer", "", "", "C00010603", "Democratic National Committee", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
+row "SA15" line=9 byte=2217 record=8 fields=["SA15", "C00016899", "15-33-00376-00673", "", "", "ORG", "Paychex", "", "", "", "", "", "5450 Frantz Rd Suite 100", "", "Dublin", "OH", "43017", "", "", "20101127", "2000.00", "2039.88", "", "Excess Transfer Taxes", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
+row "SA15" line=10 byte=2383 record=9 fields=["SA15", "C00016899", "15-03-02308-04475", "", "", "ORG", "U S Postmaster Columbus #907", "", "", "", "", "", "Permit # 907", "2323 Citygate Dr", "Columbus", "OH", "43218", "", "", "20101207", "7047.52", "7047.52", "", "Unused Postage", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
+row "SA17" line=11 byte=2569 record=10 fields=["SA17", "C00016899", "17-14-00416-00436", "", "", "ORG", "Arlington Bank", "", "", "", "", "", "2130 Tremont Center", "", "Upper Arlington", "OH", "43221", "", "", "20101130", "1.09", "666.53", "", "Interest Income", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
+row "SA17" line=12 byte=2736 record=11 fields=["SA17", "C00016899", "17-18-00693-00737", "", "", "ORG", "Arlington Bank", "", "", "", "", "", "2130 Tremont Center", "", "Upper Arlington", "OH", "43221", "", "", "20101130", "17.51", "684.04", "", "Interest Income", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
+row "SB21B" line=13 byte=2904 record=12 fields=["SB21B", "C00016899", "21b-01-11551-28653", "", "", "ORG", "American Express", "", "", "", "", "", "200 Vesey St", "", "New York", "NY", "10285", "", "", "20101123", "12.90", "", "", "Service Charge", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
+row "SB21B" line=14 byte=3054 record=13 fields=["SB21B", "C00016899", "21b-01-11552-28654", "", "", "ORG", "Merchant Services", "", "", "", "", "", "7207 Chapman", "", "Knoxville", "TN", "37920", "", "", "20101123", "10.00", "", "", "Service Charge", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
+row "SB28A" line=15 byte=3206 record=14 fields=["SB28A", "C00016899", "28a-01-11433-28418", "", "", "IND", "", "Becks", "Karen", "", "", "", "6567 Cross Creek Trail", "", "Brecksville", "OH", "44141", "", "", "20101206", "50.00", "", "", "Refund", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
+row "SB30B" line=16 byte=3355 record=15 fields=["SB30B", "C00016899", "30b-01-11255-28122", "", "", "ORG", "Dewey Square Group LLC", "", "", "", "", "", "P O Box 60340", "", "Charlotte", "NC", "28260", "", "", "20101123", "3000.00", "", "", "GOTV Consultant", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
+row "SB30B" line=17 byte=3516 record=16 fields=["SB30B", "C00016899", "30b-01-11325-28265", "", "", "IND", "", "Oyler", "Ken", "", "", "", "91 Wick Oval", "", "Youngstown", "OH", "44502", "", "", "20101203", "569.08", "", "", "Salary", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
+row "SD10" line=18 byte=3653 record=17 fields=["SD10", "C00016899", "10-000020", "ORG", "The Winding Creek Group", "", "", "", "", "", "2852 Connecticut Ave NW", "", "Washington", "DC", "20008", "Robo Calls", "57829.64", "0.00", "25000.00", "32829.64", ""]
+row "SD10" line=19 byte=3800 record=18 fields=["SD10", "C00016899", "10-000019", "ORG", "Winning Connections", "", "", "", "", "", "317 Pennsylvania Ave SE 2nd Floor", "", "Washington", "DC", "20003", "Robo Calls", "301881.95", "0.00", "0.00", "301881.95", ""]
+row "H2" line=20 byte=3951 record=19 fields=["H2", "C00016899", "H2-63", "State Dinner 2009", "X", "", "S", ".2000", ".8000", ""]
+row "H2" line=21 byte=4006 record=20 fields=["H2", "C00016899", "H2-65", "State Dinner 2010/08/07", "X", "", "S", ".2000", ".8000", ""]
+row "H3" line=22 byte=4067 record=21 fields=["H3", "C00016899", "H318a-01-11270", "H318a-01-11270", "Ohio Democratic Party Non Federal Acco", "AD", "", "20101123", "99863.14", "99863.14"]
+row "H3" line=23 byte=4180 record=22 fields=["H3", "C00016899", "H318a-01-11322", "H318a-01-11322", "Ohio Democratic Party Non Federal Acco", "AD", "", "20101201", "62464.03", "62464.03"]
+row "H4" line=24 byte=4293 record=23 fields=["H4", "C00016899", "21a-19-05321-0062", "", "", "ORG", "Ohio Democratic Party Payroll Account", "", "", "", "", "", "340 East Fulton Street", "", "Columbus", "OH", "43215", "Administrative 2009", "20101123", "3631.64", "762.64", "2869.00", "7429804.60", "", "Payroll-See Memos", "", "X", "", "", "", "", "", "", ""]
+row "H4" line=25 byte=4507 record=24 fields=["H4", "C00016899", "21a-19-05321-11059", "21a-19-05321-0062", "H4", "IND", "", "Albrecht", "Peter", "B", "", "", "1231 Wellesley Rd", "", "Madison", "WI", "53705", "Administrative 2009", "20101123", "393.10", "82.55", "310.55", "0.00", "", "Salary-No FEA", "", "X", "", "", "", "", "", "X", ""]
+row "H5" line=26 byte=4700 record=25 fields=["H5", "C00016899", "01-11334-28274", "Ohio Democratic Party Levin Account", "20101203", "10024.05", "0.00", "0.00", "10024.05", "0.00"]
+row "H5" line=27 byte=4806 record=26 fields=["H5", "C00016899", "01-11412-28397", "Ohio Democratic Party Levin Account", "20101208", "12090.33", "0.00", "0.00", "12090.33", "0.00"]
+row "H6" line=28 byte=4912 record=27 fields=["H6", "C00016899", "30a-01-11223-28066", "", "", "IND", "", "Brown", "Jeron", "", "", "", "12428 Arlington Rd Apt 8", "", "Cleveland", "OH", "44108", "Election Day", "20101123", "150.00", "31.50", "118.50", "3804424.46", "", "Canvasser", "", "", "X", "", "", "", ""]
+row "H6" line=29 byte=5083 record=28 fields=["H6", "C00016899", "30a-01-11224-28067", "", "", "IND", "", "Hatcher", "Deirdre", "", "", "", "5303 Northfield Rd", "", "Bedford Hts", "OH", "44146", "Election Day", "20101123", "300.00", "63.00", "237.00", "3804724.46", "", "Canvasser", "", "", "X", "", "", "", ""]
+row "SL" line=30 byte=5254 record=29 fields=["SL", "C00016899", "SL23", "23", "Levin", "20101123", "20101231", "0.00", "0.00", "0.00", "0.00", "0.00", "0.00", "0.00", "0.00", "0.00", "0.00", "0.00", "0.00", "0.00", "0.00", "0.00", "0.00", "0.00", "0.00", "0.00", "0.00", "0.00", "0.00", "0.00", "0.00", "1771.94", "0.00", "1771.94", "205.78", "1977.72", "1977.72", "0.00", "1977.72", "1977.72", "0.00"]
+row "SL" line=31 byte=5489 record=30 fields=["SL", "C00016899", "SL53", "53", "Levin2", "20101123", "20101231", "18706.00", "240.00", "18946.00", "6.19", "18952.19", "0.00", "0.00", "23615.38", "0.00", "23615.38", "0.00", "23615.38", "7053.00", "18952.19", "26005.19", "23615.38", "2389.81", "1664066.94", "2405.22", "1666472.16", "65.74", "1666537.90", "0.00", "0.00", "1664133.09", "0.00", "1664133.09", "15.00", "1664148.09", "0.00", "1666537.90", "1666537.90", "1664148.09", "2389.81"]
+row "SASL1A" line=32 byte=5811 record=31 fields=["SASL1A", "C00016899", "1a-000406321", "", "", "PTY", "Knox County Democratic Party", "", "", "", "", "", "1 Public Sq", "", "Mount Vernon", "OH", "43050", "", "", "20101130", "500.00", "1500.00", "", "", "", "", "", "Knox County Democratic Party", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "53"]
+row "SASL1A" line=33 byte=5996 record=32 fields=["SASL1A", "C00016899", "1a-000406320", "", "", "PTY", "Coshocton County Democratic Party", "", "", "", "", "", "765 Sheridan Road", "", "Coshocton", "OH", "438122771", "", "", "20101130", "700.00", "700.00", "", "", "", "", "", "Coshocton County Democratic Party", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "53"]
+row "SASL2" line=34 byte=6197 record=33 fields=["SASL2", "C00016899", "2-53-00139-00276", "", "", "ORG", "Arlington Bank", "", "", "", "", "", "2130 Tremont Center", "", "Upper Arlington", "OH", "43221", "", "", "20101130", "5.62", "65.17", "", "Interest", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "Interest", "53"]
+row "SASL2" line=35 byte=6366 record=34 fields=["SASL2", "C00016899", "2-53-00145-00284", "", "", "ORG", "Arlington Bank", "", "", "", "", "", "2130 Tremont Center", "", "Upper Arlington", "OH", "43221", "", "", "20101231", "0.57", "65.74", "", "Interest", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "Interest", "53"]
+row "SBSL4C" line=36 byte=6535 record=35 fields=["SBSL4C", "C00016899", "4C-53-00140-00277", "", "", "PTY", "Ohio Democratic Party Federal Account", "", "", "", "", "", "340 East Fulton Street", "", "Columbus", "OH", "43215", "", "", "20101203", "10024.05", "", "", "Early Vote Match", "", "C00016899", "Ohio Democratic Party Federal Account", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "53"]
+row "SBSL4C" line=37 byte=6769 record=36 fields=["SBSL4C", "C00016899", "4C-53-00142-00279", "", "", "PTY", "Ohio Democratic Party Federal Account", "", "", "", "", "", "340 East Fulton Street", "", "Columbus", "OH", "43215", "", "", "20101208", "12090.33", "", "", "Early Vote Match", "", "C00016899", "Ohio Democratic Party Federal Account", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "53"]
+row "TEXT" line=38 byte=7003 record=37 fields=["TEXT", "C00016899", "TEXT-00001", "", "F3XA", "1. The $7,047.52 deposit was from the US Postmaster. Report amended.  2. Balance corrected  3. Totals corrected  4. Totals corrected  5. None of these transfers were used for activities prohibited by 11 CFR 300.34. We maintain separate accounts and track expenses to ensure we are in compliance.  6. All transfers complied with the 70-day time period. The first two transfers in October covered vendor expenses paid in September.  7.Salary entry corrected. It was not FEA.  8. Data Entry error corrected. Caroline Wagner was paid on 11/19. Her check was reported lost and a replacement check issued on 12/6. Schedule corrected to H4 supporting Line 21A.  "]
+row "TEXT" line=39 byte=7691 record=38 fields=["TEXT", "C00016899", "TEXT-00002", "21a-19-05370-11119", "H4", "Check issued 11/19 lost  replaced on 12/6"]

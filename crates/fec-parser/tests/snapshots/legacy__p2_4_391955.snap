@@ -1,0 +1,149 @@
+---
+source: crates/fec-parser/tests/legacy.rs
+expression: "render(\"P2.4_391955.fec\")"
+snapshot_kind: text
+---
+FilingHeader {
+    header_record: StringRecord(["HDR", "P2.4", "ILM'S FEC SYSTEM", "3046", ""]),
+    record_type: "HDR",
+    ef_type: "",
+    fec_version: "P2.4",
+    software_name: "ILM'S FEC SYSTEM",
+    software_version: "",
+    report_id: None,
+    report_number: None,
+    comment: None,
+    style: Paper,
+    delimiter: Fs,
+    name_delimiter: None,
+    batch_number: Some(
+        "3046",
+    ),
+    received_date: None,
+    legacy_fields: {},
+    schedule_counts: {},
+}
+cover: form_type="F3N" filer_id="C00453241" filer_name="BARKLEY FOR SENATE" report_code=Some("30G") from=Some(2008-10-16) through=Some(2008-11-24) typed=true
+  form_type = "F3N"
+  filer_committee_id_number = "C00453241"
+  committee_name = "BARKLEY FOR SENATE"
+  change_of_address = ""
+  street_1 = "2610 PARKVIEW BLVD"
+  street_2 = ""
+  city = "ROBBINSDALE"
+  state = "MN"
+  zip_code = "55422"
+  election_state = "MN"
+  election_district = ""
+  report_code = "30G"
+  election_date = "20081104"
+  state_of_election = "MN"
+  coverage_from_date = "20081016"
+  coverage_through_date = "20081124"
+  treasurer_last_name = "MACARTHUR"
+  treasurer_first_name = "CHARLES"
+  treasurer_middle_name = "ELLSWORTH"
+  treasurer_prefix = ""
+  treasurer_suffix = ""
+  date_signed = "20081202"
+  col_a_total_contributions_no_loans = "       82317"
+  col_a_total_contributions_refunds = "           0"
+  col_a_net_contributions = "       82317"
+  col_a_total_operating_expenditures = "       87509"
+  col_a_total_offset_to_operating_expenditures = "           0"
+  col_a_net_operating_expenditures = "       87509"
+  col_a_cash_on_hand_close_of_period = "        4030"
+  col_a_debts_to = "           0"
+  col_a_debts_by = "       22300"
+  col_a_individual_contributions_itemized = "       42926"
+  col_a_individual_contributions_unitemized = "       34632"
+  col_a_total_individual_contributions = "       77558"
+  col_a_political_party_contributions = "           0"
+  col_a_pac_contributions = "        4359"
+  col_a_candidate_contributions = "         400"
+  col_a_total_contributions = "       82317"
+  col_a_transfers_from_authorized = "           0"
+  col_a_candidate_loans = "           0"
+  col_a_other_loans = "        2000"
+  col_a_total_loans = "        2000"
+  col_a_offset_to_operating_expenditures = "           0"
+  col_a_other_receipts = "           0"
+  col_a_total_receipts = "       84317"
+  col_a_operating_expenditures = "       87509"
+  col_a_transfers_to_authorized = "           0"
+  col_a_candidate_loan_repayments = "           0"
+  col_a_other_loan_repayments = "        2000"
+  col_a_total_loan_repayments = "        2000"
+  col_a_refunds_to_individuals = "           0"
+  col_a_refunds_to_party_committees = "           0"
+  col_a_refunds_to_other_committees = "           0"
+  col_a_total_refunds = "           0"
+  col_a_other_disbursements = "           0"
+  col_a_total_disbursements = "       89509"
+  col_b_total_contributions_no_loans = "      158175"
+  col_b_total_contributions_refunds = "           0"
+  col_b_net_contributions = "      158175"
+  col_b_total_operating_expenditures = "      152427"
+  col_b_total_offset_to_operating_expenditures = "           0"
+  col_b_net_operating_expenditures = "      152427"
+  col_b_individual_contributions_itemized = "           0"
+  col_b_individual_contributions_unitemized = "           0"
+  col_b_total_individual_contributions = "      152828"
+  col_b_political_party_contributions = "           0"
+  col_b_pac_contributions = "        4946"
+  col_b_candidate_contributions = "         400"
+  col_b_total_contributions = "      158175"
+  col_b_transfers_from_authorized = "           0"
+  col_b_candidate_loans = "           0"
+  col_b_other_loans = "        4300"
+  col_b_total_loans = "        4300"
+  col_b_offset_to_operating_expenditures = "           0"
+  col_b_other_receipts = "           0"
+  col_b_total_receipts = "      162475"
+  col_b_operating_expenditures = "      152427"
+  col_b_transfers_to_authorized = "           0"
+  col_b_candidate_loan_repayments = "           0"
+  col_b_other_loan_repayments = "        2000"
+  col_b_total_loan_repayments = "        2000"
+  col_b_refunds_to_individuals = "           0"
+  col_b_refunds_to_party_committees = "           0"
+  col_b_refunds_to_other_committees = "           0"
+  col_b_total_refunds = "           0"
+  col_b_other_disbursements = "           0"
+  col_b_total_disbursements = "      154427"
+  col_a_cash_beginning_reporting_period = "        9221"
+  col_a_total_receipts_period = "       84317"
+  col_a_subtotals = "       93539"
+  col_a_total_disbursements_period = "       89509"
+  col_a_cash_on_hand_close = "        4030"
+  candidate_last_name = ""
+  candidate_first_name = ""
+  candidate_middle_name = ""
+  candidate_prefix = ""
+  candidate_suffix = ""
+  candidate_id_number = ""
+  report_type = ""
+  col_b_gross_receipts_authorized_primary = ""
+  col_b_aggregate_personal_funds_primary = ""
+  col_b_gross_receipts_minus_personal_funds_primary = ""
+  col_b_gross_receipts_authorized_general = ""
+  col_b_aggregate_personal_funds_general = ""
+  col_b_gross_receipts_minus_personal_funds_general = ""
+  beginning_image_number = "28020774301"
+row "F3S" line=3 byte=1119 record=2 fields=["F3S", "C00453241", "20081105", "20081124", "           0", "         610", "         610", "           0", "           0", "           0", "         610", "           0", "           0", "           0", "           0", "           0", "           0", "         610", "        4377", "           0", "           0", "           0", "           0", "           0", "           0", "           0", "           0", "           0", "        4377", "           0", "         610", "28020774301"]
+row "SA11C" line=4 byte=1514 record=3 fields=["SA11C", "C00453241", "INDEPENDENCE PARTY OF MN", "", "", "", "", "", "PO BOX 40495", "", "SAINT PAUL", "MN", "55104", "20081028", "C00305268", "POLITICAL COMMITTEE", "POLITICAL COMMITTEE", "G", "2008", "        2403", "        2059", "", "", "28020774307"]
+row "SA11C" line=5 byte=1700 record=4 fields=["SA11C", "C00453241", "INDEPENDENCE PARTY OF NY FEDERAL COMMITTEE", "", "", "", "", "", "PO BOX 871", "", "LINDENHURST", "NY", "11757", "20081029", "C00435396", "", "", "G", "2008", "        2300", "        2300", "", "", "28020774307"]
+row "SA11A1" line=6 byte=1865 record=5 fields=["SA11A1", "C00453241", "", "ALLEN", "DAVID", "W", "", "JR", "5710 MT NORMANDALE DRIVE", "", "BLOOMINGTON", "MN", "55437", "20081026", "", "THE CHANCELLOR GROUP LLC", "HEALTH CARE CONSULTANT", "G", "2008", "         250", "         250", "ONLINE DONATION", "", "28020774308"]
+row "SA11A1" line=7 byte=2068 record=6 fields=["SA11A1", "C00453241", "", "ANDERSON", "THEODORE", "RICHARD", "MR", "", "16200 GARNER AVE", "", "ROSEMOUNT", "MN", "55068", "20081027", "", "GENESIS COMMUNICATIONS NETWORK INC", "", "G", "2008", "        2300", "        2300", "ONLINE DONATION", "", "28020774308"]
+row "SA11D" line=8 byte=2261 record=7 fields=["SA11D", "C00453241", "", "BARKLEY", "DEAN", "M", "", "", "1300 MEDICINE LAKE DR W", "APT 326", "MINNEAPOLIS", "MN", "55441", "20081025", "", "PREFERRED ONE", "ATTORNEY", "G", "2008", "         400", "         400", "IN-KIND RECEIVED AUCTION ITEMS FOR 10/25 DINNER", "", "28020774341"]
+row "SA13B" line=9 byte=2475 record=8 fields=["SA13B", "C00453241", "", "GIBSON", "JAMES", "", "", "", "5115 EXCELSIOR BLVD", "SUITE 103", "MINNEAPOLIS", "MN", "55416", "20081016", "", "SELF", "SOFTWARE DEVELOPER", "G", "2008", "        2000", "        2000", "LOAN TO CAMPAIGN", "", "28020774342"]
+row "SB19B" line=10 byte=2656 record=9 fields=["SB19B", "C00453241", "", "GIBSON", "JAMES", "", "", "", "5115 EXCELSIOR BLVD", "SUITE 103", "MINNEAPOLIS", "MN", "55416", "20081029", "REPAY LOAN", "", "", "", "", "", "", "", "", "", "", "G", "2008", "        2000", "PAYOFF LOAN", "", "28020774343"]
+row "SB17" line=11 byte=2815 record=10 fields=["SB17", "C00453241", "TRAIL BLAZER CAMPAIGN SERVICES INC.", "", "", "", "", "", "5115 EXCELSIOR BLVD #103", "", "MINNEAPOLIS", "MN", "55416", "20081017", "LAWN SIGNS AND STANDS", "", "", "", "", "", "", "", "", "", "", "G", "2008", "         158", "LAWN SIGNS AND STANDS", "", "28020774344"]
+row "SB17" line=12 byte=3014 record=11 fields=["SB17", "C00453241", "WELLS FARGO", "", "", "", "", "", "1011 FIRST STREET SOUTH", "", "HOPKINS", "MN", "55343", "20081031", "CKS/DEP/ELEC CR/ELECDR FEES", "", "", "", "", "", "", "", "", "", "", "G", "2008", "          13", "CKS/DEP/ELEC CR/ELECDR FEES", "", "28020774344"]
+row "SC/10" line=13 byte=3196 record=12 fields=["SC/10", "C00453241", "13B", "", "GOLDMAN", "DIANE", "", "", "", "2705 QUAKER LANE", "", "MINNEAPOLIS", "MN", "55441", "G", "", "        2300", "           0", "        2300", "20080914", "20091231", "0.0000", "N", "(PERSONAL FUNDS)                                  ", "28020774361"]
+row "SC/10" line=14 byte=3405 record=13 fields=["SC/10", "C00453241", "13B", "", "GIBSON", "JAMES", "", "", "", "5115 EXCELSIOR BLVD", "SUITE 103", "MINNEAPOLIS", "MN", "55416", "G", "", "        2000", "        2000", "           0", "20081016", "20091231", "0.0000", "N", "(PERSONAL FUNDS)                                  ", "28020774362"]
+row "SD10" line=15 byte=3625 record=14 fields=["SD10", "C00453241", "NORTH WOODS ADVERTISING INC.", "", "", "", "", "", "400 PLYMOUTH BUILDING", "12 SOUTH SIXTH STREET", "MINNEAPOLIS", "MN", "55402", "INVOICE: WEBSITE GRAPHICS AND PRODUCTION", "        6700", "           0", "           0", "        6700", "28020774364"]
+row "SD10" line=16 byte=3844 record=15 fields=["SD10", "C00453241", "TRAIL BLAZER CAMPAIGN SERVICES INC.", "", "", "", "", "", "5115 EXCELSIOR BLVD #103", "", "MINNEAPOLIS", "MN", "55416", "INVOICE: ANNUAL LICENSE FEEL/INVOICE #83", "       12828", "           0", "           0", "       12828", "28020774364"]
+row "SD9" line=17 byte=4052 record=16 fields=["SD9", "C00453241", "TELESYSTEMS INC.", "", "", "", "", "", "14420 21ST AVENUE NORTH", "", "MINNEAPOLIS", "MN", "55447", "INVOICE: TELEPHONE RENTAL (2 MONTHS) ADM", "         768", "           0", "         768", "           0", "28020774365"]
+row "SD9" line=18 byte=4239 record=17 fields=["SD9", "C00453241", "TANDUM PRINTING INC", "", "", "", "", "", "2970 LEXINGTON AVENUE SOUTH", "", "SAINT PAUL", "MN", "55121", "INVOICE: 250 BUMPER STICKERS CAMPAIGN MA", "         172", "           0", "         172", "           0", "28020774365"]
+row "SC1" line=19 byte=4432 record=18 fields=["SC1", "C00453241", "JAMES GIBSON", "5115 EXCELSIOR BLVD", "SUITE 103", "MINNEAPOLIS", "MN", "55416", "        2000", ".0000", "20081016", "20091231", "N", "20081016", "           0", "           0", "N", "N", "", "           0", "N", "N", "", "           0", "", "", "", "", "", "", "", "", "MACARTHUR", "CHARLES", "ELLSWORTH", "", "", "20081016", "MACARTHUR", "CHARLES", "ELLSWORTH", "", "", "TREASURER", "20081016", "28020774363"]
