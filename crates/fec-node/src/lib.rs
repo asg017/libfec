@@ -80,29 +80,19 @@ impl From<&fec_parser::FilingHeader> for NativeHeader {
     }
 }
 
-/// An I/O failure, as `"<ErrorKind>: <message>"` so the JS layer can tell a
-/// missing file from a parse error. Ticket 07 replaces this with codes.
-fn io_err(e: std::io::Error) -> napi::Error {
-    napi::Error::from_reason(format!("{:?}: {e}", e.kind()))
-}
-
-fn parse_err(e: anyhow::Error) -> napi::Error {
-    napi::Error::from_reason(format!("{e:#}"))
-}
-
 /// Read only the header (the `HDR` record, or a 1.x/2.x `/* Header` block).
-fn read_header(rdr: impl Read) -> napi::Result<NativeHeader> {
+fn read_header(rdr: impl Read) -> errors::Result<NativeHeader> {
     fec_parser::read_header(rdr)
         .map(|(header, _lines)| (&header).into())
-        .map_err(parse_err)
+        .map_err(|e| errors::parse_error(&e))
 }
 
 #[napi]
-pub fn read_header_path(path: String) -> napi::Result<NativeHeader> {
-    read_header(File::open(path).map_err(io_err)?)
+pub fn read_header_path(path: String) -> errors::Result<NativeHeader> {
+    read_header(File::open(&path).map_err(|e| errors::io_error(e, &path))?)
 }
 
 #[napi]
-pub fn read_header_bytes(bytes: &[u8]) -> napi::Result<NativeHeader> {
+pub fn read_header_bytes(bytes: &[u8]) -> errors::Result<NativeHeader> {
     read_header(bytes)
 }

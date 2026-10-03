@@ -1,4 +1,5 @@
 import * as native from "../native/native.js";
+import { callNative } from "./errors.js";
 import { normalizeSource, type Source } from "./source.js";
 
 /** A filing's header: the `HDR` record, or a 1.x/2.x `/* Header` block. */
@@ -57,7 +58,7 @@ export function readHeader(source: Source): Header {
   const src = normalizeSource(source);
   return toHeader(
     src.kind === "path"
-      ? native.readHeaderPath(src.path)
-      : native.readHeaderBytes(src.bytes),
+      ? callNative(() => native.readHeaderPath(src.path), { path: src.path })
+      : callNative(() => native.readHeaderBytes(src.bytes)),
   );
 }
