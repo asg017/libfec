@@ -33,9 +33,11 @@ impl FilingHeaderJs {
     }
 }
 
-/// greet bro
+/// Parse the header of a filing (its cover must also be readable); throws a
+/// JS `Error` on unreadable input instead of trapping.
 #[wasm_bindgen]
-pub fn header(body: &[u8]) -> FilingHeaderJs {
-    let f = Filing::from_reader(body, "123".to_string(), body.len()).unwrap();
-    FilingHeaderJs::from(&f.header)
+pub fn header(body: &[u8]) -> Result<FilingHeaderJs, JsError> {
+    let f = Filing::from_reader(body, "123".to_string(), body.len())
+        .map_err(|e| JsError::new(&format!("{e:#}")))?;
+    Ok(FilingHeaderJs::from(&f.header))
 }
