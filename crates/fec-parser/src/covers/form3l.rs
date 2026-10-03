@@ -34,9 +34,9 @@ use jiff::civil::Date;
 ///
 /// **Versions.** v6.4 through v8.5 share one layout (Form 3L was introduced in
 /// v6.4: FEC e-filing specifications v8.4, p15). The paper-filing layouts
-/// (`P2.6`–`P3.4`) name the state-of-election column `election_state` a second
-/// time, so on those records [`Form3L::election_state`] holds the Line 5 state
-/// of election and [`Form3L::election_held_in_state`] is `None`.
+/// (`P2.6`–`P3.4`) name the Line 5 state-of-election column `election_state`
+/// a second time; `fec-parser` renames that second copy
+/// `election_state_TODO_DUP`, which [`Form3L::election_held_in_state`] reads.
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct Form3L {
     /// Form type as filed, e.g. `F3LN`: the base form plus the
@@ -81,6 +81,7 @@ pub struct Form3L {
     /// Line 5(c)/(d), the state in which that election is held. The libfec
     /// column is literally named `TODO_UNKNOWN_BLANK`; the workbook calls it
     /// "STATE OF ELECTION" (FEC format workbook v8.4, sheet `F3L`, field 14).
+    /// Paper layouts call it `election_state_TODO_DUP` (see [`Form3L`]).
     pub election_held_in_state: Option<String>,
     /// Line 5(c)/(d) box "This report also covers the semi-annual period":
     /// checked on a pre- or post-election report due in July or January when
@@ -147,7 +148,8 @@ impl Form3L {
             election_district: text(data, "election_district"),
             report_code: text(data, "report_code"),
             election_date: date(data, "election_date"),
-            election_held_in_state: text(data, "TODO_UNKNOWN_BLANK"),
+            election_held_in_state: text(data, "TODO_UNKNOWN_BLANK")
+                .or_else(|| text(data, "election_state_TODO_DUP")),
             also_covers_semi_annual_period: flag(data, "semi_annual_period"),
             coverage_from_date: date(data, "coverage_from_date"),
             coverage_through_date: date(data, "coverage_through_date"),

@@ -117,3 +117,23 @@ fn comma_cr_only_line_endings() {
     };
     assert_eq!(f.text.as_deref(), Some("Dear FEC,\n\nThanks"));
 }
+
+/// Typed covers split legacy combined names on the header's `name_delim`,
+/// not a hard-coded `^`.
+#[test]
+fn typed_cover_uses_header_name_delimiter() {
+    let treasurer = |delim: &str, name: &str| {
+        let input = format!(
+            "HDR,FEC,5.00,Vocus PAC Management,3.00.1028,{delim},,0,\nF24N,C00000885,Committee,\"1750 New York Avenue, NW\",,Washington,DC,20006,{name},20031114,48\n"
+        );
+        let filing = Filing::from_reader(input.as_bytes(), "1".into(), input.len()).expect("parse");
+        let Some(fec_parser::covers::Cover::Form24(f)) = filing.cover.cover_data else {
+            panic!("expected a typed F24 cover");
+        };
+        (f.treasurer.last_name, f.treasurer.first_name)
+    };
+    let expected = ("Galis".to_owned(), "George".to_owned());
+    assert_eq!(treasurer("|", "Galis|George||"), expected);
+    assert_eq!(treasurer("", "Galis^George^^"), expected);
+    assert_eq!(treasurer("^", "Galis^George^^"), expected);
+}

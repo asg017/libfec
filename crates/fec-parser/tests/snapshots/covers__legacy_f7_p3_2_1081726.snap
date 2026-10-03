@@ -1,0 +1,36 @@
+---
+source: crates/fec-parser/tests/covers.rs
+expression: "legacy_cover(\"P3.2_1081726.fec\")"
+snapshot_kind: text
+---
+{
+  "form": "Form7",
+  "data": {
+    "form_type": "F7N",
+    "organization_name": "TEXAS FARM BUREAU",
+    "filer_committee_id": "C70003165",
+    "address": {
+      "street_1": "7420 FISH POND ROAD; PO BOX 2689",
+      "street_2": null,
+      "city": "WACO",
+      "state": "TX",
+      "zip_code": "767022689"
+    },
+    "organization_type": "M",
+    "report_code": "Q2",
+    "election_date": null,
+    "election_state": null,
+    "coverage_from_date": "2016-04-01",
+    "coverage_through_date": "2016-06-30",
+    "total_communication_costs": 7915.43,
+    "person_designated": {
+      "first_name": "SI",
+      "last_name": "COOK",
+      "middle_name": "E",
+      "prefix": null,
+      "suffix": null
+    },
+    "person_designated_title": "S. E. COOK, EXECUTIV",
+    "date_signed": "2016-07-01"
+  }
+}
