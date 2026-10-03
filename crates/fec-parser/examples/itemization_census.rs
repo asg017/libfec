@@ -72,6 +72,13 @@ fn checked_columns(family: &str) -> (&'static [&'static str], &'static [&'static
             &["total_amount_transferred", "voter_registration_amount", "voter_id_amount", "gotv_amount", "generic_campaign_amount"],
         ),
         "H6" => (&["expenditure_date"], &["total_amount", "federal_share", "levin_share", "event_year_to_date"]),
+        "F56" | "F65" => (&["contribution_date"], &["contribution_amount"]),
+        "F57" => (&["dissemination_date"], &["expenditure_amount", "calendar_y_t_d_per_election_office"]),
+        "F76" => (&["communication_date"], &["communication_cost"]),
+        "F92" => (&["contribution_date"], &["contribution_amount"]),
+        "F93" => (&["expenditure_date", "communication_date"], &["expenditure_amount"]),
+        "F132" => (&["donation_date"], &["donation_amount", "donation_aggregate_amount"]),
+        "F133" => (&["refund_date"], &["refund_amount"]),
         _ => (&[], &[]),
     }
 }

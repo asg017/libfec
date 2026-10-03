@@ -61,9 +61,19 @@ use crate::covers::{Address, PersonName};
 
 #[cfg(feature = "python")]
 pub mod python;
+mod form13_items;
+mod form5_items;
+mod form6_items;
+mod form7_items;
+mod form9_items;
 mod schedule_a;
 mod schedule_b;
 
+pub use form13_items::{Form13Donation, Form13Refund};
+pub use form5_items::{Form5Contribution, Form5Expenditure};
+pub use form6_items::Form6Contribution;
+pub use form7_items::Form7Communication;
+pub use form9_items::{Form9Candidate, Form9ControllingPerson, Form9Disbursement, Form9Donation};
 pub use schedule_a::ScheduleA;
 pub use schedule_b::ScheduleB;
 mod schedule_d;
@@ -112,6 +122,26 @@ pub enum Itemization {
     ScheduleH5(Box<ScheduleH5>),
     #[serde(rename = "H6")]
     ScheduleH6(Box<ScheduleH6>),
+    #[serde(rename = "F56")]
+    Form5Contribution(Box<Form5Contribution>),
+    #[serde(rename = "F57")]
+    Form5Expenditure(Box<Form5Expenditure>),
+    #[serde(rename = "F65")]
+    Form6Contribution(Box<Form6Contribution>),
+    #[serde(rename = "F76")]
+    Form7Communication(Box<Form7Communication>),
+    #[serde(rename = "F91")]
+    Form9ControllingPerson(Box<Form9ControllingPerson>),
+    #[serde(rename = "F92")]
+    Form9Donation(Box<Form9Donation>),
+    #[serde(rename = "F93")]
+    Form9Disbursement(Box<Form9Disbursement>),
+    #[serde(rename = "F94")]
+    Form9Candidate(Box<Form9Candidate>),
+    #[serde(rename = "F132")]
+    Form13Donation(Box<Form13Donation>),
+    #[serde(rename = "F133")]
+    Form13Refund(Box<Form13Refund>),
 }
 
 /// The record family of a row type: `SA11AI` → `SA`, `SC1/10` → `SC1`,
@@ -167,6 +197,18 @@ impl Itemization {
             "H4" => Itemization::ScheduleH4(Box::new(ScheduleH4::from_data(data)?)),
             "H5" => Itemization::ScheduleH5(Box::new(ScheduleH5::from_data(data)?)),
             "H6" => Itemization::ScheduleH6(Box::new(ScheduleH6::from_data(data)?)),
+            "F56" => Itemization::Form5Contribution(Box::new(Form5Contribution::from_data(data)?)),
+            "F57" => Itemization::Form5Expenditure(Box::new(Form5Expenditure::from_data(data)?)),
+            "F65" => Itemization::Form6Contribution(Box::new(Form6Contribution::from_data(data)?)),
+            "F76" => Itemization::Form7Communication(Box::new(Form7Communication::from_data(data)?)),
+            "F91" => Itemization::Form9ControllingPerson(Box::new(
+                Form9ControllingPerson::from_data(data)?,
+            )),
+            "F92" => Itemization::Form9Donation(Box::new(Form9Donation::from_data(data)?)),
+            "F93" => Itemization::Form9Disbursement(Box::new(Form9Disbursement::from_data(data)?)),
+            "F94" => Itemization::Form9Candidate(Box::new(Form9Candidate::from_data(data)?)),
+            "F132" => Itemization::Form13Donation(Box::new(Form13Donation::from_data(data)?)),
+            "F133" => Itemization::Form13Refund(Box::new(Form13Refund::from_data(data)?)),
             _ => return None,
         })
     }
@@ -184,6 +226,16 @@ impl Itemization {
             Itemization::ScheduleH4(s) => &s.form_type,
             Itemization::ScheduleH5(s) => &s.form_type,
             Itemization::ScheduleH6(s) => &s.form_type,
+            Itemization::Form5Contribution(s) => &s.form_type,
+            Itemization::Form5Expenditure(s) => &s.form_type,
+            Itemization::Form6Contribution(s) => &s.form_type,
+            Itemization::Form7Communication(s) => &s.form_type,
+            Itemization::Form9ControllingPerson(s) => &s.form_type,
+            Itemization::Form9Donation(s) => &s.form_type,
+            Itemization::Form9Disbursement(s) => &s.form_type,
+            Itemization::Form9Candidate(s) => &s.form_type,
+            Itemization::Form13Donation(s) => &s.form_type,
+            Itemization::Form13Refund(s) => &s.form_type,
         }
     }
 
@@ -201,6 +253,16 @@ impl Itemization {
             Itemization::ScheduleH4(s) => s.transaction_id.as_deref(),
             Itemization::ScheduleH5(s) => s.transaction_id.as_deref(),
             Itemization::ScheduleH6(s) => s.transaction_id.as_deref(),
+            Itemization::Form5Contribution(s) => s.transaction_id.as_deref(),
+            Itemization::Form5Expenditure(s) => s.transaction_id.as_deref(),
+            Itemization::Form6Contribution(s) => s.transaction_id.as_deref(),
+            Itemization::Form7Communication(s) => s.transaction_id.as_deref(),
+            Itemization::Form9ControllingPerson(s) => s.transaction_id.as_deref(),
+            Itemization::Form9Donation(s) => s.transaction_id.as_deref(),
+            Itemization::Form9Disbursement(s) => s.transaction_id.as_deref(),
+            Itemization::Form9Candidate(s) => s.transaction_id.as_deref(),
+            Itemization::Form13Donation(s) => s.transaction_id.as_deref(),
+            Itemization::Form13Refund(s) => s.transaction_id.as_deref(),
         }
     }
 

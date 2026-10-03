@@ -1,0 +1,58 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"F65_1912946.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "F65",
+    "form_type": "F65",
+    "filer_committee_id": "C00908301",
+    "transaction_id": "F65-882",
+    "contributor": {
+      "entity_type": "IND",
+      "organization_name": null,
+      "name": {
+        "first_name": "MARY",
+        "last_name": "NORTHROP",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "11602 LAWTER LN",
+        "street_2": null,
+        "city": "CLIFTON",
+        "state": "VA",
+        "zip_code": "20124"
+      }
+    },
+    "contributor_fec_id": null,
+    "contribution_date": "2025-08-22",
+    "contribution_amount": 1000.0,
+    "contributor_employer": "RETIRED",
+    "contributor_occupation": "RETIRED",
+    "candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "image_number": null
+  }
+]

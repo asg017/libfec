@@ -67,6 +67,32 @@ cover_class!(
     "activity_label" py_activity_label = activity_label -> Label,
 );
 
+cover_class!(Form5Contribution);
+cover_class!(
+    Form5Expenditure,
+    "election_code_label" py_election_code_label = election_code_label -> Label,
+    "support_oppose_label" py_support_oppose_label = support_oppose_label -> Label,
+    "category_code_label" py_category_code_label = category_code_label -> Label,
+);
+cover_class!(Form6Contribution);
+cover_class!(
+    Form7Communication,
+    "election_code_label" py_election_code_label = election_code_label -> Label,
+    "support_oppose_label" py_support_oppose_label = support_oppose_label -> Label,
+);
+cover_class!(Form9ControllingPerson);
+cover_class!(Form9Donation);
+cover_class!(
+    Form9Disbursement,
+    "election_code_label" py_election_code_label = election_code_label -> Label,
+);
+cover_class!(
+    Form9Candidate,
+    "election_code_label" py_election_code_label = election_code_label -> Label,
+);
+cover_class!(Form13Donation);
+cover_class!(Form13Refund);
+
 /// An [`Itemization`] as an instance of its schedule's class.
 pub fn itemization_to_py(py: Python<'_>, item: Itemization) -> PyResult<Bound<'_, PyAny>> {
     Ok(match item {
@@ -80,6 +106,16 @@ pub fn itemization_to_py(py: Python<'_>, item: Itemization) -> PyResult<Bound<'_
         Itemization::ScheduleH4(s) => Bound::new(py, *s)?.into_any(),
         Itemization::ScheduleH5(s) => Bound::new(py, *s)?.into_any(),
         Itemization::ScheduleH6(s) => Bound::new(py, *s)?.into_any(),
+        Itemization::Form5Contribution(s) => Bound::new(py, *s)?.into_any(),
+        Itemization::Form5Expenditure(s) => Bound::new(py, *s)?.into_any(),
+        Itemization::Form6Contribution(s) => Bound::new(py, *s)?.into_any(),
+        Itemization::Form7Communication(s) => Bound::new(py, *s)?.into_any(),
+        Itemization::Form9ControllingPerson(s) => Bound::new(py, *s)?.into_any(),
+        Itemization::Form9Donation(s) => Bound::new(py, *s)?.into_any(),
+        Itemization::Form9Disbursement(s) => Bound::new(py, *s)?.into_any(),
+        Itemization::Form9Candidate(s) => Bound::new(py, *s)?.into_any(),
+        Itemization::Form13Donation(s) => Bound::new(py, *s)?.into_any(),
+        Itemization::Form13Refund(s) => Bound::new(py, *s)?.into_any(),
     })
 }
 
@@ -102,6 +138,16 @@ pub fn add_classes(module: &Bound<'_, PyModule>) -> PyResult<()> {
         ScheduleH4,
         ScheduleH5,
         ScheduleH6,
+        Form5Contribution,
+        Form5Expenditure,
+        Form6Contribution,
+        Form7Communication,
+        Form9ControllingPerson,
+        Form9Donation,
+        Form9Disbursement,
+        Form9Candidate,
+        Form13Donation,
+        Form13Refund,
     );
     Ok(())
 }
