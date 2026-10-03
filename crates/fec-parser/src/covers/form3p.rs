@@ -43,6 +43,7 @@ use jiff::civil::Date;
     pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, serde::Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct Form3P {
     /// Form type as filed, e.g. `F3PN`: the base form plus the
     /// amendment-indicator suffix (see [`crate::covers::base_form_type`]).
@@ -175,6 +176,7 @@ impl Form3P {
     pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, serde::Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct Form3PSummary {
     /// Line 6, cash on hand at beginning of reporting period
     /// (`col_a_cash_on_hand_beginning_period`;
@@ -269,6 +271,7 @@ fn row_dup(data: &Data, col_a_dup: &str, col_a: &str, col_b: &str) -> DetailedSu
     pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, serde::Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct Form3PDetailedSummaryReceipts {
     /// Line 16, federal funds received this period, all itemized on Schedule
     /// A-P (`col_a_federal_funds`, `col_b_federal_funds`;
@@ -433,6 +436,7 @@ impl Form3PDetailedSummaryReceipts {
     pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, serde::Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct Form3PDetailedSummaryDisbursements {
     /// Line 23, operating expenditures, e.g. advertising, salaries, travel,
     /// rent, telephones (`col_a_operating_expenditures`,
@@ -559,6 +563,7 @@ impl Form3PDetailedSummaryDisbursements {
     pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, serde::Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct Form3PDetailedSummary {
     /// Part I, Receipts (Lines 16–22).
     pub receipts: Form3PDetailedSummaryReceipts,
@@ -605,6 +610,7 @@ impl Form3PDetailedSummary {
     pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, serde::Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct Form3PStateAllocations {
     /// The 54 jurisdictions in the order the form prints them (50 states,
     /// District of Columbia, Puerto Rico, Guam, Virgin Islands).
@@ -621,6 +627,7 @@ pub struct Form3PStateAllocations {
     pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, serde::Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct Form3PStateAllocation {
     /// The state as printed on the form, e.g. `"District of Columbia"`
     /// ([fecfrm3p.pdf p5](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm3p.pdf#page=5)).

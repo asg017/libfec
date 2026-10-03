@@ -42,6 +42,7 @@ use crate::itemizations::CandidateRef;
     )
 )]
 #[derive(Debug, Clone, serde::Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct Form7Communication {
     /// The row type as filed, `F76`. Column `form_type` (FEC format workbook
     /// v8.4, sheet `F76`, field 1).

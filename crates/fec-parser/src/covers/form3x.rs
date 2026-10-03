@@ -68,6 +68,7 @@ use serde::Serialize;
     pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct Form3X {
     /// Form type as filed, e.g. `F3XN`: the base form plus the
     /// amendment-indicator suffix (see [`crate::covers::base_form_type`]).
@@ -246,6 +247,7 @@ fn row_dup(data: &Data, name: &str) -> DetailedSummaryRow {
     pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct Form3XSummary {
     /// Line 6(a), "Cash on Hand January 1, YYYY": cash on hand at the
     /// beginning of the calendar year. **Column B only**
@@ -316,6 +318,7 @@ impl Form3XSummary {
     pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct Form3XDetailedSummary {
     /// Section I, Receipts (Lines 11–20).
     pub receipts: Form3XReceipts,
@@ -343,6 +346,7 @@ impl Form3XDetailedSummary {
     pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct Form3XReceipts {
     /// Line 11(a)(i), contributions from individuals/persons other than
     /// political committees, itemized on Schedule A (persons aggregating over
@@ -469,6 +473,7 @@ impl Form3XReceipts {
     pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct Form3XDisbursements {
     /// Line 21(a)(i), shared federal/nonfederal operating expenditures,
     /// federal share, from Schedule H4
@@ -633,6 +638,7 @@ impl Form3XDisbursements {
     pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct Form3XNetContributionsAndOperatingExpenditures {
     /// Line 33, total contributions (other than loans), from Line 11(d)
     /// (`col_a_total_contributions_TODO_DUP`,

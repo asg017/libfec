@@ -21,8 +21,13 @@ anyhow = "1.0.99"
 # Python bindings (`crates/fec-py`) expose them as-is instead of mirroring them.
 pyo3 = { version = "0.29", optional = true, features = ["jiff-02"] }
 
+# `ts`: `ts_rs::TS` on the typed covers and itemizations, so the Node bindings
+# (`crates/fec-node`) generate their TypeScript types from these structs.
+ts-rs = { version = "=12.0.1", optional = true, features = ["jiff-impl", "no-serde-warnings"] }
+
 [features]
 python = ["dep:pyo3"]
+ts = ["dep:ts-rs"]
 
 [dev-dependencies]
 insta = { version = "1.45.0", features = ["json"] }

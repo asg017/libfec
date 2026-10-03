@@ -57,6 +57,7 @@ use crate::itemizations::text_any;
     )
 )]
 #[derive(Debug, Clone, serde::Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct ScheduleL {
     /// The row type as filed, `SL`. Column `form_type` (FEC format workbook
     /// v8.4, sheet `Sch L`, field 1).
