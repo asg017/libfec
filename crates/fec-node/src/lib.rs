@@ -7,6 +7,10 @@ use std::io::Read;
 
 use napi_derive::napi;
 
+#[cfg(debug_assertions)]
+pub mod debug;
+pub mod tokens;
+
 /// The crate version (lockstep with the workspace).
 #[napi]
 pub fn version() -> &'static str {
