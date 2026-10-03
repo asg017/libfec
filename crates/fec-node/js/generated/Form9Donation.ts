@@ -17,7 +17,7 @@ import type { Entity } from "./Entity.js";
  * lists only donations made "for the purpose of furthering electioneering
  * communications" ([fecfrm9i.pdf p2–3](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm9i.pdf#page=2)).
  *
- * # Versions
+ * #### Versions
  *
  * v6.1–8.5 share the 19-field layout. The v5.x `F92` layout is the
  * Schedule A one (see the module docs): a combined `contributor_name` until
@@ -27,6 +27,8 @@ import type { Entity } from "./Entity.js";
  * `F92`), so they are not read. Paper layouts have no transaction ID,
  * back reference or entity type but carry a memo text and an
  * `image_number`.
+ *
+ * @category Itemizations
  */
 export type Form9Donation = { 
 /**

@@ -6,6 +6,8 @@ import type { DetailedSummaryRow } from "./DetailedSummaryRow.js";
  * ([fecfrm3p.pdf p3](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm3p.pdf#page=3)).
  *
  * Column A is "Total This Period", Column B "Election Cycle-to-Date".
+ *
+ * @category Covers
  */
 export type Form3PDetailedSummaryReceipts = { 
 /**

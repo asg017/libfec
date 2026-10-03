@@ -15,10 +15,12 @@
  * breakdown in columns (FEC format workbook v8.4, sheet `Sch H5`, fields
  * 6–10). There is no memo code or back reference.
  *
- * # Versions
+ * #### Versions
  *
  * v6.1–8.5 have all 10 fields; v5.x have them in another order (transaction
  * ID last). Paper layouts have no transaction ID but an `image_number`.
+ *
+ * @category Itemizations
  */
 export type ScheduleH5 = { 
 /**

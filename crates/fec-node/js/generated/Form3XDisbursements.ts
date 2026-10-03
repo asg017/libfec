@@ -5,6 +5,8 @@ import type { DetailedSummaryRow } from "./DetailedSummaryRow.js";
  * Detailed Summary Page, Section II — Disbursements, Lines 21–32
  * ([fecfrm3x.pdf p4](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm3x.pdf#page=4);
  * line instructions [fecfrm3xi.pdf p7–9](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm3xi.pdf#page=7)).
+ *
+ * @category Covers
  */
 export type Form3XDisbursements = { 
 /**

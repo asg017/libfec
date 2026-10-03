@@ -9,6 +9,8 @@ import type { DetailedSummaryRow } from "./DetailedSummaryRow.js";
  * Cycle-to-Date"); Lines 8–10 have one amount. Every line is carried from the
  * Detailed Summary Page or the debt schedules
  * ([fecfrm3i.pdf p3](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm3i.pdf#page=3)).
+ *
+ * @category Covers
  */
 export type Form3Summary = { 
 /**

@@ -57,13 +57,17 @@ export interface CoverSummary {
   readonly filerName: string;
   /** The report code (`"Q1"`, `"M8"`), for forms that have one. */
   readonly reportCode: string | null;
+  /** First day the report covers. */
   readonly coverageFromDate: string | Date | null;
+  /** Last day the report covers. */
   readonly coverageThroughDate: string | Date | null;
 }
 
 /** A row type with no mapping, skipped by `rows()` with `unknownRows: "skip"`. */
 export interface SkippedRow {
+  /** The row type as filed. */
   rowType: string;
+  /** The row's 1-based line. */
   line: number;
 }
 

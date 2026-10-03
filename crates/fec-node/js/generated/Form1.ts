@@ -47,6 +47,8 @@ import type { PersonName } from "./PersonName.js";
  * **Not on this record.** The committee "designation" and "filing frequency"
  * shown on fec.gov are not columns of the `F1` record in any format version,
  * so they are not here.
+ *
+ * @category Covers
  */
 export type Form1 = { 
 /**

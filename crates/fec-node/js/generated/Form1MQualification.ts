@@ -5,6 +5,8 @@ import type { Form1MCandidate } from "./Form1MCandidate.js";
  * Line 5, **status by qualification**
  * ([fecfrm1m.pdf p1](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm1m.pdf#page=1),
  * [fecfrm1mi.pdf p1](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm1mi.pdf#page=1)).
+ *
+ * @category Covers
  */
 export type Form1MQualification = { 
 /**

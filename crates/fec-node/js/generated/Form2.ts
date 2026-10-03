@@ -42,6 +42,8 @@ import type { PersonName } from "./PersonName.js";
  * layouts (6.3 and earlier) both "candidate state" columns are named
  * `candidate_state`, so the second (office state) overwrites the first; see
  * {@link Form2.office_state | office_state}.
+ *
+ * @category Covers
  */
 export type Form2 = { 
 /**

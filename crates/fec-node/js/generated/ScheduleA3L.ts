@@ -29,13 +29,15 @@ import type { Entity } from "./Entity.js";
  * ([fecfrm3l.pdf p2](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm3l.pdf#page=2));
  * they are not read.
  *
- * # Versions
+ * #### Versions
  *
  * v8.0–8.5 have 45 fields; v6.4–7.0 add `contribution_purpose_code`. Paper
  * layouts (P2.6–P3.4) use the ordinary Schedule A names
  * (`contributor_*`, `contribution_amount`, `contribution_aggregate`), have no
  * transaction IDs or entity type, carry an `image_number`, and from P3.2 a
  * `memo_code`.
+ *
+ * @category Itemizations
  */
 export type ScheduleA3L = { 
 /**

@@ -11,6 +11,8 @@ import type { PersonName } from "./PersonName.js";
  * individual, such as a leadership PAC's sponsoring candidate or
  * officeholder, is named in `name` (with `candidate_id`) (FEC format
  * workbook v8.4, sheet `F1`, fields 40–53).
+ *
+ * @category Covers
  */
 export type Form1Affiliated = { 
 /**

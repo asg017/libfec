@@ -6,7 +6,7 @@
  * or to one itemized transaction (FEC format workbook v8.4, sheet `Text`,
  * fields 4–6). Not an FEC form: there is no printed counterpart.
  *
- * # Linking to the record it describes
+ * #### Linking to the record it describes
  *
  * `back_reference_schedule_name` is "the REC TYPE of the form or schedule
  * to which this text record is related" (`F3XN`, `SB21B`, `SC/10`). If
@@ -17,7 +17,7 @@
  * same filing; a blank one means the text is about the whole report (or, in
  * a few filings, a whole schedule line).
  *
- * # Versions
+ * #### Versions
  *
  * v6.1–8.5 have all 6 fields. v3 and v5.x have 4 — `rec_type`,
  * `back_reference_sched_form_name`, `back_reference_tran_id_number`, `text`,
@@ -25,6 +25,8 @@
  * their own. The legacy `[BEGINTEXT]` … `[ENDTEXT]` blocks are not `TEXT`
  * records: `Filing::next_row` skips them, and the one on a Form 99
  * cover is read into {@link Form99.text}.
+ *
+ * @category Itemizations
  */
 export type TextRecord = { 
 /**

@@ -7,6 +7,8 @@ import type { DetailedSummaryRow } from "./DetailedSummaryRow.js";
  * Column A is This Period, Column B Calendar Year-to-Date; see {@link Form3X}.
  * Filers complete the Detailed Summary first and carry its totals here
  * ([fecfrm3xi.pdf p4](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm3xi.pdf#page=4)).
+ *
+ * @category Covers
  */
 export type Form3XSummary = { 
 /**

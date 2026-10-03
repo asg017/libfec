@@ -3,6 +3,8 @@ import type { DetailedSummaryRow } from "./DetailedSummaryRow.js";
 
 /**
  * One state's row on the Form 3P state allocation pages.
+ *
+ * @category Covers
  */
 export type Form3PStateAllocation = { 
 /**

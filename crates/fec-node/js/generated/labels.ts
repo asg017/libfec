@@ -25,6 +25,8 @@ const ELECTIONCODELABEL_TABLE: Readonly<Record<string, string>> = {
  *
  * Returns `null` for `null`, `undefined` and unknown codes. Mirrors Rust's
  * `fec_parser::covers::election_code_label`.
+ *
+ * @category Labels
  */
 export function electionCodeLabel(code: string | null | undefined): string | null {
   if (code == null) return null;
@@ -49,6 +51,8 @@ const OFFICELABEL_TABLE: Readonly<Record<string, string>> = {
  *
  * Returns `null` for `null`, `undefined` and unknown codes. Mirrors Rust's
  * `fec_parser::covers::office_label`.
+ *
+ * @category Labels
  */
 export function officeLabel(code: string | null | undefined): string | null {
   if (code == null) return null;
@@ -76,6 +80,8 @@ const PARTYLABEL_TABLE: Readonly<Record<string, string>> = {
  *
  * Returns `null` for `null`, `undefined` and unknown codes. Mirrors Rust's
  * `fec_parser::covers::party_label`.
+ *
+ * @category Labels
  */
 export function partyLabel(code: string | null | undefined): string | null {
   if (code == null) return null;
@@ -101,6 +107,8 @@ const ENTITYTYPELABEL_TABLE: Readonly<Record<string, string>> = {
  *
  * Returns `null` for `null`, `undefined` and unknown codes. Mirrors Rust's
  * `fec_parser::itemizations::entity_type_label`.
+ *
+ * @category Labels
  */
 export function entityTypeLabel(code: string | null | undefined): string | null {
   if (code == null) return null;
@@ -128,6 +136,8 @@ const SUPPORTOPPOSELABEL_TABLE: Readonly<Record<string, string>> = {
  *
  * Returns `null` for `null`, `undefined` and unknown codes. Mirrors Rust's
  * `fec_parser::itemizations::support_oppose_label`.
+ *
+ * @category Labels
  */
 export function supportOpposeLabel(code: string | null | undefined): string | null {
   if (code == null) return null;
@@ -168,6 +178,8 @@ const CATEGORYCODELABEL_TABLE: Readonly<Record<string, string>> = {
  *
  * Returns `null` for `null`, `undefined` and unknown codes. Mirrors Rust's
  * `fec_parser::itemizations::category_code_label`.
+ *
+ * @category Labels
  */
 export function categoryCodeLabel(code: string | null | undefined): string | null {
   if (code == null) return null;

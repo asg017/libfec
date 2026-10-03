@@ -35,6 +35,8 @@ import type { PersonName } from "./PersonName.js";
  * arithmetic identity on the form (e.g. Line 7 = Line 22 Column A, Line 14 =
  * 17(e) Column B − 28(d) Column B, the state allocation totals) holds on 100%
  * of records with this column mapping; see `wiki/covers/F3P.md`.
+ *
+ * @category Covers
  */
 export type Form3P = { 
 /**

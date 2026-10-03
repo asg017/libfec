@@ -1,4 +1,4 @@
-.PHONY: install build build-release test test-node test-deno test-bun test-slow bench typecheck gen-types clean
+.PHONY: install build build-release test test-node test-deno test-bun test-slow bench typecheck gen-types docs clean
 
 install:                       ## one-time: npm ci
 	npm ci
@@ -40,6 +40,9 @@ gen-types:                     ## regenerate js/generated/ from fec-parser (comm
 	rm -rf $(GEN_SCRATCH)
 	cargo run -q -p fec-node --features gen-types --bin gen-types -- $(GEN_SCRATCH)
 	node scripts/gen-types.mjs $(GEN_SCRATCH)
+
+docs:                          ## TypeDoc -> site/reference/node (needs `make build` for native/native.d.ts)
+	npx typedoc
 
 clean:
 	rm -rf dist native node_modules

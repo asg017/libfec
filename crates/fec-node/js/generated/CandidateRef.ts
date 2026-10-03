@@ -7,13 +7,28 @@ import type { PersonName } from "./PersonName.js";
  * expenditure supports or opposes. Office is `H`, `S` or `P`; state and
  * district identify the seat (e.g. FEC format workbook v8.4, sheet `Sch A`,
  * fields 28–36).
+ *
+ * @category Shared
  */
 export type CandidateRef = { 
 /**
  * The candidate's FEC ID (`H0VA01234`).
  */
-fec_id: string | null, name: PersonName, 
+fec_id: string | null, 
+/**
+ * The candidate's name.
+ */
+name: PersonName, 
 /**
  * `H` House, `S` Senate, `P` President; see {@link officeLabel}.
  */
-office: string | null, state: string | null, district: string | null, };
+office: string | null, 
+/**
+ * The state of the seat sought (two-letter code); for a presidential
+ * candidate, usually blank or `US`.
+ */
+state: string | null, 
+/**
+ * The congressional district of a House seat (`01`); blank otherwise.
+ */
+district: string | null, };

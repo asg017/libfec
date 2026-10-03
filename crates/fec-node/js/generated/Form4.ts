@@ -47,6 +47,8 @@ import type { PersonName } from "./PersonName.js";
  * `_TODO_DUP` suffix, so the Line 6(c)/7 and 20/25 columns collide and both
  * read the Line 20/25 value, which the instructions require to be equal
  * anyway.
+ *
+ * @category Covers
  */
 export type Form4 = { 
 /**

@@ -14,12 +14,14 @@ import type { Entity } from "./Entity.js";
  * ([fecfrm13i.pdf p2](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm13i.pdf#page=2)).
  * Unlike {@link Form13Donation} there is no aggregate.
  *
- * # Versions
+ * #### Versions
  *
  * v6.1–8.5 share the 21-field layout. v5.2–5.3 put the transaction ID and
  * back reference at the end and have no memo columns (FEC format workbook
  * v5.3, sheet `F133`). Paper layouts have no transaction ID, back reference
  * or entity type but carry an `image_number` (and a memo code from P3.2).
+ *
+ * @category Itemizations
  */
 export type Form13Refund = { 
 /**

@@ -16,6 +16,8 @@ import type { Form3PStateAllocation } from "./Form3PStateAllocation.js";
  * For each state, Column A is "Allocation This Period" (`col_a_<state>`) and
  * Column B "Total Allocation To Date" (`col_b_<state>`)
  * ([fecfrm3p.pdf p5](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm3p.pdf#page=5)).
+ *
+ * @category Covers
  */
 export type Form3PStateAllocations = { 
 /**

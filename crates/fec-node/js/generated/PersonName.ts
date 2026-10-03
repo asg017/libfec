@@ -6,5 +6,27 @@
  * Read with a column prefix: `PersonName::from_prefixed(data, "treasurer_")`
  * reads `treasurer_last_name`, `treasurer_first_name`, `treasurer_middle_name`,
  * `treasurer_prefix` and `treasurer_suffix`.
+ *
+ * @category Shared
  */
-export type PersonName = { first_name: string, last_name: string, middle_name: string | null, prefix: string | null, suffix: string | null, };
+export type PersonName = { 
+/**
+ * First name; `""` when not given.
+ */
+first_name: string, 
+/**
+ * Last name (surname); `""` when not given.
+ */
+last_name: string, 
+/**
+ * Middle name or initial.
+ */
+middle_name: string | null, 
+/**
+ * Name prefix (`Mr.`, `Dr.`).
+ */
+prefix: string | null, 
+/**
+ * Name suffix (`Jr.`, `III`).
+ */
+suffix: string | null, };

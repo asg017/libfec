@@ -44,6 +44,8 @@ import type { PersonName } from "./PersonName.js";
  * ([fecfrm3posti.pdf p1](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm3posti.pdf#page=1));
  * the `F3` record has no Column C, and the FEC sources do not say which paper
  * column the record's Column B holds on such a report.
+ *
+ * @category Covers
  */
 export type Form3 = { 
 /**

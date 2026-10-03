@@ -7,6 +7,8 @@ import type { DetailedSummaryRow } from "./DetailedSummaryRow.js";
  * ([fecfrm4.pdf p2](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm4.pdf#page=2)).
  * The (a)/(b) boxes are Column A (This Period) only; the subtotal has both
  * columns.
+ *
+ * @category Covers
  */
 export type Form4ItemizedLine = { 
 /**

@@ -31,7 +31,7 @@ import type { ScheduleFCommittee } from "./ScheduleFCommittee.js";
  * under the party guide's recommended method they are memo entries
  * ([partygui.pdf p130](https://www.fec.gov/resources/cms-content/documents/policy-guidance/partygui.pdf#page=130)).
  *
- * # Versions
+ * #### Versions
  *
  * v8.0–8.5 have all 44 fields. v5.0–7.0 add `expenditure_purpose_code`,
  * and v5.0–6.3 `increased_limit`. v2–5.x have one combined `payee_name`
@@ -41,6 +41,8 @@ import type { ScheduleFCommittee } from "./ScheduleFCommittee.js";
  * designating committee's address instead of a subordinate committee and
  * has no entity type. Paper layouts have no transaction IDs, entity type or
  * committee IDs but carry an `image_number`.
+ *
+ * @category Itemizations
  */
 export type ScheduleF = { 
 /**

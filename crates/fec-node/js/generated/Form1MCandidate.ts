@@ -7,6 +7,8 @@ import type { PersonName } from "./PersonName.js";
  * ([fecfrm1m.pdf p1](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm1m.pdf#page=1)).
  * Column names below use `first_` for row (i); rows (ii)–(v) use `second_`
  * … `fifth_` (fields 13–22, 23–32, 33–42, 43–52, 53–62).
+ *
+ * @category Covers
  */
 export type Form1MCandidate = { 
 /**

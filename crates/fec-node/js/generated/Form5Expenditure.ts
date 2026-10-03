@@ -22,7 +22,7 @@ import type { Entity } from "./Entity.js";
  * public dissemination, so a row can be an obligation rather than a payment
  * ([fecfrm5i.pdf p2](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm5i.pdf#page=2)).
  *
- * # Versions
+ * #### Versions
  *
  * v8.1–8.5 and v8.0 have the 33-field layout; v6.1–7.0 add
  * `expenditure_purpose_code`. v2–5.x (FEC format workbook v5.3, sheet `F57`)
@@ -34,6 +34,8 @@ import type { Entity } from "./Entity.js";
  * legacy `amended_code` are not read. v1 has no entity type or transaction
  * ID. Paper layouts have no transaction ID, entity type, candidate ID or
  * payee committee ID but carry an `image_number`.
+ *
+ * @category Itemizations
  */
 export type Form5Expenditure = { 
 /**

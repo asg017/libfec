@@ -20,7 +20,7 @@ import type { Entity } from "./Entity.js";
  * the loan's original source instead
  * ([fecfrm3xi.pdf p16](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm3xi.pdf#page=16)).
  *
- * # Versions
+ * #### Versions
  *
  * v6.1–8.4 have 17 fields, a guarantor identified by a person's name only.
  * v8.5 adds three columns, `guarantor_entity`, `guarantor_organization_name`
@@ -32,6 +32,8 @@ import type { Entity } from "./Entity.js";
  * Schedule C-2: its guarantors are on the Schedule C row
  * ({@link ScheduleC.guarantors}). Paper layouts carry an
  * `image_number`.
+ *
+ * @category Itemizations
  */
 export type ScheduleC2 = { 
 /**

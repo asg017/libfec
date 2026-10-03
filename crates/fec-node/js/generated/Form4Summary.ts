@@ -5,6 +5,8 @@ import type { DetailedSummaryRow } from "./DetailedSummaryRow.js";
  * Page 1, Summary Page
  * ([fecfrm4.pdf p1](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm4.pdf#page=1)).
  * Column A = This Period, Column B = Calendar Year-to-Date.
+ *
+ * @category Covers
  */
 export type Form4Summary = { 
 /**

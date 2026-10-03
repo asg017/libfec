@@ -35,6 +35,8 @@ import type { PersonName } from "./PersonName.js";
  * (`P2.6`–`P3.4`) name the Line 5 state-of-election column `election_state`
  * a second time; `fec-parser` renames that second copy
  * `election_state_TODO_DUP`, which {@link Form3L.election_held_in_state} reads.
+ *
+ * @category Covers
  */
 export type Form3L = { 
 /**

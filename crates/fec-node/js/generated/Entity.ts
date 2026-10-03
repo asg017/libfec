@@ -8,6 +8,8 @@ import type { PersonName } from "./PersonName.js";
  * organization name (required unless the entity is an individual or a
  * candidate) and a person's name (required for those two), and an address
  * (e.g. FEC format workbook v8.4, sheet `Sch A`, fields 6–17).
+ *
+ * @category Shared
  */
 export type Entity = { 
 /**
@@ -22,4 +24,8 @@ organization_name: string | null,
 /**
  * The person's name, for an individual or a candidate.
  */
-name: PersonName, address: Address, };
+name: PersonName, 
+/**
+ * The entity's mailing address.
+ */
+address: Address, };

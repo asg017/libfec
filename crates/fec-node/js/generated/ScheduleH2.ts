@@ -18,11 +18,13 @@
  * free text matched only as typed. Administrative and generic voter drive
  * ratios are on Schedule H1.
  *
- * # Versions
+ * #### Versions
  *
  * v6.1–8.5 have all 9 fields. v1–5.x add an `exempt_activity` box and put
  * the transaction ID last. Paper layouts have no transaction ID but an
  * `image_number`.
+ *
+ * @category Itemizations
  */
 export type ScheduleH2 = { 
 /**

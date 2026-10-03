@@ -8,6 +8,8 @@ import type { PersonName } from "./PersonName.js";
  * name, office, state, district and party; a committee supporting or
  * opposing a single candidate (5(c)) gives the candidate's name
  * ([fecfrm1.pdf p2](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm1.pdf#page=2)).
+ *
+ * @category Covers
  */
 export type Form1Candidate = { 
 /**

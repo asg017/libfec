@@ -30,11 +30,13 @@ import type { PersonName } from "./PersonName.js";
  * ([fecfrm6i.pdf p1](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm6i.pdf#page=1)),
  * so Form 6 amounts and regular-report receipts overlap.
  *
- * # Versions
+ * #### Versions
  *
  * v8.0–8.5 carry all 24 fields. v6.1–7.0 lack `original_amendment_date`. v3
  * and v5.x give the candidate as one caret-delimited `candidate_name` (read
  * into {@link Form6Candidate.name}) and have no signer name columns.
+ *
+ * @category Covers
  */
 export type Form6 = { 
 /**

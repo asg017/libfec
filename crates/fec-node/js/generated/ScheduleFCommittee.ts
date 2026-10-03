@@ -5,12 +5,18 @@ import type { Address } from "./Address.js";
  * A committee named on Schedule F's designation block: the designating
  * committee or the subordinate committee (FEC format workbook v8.4, sheet
  * `Sch F`, fields 7–15).
+ *
+ * @category Itemizations
  */
 export type ScheduleFCommittee = { 
 /**
  * The committee's FEC ID; electronic-only.
  */
-fec_id: string | null, name: string | null, 
+fec_id: string | null, 
+/**
+ * The committee's name.
+ */
+name: string | null, 
 /**
  * Given for the subordinate committee (v2+) and, in v1 only, the
  * designating committee; empty otherwise.

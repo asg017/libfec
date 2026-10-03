@@ -60,6 +60,9 @@ jobs:
       - name: tsc --noEmit
         if: matrix.os == 'ubuntu-latest' && matrix.runtime == 'node24'
         run: make typecheck
+      - name: TypeDoc (no undocumented exports, no broken links)
+        if: matrix.os == 'ubuntu-latest' && matrix.runtime == 'node24'
+        run: make docs
       - name: Generated types are up to date
         # js/generated/ is committed; regenerating from fec-parser must not
         # change it (edit the Rust structs, then `make gen-types`).

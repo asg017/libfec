@@ -30,13 +30,13 @@ import type { PersonName } from "./PersonName.js";
  * The quoted questions below are printed on the form
  * ([fecfrm3x.pdf p9](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm3x.pdf#page=9)).
  *
- * # Amounts
+ * #### Amounts
  *
  * `loan_amount` is the record's amount (`f64`, blank `0.0`; required,
  * workbook field 11). The others answer one section each and are
  * `Option<f64>`: blank means the section does not apply.
  *
- * # Terms
+ * #### Terms
  *
  * The incurred date is `YYYYMMDD` (workbook field 13) and typed. The due
  * date and interest rate are 15-character text (fields 12 and 14) that
@@ -44,7 +44,7 @@ import type { PersonName } from "./PersonName.js";
  * `WSJ Prime`, …; they are kept as written, and
  * `ScheduleC1::loan_due_date` reads the due date when it is one.
  *
- * # Versions
+ * #### Versions
  *
  * v6.1–8.5 have all 48 fields. v2–5.x have no transaction ID, an
  * `entity_type`, and one combined `treasurer_name` and `authorized_name`
@@ -54,6 +54,8 @@ import type { PersonName } from "./PersonName.js";
  * `Fec_v1.rtf`, Schedule C1 field 3), read as
  * `back_reference_transaction_id`. Paper layouts have neither ID but carry
  * an `image_number`.
+ *
+ * @category Itemizations
  */
 export type ScheduleC1 = { 
 /**

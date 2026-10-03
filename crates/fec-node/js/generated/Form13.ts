@@ -28,6 +28,8 @@ import type { PersonName } from "./PersonName.js";
  * **Versions.** All layouts (v5.2 onwards, and the paper `P3.x` layouts) use
  * the same column names; v5.2–5.3 only order `change_of_address` after the
  * address.
+ *
+ * @category Covers
  */
 export type Form13 = { 
 /**

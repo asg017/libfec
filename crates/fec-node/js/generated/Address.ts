@@ -6,5 +6,27 @@
  * Read with a column prefix: `Address::from_prefixed(data, "")` reads
  * `street_1`, `street_2`, `city`, `state`, `zip_code`; with `"candidate_"` it
  * reads `candidate_street_1`, … .
+ *
+ * @category Shared
  */
-export type Address = { street_1: string | null, street_2: string | null, city: string | null, state: string | null, zip_code: string | null, };
+export type Address = { 
+/**
+ * First street line.
+ */
+street_1: string | null, 
+/**
+ * Second street line (suite, unit).
+ */
+street_2: string | null, 
+/**
+ * City.
+ */
+city: string | null, 
+/**
+ * State or territory, as its two-letter postal code (`CA`).
+ */
+state: string | null, 
+/**
+ * ZIP code, 5 or 9 digits as filed.
+ */
+zip_code: string | null, };

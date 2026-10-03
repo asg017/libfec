@@ -4,6 +4,8 @@ import type { PersonName } from "./PersonName.js";
 
 /**
  * Form 9 Line 9, custodian of records.
+ *
+ * @category Covers
  */
 export type Form9Custodian = { 
 /**
