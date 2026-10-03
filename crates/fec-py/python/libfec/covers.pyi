@@ -3728,19 +3728,19 @@ class PersonName:
     `treasurer_prefix` and `treasurer_suffix`."""
     @property
     def first_name(self) -> str:
-        ...
+        """First name; `""` when not given."""
     @property
     def last_name(self) -> str:
-        ...
+        """Last name (surname); `""` when not given."""
     @property
     def middle_name(self) -> str | None:
-        ...
+        """Middle name or initial."""
     @property
     def prefix(self) -> str | None:
-        ...
+        """Name prefix (`Mr.`, `Dr.`)."""
     @property
     def suffix(self) -> str | None:
-        ...
+        """Name suffix (`Jr.`, `III`)."""
     def is_empty(self) -> bool:
         """True when every part of the name is blank."""
     def to_dict(self) -> dict[str, Any]:
@@ -3756,19 +3756,19 @@ class Address:
     reads `candidate_street_1`, … ."""
     @property
     def street_1(self) -> str | None:
-        ...
+        """First street line."""
     @property
     def street_2(self) -> str | None:
-        ...
+        """Second street line (suite, unit)."""
     @property
     def city(self) -> str | None:
-        ...
+        """City."""
     @property
     def state(self) -> str | None:
-        ...
+        """State or territory, as its two-letter postal code (`CA`)."""
     @property
     def zip_code(self) -> str | None:
-        ...
+        """ZIP code, 5 or 9 digits as filed."""
     def is_empty(self) -> bool:
         ...
     def one_line(self) -> str:
@@ -3781,10 +3781,11 @@ class Address:
 class DetailedSummaryRow:
     @property
     def column_a(self) -> float:
-        ...
+        """Column A: on Forms 3, 3P and 3X, "Total This Period"."""
     @property
     def column_b(self) -> float:
-        ...
+        """Column B: "Election Cycle-to-Date" (Forms 3, 3P) or "Calendar
+        Year-to-Date" (Form 3X)."""
     def to_dict(self) -> dict[str, Any]:
         """The fields as a `dict`, nested covers as nested dicts."""
     def __eq__(self, other: object, /) -> bool: ...
