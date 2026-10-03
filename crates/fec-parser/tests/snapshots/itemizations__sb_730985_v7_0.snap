@@ -1,0 +1,385 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"SB_730985.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "SB",
+    "form_type": "SB17",
+    "filer_committee_id": "C00409219",
+    "transaction_id": "17-5437",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "payee": {
+      "entity_type": "ORG",
+      "organization_name": "AT&T",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "Payment Center",
+        "street_2": null,
+        "city": "Sacramento",
+        "state": "CA",
+        "zip_code": "958870001"
+      }
+    },
+    "election_code": null,
+    "election_other_description": null,
+    "expenditure_date": "2010-11-29",
+    "expenditure_amount": 115.32,
+    "semi_annual_refunded_bundled_amount": 0.0,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "Telephone",
+    "category_code": "001",
+    "beneficiary_committee_fec_id": null,
+    "beneficiary_committee_name": null,
+    "beneficiary_candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "memo": false,
+    "memo_text": null,
+    "reference_code": null,
+    "refund_or_disposal_of_excess": false,
+    "communication_date": null,
+    "image_number": null
+  },
+  {
+    "family": "SB",
+    "form_type": "SB17",
+    "filer_committee_id": "C00409219",
+    "transaction_id": "17-5516",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "payee": {
+      "entity_type": "ORG",
+      "organization_name": "AT&T",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "Payment Center",
+        "street_2": null,
+        "city": "Sacramento",
+        "state": "CA",
+        "zip_code": "958870001"
+      }
+    },
+    "election_code": null,
+    "election_other_description": null,
+    "expenditure_date": "2010-12-28",
+    "expenditure_amount": 126.41,
+    "semi_annual_refunded_bundled_amount": 0.0,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "Telephone",
+    "category_code": "001",
+    "beneficiary_committee_fec_id": null,
+    "beneficiary_committee_name": null,
+    "beneficiary_candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "memo": false,
+    "memo_text": null,
+    "reference_code": null,
+    "refund_or_disposal_of_excess": false,
+    "communication_date": null,
+    "image_number": null
+  },
+  {
+    "family": "SB",
+    "form_type": "SB17",
+    "filer_committee_id": "C00409219",
+    "transaction_id": "17-5505",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "payee": {
+      "entity_type": "ORG",
+      "organization_name": "Automate Mailing",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "8010 Betty Lou Dr.",
+        "street_2": null,
+        "city": "Sacramento",
+        "state": "CA",
+        "zip_code": "958283112"
+      }
+    },
+    "election_code": null,
+    "election_other_description": null,
+    "expenditure_date": "2010-12-17",
+    "expenditure_amount": 5660.29,
+    "semi_annual_refunded_bundled_amount": 0.0,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "Mailing",
+    "category_code": "003",
+    "beneficiary_committee_fec_id": null,
+    "beneficiary_committee_name": null,
+    "beneficiary_candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "memo": false,
+    "memo_text": null,
+    "reference_code": null,
+    "refund_or_disposal_of_excess": false,
+    "communication_date": null,
+    "image_number": null
+  },
+  {
+    "family": "SB",
+    "form_type": "SB17",
+    "filer_committee_id": "C00409219",
+    "transaction_id": "17-5501",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "payee": {
+      "entity_type": "ORG",
+      "organization_name": "Bertolina & Barnato, Inc.",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "1005 12th St  Ste H",
+        "street_2": null,
+        "city": "Sacramento",
+        "state": "CA",
+        "zip_code": "95814"
+      }
+    },
+    "election_code": null,
+    "election_other_description": null,
+    "expenditure_date": "2010-12-10",
+    "expenditure_amount": 3500.0,
+    "semi_annual_refunded_bundled_amount": 0.0,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "Fundraising Fee",
+    "category_code": "003",
+    "beneficiary_committee_fec_id": null,
+    "beneficiary_committee_name": null,
+    "beneficiary_candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "memo": false,
+    "memo_text": null,
+    "reference_code": null,
+    "refund_or_disposal_of_excess": false,
+    "communication_date": null,
+    "image_number": null
+  },
+  {
+    "family": "SB",
+    "form_type": "SB17",
+    "filer_committee_id": "C00409219",
+    "transaction_id": "17-5439",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "payee": {
+      "entity_type": "ORG",
+      "organization_name": "Comcast",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "PO Box 34744",
+        "street_2": null,
+        "city": "Seattle",
+        "state": "WA",
+        "zip_code": "981241744"
+      }
+    },
+    "election_code": null,
+    "election_other_description": null,
+    "expenditure_date": "2010-11-29",
+    "expenditure_amount": 131.06,
+    "semi_annual_refunded_bundled_amount": 0.0,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "Cable Service/DSL Line",
+    "category_code": "001",
+    "beneficiary_committee_fec_id": null,
+    "beneficiary_committee_name": null,
+    "beneficiary_candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "memo": false,
+    "memo_text": null,
+    "reference_code": null,
+    "refund_or_disposal_of_excess": false,
+    "communication_date": null,
+    "image_number": null
+  },
+  {
+    "family": "SB",
+    "form_type": "SB21",
+    "filer_committee_id": "C00409219",
+    "transaction_id": "21-5496",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "payee": {
+      "entity_type": "CCM",
+      "organization_name": "Bishop for Congress Election Protection",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "26 Sebonac Rd.",
+        "street_2": null,
+        "city": "South Hampton",
+        "state": "NY",
+        "zip_code": "11968"
+      }
+    },
+    "election_code": "G2010",
+    "election_other_description": null,
+    "expenditure_date": "2010-12-02",
+    "expenditure_amount": 1000.0,
+    "semi_annual_refunded_bundled_amount": 0.0,
+    "expenditure_purpose_code": "24K",
+    "expenditure_purpose_description": "Political Contribution",
+    "category_code": "011",
+    "beneficiary_committee_fec_id": "C00375618",
+    "beneficiary_committee_name": "Bishop for Congress Election Protection",
+    "beneficiary_candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "Tim",
+        "last_name": "Bishop",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": "H",
+      "state": "NY",
+      "district": "01"
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "memo": false,
+    "memo_text": null,
+    "reference_code": null,
+    "refund_or_disposal_of_excess": false,
+    "communication_date": null,
+    "image_number": null
+  }
+]
