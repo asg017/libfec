@@ -41,7 +41,16 @@ name | sql
     filer_name TEXT NOT NULL,
     report_code TEXT,
     coverage_from_date TEXT,
-    coverage_through_date TEXT
+    coverage_through_date TEXT,
+
+    --- How the filing's header is written: 'hdr' (electronic 3.x and later), 'legacy_block' (electronic 1.x/2.x `/* Header` block), or 'paper' (FEC data entry of a paper filing)
+    header_style TEXT,
+
+    --- Paper filings: the FEC data-entry batch number
+    batch_number TEXT,
+
+    --- Paper filings (P2.6 and later): date the FEC received the paper filing, as written
+    received_date TEXT
   )
 ==== Row 1 ====
 [name]:libfec_F99
