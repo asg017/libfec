@@ -100,14 +100,23 @@ pub struct Row {
     record: csv::StringRecord,
     /// 1-based physical line of the row in the file.
     line: u64,
+    /// The header's name delimiter, for splitting legacy combined names in
+    /// [`Row::itemization`]; `None` means `^`.
+    name_delimiter: Option<Arc<str>>,
 }
 
 impl Row {
-    pub fn new(schema: Arc<Schema>, record: csv::StringRecord, line: u64) -> Self {
+    pub fn new(
+        schema: Arc<Schema>,
+        record: csv::StringRecord,
+        line: u64,
+        name_delimiter: Option<Arc<str>>,
+    ) -> Self {
         Row {
             schema,
             record,
             line,
+            name_delimiter,
         }
     }
 
@@ -180,6 +189,23 @@ impl Row {
     #[getter]
     fn line(&self) -> u64 {
         self.line
+    }
+
+    /// The row as a typed itemization — `ScheduleA`, … from
+    /// `libfec_parser.itemizations` — or `None` for a row that is not one
+    /// (the cover, `TEXT`, …) or whose schedule has no class yet.  Typed anew
+    /// on every access.
+    #[getter]
+    fn itemization(&self, py: Python<'_>) -> PyResult<Option<Py<PyAny>>> {
+        fec_parser::itemizations::Itemization::from_record(
+            &self.record,
+            &self.schema.version,
+            self.name_delimiter.as_deref(),
+        )
+        .map(|item| {
+            fec_parser::itemizations::python::itemization_to_py(py, item).map(Bound::unbind)
+        })
+        .transpose()
     }
 
     /// Fields past the last mapped column, but only if at least one is non-empty.
@@ -324,6 +350,7 @@ impl Row {
             &self.schema.version,
             self.fields(),
             self.line,
+            self.name_delimiter.as_deref(),
         );
         PyTuple::new(py, [rebuild, args.into_bound_py_any(py)?])
     }
@@ -353,18 +380,24 @@ pub fn column_names(py: Python<'_>, row_type: &str, version: &str) -> Option<Vec
 
 /// Rebuild a `Row` from its pickled parts.  Private; exists for `Row.__reduce__`.
 #[pyfunction]
-#[pyo3(name = "_row_from_parts", signature = (row_type, version, fields, line, /))]
+#[pyo3(name = "_row_from_parts", signature = (row_type, version, fields, line, name_delimiter=None, /))]
 pub fn row_from_parts(
     py: Python<'_>,
     row_type: &str,
     version: &str,
     fields: Vec<String>,
     line: u64,
+    name_delimiter: Option<&str>,
 ) -> PyResult<Row> {
     let schema = schema_for(py, row_type, version).ok_or_else(|| {
         PyValueError::new_err(format!(
             "no column mapping for row type '{row_type}' in FEC version '{version}'"
         ))
     })?;
-    Ok(Row::new(schema, csv::StringRecord::from(fields), line))
+    Ok(Row::new(
+        schema,
+        csv::StringRecord::from(fields),
+        line,
+        name_delimiter.map(Arc::from),
+    ))
 }
