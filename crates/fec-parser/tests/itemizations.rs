@@ -127,3 +127,25 @@ itemization_snapshot!(sa3l_1775683_v8_4_ind, "SA3L_1775683.fec");
 itemization_snapshot!(sa3l_1887911_v8_4_pac, "SA3L_1887911.fec");
 itemization_snapshot!(sa3l_1922835_v8_5_ind, "SA3L_1922835.fec");
 itemization_snapshot!(sa3l_1921461_v8_5_pac, "SA3L_1921461.fec");
+// Schedule C
+itemization_snapshot!(sc_1930372_v8_5, "SC_1930372.fec");
+itemization_snapshot!(sc_1945153_v8_5, "SC_1945153.fec");
+itemization_snapshot!(sc_1918637_v8_5, "SC_1918637.fec");
+itemization_snapshot!(sc_1884585_v8_4, "SC_1884585.fec");
+itemization_snapshot!(sc_1884032_v8_4, "SC_1884032.fec");
+itemization_snapshot!(sc_785646_v8_0, "SC_785646.fec");
+itemization_snapshot!(sc_509001_v6_4, "SC_509001.fec");
+itemization_snapshot!(sc_306688_v5_3, "SC_306688.fec");
+itemization_snapshot!(sc_130085_v5_1, "SC_130085.fec");
+itemization_snapshot!(sc_60410_v3, "SC_60410.fec");
+
+// Schedule C-1
+itemization_snapshot!(sc1_1935097_v8_5, "SC1_1935097.fec");
+itemization_snapshot!(sc1_1906567_v8_4, "SC1_1906567.fec");
+itemization_snapshot!(sc1_130085_v5_1, "SC1_130085.fec");
+
+// Schedule C-2
+itemization_snapshot!(sc2_1944255_v8_5, "SC2_1944255.fec");
+itemization_snapshot!(sc2_1883359_v8_4, "SC2_1883359.fec");
+itemization_snapshot!(sc2_756408_v8_0, "SC2_756408.fec");
+itemization_snapshot!(sc2_706264_v6_4, "SC2_706264.fec");

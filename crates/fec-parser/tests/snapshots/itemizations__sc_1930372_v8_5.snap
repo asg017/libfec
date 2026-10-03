@@ -1,0 +1,60 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"SC_1930372.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "SC",
+    "form_type": "SC/10",
+    "filer_committee_id": "C00931469",
+    "transaction_id": "SC/10.4100",
+    "receipt_line_number": "13A",
+    "lender": {
+      "entity_type": "IND",
+      "organization_name": null,
+      "name": {
+        "first_name": "VANESSA",
+        "last_name": "HICKS-CALLAWAY",
+        "middle_name": "FAYE",
+        "prefix": "Mrs.",
+        "suffix": null
+      },
+      "address": {
+        "street_1": "603 BROADMOOR",
+        "street_2": "ST",
+        "city": "VICTORIA",
+        "state": "TX",
+        "zip_code": "77904"
+      }
+    },
+    "election_code": "P2026",
+    "election_other_description": null,
+    "loan_amount_original": 6000.0,
+    "loan_payment_to_date": 0.0,
+    "loan_balance": 6000.0,
+    "loan_incurred_date": "2025-12-31",
+    "loan_due_date_terms": "03/03/2026",
+    "loan_interest_rate_terms": "0.0000",
+    "secured": false,
+    "personal_funds": false,
+    "lender_committee_id": null,
+    "lender_candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "memo": true,
+    "memo_text": null,
+    "guarantors": [],
+    "image_number": null
+  }
+]

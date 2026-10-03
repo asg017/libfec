@@ -1,0 +1,113 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"SC_130085.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "SC",
+    "form_type": "SC/10",
+    "filer_committee_id": "C00391029",
+    "transaction_id": "SC/10.4948",
+    "receipt_line_number": "13A",
+    "lender": {
+      "entity_type": "CAN",
+      "organization_name": null,
+      "name": {
+        "first_name": "Jim",
+        "last_name": "Costa",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "2037 W. Bullard, PMB#509",
+        "street_2": null,
+        "city": "Fresno",
+        "state": "CA",
+        "zip_code": "93711"
+      }
+    },
+    "election_code": "P2004",
+    "election_other_description": null,
+    "loan_amount_original": 50000.0,
+    "loan_payment_to_date": 0.0,
+    "loan_balance": 50000.0,
+    "loan_incurred_date": "2004-01-30",
+    "loan_due_date_terms": "1/30/05",
+    "loan_interest_rate_terms": "Prime+2%",
+    "secured": false,
+    "personal_funds": null,
+    "lender_committee_id": "C00391029",
+    "lender_candidate": {
+      "fec_id": "H4CA20082",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "memo": false,
+    "memo_text": null,
+    "guarantors": [],
+    "image_number": null
+  },
+  {
+    "family": "SC",
+    "form_type": "SC/10",
+    "filer_committee_id": "C00391029",
+    "transaction_id": "SC/10.4949",
+    "receipt_line_number": "13A",
+    "lender": {
+      "entity_type": "CAN",
+      "organization_name": null,
+      "name": {
+        "first_name": "Jim",
+        "last_name": "Costa",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "2037 W. Bullard, PMB#509",
+        "street_2": null,
+        "city": "Fresno",
+        "state": "CA",
+        "zip_code": "93711"
+      }
+    },
+    "election_code": "P2004",
+    "election_other_description": null,
+    "loan_amount_original": 50000.0,
+    "loan_payment_to_date": 0.0,
+    "loan_balance": 50000.0,
+    "loan_incurred_date": "2004-02-02",
+    "loan_due_date_terms": "1/30/05",
+    "loan_interest_rate_terms": "Prime+2%",
+    "secured": false,
+    "personal_funds": null,
+    "lender_committee_id": "C00391029",
+    "lender_candidate": {
+      "fec_id": "H4CA20082",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "memo": false,
+    "memo_text": null,
+    "guarantors": [],
+    "image_number": null
+  }
+]
