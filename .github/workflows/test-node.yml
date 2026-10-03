@@ -55,7 +55,8 @@ jobs:
         # Platform-independent; one leg is enough (repo CLAUDE.md rule).
         if: matrix.os == 'ubuntu-latest' && matrix.runtime == 'node24'
         run: |
-          cargo clippy -p fec-node -p fec-cli -- -D warnings
+          cargo clippy -p fec-node -p fec-js-core -p fec-cli -- -D warnings
+          cargo test -p fec-js-core
           cargo clippy -p fec-node --features gen-types --bin gen-types -- -D warnings
       - name: tsc --noEmit
         if: matrix.os == 'ubuntu-latest' && matrix.runtime == 'node24'

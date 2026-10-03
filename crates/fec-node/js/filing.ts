@@ -1,4 +1,4 @@
-import * as native from "../native/native.js";
+import * as native from "#native";
 import { callNative, MissingMappingError } from "./errors.js";
 import type { Cover, Itemization } from "./generated/index.js";
 import type { Header } from "./header.js";
@@ -8,6 +8,7 @@ import {
   type CoverSummary,
   type FilingReader,
   type OpenOptions,
+  type ResolvedOptions,
   type SkippedRow,
 } from "./reader.js";
 import type { InvalidValue, Row } from "./row.js";
@@ -18,7 +19,7 @@ import type { Source } from "./source.js";
  * (`for (const row of filing)` walks {@link rows}), and there is nothing to close.
  */
 export class Filing implements Iterable<Row<null>> {
-  /** The filing ID from the file name; `null` for bytes. */
+  /** The filing ID; see {@link FilingReader.id}. */
   readonly id: string | null;
   /** The filing's format version. */
   readonly fecVersion: string;
@@ -40,11 +41,11 @@ export class Filing implements Iterable<Row<null>> {
   readonly skippedRows: readonly SkippedRow[];
 
   readonly #source: Source;
-  readonly #options: Required<OpenOptions>;
+  readonly #options: ResolvedOptions;
   #itemizations: Row<Itemization>[] | undefined;
 
   /** @internal Use {@link read}. */
-  constructor(reader: FilingReader, source: Source, options: Required<OpenOptions>) {
+  constructor(reader: FilingReader, source: Source, options: ResolvedOptions) {
     this.id = reader.id;
     this.fecVersion = reader.fecVersion;
     this.header = reader.header;

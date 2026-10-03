@@ -28,7 +28,7 @@ pub fn debug_typed_path(path: String) -> napi::Result<DebugTyped> {
     let mut w = TokenWriter::default();
     let cover_data = filing.cover.cover_data.as_ref();
     w.push(&mut table, cover_data).map_err(|e| err(&e))?;
-    let cover = w.take();
+    let cover = w.take().into();
     let cover_json = serde_json::to_string(&cover_data).map_err(|e| err(&e))?;
 
     let mut rows_json = Vec::new();
@@ -45,7 +45,7 @@ pub fn debug_typed_path(path: String) -> napi::Result<DebugTyped> {
     Ok(DebugTyped {
         cover,
         cover_json,
-        rows: w.take(),
+        rows: w.take().into(),
         rows_json,
     })
 }

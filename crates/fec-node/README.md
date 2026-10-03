@@ -66,7 +66,8 @@ reads `NAPI_RS_*` environment variables.
 `open(source, options?)` returns a `FilingReader`. It reads the header and cover right away,
 then rows as you iterate. `source` is a path, a `file:` URL, or the file's bytes
 (`Uint8Array`/`Buffer`/`ArrayBuffer`). Bytes are read in place, without copying, so don't
-modify them while the reader is open.
+modify them while the reader is open. `reader.id` is the filing ID from the file name
+(`"1721696"`), or the `id` option.
 
 Read each reader **once**, with one of:
 
@@ -106,6 +107,7 @@ any number of times and has nothing to close.
 | `dates` | `"iso"` | `"date"` turns date columns of `row.values` (and `coverSummary`'s dates) into `Date`s at UTC midnight. Typed records always use ISO strings. |
 | `unknownRows` | `"throw"` | What `rows()` does with a row type that has no column mapping: throw `MissingMappingError`, or `"skip"` it and list it in `skippedRows` |
 | `batchSize` | `1024` | Rows per native batch: a tuning knob, results don't change |
+| `id` | | The filing ID for `reader.id`/`filing.id`. Bytes have no file name, so without it their `id` is `null`: `open(bytes, { id: "1721696" })`. For a path it replaces the ID taken from the file name. |
 
 ## Typed records
 

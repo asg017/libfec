@@ -18,7 +18,7 @@
  *
  * @module
  */
-import * as native from "../native/native.js";
+import * as native from "#native";
 
 export {
   open,

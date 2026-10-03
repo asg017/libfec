@@ -929,11 +929,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "fec-js-core"
+version = "0.0.32"
+dependencies = [
+ "csv",
+ "fec-parser",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "fec-node"
 version = "0.0.32"
 dependencies = [
  "anyhow",
- "csv",
+ "fec-js-core",
  "fec-parser",
  "indexmap",
  "napi",

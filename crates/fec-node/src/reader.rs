@@ -21,7 +21,9 @@ use napi::bindgen_prelude::{Uint32Array, Uint8Array};
 use napi_derive::napi;
 
 use crate::errors::{io_error, parse_error, Result};
-use crate::tokens::{utf16_len, StructTable, TokenBatch, TokenWriter};
+use fec_js_core::fields::FieldsWriter;
+
+use crate::tokens::{StructTable, TokenBatch, TokenWriter};
 use crate::NativeHeader;
 
 /// A borrowed JS `Uint8Array`, read in place. The reference keeps the buffer
@@ -185,7 +187,7 @@ impl NativeReader {
         let mut w = TokenWriter::default();
         w.push(&mut table, self.cover.as_ref())
             .map_err(|e| parse_error(&e))?;
-        Ok(w.take())
+        Ok(w.take().into())
     }
 
     /// Typed mode on or off; only before the first batch.
@@ -215,10 +217,8 @@ impl NativeReader {
                 "the filing is closed",
             ));
         };
-        let mut text = String::new();
-        let (mut ends, mut row_ends, mut lines) = (Vec::new(), Vec::new(), Vec::new());
-        let mut off = 0u32;
-        while (row_ends.len() as u32) < n {
+        let mut w = FieldsWriter::default();
+        while (w.rows() as u32) < n {
             let row = match filing.next_row() {
                 None => break,
                 Some(Ok(row)) => row,
@@ -238,26 +238,21 @@ impl NativeReader {
                     .push(&mut self.structs, Some(&it))
                     .map_err(|e| parse_error(&e))?;
             }
-            for f in row.record.iter() {
-                off += utf16_len(f);
-                ends.push(off);
-                text.push_str(f);
-            }
-            row_ends.push(ends.len() as u32);
-            lines.push(row.line as u32);
+            w.push(row.record.iter(), row.line as u32);
         }
-        if row_ends.is_empty() {
+        if w.rows() == 0 {
             return match self.pending_error.take() {
                 Some(e) => Err(e),
                 None => Ok(None),
             };
         }
+        let fields = w.take();
         Ok(Some(Batch {
-            text,
-            ends: ends.into(),
-            row_ends: row_ends.into(),
-            lines: lines.into(),
-            typed: self.typed.then(|| self.tokens.take()),
+            text: fields.text,
+            ends: fields.ends.into(),
+            row_ends: fields.row_ends.into(),
+            lines: fields.lines.into(),
+            typed: self.typed.then(|| self.tokens.take().into()),
         }))
     }
 

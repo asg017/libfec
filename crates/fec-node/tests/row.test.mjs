@@ -71,9 +71,15 @@ test("Row: own data properties, methods on the prototype, toJSON", () => {
   assert.deepEqual(Object.keys(JSON.parse(JSON.stringify(row))), [
     "rowType", "line", "values", "itemization",
   ]);
+  // Rows survive structured clone (postMessage to/from a worker): every data
+  // field is an own enumerable property. Only the methods are lost.
   const clone = structuredClone(row);
   assert.equal(Object.getPrototypeOf(clone), Object.prototype);
-  assert.deepEqual(clone.values, row.values);
+  assert.deepEqual(Object.keys(clone), ["rowType", "line", "values", "itemization", "fields"]);
+  for (const k of ["rowType", "line", "values", "itemization", "fields"]) {
+    assert.deepEqual(clone[k], row[k], k);
+  }
+  assert.equal(clone.itemization.type, "ScheduleA");
 });
 
 test("codegen fallback gives identical rows", () => {

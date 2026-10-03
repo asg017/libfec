@@ -1,4 +1,4 @@
-import * as native from "../native/native.js";
+import * as native from "#native";
 import { callNative, FecError, MissingMappingError } from "./errors.js";
 import type { Cover, Itemization } from "./generated/index.js";
 import { toHeader, type Header } from "./header.js";
@@ -32,7 +32,20 @@ export interface OpenOptions {
   unknownRows?: "throw" | "skip";
   /** Rows per native batch (default 1024). A tuning knob; results don't depend on it. */
   batchSize?: number;
+  /**
+   * The filing's ID, for {@link FilingReader.id}. Bytes have no file name to
+   * take it from, so without this their `id` is `null`; for a path it
+   * replaces the ID taken from the file name.
+   *
+   * ```js
+   * open(bytes, { id: "1805248" }).id // "1805248"
+   * ```
+   */
+  id?: string;
 }
+
+/** {@link OpenOptions} with the defaults filled in. @internal */
+export type ResolvedOptions = Required<Omit<OpenOptions, "id">> & { id: string | null };
 
 /** A row as raw strings, from {@link FilingReader.records}. */
 export interface RawRecord {
@@ -79,8 +92,11 @@ const FILTER_REMOVED =
 type Consumer = "itemizations" | "rows" | "records";
 
 /** Validate options; `TypeError` on anything unknown. @internal */
-export function checkOptions(options: OpenOptions): Required<OpenOptions> {
-  const { dates = "iso", unknownRows = "throw", batchSize = DEFAULT_BATCH_SIZE } = options;
+export function checkOptions(options: OpenOptions): ResolvedOptions {
+  const { dates = "iso", unknownRows = "throw", batchSize = DEFAULT_BATCH_SIZE, id } = options;
+  if (id !== undefined && typeof id !== "string") {
+    throw new TypeError(`id must be a string, got ${typeof id}`);
+  }
   if (dates !== "iso" && dates !== "date") {
     throw new TypeError(`dates must be "iso" or "date", got ${JSON.stringify(dates)}`);
   }
@@ -90,11 +106,11 @@ export function checkOptions(options: OpenOptions): Required<OpenOptions> {
   if (!Number.isInteger(batchSize) || batchSize < 1 || batchSize > 2 ** 31) {
     throw new TypeError(`batchSize must be a positive integer, got ${batchSize}`);
   }
-  return { dates, unknownRows, batchSize };
+  return { dates, unknownRows, batchSize, id: id ?? null };
 }
 
 /** Open a {@link FilingReader}; the native reader is closed if that fails. @internal */
-export function openReader(source: Source, options: Required<OpenOptions>): FilingReader {
+export function openReader(source: Source, options: ResolvedOptions): FilingReader {
   const src = normalizeSource(source);
   const reader =
     src.kind === "path"
@@ -146,7 +162,10 @@ export function open(source: Source, options: OpenOptions = {}): FilingReader {
  * {@link close}.
  */
 export class FilingReader implements Iterable<Row<null>>, Disposable {
-  /** The filing ID from the file name (`"1805248"` for `FEC-1805248.fec`); `null` for bytes. */
+  /**
+   * The filing ID: {@link OpenOptions.id} if given, else from the file name
+   * (`"1805248"` for `FEC-1805248.fec`); `null` for bytes without an `id`.
+   */
   readonly id: string | null;
   /** The filing's format version: `"8.4"`, `"3.00"`, `"P3.4"` (paper). */
   readonly fecVersion: string;
@@ -163,7 +182,7 @@ export class FilingReader implements Iterable<Row<null>>, Disposable {
   readonly coverRow: Row<null>;
 
   readonly #native: native.NativeReader;
-  readonly #options: Required<OpenOptions>;
+  readonly #options: ResolvedOptions;
   readonly #sink = new InvalidValueSink();
   readonly #skipped: SkippedRow[] = [];
   readonly #builder: RowBuilder;
@@ -171,10 +190,10 @@ export class FilingReader implements Iterable<Row<null>>, Disposable {
   #closed = false;
 
   /** @internal Use {@link open}. */
-  constructor(reader: native.NativeReader, options: Required<OpenOptions>) {
+  constructor(reader: native.NativeReader, options: ResolvedOptions) {
     this.#native = reader;
     this.#options = options;
-    this.id = reader.id;
+    this.id = options.id ?? reader.id;
     this.fecVersion = reader.fecVersion;
     this.header = toHeader(reader.header);
     this.#builder = new RowBuilder(this.fecVersion, new Converters(this.#sink, options.dates));

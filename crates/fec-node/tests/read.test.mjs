@@ -63,3 +63,10 @@ test("columns(): names and kinds; fresh arrays; unmapped throws", () => {
     (e) => e instanceof MissingMappingError && e.line === 0 && e.rowType === "ZZ9",
   );
 });
+
+test("read(): the id option, and itemizations() keeps it", () => {
+  const f = read(new Uint8Array(readFileSync(SAMPLE)), { id: "1921705" });
+  assert.equal(f.id, "1921705");
+  assert.equal(f.itemizations().length, 20);
+  assert.equal(read(new Uint8Array(readFileSync(SAMPLE))).id, null);
+});

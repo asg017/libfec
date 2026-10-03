@@ -56,3 +56,16 @@ test("FecError keeps its code and subclass names", () => {
   assert.equal(e.code, "ERR_FILING_CLOSED");
   assert.equal(new FecError("y").code, undefined);
 });
+
+test("fromNative maps on `code` alone, whatever threw it", async () => {
+  const { fromNative } = await import("../dist/errors.js");
+  const parse = fromNative({ code: "FEC_PARSE", message: "bad cover" });
+  assert.ok(parse instanceof FecParseError);
+  assert.equal(parse.message, "bad cover");
+  const missing = fromNative({ code: "ENOENT", message: "x" }, { path: "a.fec" });
+  assert.equal(missing.code, "ENOENT");
+  assert.equal(missing.path, "a.fec");
+  assert.equal(fromNative({ code: "ERR_FILING_CLOSED" }).code, "ERR_FILING_CLOSED");
+  const other = { code: "SOMETHING_ELSE" };
+  assert.equal(fromNative(other), other);
+});
