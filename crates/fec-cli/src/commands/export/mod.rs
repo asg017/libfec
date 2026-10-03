@@ -61,12 +61,12 @@ pub fn export(sourcer: FilingSourcer, args: ExportArgs) -> anyhow::Result<()> {
         std::fs::create_dir_all(&output_directory)?;
         match args.format {
           None => Err(anyhow!("Must specify --format when using --output-directory")),
-          Some(ExportFormat::Sqlite) => todo!(),
-          Some(ExportFormat::Excel) => todo!(),
           Some(ExportFormat::Csv) => {
             dir_csv::export(sourcer, args, output_directory)
           },
-          Some(ExportFormat::Json) => todo!(),
+          Some(format @ (ExportFormat::Sqlite | ExportFormat::Excel | ExportFormat::Json)) => {
+            Err(anyhow!("--output-directory only supports --format csv, not {}; use --output for other formats", format!("{format:?}").to_lowercase()))
+          }
         }
       }
     };

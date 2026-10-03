@@ -4,6 +4,7 @@ use crate::{
     cache::bulk::{candidates, committee},
     cli::ExportArgs,
     sourcer::{FilingSourcer, ItemizationProgressBar},
+    utils::rows::{all_filings_failed, warn, UnmappedRows},
 };
 use anyhow::Context;
 use colored::Colorize;
@@ -166,7 +167,7 @@ impl RecordTable {
 
         sql += "  filing_id text references libfec_filings(filing_id),\n";
 
-        let last_idx = self.column_names.len() - 1;
+        let last_idx = self.column_names.len().saturating_sub(1);
         for (i, (name, col_type)) in self
             .column_names
             .iter()
@@ -211,6 +212,8 @@ impl RecordTable {
         })
     }
 
+    /// Insert a row; errors (without inserting) when the row's own layout
+    /// for `fec_version` is unknown.
     fn insert(
         &mut self,
         insert_stmt: &mut Statement,
@@ -223,7 +226,7 @@ impl RecordTable {
             record,
             insert_stmt.parameter_count(),
             fec_version,
-        );
+        )?;
         insert_stmt.execute(params_from_iter(params))?;
         Ok(())
     }
@@ -233,7 +236,7 @@ impl RecordTable {
         record: &StringRecord,
         n_params: usize,
         fec_version: &str,
-    ) -> Vec<FieldValue> {
+    ) -> anyhow::Result<Vec<FieldValue>> {
         let mut warnings = Vec::new();
         let mut values: Vec<FieldValue> = if fec_version == LATEST_FEC_VERSION {
             record
@@ -253,20 +256,18 @@ impl RecordTable {
                 })
                 .collect()
         } else {
-            let legacy_mapping = self
-                .legacy_field_mapping
-                .entry(fec_version.to_owned())
-                .or_insert_with(|| {
-                    let legacy_columns =
-                        fec_parser::mappings::column_names_for_field(&record[0], fec_version)
-                            .unwrap()
-                            .to_owned();
-                    self.current_mapping
-                        .iter()
-                        .map(|col_name| legacy_columns.iter().position(|c| c == col_name))
-                        .collect::<Vec<Option<usize>>>()
-                });
-            legacy_mapping
+            if !self.legacy_field_mapping.contains_key(fec_version) {
+                let legacy_columns =
+                    fec_parser::mappings::column_names_for_field(&record[0], fec_version)?;
+                let mapping = self
+                    .current_mapping
+                    .iter()
+                    .map(|col_name| legacy_columns.iter().position(|c| c == col_name))
+                    .collect::<Vec<Option<usize>>>();
+                self.legacy_field_mapping
+                    .insert(fec_version.to_owned(), mapping);
+            }
+            self.legacy_field_mapping[fec_version]
                 .iter()
                 .enumerate()
                 .map(|(idx, &record_idx)| {
@@ -311,7 +312,7 @@ impl RecordTable {
             });
             values.truncate(n_params);
         }
-        values
+        Ok(values)
     }
 }
 
@@ -344,13 +345,18 @@ fn prepare_form_type_statement<'a>(
     })
 }
 
+/// Rows whose (row type, version) has no column mapping are skipped with one
+/// warning per row type.
 fn export_itemizations<R: Read>(
     tx: &mut Transaction,
     mut filing: Filing<R>,
     pb: Option<&ItemizationProgressBar>,
+    mb: Option<&MultiProgress>,
 ) -> anyhow::Result<usize> {
     let mut itemizations_statements: HashMap<ItemizationKey, ItemizationValue> = HashMap::new();
+    let mut unmapped = UnmappedRows::new(mb);
     let mut count = 0;
+    let fec_version = filing.header.fec_version.clone();
 
     while let Some(r) = filing.next_row() {
         let r = r.context("Error reading next row from filing")?;
@@ -367,6 +373,19 @@ fn export_itemizations<R: Read>(
         // We need to handle the or_insert_with error case, but HashMap::Entry doesn't
         // support fallible closures directly. So we check if we need to insert first.
         if !itemizations_statements.contains_key(&key) {
+            // A row type with no known layout can't define a table.
+            if [fec_version.as_str(), LATEST_FEC_VERSION, "8.4"]
+                .iter()
+                .all(|v| fec_parser::mappings::column_names_for_field(&r.row_type, v).is_err())
+            {
+                unmapped.warn(
+                    &filing.filing_id,
+                    &r.row_type,
+                    &fec_version,
+                    "skipping them",
+                );
+                continue;
+            }
             let value = match &key {
                 ItemizationKey::Schedule(schedule_type) => {
                     prepare_schedule_statement(&r, schedule_type, tx).with_context(|| {
@@ -385,13 +404,26 @@ fn export_itemizations<R: Read>(
             itemizations_statements.insert(key.clone(), value);
         }
 
-        let v = itemizations_statements.get_mut(&key).unwrap(); // Safe: we just inserted it above
+        let Some(v) = itemizations_statements.get_mut(&key) else {
+            continue;
+        };
+        if fec_version != LATEST_FEC_VERSION
+            && fec_parser::mappings::column_names_for_field(&r.row_type, &fec_version).is_err()
+        {
+            unmapped.warn(
+                &filing.filing_id,
+                &r.row_type,
+                &fec_version,
+                "skipping them",
+            );
+            continue;
+        }
         v.record_table
             .insert(
                 &mut v.insert_statement,
                 &filing.filing_id,
                 &r.record,
-                &filing.header.fec_version,
+                &fec_version,
             )
             .with_context(|| {
                 format!(
@@ -441,6 +473,22 @@ fn insert_filing_metadata(tx: &mut Transaction, filing: &Filing<impl Read>) -> a
 
     let (form_type, _amendment_indicator) = form_type_parse(&filing.cover.form_type);
 
+    let fec_version = &filing.header.fec_version;
+    // A legacy cover form with no known layout still gets its
+    // libfec_filings row; only its cover table is skipped.
+    if fec_version != LATEST_FEC_VERSION
+        && fec_parser::mappings::column_names_for_field(&filing.cover.form_type, fec_version)
+            .is_err()
+    {
+        UnmappedRows::new(None).warn(
+            &filing.filing_id,
+            &filing.cover.form_type,
+            fec_version,
+            "skipping its cover table",
+        );
+        return Ok(());
+    }
+
     let mut rt = RecordTable::new(
         &filing.cover.form_type,
         // strip any lagging "A", "N", or "T", or return form_type
@@ -458,7 +506,7 @@ fn insert_filing_metadata(tx: &mut Transaction, filing: &Filing<impl Read>) -> a
         &mut stmt,
         &filing.filing_id,
         &filing.cover.record,
-        &filing.header.fec_version,
+        fec_version,
     )?;
     Ok(())
 }
@@ -612,7 +660,7 @@ pub fn cmd_export_sqlite(
                     skipped_failed += 1;
                     continue;
                 } else {
-                    let _ = mb.println(format!("Error fetching filing: {:?}", e));
+                    warn(Some(&mb), format!("Error fetching filing: {:?}", e));
                     // TODO save warning somewhere
                     skipped_failed += 1;
                     continue;
@@ -647,10 +695,13 @@ pub fn cmd_export_sqlite(
                 if is_duplicate {
                     skipped_existing += 1;
                 } else {
-                    let _ = mb.println(format!(
-                        "Error inserting filing metadata for FEC-{}: {:?}",
-                        filing.filing_id, e
-                    ));
+                    warn(
+                        Some(&mb),
+                        format!(
+                            "Error inserting filing metadata for FEC-{}: {:?}",
+                            filing.filing_id, e
+                        ),
+                    );
                 }
                 // Record failed filing in metadata if enabled
                 if let Some(export_id) = metadata_export_id {
@@ -672,7 +723,7 @@ pub fn cmd_export_sqlite(
         if !args.cover_only {
             let pb = ItemizationProgressBar::new(&mb, &filing);
             let filing_id = filing.filing_id.clone();
-            export_itemizations(&mut tx, filing, Some(&pb))
+            export_itemizations(&mut tx, filing, Some(&pb), Some(&mb))
                 .with_context(|| format!("Error exporting itemizations for FEC-{}", filing_id))?;
         }
     }
@@ -683,6 +734,14 @@ pub fn cmd_export_sqlite(
     }
 
     tx.commit().context("Error committing SQLite transaction")?;
+
+    if nfilings == 0 && skipped_failed > 0 {
+        if let Some(export_id) = metadata_export_id {
+            let msg = all_filings_failed(skipped_failed).to_string();
+            let _ = finalize_export(&db, export_id, "failed", 0, Some(&msg));
+        }
+        return Err(all_filings_failed(skipped_failed));
+    }
 
     // Finalize metadata if enabled
     if let Some(export_id) = metadata_export_id {
@@ -756,7 +815,7 @@ pub fn export_single_filing<R: Read>(
     insert_filing_metadata(&mut tx, &filing)?;
 
     if !cover_only {
-        export_itemizations(&mut tx, filing, None)?;
+        export_itemizations(&mut tx, filing, None, None)?;
     }
 
     tx.commit().context("Error committing SQLite transaction")?;
