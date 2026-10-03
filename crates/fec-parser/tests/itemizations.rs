@@ -45,3 +45,13 @@ itemization_snapshot!(sa_1920342_v8_5, "SA_1920342.fec");
 itemization_snapshot!(sa_462580_v6_4, "SA_462580.fec");
 itemization_snapshot!(sa_265857_v5_3, "SA_265857.fec");
 itemization_snapshot!(sa_42174_v3, "SA_42174.fec");
+
+// Schedule B
+itemization_snapshot!(sb_1907931_v8_4, "SB_1907931.fec");
+itemization_snapshot!(sb_1902156_v8_4_f3l, "SB_1902156.fec");
+itemization_snapshot!(sb_1953421_v8_5, "SB_1953421.fec");
+itemization_snapshot!(sb_730985_v7_0, "SB_730985.fec");
+itemization_snapshot!(sb_398066_v6_2, "SB_398066.fec");
+itemization_snapshot!(sb_269708_v5_3, "SB_269708.fec");
+itemization_snapshot!(sb_84285_v5_0, "SB_84285.fec");
+itemization_snapshot!(sb_27475_v3, "SB_27475.fec");

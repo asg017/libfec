@@ -62,8 +62,10 @@ use crate::covers::{Address, PersonName};
 #[cfg(feature = "python")]
 pub mod python;
 mod schedule_a;
+mod schedule_b;
 
 pub use schedule_a::ScheduleA;
+pub use schedule_b::ScheduleB;
 
 /// One typed itemization record. `None` from [`Itemization::from_record`]
 /// means the row is not an itemization (the cover, `F3PS`, …) or its record
@@ -76,6 +78,8 @@ pub use schedule_a::ScheduleA;
 pub enum Itemization {
     #[serde(rename = "SA")]
     ScheduleA(Box<ScheduleA>),
+    #[serde(rename = "SB")]
+    ScheduleB(Box<ScheduleB>),
 }
 
 /// The record family of a row type: `SA11AI` → `SA`, `SC1/10` → `SC1`,
@@ -122,6 +126,7 @@ impl Itemization {
     pub fn from_fields<F: Fields + ?Sized>(row_type: &str, data: &F) -> Option<Self> {
         Some(match record_family(row_type)? {
             "SA" => Itemization::ScheduleA(Box::new(ScheduleA::from_data(data)?)),
+            "SB" => Itemization::ScheduleB(Box::new(ScheduleB::from_data(data)?)),
             _ => return None,
         })
     }
@@ -130,6 +135,7 @@ impl Itemization {
     pub fn form_type(&self) -> &str {
         match self {
             Itemization::ScheduleA(s) => &s.form_type,
+            Itemization::ScheduleB(s) => &s.form_type,
         }
     }
 
@@ -138,6 +144,7 @@ impl Itemization {
     pub fn transaction_id(&self) -> Option<&str> {
         match self {
             Itemization::ScheduleA(s) => s.transaction_id.as_deref(),
+            Itemization::ScheduleB(s) => s.transaction_id.as_deref(),
         }
     }
 

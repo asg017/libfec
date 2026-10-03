@@ -31,11 +31,18 @@ cover_class!(
     "election_code_label" py_election_code_label = election_code_label -> Label,
     "line_number" py_line_number = line_number -> Option<&str>,
 );
+cover_class!(
+    ScheduleB,
+    "election_code_label" py_election_code_label = election_code_label -> Label,
+    "category_code_label" py_category_code_label = category_code_label -> Label,
+    "line_number" py_line_number = line_number -> Option<&str>,
+);
 
 /// An [`Itemization`] as an instance of its schedule's class.
 pub fn itemization_to_py(py: Python<'_>, item: Itemization) -> PyResult<Bound<'_, PyAny>> {
     Ok(match item {
         Itemization::ScheduleA(s) => Bound::new(py, *s)?.into_any(),
+        Itemization::ScheduleB(s) => Bound::new(py, *s)?.into_any(),
     })
 }
 
@@ -44,6 +51,6 @@ pub fn add_classes(module: &Bound<'_, PyModule>) -> PyResult<()> {
     macro_rules! add {
         ($($ty:ty),+ $(,)?) => { $(module.add_class::<$ty>()?;)+ };
     }
-    add!(Entity, CandidateRef, ScheduleA);
+    add!(Entity, CandidateRef, ScheduleA, ScheduleB);
     Ok(())
 }

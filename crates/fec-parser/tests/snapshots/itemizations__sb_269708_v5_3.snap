@@ -1,0 +1,385 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"SB_269708.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "SB",
+    "form_type": "SB17",
+    "filer_committee_id": "C00384057",
+    "transaction_id": "SB170000000000482259",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "payee": {
+      "entity_type": "ORG",
+      "organization_name": "CG Consulting Group Inc",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "Po Box 1684",
+        "street_2": null,
+        "city": "Manhattan Beach",
+        "state": "CA",
+        "zip_code": "90267"
+      }
+    },
+    "election_code": null,
+    "election_other_description": null,
+    "expenditure_date": "2006-12-15",
+    "expenditure_amount": 2250.0,
+    "semi_annual_refunded_bundled_amount": null,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "Political Consulting",
+    "category_code": "003",
+    "beneficiary_committee_fec_id": null,
+    "beneficiary_committee_name": null,
+    "beneficiary_candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "memo": false,
+    "memo_text": null,
+    "reference_code": null,
+    "refund_or_disposal_of_excess": false,
+    "communication_date": null,
+    "image_number": null
+  },
+  {
+    "family": "SB",
+    "form_type": "SB17",
+    "filer_committee_id": "C00384057",
+    "transaction_id": "SB170000000000483428",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "payee": {
+      "entity_type": "ORG",
+      "organization_name": "CG Consulting Group Inc",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "Po Box 1684",
+        "street_2": null,
+        "city": "Manhattan Beach",
+        "state": "CA",
+        "zip_code": "90267"
+      }
+    },
+    "election_code": null,
+    "election_other_description": null,
+    "expenditure_date": "2006-12-29",
+    "expenditure_amount": 2250.0,
+    "semi_annual_refunded_bundled_amount": null,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "Political Consulting",
+    "category_code": "003",
+    "beneficiary_committee_fec_id": null,
+    "beneficiary_committee_name": null,
+    "beneficiary_candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "memo": false,
+    "memo_text": null,
+    "reference_code": null,
+    "refund_or_disposal_of_excess": false,
+    "communication_date": null,
+    "image_number": null
+  },
+  {
+    "family": "SB",
+    "form_type": "SB17",
+    "filer_committee_id": "C00384057",
+    "transaction_id": "SB170000000000481612",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "payee": {
+      "entity_type": "ORG",
+      "organization_name": "CG Consulting Group Inc",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "Po Box 1684",
+        "street_2": null,
+        "city": "Manhattan Beach",
+        "state": "CA",
+        "zip_code": "90267"
+      }
+    },
+    "election_code": null,
+    "election_other_description": null,
+    "expenditure_date": "2006-12-08",
+    "expenditure_amount": 4000.0,
+    "semi_annual_refunded_bundled_amount": null,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "Political Consulting",
+    "category_code": "003",
+    "beneficiary_committee_fec_id": null,
+    "beneficiary_committee_name": null,
+    "beneficiary_candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "memo": false,
+    "memo_text": null,
+    "reference_code": null,
+    "refund_or_disposal_of_excess": false,
+    "communication_date": null,
+    "image_number": null
+  },
+  {
+    "family": "SB",
+    "form_type": "SB17",
+    "filer_committee_id": "C00384057",
+    "transaction_id": "SB170000000000481498",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "payee": {
+      "entity_type": "ORG",
+      "organization_name": "CG Consulting Group Inc",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "Po Box 1684",
+        "street_2": null,
+        "city": "Manhattan Beach",
+        "state": "CA",
+        "zip_code": "90267"
+      }
+    },
+    "election_code": null,
+    "election_other_description": null,
+    "expenditure_date": "2006-11-30",
+    "expenditure_amount": 2250.0,
+    "semi_annual_refunded_bundled_amount": null,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "Political Consulting",
+    "category_code": "003",
+    "beneficiary_committee_fec_id": null,
+    "beneficiary_committee_name": null,
+    "beneficiary_candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "memo": false,
+    "memo_text": null,
+    "reference_code": null,
+    "refund_or_disposal_of_excess": false,
+    "communication_date": null,
+    "image_number": null
+  },
+  {
+    "family": "SB",
+    "form_type": "SB17",
+    "filer_committee_id": "C00384057",
+    "transaction_id": "SB170000000000482255",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "payee": {
+      "entity_type": "ORG",
+      "organization_name": "Durkee & Associates",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "1212 S Victory Bl",
+        "street_2": null,
+        "city": "Burbank",
+        "state": "CA",
+        "zip_code": "91502"
+      }
+    },
+    "election_code": null,
+    "election_other_description": null,
+    "expenditure_date": "2006-12-08",
+    "expenditure_amount": 1000.0,
+    "semi_annual_refunded_bundled_amount": null,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "Accounting",
+    "category_code": "001",
+    "beneficiary_committee_fec_id": null,
+    "beneficiary_committee_name": null,
+    "beneficiary_candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "memo": false,
+    "memo_text": null,
+    "reference_code": null,
+    "refund_or_disposal_of_excess": false,
+    "communication_date": null,
+    "image_number": null
+  },
+  {
+    "family": "SB",
+    "form_type": "SB21",
+    "filer_committee_id": "C00384057",
+    "transaction_id": "SB210000000000481614",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "payee": {
+      "entity_type": "CCM",
+      "organization_name": "Ciro D Rodriguez For Congress",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "PO Box 14528",
+        "street_2": null,
+        "city": "San Antonio",
+        "state": "TX",
+        "zip_code": "78214"
+      }
+    },
+    "election_code": "O",
+    "election_other_description": "Run-off",
+    "expenditure_date": "2006-12-08",
+    "expenditure_amount": 500.0,
+    "semi_annual_refunded_bundled_amount": null,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "Contribution",
+    "category_code": "011",
+    "beneficiary_committee_fec_id": "C00326066",
+    "beneficiary_committee_name": null,
+    "beneficiary_candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "Ciro",
+        "last_name": "Rodriguez",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": "H",
+      "state": "TX",
+      "district": "28"
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "memo": false,
+    "memo_text": null,
+    "reference_code": null,
+    "refund_or_disposal_of_excess": false,
+    "communication_date": null,
+    "image_number": null
+  }
+]
