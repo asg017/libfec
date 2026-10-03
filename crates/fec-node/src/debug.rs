@@ -6,7 +6,7 @@ use napi_derive::napi;
 
 use crate::tokens::{StructTable, TokenBatch, TokenWriter};
 
-#[napi(object)]
+#[napi(object, object_from_js = false)]
 pub struct DebugTyped {
     /// The typed cover (one value, `null` if the form has no struct).
     pub cover: TokenBatch,
