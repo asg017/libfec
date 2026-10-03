@@ -21,7 +21,7 @@ use super::*;
 
 /// What the shared methods need of a cover class: `frozen` (so `Bound::get`
 /// reads it without a borrow flag) and `Serialize` (for its field list).
-trait Covered: Serialize + PyClass<Frozen = True> + Sync {}
+pub(crate) trait Covered: Serialize + PyClass<Frozen = True> + Sync {}
 impl<T: Serialize + PyClass<Frozen = True> + Sync> Covered for T {}
 
 /// The field names of `value` in declaration order, each with its JSON shape.
@@ -67,7 +67,7 @@ fn fields<T: Serialize>(value: &T) -> Vec<(String, Value)> {
 /// `Form3X(form_type='F3XN', filer_committee_id='C00016899', ...)`: the scalar
 /// fields' reprs, and nested structs as `ClassName(...)` so a Form 3X does not
 /// print its whole 100-line detailed summary.
-fn repr<T: Covered>(slf: &Bound<'_, T>) -> PyResult<String> {
+pub(crate) fn repr<T: Covered>(slf: &Bound<'_, T>) -> PyResult<String> {
     let name = slf.as_any().get_type().qualname()?;
     let mut parts = Vec::new();
     for (key, json) in fields(slf.get()) {
@@ -84,7 +84,7 @@ fn repr<T: Covered>(slf: &Bound<'_, T>) -> PyResult<String> {
 
 /// The fields as a `dict`, nested covers as nested dicts, values typed as the
 /// attributes are (`datetime.date`, `float`, `bool`, `str`, `None`).
-fn to_dict<'py, T: Covered>(slf: &Bound<'py, T>) -> PyResult<Bound<'py, PyDict>> {
+pub(crate) fn to_dict<'py, T: Covered>(slf: &Bound<'py, T>) -> PyResult<Bound<'py, PyDict>> {
     let py = slf.py();
     let dict = PyDict::new(py);
     for (key, json) in fields(slf.get()) {
@@ -109,7 +109,7 @@ fn to_dict<'py, T: Covered>(slf: &Bound<'py, T>) -> PyResult<Bound<'py, PyDict>>
 /// Python's `==`, as a dataclass's `__eq__` does: nested covers recurse, and a
 /// NaN amount is unequal to everything, itself included. (Comparing the serde
 /// JSON instead would be wrong: it writes NaN and both infinities as `null`.)
-fn eq<T: Covered>(slf: &Bound<'_, T>, other: &Bound<'_, PyAny>) -> PyResult<bool> {
+pub(crate) fn eq<T: Covered>(slf: &Bound<'_, T>, other: &Bound<'_, PyAny>) -> PyResult<bool> {
     if !other.is_instance_of::<T>() {
         return Ok(false);
     }
@@ -134,18 +134,18 @@ macro_rules! cover_class {
         #[pymethods]
         impl $ty {
             fn __repr__(slf: &Bound<'_, Self>) -> PyResult<String> {
-                repr(slf)
+                $crate::covers::python::repr(slf)
             }
 
             fn __eq__(slf: &Bound<'_, Self>, other: &Bound<'_, PyAny>) -> PyResult<bool> {
-                eq(slf, other)
+                $crate::covers::python::eq(slf, other)
             }
 
             /// The fields as a `dict` (nested covers as nested dicts), keyed and
             /// ordered like the attributes and `libfec info -f json`'s
             /// `cover_data`.
             fn to_dict<'py>(slf: &Bound<'py, Self>) -> PyResult<Bound<'py, PyDict>> {
-                to_dict(slf)
+                $crate::covers::python::to_dict(slf)
             }
 
             $(
@@ -158,7 +158,10 @@ macro_rules! cover_class {
     };
 }
 
-type Label = Option<&'static str>;
+// Also used by `itemizations::python`, whose structs follow the same rules.
+pub(crate) use cover_class;
+
+pub(crate) type Label = Option<&'static str>;
 
 cover_class!(PersonName, "is_empty" py_is_empty = is_empty -> bool);
 cover_class!(

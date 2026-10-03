@@ -6,7 +6,7 @@
 
 use std::collections::VecDeque;
 use std::io::Read;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use std::thread::ThreadId;
 
 use pyo3::exceptions::{PyRuntimeError, PyValueError};
@@ -201,6 +201,8 @@ pub struct FilingReader {
     id: Option<String>,
     /// `header.fec_version`, needed for every `schema_for` lookup.
     version: String,
+    /// `header.name_delimiter`, handed to every `Row` for its `itemization`.
+    name_delimiter: Option<Arc<str>>,
     source_length: usize,
     /// An exception raised by a Python `read()` mid-pull, to re-raise as itself.
     raised: ErrorSlot,
@@ -433,7 +435,10 @@ impl FilingReader {
                 return match item {
                     Ok(row) => match schema_for(py, &row.row_type, &this.version) {
                         Some(schema) => {
-                            Ok(Some(Py::new(py, Row::new(schema, row.record, row.line))?))
+                            Ok(Some(Py::new(
+                            py,
+                            Row::new(schema, row.record, row.line, this.name_delimiter.clone()),
+                        )?))
                         }
                         None => Err(missing_mapping(py, &row.row_type, &this.version, row.line)),
                     },
@@ -508,7 +513,8 @@ pub fn open_filing(py: Python<'_>, source: &Bound<'_, PyAny>) -> PyResult<Filing
         ))
     })?;
     // The cover record is always the filing's second line.
-    let cover_row = Row::new(cover_schema, filing.cover.record.clone(), 2);
+    let name_delimiter: Option<Arc<str>> = filing.header.name_delimiter.as_deref().map(Arc::from);
+    let cover_row = Row::new(cover_schema, filing.cover.record.clone(), 2, name_delimiter.clone());
     let cover_data = filing
         .cover
         .cover_data
@@ -526,6 +532,7 @@ pub fn open_filing(py: Python<'_>, source: &Bound<'_, PyAny>) -> PyResult<Filing
         cover_data,
         id,
         version,
+        name_delimiter,
         source_length,
         raised,
         puller: Mutex::new(None),
