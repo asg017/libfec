@@ -49,14 +49,8 @@ struct FilingFormMetadata {
     bytes: usize,
 }
 
-fn form_name(form_type: &str) -> &str {
-    let base_form_type = if form_type.ends_with('A') || form_type.ends_with('N') {
-        &form_type[..form_type.len() - 1]
-    } else {
-        form_type
-    };
-
-    match base_form_type {
+fn form_name(form_type: &str) -> &'static str {
+    match fec_parser::covers::base_form_type(form_type).as_str() {
     "F1"  => "Statement of Organization",
     "F1M"  => "Notification of Multicandidate Status",
     "F2"  => "Statement of Candidacy",
@@ -852,4 +846,20 @@ fn run_filing_detail_tui<B: ratatui::backend::Backend<Error: Send + Sync + 'stat
     }
 
     Ok(force_quit)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn form_name_strips_suffix() {
+        let f3x = "Report of Receipts and Disbursements for other than an Authorized Committee";
+        assert_eq!(form_name("F3XN"), f3x);
+        assert_eq!(form_name("F3XA"), f3x);
+        assert_eq!(form_name("F3XT"), f3x);
+        assert_eq!(form_name("F3T"), form_name("F3N"));
+        assert_eq!(form_name("F1MN"), "Notification of Multicandidate Status");
+        assert_eq!(form_name("F99"), "Miscellaneous Text");
+    }
 }
