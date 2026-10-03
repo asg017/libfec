@@ -13,15 +13,7 @@ use pyo3::prelude::*;
 use pyo3::types::{PyList, PySlice, PyString, PyTuple};
 use pyo3::IntoPyObjectExt;
 
-use fec_parser::mappings::{column_names_for_field, DATE_COLUMNS, FLOAT_COLUMNS};
-
-/// How a column's raw string is turned into a Python value.
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
-pub enum Kind {
-    Str,
-    Float,
-    Date,
-}
+use fec_parser::mappings::{column_kind, column_names_for_field, ColumnKind};
 
 /// The column names and kinds of one `(row_type, fec_version)` pair.
 pub struct Schema {
@@ -31,7 +23,7 @@ pub struct Schema {
     pub version: String,
     /// Interned column names, in column order.
     pub names: Vec<Py<PyString>>,
-    pub kinds: Vec<Kind>,
+    pub kinds: Vec<ColumnKind>,
     pub index: HashMap<String, usize>,
 }
 
@@ -63,19 +55,7 @@ pub fn schema_for(py: Python<'_>, row_type: &str, version: &str) -> Option<Arc<S
             .iter()
             .map(|name| PyString::intern(py, name).unbind())
             .collect(),
-        kinds: columns
-            .iter()
-            .map(|name| {
-                // Same precedence as the CLI's Excel export.
-                if DATE_COLUMNS.contains(name) {
-                    Kind::Date
-                } else if FLOAT_COLUMNS.contains(name) {
-                    Kind::Float
-                } else {
-                    Kind::Str
-                }
-            })
-            .collect(),
+        kinds: columns.iter().map(|name| column_kind(name)).collect(),
         index: columns
             .iter()
             .enumerate()
@@ -128,7 +108,7 @@ impl Row {
             return Ok(py.None().into_bound(py));
         };
         let kind = self.schema.kinds[i];
-        if kind == Kind::Str {
+        if kind == ColumnKind::Text {
             return PyString::new(py, raw).into_bound_py_any(py);
         }
         let trimmed = raw.trim();
@@ -136,15 +116,15 @@ impl Row {
             return Ok(py.None().into_bound(py));
         }
         match kind {
-            Kind::Float => match trimmed.parse::<f64>() {
+            ColumnKind::Amount => match trimmed.parse::<f64>() {
                 Ok(v) => v.into_bound_py_any(py),
                 Err(_) => PyString::new(py, raw).into_bound_py_any(py),
             },
-            Kind::Date => match jiff::civil::Date::strptime("%Y%m%d", trimmed) {
+            ColumnKind::Date => match jiff::civil::Date::strptime("%Y%m%d", trimmed) {
                 Ok(d) => d.into_bound_py_any(py),
                 Err(_) => PyString::new(py, raw).into_bound_py_any(py),
             },
-            Kind::Str => unreachable!("handled above"),
+            ColumnKind::Text => unreachable!("handled above"),
         }
     }
 
