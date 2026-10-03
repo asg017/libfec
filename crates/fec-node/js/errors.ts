@@ -1,4 +1,4 @@
-import { errnoOf } from "#native";
+import { errnoOf, messagePath } from "#native";
 
 /**
  * Base class of every error this package raises about a filing. `code` says
@@ -73,7 +73,7 @@ const IO_CODES: Record<string, string> = {
 
 /** A Node-style system error, shaped like `fs.openSync`'s. */
 function systemError(code: string, path: string, cause: unknown): Error {
-  const err = new Error(`${code}: ${IO_CODES[code]}, open '${path}'`, { cause });
+  const err = new Error(`${code}: ${IO_CODES[code]}, open '${messagePath(path)}'`, { cause });
   const errno = errnoOf(code);
   return Object.assign(err, {
     code,

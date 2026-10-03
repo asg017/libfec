@@ -15,7 +15,9 @@ test("a missing path is a Node-style ENOENT, not a FecError", () => {
   assert.equal(err.code, "ENOENT");
   assert.equal(err.path, "nope.fec");
   assert.equal(err.syscall, "open");
-  assert.equal(err.message, "ENOENT: no such file or directory, open 'nope.fec'");
+  if (process.platform !== "win32") {
+    assert.equal(err.message, "ENOENT: no such file or directory, open 'nope.fec'");
+  }
   // The same message and errno Node's own fs gives.
   try {
     openSync("nope.fec");

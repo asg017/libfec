@@ -59,7 +59,7 @@ test("keys.json has every struct in serde key order", () => {
 });
 
 test("the README lists every Itemization and Cover type", () => {
-  const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8");
+  const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8").replace(/\r\n/g, "\n");
   const listed = (heading) => {
     const start = readme.indexOf(heading);
     const para = readme.slice(start, readme.indexOf("\n\n", start));
