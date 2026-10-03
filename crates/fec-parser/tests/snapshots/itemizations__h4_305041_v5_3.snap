@@ -1,0 +1,271 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"H4_305041.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "H4",
+    "form_type": "H4",
+    "filer_committee_id": "C00401224",
+    "transaction_id": "H4_001",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "payee": {
+      "entity_type": "ORG",
+      "organization_name": "American Alarm & Communications, Inc",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "70 Green Street",
+        "street_2": null,
+        "city": "Worcester",
+        "state": "MA",
+        "zip_code": "01604"
+      }
+    },
+    "activity_event_identifier": null,
+    "expenditure_date": "2007-08-16",
+    "total_amount": 74.85,
+    "federal_share": 37.43,
+    "nonfederal_share": 37.42,
+    "event_year_to_date": 292351.96,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "Security System",
+    "category_code": "001",
+    "administrative_activity": true,
+    "fundraising_activity": false,
+    "exempt_activity": false,
+    "generic_voter_drive_activity": false,
+    "direct_candidate_support_activity": false,
+    "public_communications_party_activity": false,
+    "memo": false,
+    "memo_text": null,
+    "image_number": null
+  },
+  {
+    "family": "H4",
+    "form_type": "H4",
+    "filer_committee_id": "C00401224",
+    "transaction_id": "H4_R01",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "payee": {
+      "entity_type": "ORG",
+      "organization_name": "American Express",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "P.O. Box 297812",
+        "street_2": null,
+        "city": "Ft. Lauderdale",
+        "state": "FL",
+        "zip_code": "33336"
+      }
+    },
+    "activity_event_identifier": null,
+    "expenditure_date": "2007-08-16",
+    "total_amount": 2511.97,
+    "federal_share": 1255.99,
+    "nonfederal_share": 1255.98,
+    "event_year_to_date": 292351.96,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "(see AMEX 8/16/07 memo entries)",
+    "category_code": "001",
+    "administrative_activity": true,
+    "fundraising_activity": false,
+    "exempt_activity": false,
+    "generic_voter_drive_activity": false,
+    "direct_candidate_support_activity": false,
+    "public_communications_party_activity": false,
+    "memo": false,
+    "memo_text": null,
+    "image_number": null
+  },
+  {
+    "family": "H4",
+    "form_type": "H4",
+    "filer_committee_id": "C00401224",
+    "transaction_id": "H4_R01_M01",
+    "back_reference_transaction_id": "H4_R01",
+    "back_reference_schedule_name": "H4",
+    "payee": {
+      "entity_type": "ORG",
+      "organization_name": "American Airlines",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "P.O. Box 619612",
+        "street_2": "MD 2400 CPII",
+        "city": "DFW Airport",
+        "state": "TX",
+        "zip_code": "76021"
+      }
+    },
+    "activity_event_identifier": null,
+    "expenditure_date": "2007-08-08",
+    "total_amount": 168.8,
+    "federal_share": 84.4,
+    "nonfederal_share": 84.4,
+    "event_year_to_date": 292351.96,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "AMEX 8/16/07: Airplane",
+    "category_code": "002",
+    "administrative_activity": true,
+    "fundraising_activity": false,
+    "exempt_activity": false,
+    "generic_voter_drive_activity": false,
+    "direct_candidate_support_activity": false,
+    "public_communications_party_activity": false,
+    "memo": true,
+    "memo_text": null,
+    "image_number": null
+  },
+  {
+    "family": "H4",
+    "form_type": "H4",
+    "filer_committee_id": "C00401224",
+    "transaction_id": "H4_R01_M02",
+    "back_reference_transaction_id": "H4_R01",
+    "back_reference_schedule_name": "H4",
+    "payee": {
+      "entity_type": "ORG",
+      "organization_name": "Hilton",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "5001 Spring Valley Road",
+        "street_2": "Suite 400-W",
+        "city": "Dallas",
+        "state": "TX",
+        "zip_code": "75244"
+      }
+    },
+    "activity_event_identifier": null,
+    "expenditure_date": "2007-08-05",
+    "total_amount": 515.85,
+    "federal_share": 257.93,
+    "nonfederal_share": 257.92,
+    "event_year_to_date": 292351.96,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "AMEX 8/16/07: Lodging",
+    "category_code": "002",
+    "administrative_activity": true,
+    "fundraising_activity": false,
+    "exempt_activity": false,
+    "generic_voter_drive_activity": false,
+    "direct_candidate_support_activity": false,
+    "public_communications_party_activity": false,
+    "memo": true,
+    "memo_text": null,
+    "image_number": null
+  },
+  {
+    "family": "H4",
+    "form_type": "H4",
+    "filer_committee_id": "C00401224",
+    "transaction_id": "H4_R01_M03",
+    "back_reference_transaction_id": "H4_R01",
+    "back_reference_schedule_name": "H4",
+    "payee": {
+      "entity_type": "ORG",
+      "organization_name": "Hilton",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "5001 Spring Valley Road",
+        "street_2": "Suite 400-W",
+        "city": "Dallas",
+        "state": "TX",
+        "zip_code": "75244"
+      }
+    },
+    "activity_event_identifier": null,
+    "expenditure_date": "2007-08-05",
+    "total_amount": 515.85,
+    "federal_share": 257.93,
+    "nonfederal_share": 257.92,
+    "event_year_to_date": 292351.96,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "AMEX 8/16/07: Lodging",
+    "category_code": "002",
+    "administrative_activity": true,
+    "fundraising_activity": false,
+    "exempt_activity": false,
+    "generic_voter_drive_activity": false,
+    "direct_candidate_support_activity": false,
+    "public_communications_party_activity": false,
+    "memo": true,
+    "memo_text": null,
+    "image_number": null
+  },
+  {
+    "family": "H4",
+    "form_type": "H4",
+    "filer_committee_id": "C00401224",
+    "transaction_id": "H4_R01_M04",
+    "back_reference_transaction_id": "H4_R01",
+    "back_reference_schedule_name": "H4",
+    "payee": {
+      "entity_type": "ORG",
+      "organization_name": "Hilton",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "5001 Spring Valley Road",
+        "street_2": "Suite 400-W",
+        "city": "Dallas",
+        "state": "TX",
+        "zip_code": "75244"
+      }
+    },
+    "activity_event_identifier": null,
+    "expenditure_date": "2007-08-05",
+    "total_amount": 515.85,
+    "federal_share": 257.93,
+    "nonfederal_share": 257.92,
+    "event_year_to_date": 292351.96,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "AMEX 8/16/07: Lodging",
+    "category_code": "002",
+    "administrative_activity": true,
+    "fundraising_activity": false,
+    "exempt_activity": false,
+    "generic_voter_drive_activity": false,
+    "direct_candidate_support_activity": false,
+    "public_communications_party_activity": false,
+    "memo": true,
+    "memo_text": null,
+    "image_number": null
+  }
+]
