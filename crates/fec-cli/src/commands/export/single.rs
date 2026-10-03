@@ -72,6 +72,8 @@ pub fn cmd_export_single(
     let (_trace, _input_mappings, iter) =
         sourcer.resolve_iterator_from_flags(args.filings, args.api, Some(&mb))?;
     let mut nrows = 0;
+    // Shared across filings: every row after the first needs a comma.
+    let mut first = true;
     let (mut read, mut failed) = (0usize, 0usize);
 
     for filing in iter {
@@ -85,7 +87,6 @@ pub fn cmd_export_single(
         };
         read += 1;
         let pb = ItemizationProgressBar::new(&mb, &filing);
-        let mut first = true;
         while let Some(r) = filing.next_row() {
             let row = match r {
                 Ok(row) => row,
@@ -124,11 +125,10 @@ pub fn cmd_export_single(
                             "filing_id".to_owned(),
                             serde_json::Value::String(filing.filing_id.clone()),
                         );
-                        for (i, field) in row.record.iter().enumerate() {
-                            record.insert(
-                                column_names[i + 1].clone(),
-                                serde_json::Value::String(field.to_string()),
-                            );
+                        // Like the CSV writer, drop fields beyond the 8.5 layout.
+                        for (name, field) in column_names.iter().skip(1).zip(row.record.iter()) {
+                            record
+                                .insert(name.clone(), serde_json::Value::String(field.to_string()));
                         }
                         let value = serde_json::Value::Object(record);
                         let s = serde_json::to_string(&value)?;
