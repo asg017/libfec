@@ -93,8 +93,10 @@ cover_class!(
 cover_class!(Form13Donation);
 cover_class!(Form13Refund);
 cover_class!(ScheduleL);
+cover_class!(
     TextRecord,
     "back_reference_family" py_back_reference_family = back_reference_family -> Label,
+);
 
 /// An [`Itemization`] as an instance of its schedule's class.
 pub fn itemization_to_py(py: Python<'_>, item: Itemization) -> PyResult<Bound<'_, PyAny>> {
@@ -154,6 +156,7 @@ pub fn add_classes(module: &Bound<'_, PyModule>) -> PyResult<()> {
         Form13Donation,
         Form13Refund,
         ScheduleL,
+        TextRecord,
     );
     Ok(())
 }
