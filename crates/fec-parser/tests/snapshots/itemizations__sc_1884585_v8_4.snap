@@ -1,0 +1,60 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"SC_1884585.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "SC",
+    "form_type": "SC/10",
+    "filer_committee_id": "C00795476",
+    "transaction_id": "SC/10.4104",
+    "receipt_line_number": "13A",
+    "lender": {
+      "entity_type": "CAN",
+      "organization_name": null,
+      "name": {
+        "first_name": "Tina",
+        "last_name": "Cohen",
+        "middle_name": "Blum",
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "5927",
+        "street_2": "Westheimer Rd.",
+        "city": "Houston",
+        "state": "TX",
+        "zip_code": "77057"
+      }
+    },
+    "election_code": "P2022",
+    "election_other_description": null,
+    "loan_amount_original": 50000.0,
+    "loan_payment_to_date": 0.0,
+    "loan_balance": 50000.0,
+    "loan_incurred_date": "2021-11-20",
+    "loan_due_date_terms": "Jan 31 2023",
+    "loan_interest_rate_terms": "0.0000",
+    "secured": true,
+    "personal_funds": true,
+    "lender_committee_id": null,
+    "lender_candidate": {
+      "fec_id": "H2TX07119",
+      "name": {
+        "first_name": "Tina",
+        "last_name": "Cohen",
+        "middle_name": "Blum",
+        "prefix": null,
+        "suffix": null
+      },
+      "office": "H",
+      "state": "TX",
+      "district": "07"
+    },
+    "memo": false,
+    "memo_text": null,
+    "guarantors": [],
+    "image_number": null
+  }
+]

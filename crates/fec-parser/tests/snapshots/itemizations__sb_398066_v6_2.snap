@@ -1,0 +1,385 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"SB_398066.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "SB",
+    "form_type": "SB17",
+    "filer_committee_id": "C00384057",
+    "transaction_id": "SB170000000000615543",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "payee": {
+      "entity_type": "ORG",
+      "organization_name": "California Country Club",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "1509 S Workman Mill Rd",
+        "street_2": null,
+        "city": "Whittier",
+        "state": "CA",
+        "zip_code": "90601"
+      }
+    },
+    "election_code": null,
+    "election_other_description": null,
+    "expenditure_date": "2008-12-02",
+    "expenditure_amount": 4698.04,
+    "semi_annual_refunded_bundled_amount": null,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "Event Venue & Catering",
+    "category_code": "003",
+    "beneficiary_committee_fec_id": null,
+    "beneficiary_committee_name": null,
+    "beneficiary_candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "memo": false,
+    "memo_text": null,
+    "reference_code": null,
+    "refund_or_disposal_of_excess": false,
+    "communication_date": null,
+    "image_number": null
+  },
+  {
+    "family": "SB",
+    "form_type": "SB17",
+    "filer_committee_id": "C00384057",
+    "transaction_id": "SB170000000000612046",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "payee": {
+      "entity_type": "ORG",
+      "organization_name": "Cerritos Management",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "17906 Crusader Av #201",
+        "street_2": null,
+        "city": "Cerritos",
+        "state": "CA",
+        "zip_code": "90703"
+      }
+    },
+    "election_code": null,
+    "election_other_description": null,
+    "expenditure_date": "2008-11-26",
+    "expenditure_amount": 193.07,
+    "semi_annual_refunded_bundled_amount": null,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "Rent",
+    "category_code": "001",
+    "beneficiary_committee_fec_id": null,
+    "beneficiary_committee_name": null,
+    "beneficiary_candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "memo": false,
+    "memo_text": null,
+    "reference_code": null,
+    "refund_or_disposal_of_excess": false,
+    "communication_date": null,
+    "image_number": null
+  },
+  {
+    "family": "SB",
+    "form_type": "SB17",
+    "filer_committee_id": "C00384057",
+    "transaction_id": "SB170000000000617227",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "payee": {
+      "entity_type": "ORG",
+      "organization_name": "Cerritos Management",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "17906 Crusader Av #201",
+        "street_2": null,
+        "city": "Cerritos",
+        "state": "CA",
+        "zip_code": "90703"
+      }
+    },
+    "election_code": null,
+    "election_other_description": null,
+    "expenditure_date": "2008-12-30",
+    "expenditure_amount": 193.07,
+    "semi_annual_refunded_bundled_amount": null,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "Rent",
+    "category_code": "001",
+    "beneficiary_committee_fec_id": null,
+    "beneficiary_committee_name": null,
+    "beneficiary_candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "memo": false,
+    "memo_text": null,
+    "reference_code": null,
+    "refund_or_disposal_of_excess": false,
+    "communication_date": null,
+    "image_number": null
+  },
+  {
+    "family": "SB",
+    "form_type": "SB17",
+    "filer_committee_id": "C00384057",
+    "transaction_id": "SB170000000000612051",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "payee": {
+      "entity_type": "ORG",
+      "organization_name": "Durkee & Associates",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "1212 S Victory Bl",
+        "street_2": null,
+        "city": "Burbank",
+        "state": "CA",
+        "zip_code": "91502"
+      }
+    },
+    "election_code": null,
+    "election_other_description": null,
+    "expenditure_date": "2008-11-26",
+    "expenditure_amount": 2000.0,
+    "semi_annual_refunded_bundled_amount": null,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "Accounting",
+    "category_code": "001",
+    "beneficiary_committee_fec_id": null,
+    "beneficiary_committee_name": null,
+    "beneficiary_candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "memo": false,
+    "memo_text": null,
+    "reference_code": null,
+    "refund_or_disposal_of_excess": false,
+    "communication_date": null,
+    "image_number": null
+  },
+  {
+    "family": "SB",
+    "form_type": "SB17",
+    "filer_committee_id": "C00384057",
+    "transaction_id": "SB170000000000615544",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "payee": {
+      "entity_type": "ORG",
+      "organization_name": "Durkee & Associates",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "1212 S Victory Bl",
+        "street_2": null,
+        "city": "Burbank",
+        "state": "CA",
+        "zip_code": "91502"
+      }
+    },
+    "election_code": null,
+    "election_other_description": null,
+    "expenditure_date": "2008-12-08",
+    "expenditure_amount": 109.06,
+    "semi_annual_refunded_bundled_amount": null,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "Postage/Copies/Messenger",
+    "category_code": "001",
+    "beneficiary_committee_fec_id": null,
+    "beneficiary_committee_name": null,
+    "beneficiary_candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "memo": false,
+    "memo_text": null,
+    "reference_code": null,
+    "refund_or_disposal_of_excess": false,
+    "communication_date": null,
+    "image_number": null
+  },
+  {
+    "family": "SB",
+    "form_type": "SB17",
+    "filer_committee_id": "C00384057",
+    "transaction_id": "SB170000000000615545",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "payee": {
+      "entity_type": "ORG",
+      "organization_name": "Durkee & Associates",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "1212 S Victory Bl",
+        "street_2": null,
+        "city": "Burbank",
+        "state": "CA",
+        "zip_code": "91502"
+      }
+    },
+    "election_code": null,
+    "election_other_description": null,
+    "expenditure_date": "2008-12-08",
+    "expenditure_amount": 35.94,
+    "semi_annual_refunded_bundled_amount": null,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "Postage/Photocopies",
+    "category_code": "001",
+    "beneficiary_committee_fec_id": null,
+    "beneficiary_committee_name": null,
+    "beneficiary_candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "memo": false,
+    "memo_text": null,
+    "reference_code": null,
+    "refund_or_disposal_of_excess": false,
+    "communication_date": null,
+    "image_number": null
+  }
+]

@@ -1,0 +1,80 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"SE_1923919.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "SE",
+    "form_type": "SE",
+    "filer_committee_id": "C00925065",
+    "transaction_id": "WFT2025101859-1",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "payee": {
+      "entity_type": "ORG",
+      "organization_name": "Dodo Government",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "138 East Goodwin Chase LN",
+        "street_2": "Dodo Mail Room",
+        "city": "Wendell",
+        "state": "NC",
+        "zip_code": "27591"
+      }
+    },
+    "payee_committee_fec_id": null,
+    "election_code": "P2028",
+    "election_other_description": null,
+    "dissemination_date": null,
+    "disbursement_date": "2025-11-01",
+    "expenditure_amount": 1000000.0,
+    "calendar_ytd_per_election_office": 2028.0,
+    "expenditure_purpose_description": "Administrative regular funds",
+    "expenditure_purpose_code": null,
+    "category_code": null,
+    "support_oppose_code": "S",
+    "candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "Logan",
+        "last_name": "Keener",
+        "middle_name": "Benjamin",
+        "prefix": null,
+        "suffix": null
+      },
+      "office": "P",
+      "state": "NC",
+      "district": "00"
+    },
+    "signer_name": {
+      "first_name": "Logan",
+      "last_name": "Keener",
+      "middle_name": "Benjamin",
+      "prefix": "DR",
+      "suffix": null
+    },
+    "date_signed": "2025-11-01",
+    "memo": true,
+    "memo_text": "To be used for marketing ads and other items and other administrative funds",
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "payee_candidate": null,
+    "date_notarized": null,
+    "notary_commission_expires": null,
+    "notary_name": null,
+    "image_number": null
+  }
+]

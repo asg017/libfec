@@ -1,0 +1,80 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"SE_1466607.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "SE",
+    "form_type": "SE",
+    "filer_committee_id": "C00698126",
+    "transaction_id": "SE.4630",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "payee": {
+      "entity_type": "ORG",
+      "organization_name": "SRCP MEDIA, INC.",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "201 N UNION STREET",
+        "street_2": "SUITE 200",
+        "city": "ALEXANDRIA",
+        "state": "VA",
+        "zip_code": "22314"
+      }
+    },
+    "payee_committee_fec_id": "C00698126",
+    "election_code": "G2020",
+    "election_other_description": null,
+    "dissemination_date": "2020-10-27",
+    "disbursement_date": "2020-10-26",
+    "expenditure_amount": 70000.0,
+    "calendar_ytd_per_election_office": 5443176.0,
+    "expenditure_purpose_description": "MEDIA PLACEMENT",
+    "expenditure_purpose_code": null,
+    "category_code": "004",
+    "support_oppose_code": "O",
+    "candidate": {
+      "fec_id": "S0ME00111",
+      "name": {
+        "first_name": "SARA",
+        "last_name": "GIDEON",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": "S",
+      "state": "ME",
+      "district": "00"
+    },
+    "signer_name": {
+      "first_name": "THOMAS",
+      "last_name": "DATWYLER",
+      "middle_name": null,
+      "prefix": null,
+      "suffix": null
+    },
+    "date_signed": "2020-10-26",
+    "memo": false,
+    "memo_text": null,
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "payee_candidate": null,
+    "date_notarized": null,
+    "notary_commission_expires": null,
+    "notary_name": null,
+    "image_number": null
+  }
+]

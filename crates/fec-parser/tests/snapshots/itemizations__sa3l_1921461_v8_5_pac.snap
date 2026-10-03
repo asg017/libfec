@@ -1,0 +1,47 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"SA3L_1921461.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "SA3L",
+    "form_type": "SA3L",
+    "filer_committee_id": "C00909572",
+    "transaction_id": "3LA102419601",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "lobbyist_registrant": {
+      "entity_type": "PAC",
+      "organization_name": "JStreet PAC",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "PO Box 33106",
+        "street_2": null,
+        "city": "Washington",
+        "state": "DC",
+        "zip_code": "200330106"
+      }
+    },
+    "lobbyist_registrant_employer": null,
+    "lobbyist_registrant_occupation": null,
+    "lobbyist_registrant_pac_fec_id": "C00441949",
+    "lobbyist_registrant_pac_name": "JStreet PAC",
+    "election_code": null,
+    "election_other_description": null,
+    "contribution_date": null,
+    "bundled_amount": 42572.0,
+    "bundled_amount_semi_annual": 0.0,
+    "contribution_purpose_code": null,
+    "contribution_purpose_description": null,
+    "memo": false,
+    "memo_text": null,
+    "image_number": null
+  }
+]

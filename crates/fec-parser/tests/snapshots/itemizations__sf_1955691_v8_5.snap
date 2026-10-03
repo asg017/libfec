@@ -1,0 +1,89 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"SF_1955691.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "SF",
+    "form_type": "SF",
+    "filer_committee_id": "C00075820",
+    "transaction_id": "SF25-0.987237",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "filer_designated": true,
+    "designating_committee": {
+      "fec_id": "C00003418",
+      "name": "\"REPUBLICAN NATIONAL COMMITTEE\"",
+      "address": {
+        "street_1": null,
+        "street_2": null,
+        "city": null,
+        "state": null,
+        "zip_code": null
+      }
+    },
+    "subordinate_committee": {
+      "fec_id": "C00075820",
+      "name": "\"NATIONAL REPUBLICAN CONGRESSIONAL COMMITTEE\"",
+      "address": {
+        "street_1": "\"320 1ST ST SE\"",
+        "street_2": "\"\"",
+        "city": "\"WASHINGTON\"",
+        "state": "DC",
+        "zip_code": "20003"
+      }
+    },
+    "payee": {
+      "entity_type": "ORG",
+      "organization_name": "\"SRCP MEDIA INC\"",
+      "name": {
+        "first_name": "\"\"",
+        "last_name": "\"\"",
+        "middle_name": "\"\"",
+        "prefix": "\"\"",
+        "suffix": "\"\""
+      },
+      "address": {
+        "street_1": "\"201 N UNION ST\"",
+        "street_2": "\"STE 200\"",
+        "city": "ALEXANDRIA",
+        "state": "VA",
+        "zip_code": "22314"
+      }
+    },
+    "expenditure_date": "2026-01-30",
+    "expenditure_amount": 118000.0,
+    "aggregate_general_election_expended": 118000.0,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "\"MEDIA\"",
+    "category_code": null,
+    "payee_committee_fec_id": null,
+    "candidate": {
+      "fec_id": "H0TX35015",
+      "name": {
+        "first_name": "\"TONY\"",
+        "last_name": "\"GONZALES\"",
+        "middle_name": "\"\"",
+        "prefix": "\"\"",
+        "suffix": "\"\""
+      },
+      "office": "H",
+      "state": "TX",
+      "district": "23"
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "memo": false,
+    "memo_text": "\"\"",
+    "increased_limit": null,
+    "notice_24_hour": null,
+    "image_number": null
+  }
+]

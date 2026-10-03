@@ -1,0 +1,385 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"SB_84285.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "SB",
+    "form_type": "SB17",
+    "filer_committee_id": "C00167585",
+    "transaction_id": "B171208",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "payee": {
+      "entity_type": "ORG",
+      "organization_name": "Adcraft Business Mail",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "6501 South Avalon",
+        "street_2": null,
+        "city": "Los Angeles",
+        "state": "CA",
+        "zip_code": "90025"
+      }
+    },
+    "election_code": null,
+    "election_other_description": null,
+    "expenditure_date": "2002-02-26",
+    "expenditure_amount": 7071.04,
+    "semi_annual_refunded_bundled_amount": null,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "Mass Mailing",
+    "category_code": "004",
+    "beneficiary_committee_fec_id": null,
+    "beneficiary_committee_name": null,
+    "beneficiary_candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "memo": false,
+    "memo_text": null,
+    "reference_code": null,
+    "refund_or_disposal_of_excess": false,
+    "communication_date": null,
+    "image_number": null
+  },
+  {
+    "family": "SB",
+    "form_type": "SB17",
+    "filer_committee_id": "C00167585",
+    "transaction_id": "B171207",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "payee": {
+      "entity_type": "ORG",
+      "organization_name": "Adcraft Business Mail",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "6501 South Avalon",
+        "street_2": null,
+        "city": "Los Angeles",
+        "state": "CA",
+        "zip_code": "90025"
+      }
+    },
+    "election_code": null,
+    "election_other_description": null,
+    "expenditure_date": "2002-03-08",
+    "expenditure_amount": 3272.08,
+    "semi_annual_refunded_bundled_amount": null,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "Typesetting & Printing",
+    "category_code": "004",
+    "beneficiary_committee_fec_id": null,
+    "beneficiary_committee_name": null,
+    "beneficiary_candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "memo": false,
+    "memo_text": null,
+    "reference_code": null,
+    "refund_or_disposal_of_excess": false,
+    "communication_date": null,
+    "image_number": null
+  },
+  {
+    "family": "SB",
+    "form_type": "SB17",
+    "filer_committee_id": "C00167585",
+    "transaction_id": "B171455",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "payee": {
+      "entity_type": "ORG",
+      "organization_name": "American Express",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "Box 0001",
+        "street_2": null,
+        "city": "Los Angeles",
+        "state": "CA",
+        "zip_code": "900960001"
+      }
+    },
+    "election_code": null,
+    "election_other_description": null,
+    "expenditure_date": "2002-02-26",
+    "expenditure_amount": 17153.17,
+    "semi_annual_refunded_bundled_amount": null,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "Credit Card Payment",
+    "category_code": null,
+    "beneficiary_committee_fec_id": null,
+    "beneficiary_committee_name": null,
+    "beneficiary_candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "memo": false,
+    "memo_text": null,
+    "reference_code": null,
+    "refund_or_disposal_of_excess": false,
+    "communication_date": null,
+    "image_number": null
+  },
+  {
+    "family": "SB",
+    "form_type": "SB17",
+    "filer_committee_id": "C00167585",
+    "transaction_id": "B171453",
+    "back_reference_transaction_id": "B171455",
+    "back_reference_schedule_name": "SB17",
+    "payee": {
+      "entity_type": "ORG",
+      "organization_name": "Argyle",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "8358 Sunset Boulevard",
+        "street_2": null,
+        "city": "West Hollywoode",
+        "state": "CA",
+        "zip_code": "90069"
+      }
+    },
+    "election_code": null,
+    "election_other_description": null,
+    "expenditure_date": "2002-02-20",
+    "expenditure_amount": 17153.17,
+    "semi_annual_refunded_bundled_amount": null,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "Birthday Bash for Constituents",
+    "category_code": "007",
+    "beneficiary_committee_fec_id": null,
+    "beneficiary_committee_name": null,
+    "beneficiary_candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "memo": true,
+    "memo_text": "Subvendor",
+    "reference_code": null,
+    "refund_or_disposal_of_excess": false,
+    "communication_date": null,
+    "image_number": null
+  },
+  {
+    "family": "SB",
+    "form_type": "SB17",
+    "filer_committee_id": "C00167585",
+    "transaction_id": "B171213",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "payee": {
+      "entity_type": "IND",
+      "organization_name": null,
+      "name": {
+        "first_name": "Paige",
+        "last_name": "Bauer",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "2449 Kuhio Ave. Apt. J",
+        "street_2": null,
+        "city": "Honolulu",
+        "state": "HI",
+        "zip_code": "96815"
+      }
+    },
+    "election_code": null,
+    "election_other_description": null,
+    "expenditure_date": "2002-03-14",
+    "expenditure_amount": 1000.0,
+    "semi_annual_refunded_bundled_amount": null,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "Fundraiser Fee",
+    "category_code": "001",
+    "beneficiary_committee_fec_id": null,
+    "beneficiary_committee_name": null,
+    "beneficiary_candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "memo": false,
+    "memo_text": null,
+    "reference_code": null,
+    "refund_or_disposal_of_excess": false,
+    "communication_date": null,
+    "image_number": null
+  },
+  {
+    "family": "SB",
+    "form_type": "SB17",
+    "filer_committee_id": "C00167585",
+    "transaction_id": "B171212",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "payee": {
+      "entity_type": "IND",
+      "organization_name": null,
+      "name": {
+        "first_name": "Paige",
+        "last_name": "Bauer",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "2449 Kuhio Ave. Apt. J",
+        "street_2": null,
+        "city": "Honolulu",
+        "state": "HI",
+        "zip_code": "96815"
+      }
+    },
+    "election_code": null,
+    "election_other_description": null,
+    "expenditure_date": "2002-03-14",
+    "expenditure_amount": 292.71,
+    "semi_annual_refunded_bundled_amount": null,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "Office Supplies",
+    "category_code": "001",
+    "beneficiary_committee_fec_id": null,
+    "beneficiary_committee_name": null,
+    "beneficiary_candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "memo": false,
+    "memo_text": null,
+    "reference_code": null,
+    "refund_or_disposal_of_excess": false,
+    "communication_date": null,
+    "image_number": null
+  }
+]
