@@ -368,6 +368,16 @@ fn process_filing<R: Read>(
                         );
                     }
                 }
+                Cover::Form3X(form) => {
+                    if let Some(date_signed) = form.date_signed {
+                        println!(
+                            "Signed by {} on {}",
+                            form.treasurer.to_string().bold(),
+                            date_signed.to_string().bold()
+                        );
+                    }
+                    print_summary_form3x(form);
+                }
             }
         }
 
@@ -981,6 +991,70 @@ fn run_filing_detail_tui<B: ratatui::backend::Backend<Error: Send + Sync + 'stat
     }
 
     Ok(force_quit)
+}
+
+/// Form 3X Summary Page (Lines 6-10), Column A "This Period" and Column B
+/// "Calendar Year-to-Date".
+fn print_summary_form3x(form: &fec_parser::covers::Form3X) {
+    let s = &form.summary;
+    let mut b = Builder::with_capacity(3, 0);
+    b.push_record(["Summary", "This Period", "Year-to-Date"]);
+    let jan_1 = match s.line6a_year {
+        Some(year) => format!("6(a) Cash on Hand January 1, {year}"),
+        None => "6(a) Cash on Hand January 1".to_string(),
+    };
+    let rows: Vec<(String, Option<f64>, Option<f64>)> = vec![
+        (jan_1, None, Some(s.line6a_cash_on_hand_jan_1)),
+        (
+            "6(b) Cash on Hand at Beginning of Reporting Period".into(),
+            Some(s.line6b_cash_on_hand_beginning_period),
+            None,
+        ),
+        (
+            "6(c) Total Receipts".into(),
+            Some(s.line6c_total_receipts.column_a),
+            Some(s.line6c_total_receipts.column_b),
+        ),
+        (
+            "6(d) Subtotal".into(),
+            Some(s.line6d_subtotal.column_a),
+            Some(s.line6d_subtotal.column_b),
+        ),
+        (
+            "7. Total Disbursements".into(),
+            Some(s.line7_total_disbursements.column_a),
+            Some(s.line7_total_disbursements.column_b),
+        ),
+        (
+            "8. Cash on Hand at Close of Reporting Period".into(),
+            Some(s.line8_cash_on_hand_close_of_period.column_a),
+            Some(s.line8_cash_on_hand_close_of_period.column_b),
+        ),
+        (
+            "9. Debts and Obligations Owed TO the Committee".into(),
+            Some(s.line9_debts_owed_to_committee),
+            None,
+        ),
+        (
+            "10. Debts and Obligations Owed BY the Committee".into(),
+            Some(s.line10_debts_owed_by_committee),
+            None,
+        ),
+    ];
+    for (label, a, b_val) in rows {
+        b.push_record([
+            label,
+            a.map(format_usd).unwrap_or_default(),
+            b_val.map(format_usd).unwrap_or_default(),
+        ]);
+    }
+    let mut table = b.build();
+    table.with(Style::modern());
+    table.modify(
+        tabled::settings::object::Columns::new(1..),
+        tabled::settings::Alignment::right(),
+    );
+    println!("{}", table)
 }
 
 #[cfg(test)]
