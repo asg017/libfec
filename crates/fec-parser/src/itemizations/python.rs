@@ -98,6 +98,17 @@ cover_class!(
     "back_reference_family" py_back_reference_family = back_reference_family -> Label,
 );
 
+cover_class!(
+    ScheduleA3L,
+    "election_code_label" py_election_code_label = election_code_label -> Label,
+);
+cover_class!(
+    ScheduleE,
+    "support_oppose_label" py_support_oppose_label = support_oppose_label -> Label,
+    "category_code_label" py_category_code_label = category_code_label -> Label,
+    "election_code_label" py_election_code_label = election_code_label -> Label,
+);
+
 /// An [`Itemization`] as an instance of its schedule's class.
 pub fn itemization_to_py(py: Python<'_>, item: Itemization) -> PyResult<Bound<'_, PyAny>> {
     Ok(match item {
@@ -123,6 +134,8 @@ pub fn itemization_to_py(py: Python<'_>, item: Itemization) -> PyResult<Bound<'_
         Itemization::Form13Refund(s) => Bound::new(py, *s)?.into_any(),
         Itemization::ScheduleL(s) => Bound::new(py, *s)?.into_any(),
         Itemization::Text(s) => Bound::new(py, *s)?.into_any(),
+        Itemization::ScheduleA3L(s) => Bound::new(py, *s)?.into_any(),
+        Itemization::ScheduleE(s) => Bound::new(py, *s)?.into_any(),
     })
 }
 
@@ -157,6 +170,8 @@ pub fn add_classes(module: &Bound<'_, PyModule>) -> PyResult<()> {
         Form13Refund,
         ScheduleL,
         TextRecord,
+        ScheduleA3L,
+        ScheduleE,
     );
     Ok(())
 }

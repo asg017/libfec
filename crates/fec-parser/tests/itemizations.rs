@@ -111,3 +111,19 @@ itemization_snapshot!(text_472783_v6_4, "TEXT_472783.fec");
 itemization_snapshot!(text_245398_v5_3, "TEXT_245398.fec");
 itemization_snapshot!(text_98650_v5_00, "TEXT_98650.fec");
 itemization_snapshot!(text_48283_v3, "TEXT_48283.fec");
+// Schedule E
+itemization_snapshot!(se_1951289_v8_5_f24, "SE_1951289.fec");
+itemization_snapshot!(se_1923919_v8_5_f24_memo, "SE_1923919.fec");
+itemization_snapshot!(se_1945953_v8_5_f3x, "SE_1945953.fec");
+itemization_snapshot!(se_1636509_v8_4_f24, "SE_1636509.fec");
+itemization_snapshot!(se_1883470_v8_4_f3x, "SE_1883470.fec");
+itemization_snapshot!(se_1909829_v8_4_f3x_backref, "SE_1909829.fec");
+itemization_snapshot!(se_1466607_v8_3_f24, "SE_1466607.fec");
+itemization_snapshot!(se_1455422_v8_3_f3x, "SE_1455422.fec");
+itemization_snapshot!(se_1215766_p3_4, "SE_1215766.fec");
+
+// Schedule A (Form 3L bundling)
+itemization_snapshot!(sa3l_1775683_v8_4_ind, "SA3L_1775683.fec");
+itemization_snapshot!(sa3l_1887911_v8_4_pac, "SA3L_1887911.fec");
+itemization_snapshot!(sa3l_1922835_v8_5_ind, "SA3L_1922835.fec");
+itemization_snapshot!(sa3l_1921461_v8_5_pac, "SA3L_1921461.fec");

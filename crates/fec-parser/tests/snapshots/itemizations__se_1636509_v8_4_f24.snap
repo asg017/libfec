@@ -1,0 +1,80 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"SE_1636509.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "SE",
+    "form_type": "SE",
+    "filer_committee_id": "C00786830",
+    "transaction_id": "500055019",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "payee": {
+      "entity_type": "ORG",
+      "organization_name": "Main Street One",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "85 Bedford St",
+        "street_2": null,
+        "city": "New York",
+        "state": "NY",
+        "zip_code": "100143753"
+      }
+    },
+    "payee_committee_fec_id": null,
+    "election_code": "G2022",
+    "election_other_description": null,
+    "dissemination_date": "2022-10-10",
+    "disbursement_date": null,
+    "expenditure_amount": 5000.0,
+    "calendar_ytd_per_election_office": 10035.06,
+    "expenditure_purpose_description": "Digital Advertising - Estimate",
+    "expenditure_purpose_code": null,
+    "category_code": null,
+    "support_oppose_code": "S",
+    "candidate": {
+      "fec_id": "S2OH00402",
+      "name": {
+        "first_name": "Timothy",
+        "last_name": "Ryan",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": "S",
+      "state": "OH",
+      "district": "00"
+    },
+    "signer_name": {
+      "first_name": "Naomi",
+      "last_name": "Wyatt",
+      "middle_name": null,
+      "prefix": null,
+      "suffix": null
+    },
+    "date_signed": "2022-10-12",
+    "memo": false,
+    "memo_text": null,
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "payee_candidate": null,
+    "date_notarized": null,
+    "notary_commission_expires": null,
+    "notary_name": null,
+    "image_number": null
+  }
+]

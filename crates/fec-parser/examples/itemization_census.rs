@@ -83,6 +83,10 @@ fn checked_columns(family: &str) -> (&'static [&'static str], &'static [&'static
             &["coverage_from_date", "coverage_through_date"],
             &["col_a_total_receipts", "col_b_total_receipts", "col_a_total_disbursements", "col_b_total_disbursements", "col_b_cash_on_hand_close_of_period", "col_b_cash_on_hand_close_of_period_TODO_DUP"],
         ),
+        "SA3L" => (
+            &["contribution_date"],
+            &["bundled_amount_period", "bundled_amount_semi_annual", "contribution_amount", "contribution_aggregate"],
+        ),
         _ => (&[], &[]),
     }
 }
