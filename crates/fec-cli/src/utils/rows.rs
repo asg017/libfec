@@ -5,8 +5,9 @@
 //! does not (yet) describe for that version. Exports skip such rows with one
 //! warning per row type per filing instead of aborting or panicking.
 
-use std::collections::HashSet;
+use std::{borrow::Cow, collections::HashSet};
 
+use csv::StringRecord;
 use indicatif::MultiProgress;
 
 /// Prints a warning the first time an unmapped row type is seen in a filing.
@@ -101,6 +102,62 @@ pub fn file_stem(row_type: &str) -> String {
         .collect()
 }
 
+/// The columns a row type is exported with, whatever the filing's version:
+/// its 8.5 layout, else its 8.4 one (forms removed in 8.5, like F3Z1), else
+/// `fec_version`'s own layout (legacy-only row types, e.g. paper `F3Z`: the
+/// first filing with one then fixes the columns and rows of other legacy
+/// versions are rearranged by name).
+pub fn export_columns(row_type: &str, fec_version: &str) -> Option<&'static [String]> {
+    use fec_parser::mappings::column_names_for_field;
+    column_names_for_field(row_type, "8.5")
+        .or_else(|_| column_names_for_field(row_type, "8.4"))
+        .or_else(|_| column_names_for_field(row_type, fec_version))
+        .ok()
+        .map(Vec::as_slice)
+}
+
+/// The fields of `record` (laid out as `source` columns) rearranged into the
+/// `target` columns by name; missing columns are empty. When the layouts are
+/// identical, the record's fields as they are (possibly fewer or more than
+/// `target`).
+pub fn remap_by_name<'r>(
+    target: &[String],
+    source: &[String],
+    record: &'r StringRecord,
+) -> Vec<&'r str> {
+    if target == source {
+        return record.iter().collect();
+    }
+    target
+        .iter()
+        .map(|name| {
+            source_index(source, name)
+                .and_then(|i| record.get(i))
+                .unwrap_or("")
+        })
+        .collect()
+}
+
+/// Index in a `source` layout of the column that fills target column
+/// `name`: the column of that name, else its counterpart in an 8.x SA3L
+/// (lobbyist bundling) layout. SA3L rows are filed under Schedule A, whose
+/// 45 columns their 8.5 rows fill positionally (sqlite), so other versions
+/// map by name the same way: `lobbyist_registrant_*` → `contributor_*`,
+/// `bundled_amount_period` → `contribution_amount`,
+/// `bundled_amount_semi_annual` → `contribution_aggregate`, `memo_text` →
+/// `memo_text_description`.
+pub fn source_index(source: &[String], name: &str) -> Option<usize> {
+    source.iter().position(|c| c == name).or_else(|| {
+        let alias: Cow<str> = match name {
+            "contribution_amount" => "bundled_amount_period".into(),
+            "contribution_aggregate" => "bundled_amount_semi_annual".into(),
+            "memo_text_description" => "memo_text".into(),
+            _ => format!("lobbyist_registrant_{}", name.strip_prefix("contributor_")?).into(),
+        };
+        source.iter().position(|c| *c == alias)
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -130,5 +187,23 @@ mod tests {
         assert_eq!(file_stem("SC/10"), "SC-10");
         assert_eq!(file_stem("SA11AI"), "SA11AI");
         assert_eq!(file_stem("../x"), "---x");
+    }
+
+    #[test]
+    fn remap() {
+        let rec = StringRecord::from(vec!["a", "b", "c"]);
+        let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+        assert_eq!(
+            remap_by_name(&s(&["x", "y"]), &s(&["x", "y"]), &rec),
+            ["a", "b", "c"]
+        );
+        assert_eq!(
+            remap_by_name(&s(&["x", "y"]), &s(&["x", "y", "z"]), &rec),
+            ["a", "b"]
+        );
+        assert_eq!(
+            remap_by_name(&s(&["z", "q", "x"]), &s(&["x", "y", "z"]), &rec),
+            ["c", "", "a"]
+        );
     }
 }
