@@ -24,7 +24,11 @@ fn itemizations(fixture: &str) -> Vec<Option<Itemization>> {
     let mut items = vec![];
     while let Some(row) = filing.next_row() {
         let row = row.unwrap_or_else(|e| panic!("{fixture}: {e}"));
-        items.push(Itemization::from_record(&row.record, &version, delimiter.as_deref()));
+        items.push(Itemization::from_record(
+            &row.record,
+            &version,
+            delimiter.as_deref(),
+        ));
     }
     assert!(!items.is_empty(), "{fixture}: no rows");
     items
