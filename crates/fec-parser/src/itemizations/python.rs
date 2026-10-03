@@ -108,6 +108,22 @@ cover_class!(
     "category_code_label" py_category_code_label = category_code_label -> Label,
     "election_code_label" py_election_code_label = election_code_label -> Label,
 );
+cover_class!(
+    ScheduleC,
+    "loan_due_date" py_loan_due_date = loan_due_date -> Option<jiff::civil::Date>,
+    "election_code_label" py_election_code_label = election_code_label -> Label,
+    "line_number" py_line_number = line_number -> Option<&str>,
+);
+cover_class!(ScheduleCGuarantor);
+cover_class!(
+    ScheduleC1,
+    "loan_due_date" py_loan_due_date = loan_due_date -> Option<jiff::civil::Date>,
+    "line_number" py_line_number = line_number -> Option<&str>,
+);
+cover_class!(
+    ScheduleC2,
+    "line_number" py_line_number = line_number -> Option<&str>,
+);
 
 /// An [`Itemization`] as an instance of its schedule's class.
 pub fn itemization_to_py(py: Python<'_>, item: Itemization) -> PyResult<Bound<'_, PyAny>> {
@@ -136,6 +152,9 @@ pub fn itemization_to_py(py: Python<'_>, item: Itemization) -> PyResult<Bound<'_
         Itemization::Text(s) => Bound::new(py, *s)?.into_any(),
         Itemization::ScheduleA3L(s) => Bound::new(py, *s)?.into_any(),
         Itemization::ScheduleE(s) => Bound::new(py, *s)?.into_any(),
+        Itemization::ScheduleC(s) => Bound::new(py, *s)?.into_any(),
+        Itemization::ScheduleC1(s) => Bound::new(py, *s)?.into_any(),
+        Itemization::ScheduleC2(s) => Bound::new(py, *s)?.into_any(),
     })
 }
 
@@ -172,6 +191,10 @@ pub fn add_classes(module: &Bound<'_, PyModule>) -> PyResult<()> {
         TextRecord,
         ScheduleA3L,
         ScheduleE,
+        ScheduleC,
+        ScheduleCGuarantor,
+        ScheduleC1,
+        ScheduleC2,
     );
     Ok(())
 }

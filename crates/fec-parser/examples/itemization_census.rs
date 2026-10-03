@@ -54,8 +54,13 @@ fn checked_columns(family: &str) -> (&'static [&'static str], &'static [&'static
     match family {
         "SA" => (&["contribution_date"], &["contribution_amount", "contribution_aggregate"]),
         "SB" => (&["expenditure_date"], &["expenditure_amount"]),
-        "SC" => (&[], &["loan_amount_original", "loan_payment_to_date", "loan_balance"]),
-        "SC1" => (&["loan_incurred_date", "loan_due_date"], &["loan_amount", "total_balance"]),
+        // The due dates (SC `loan_due_date_terms`, SC1 `loan_due_date`) are
+        // free text, kept as written, so they are not checked.
+        "SC" => (&["loan_incurred_date_terms"], &["loan_amount_original", "loan_payment_to_date", "loan_balance"]),
+        "SC1" => (
+            &["loan_incurred_date", "loan_incurred_date_original", "established_date", "deposit_acct_auth_date_presidential", "date_signed", "authorized_date"],
+            &["loan_amount", "credit_amount_this_draw", "total_balance", "collateral_value_amount", "estimated_value"],
+        ),
         "SC2" => (&[], &["guaranteed_amount"]),
         "SD" => (
             &[],

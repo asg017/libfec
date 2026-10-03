@@ -1,0 +1,219 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"SC_785646.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "SC",
+    "form_type": "SC/10",
+    "filer_committee_id": "C00495507",
+    "transaction_id": "SC/10.4113",
+    "receipt_line_number": "13A",
+    "lender": {
+      "entity_type": "CAN",
+      "organization_name": null,
+      "name": {
+        "first_name": "Michael",
+        "last_name": "Barkley",
+        "middle_name": "James",
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "167 N Sheridan Ave",
+        "street_2": null,
+        "city": "Manteca",
+        "state": "CA",
+        "zip_code": "95336"
+      }
+    },
+    "election_code": "P2012",
+    "election_other_description": null,
+    "loan_amount_original": 1000.0,
+    "loan_payment_to_date": 0.0,
+    "loan_balance": 1000.0,
+    "loan_incurred_date": "2011-07-12",
+    "loan_due_date_terms": "none",
+    "loan_interest_rate_terms": "0.0000",
+    "secured": false,
+    "personal_funds": true,
+    "lender_committee_id": null,
+    "lender_candidate": {
+      "fec_id": "H2CA00096",
+      "name": {
+        "first_name": "Michael",
+        "last_name": "Barkley",
+        "middle_name": "James",
+        "prefix": null,
+        "suffix": null
+      },
+      "office": "H",
+      "state": "CA",
+      "district": "10"
+    },
+    "memo": false,
+    "memo_text": null,
+    "guarantors": [],
+    "image_number": null
+  },
+  {
+    "family": "SC",
+    "form_type": "SC/10",
+    "filer_committee_id": "C00495507",
+    "transaction_id": "SC/10.4114",
+    "receipt_line_number": "13A",
+    "lender": {
+      "entity_type": "CAN",
+      "organization_name": null,
+      "name": {
+        "first_name": "Michael",
+        "last_name": "Barkley",
+        "middle_name": "James",
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "167 N Sheridan Ave",
+        "street_2": null,
+        "city": "Manteca",
+        "state": "CA",
+        "zip_code": "95336"
+      }
+    },
+    "election_code": "P2012",
+    "election_other_description": null,
+    "loan_amount_original": 900.0,
+    "loan_payment_to_date": 0.0,
+    "loan_balance": 900.0,
+    "loan_incurred_date": "2011-12-09",
+    "loan_due_date_terms": "none",
+    "loan_interest_rate_terms": "0.0000",
+    "secured": false,
+    "personal_funds": true,
+    "lender_committee_id": null,
+    "lender_candidate": {
+      "fec_id": "H2CA00096",
+      "name": {
+        "first_name": "Michael",
+        "last_name": "Barkley",
+        "middle_name": "James",
+        "prefix": null,
+        "suffix": null
+      },
+      "office": "H",
+      "state": "CA",
+      "district": "10"
+    },
+    "memo": false,
+    "memo_text": null,
+    "guarantors": [],
+    "image_number": null
+  },
+  {
+    "family": "SC",
+    "form_type": "SC/10",
+    "filer_committee_id": "C00495507",
+    "transaction_id": "SC/10.4115",
+    "receipt_line_number": "13A",
+    "lender": {
+      "entity_type": "CAN",
+      "organization_name": null,
+      "name": {
+        "first_name": "Michael",
+        "last_name": "Barkley",
+        "middle_name": "James",
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "167 N Sheridan Ave",
+        "street_2": null,
+        "city": "Manteca",
+        "state": "CA",
+        "zip_code": "95336"
+      }
+    },
+    "election_code": "P2012",
+    "election_other_description": null,
+    "loan_amount_original": 1191.01,
+    "loan_payment_to_date": 0.0,
+    "loan_balance": 1191.01,
+    "loan_incurred_date": "2011-12-31",
+    "loan_due_date_terms": "none",
+    "loan_interest_rate_terms": "0.0000",
+    "secured": false,
+    "personal_funds": true,
+    "lender_committee_id": null,
+    "lender_candidate": {
+      "fec_id": "H2CA00096",
+      "name": {
+        "first_name": "Michael",
+        "last_name": "Barkley",
+        "middle_name": "James",
+        "prefix": null,
+        "suffix": null
+      },
+      "office": "H",
+      "state": "CA",
+      "district": "10"
+    },
+    "memo": false,
+    "memo_text": null,
+    "guarantors": [],
+    "image_number": null
+  },
+  {
+    "family": "SC",
+    "form_type": "SC/10",
+    "filer_committee_id": "C00495507",
+    "transaction_id": "SC/10.4210",
+    "receipt_line_number": "13A",
+    "lender": {
+      "entity_type": "CAN",
+      "organization_name": null,
+      "name": {
+        "first_name": "Michael",
+        "last_name": "Barkley",
+        "middle_name": "James",
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "167 N Sheridan Ave",
+        "street_2": null,
+        "city": "Manteca",
+        "state": "CA",
+        "zip_code": "95336"
+      }
+    },
+    "election_code": "P2012",
+    "election_other_description": null,
+    "loan_amount_original": 7500.0,
+    "loan_payment_to_date": 0.0,
+    "loan_balance": 7500.0,
+    "loan_incurred_date": "2012-02-09",
+    "loan_due_date_terms": "indef",
+    "loan_interest_rate_terms": "0.0000",
+    "secured": false,
+    "personal_funds": true,
+    "lender_committee_id": null,
+    "lender_candidate": {
+      "fec_id": "H2CA00096",
+      "name": {
+        "first_name": "Michael",
+        "last_name": "Barkley",
+        "middle_name": "James",
+        "prefix": null,
+        "suffix": null
+      },
+      "office": "H",
+      "state": "CA",
+      "district": "10"
+    },
+    "memo": false,
+    "memo_text": null,
+    "guarantors": [],
+    "image_number": null
+  }
+]

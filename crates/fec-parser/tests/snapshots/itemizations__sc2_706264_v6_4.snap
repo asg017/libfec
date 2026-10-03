@@ -1,0 +1,37 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"SC2_706264.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "SC2",
+    "form_type": "SC2/10",
+    "filer_committee_id": "C00391029",
+    "transaction_id": "SC/10-L7.G",
+    "back_reference_transaction_id": "SC/10-L7",
+    "guarantor": {
+      "entity_type": null,
+      "organization_name": null,
+      "name": {
+        "first_name": "Jim",
+        "last_name": "Costa(Personal Funds)",
+        "middle_name": null,
+        "prefix": "Mr.",
+        "suffix": null
+      },
+      "address": {
+        "street_1": "2890 Huntington Boulevard",
+        "street_2": "Apt. 153",
+        "city": "Fresno",
+        "state": "CA",
+        "zip_code": "937212353"
+      }
+    },
+    "guarantor_committee_fec_id": null,
+    "guarantor_employer": "U S Congress-Federal Governm",
+    "guarantor_occupation": "United States Congressman",
+    "guaranteed_amount": 75000.0,
+    "image_number": null
+  }
+]

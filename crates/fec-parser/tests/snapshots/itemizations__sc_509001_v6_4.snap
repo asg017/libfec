@@ -1,0 +1,219 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"SC_509001.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "SC",
+    "form_type": "SC/9",
+    "filer_committee_id": "C00167585",
+    "transaction_id": "C9-11-LM",
+    "receipt_line_number": null,
+    "lender": {
+      "entity_type": "ORG",
+      "organization_name": "African American 2000 and Beyond",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "2092 W. Jefferson Blvd.",
+        "street_2": null,
+        "city": "Los Angeles",
+        "state": "CA",
+        "zip_code": "90018"
+      }
+    },
+    "election_code": "G2008",
+    "election_other_description": null,
+    "loan_amount_original": 25000.0,
+    "loan_payment_to_date": 0.0,
+    "loan_balance": 25000.0,
+    "loan_incurred_date": "2008-08-12",
+    "loan_due_date_terms": "20090812",
+    "loan_interest_rate_terms": "0",
+    "secured": false,
+    "personal_funds": false,
+    "lender_committee_id": null,
+    "lender_candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "memo": false,
+    "memo_text": null,
+    "guarantors": [],
+    "image_number": null
+  },
+  {
+    "family": "SC",
+    "form_type": "SC/10",
+    "filer_committee_id": "C00167585",
+    "transaction_id": "C10-15-LR",
+    "receipt_line_number": "13B",
+    "lender": {
+      "entity_type": "IND",
+      "organization_name": null,
+      "name": {
+        "first_name": "Sidney",
+        "last_name": "Williams",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "1044 W 82nd St",
+        "street_2": null,
+        "city": "Los Angeles",
+        "state": "CA",
+        "zip_code": "90044"
+      }
+    },
+    "election_code": "P2010",
+    "election_other_description": null,
+    "loan_amount_original": 2400.0,
+    "loan_payment_to_date": 0.0,
+    "loan_balance": 2400.0,
+    "loan_incurred_date": "2009-03-30",
+    "loan_due_date_terms": "20100331",
+    "loan_interest_rate_terms": "0",
+    "secured": false,
+    "personal_funds": false,
+    "lender_committee_id": null,
+    "lender_candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "memo": false,
+    "memo_text": null,
+    "guarantors": [],
+    "image_number": null
+  },
+  {
+    "family": "SC",
+    "form_type": "SC/10",
+    "filer_committee_id": "C00167585",
+    "transaction_id": "C10-14-LR",
+    "receipt_line_number": "13B",
+    "lender": {
+      "entity_type": "IND",
+      "organization_name": null,
+      "name": {
+        "first_name": "Sidney",
+        "last_name": "Williams",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "1044 W 82nd St",
+        "street_2": null,
+        "city": "Los Angeles",
+        "state": "CA",
+        "zip_code": "90044"
+      }
+    },
+    "election_code": "P2010",
+    "election_other_description": null,
+    "loan_amount_original": 2400.0,
+    "loan_payment_to_date": 0.0,
+    "loan_balance": 2400.0,
+    "loan_incurred_date": "2009-03-30",
+    "loan_due_date_terms": "20100331",
+    "loan_interest_rate_terms": "0",
+    "secured": false,
+    "personal_funds": false,
+    "lender_committee_id": null,
+    "lender_candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "memo": false,
+    "memo_text": null,
+    "guarantors": [],
+    "image_number": null
+  },
+  {
+    "family": "SC",
+    "form_type": "SC/10",
+    "filer_committee_id": "C00167585",
+    "transaction_id": "C10-12-LR",
+    "receipt_line_number": "13A",
+    "lender": {
+      "entity_type": "CAN",
+      "organization_name": null,
+      "name": {
+        "first_name": "Maxine",
+        "last_name": "Waters",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "1044 W. 82nd St.",
+        "street_2": null,
+        "city": "Los Angeles",
+        "state": "CA",
+        "zip_code": "90044"
+      }
+    },
+    "election_code": "P2010",
+    "election_other_description": null,
+    "loan_amount_original": 4800.0,
+    "loan_payment_to_date": 0.0,
+    "loan_balance": 4800.0,
+    "loan_incurred_date": "2009-03-30",
+    "loan_due_date_terms": "20100331",
+    "loan_interest_rate_terms": "0",
+    "secured": false,
+    "personal_funds": true,
+    "lender_committee_id": null,
+    "lender_candidate": {
+      "fec_id": "H4CA23011",
+      "name": {
+        "first_name": "Maxine",
+        "last_name": "Waters",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": "H",
+      "state": "CA",
+      "district": "35"
+    },
+    "memo": false,
+    "memo_text": null,
+    "guarantors": [],
+    "image_number": null
+  }
+]

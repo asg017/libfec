@@ -1,0 +1,147 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"SC1_130085.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "SC1",
+    "form_type": "SC1/10",
+    "filer_committee_id": "C00391029",
+    "transaction_id": null,
+    "back_reference_transaction_id": "SC/10.4948",
+    "lender": {
+      "entity_type": "CAN",
+      "organization_name": "United Security Bank",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "2037 W. Bullard, PMB#509",
+        "street_2": null,
+        "city": "Fresno",
+        "state": "CA",
+        "zip_code": "93711"
+      }
+    },
+    "loan_amount": 50000.0,
+    "loan_interest_rate_terms": "Prime+2%",
+    "loan_incurred_date": "2004-01-30",
+    "loan_due_date_terms": "20050130",
+    "loan_restructured": null,
+    "loan_incurred_date_original": null,
+    "credit_amount_this_draw": null,
+    "total_balance": null,
+    "others_liable": null,
+    "collateral": null,
+    "collateral_description": null,
+    "collateral_value": 0.0,
+    "perfected_interest": null,
+    "future_income": null,
+    "future_income_description": null,
+    "future_income_estimated_value": 0.0,
+    "depository_account_established_date": null,
+    "depository_account_location": null,
+    "depository_account_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "depository_account_authorization_date": null,
+    "basis_of_loan_description": null,
+    "treasurer": {
+      "first_name": "Steven D.",
+      "last_name": "Diebert",
+      "middle_name": null,
+      "prefix": null,
+      "suffix": null
+    },
+    "date_signed": "2004-07-31",
+    "authorized_representative": {
+      "first_name": "",
+      "last_name": "",
+      "middle_name": null,
+      "prefix": null,
+      "suffix": null
+    },
+    "authorized_representative_title": null,
+    "authorized_date": null,
+    "image_number": null
+  },
+  {
+    "family": "SC1",
+    "form_type": "SC1/10",
+    "filer_committee_id": "C00391029",
+    "transaction_id": null,
+    "back_reference_transaction_id": "SC/10.4949",
+    "lender": {
+      "entity_type": "CAN",
+      "organization_name": "United Security Bank",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "2037 W. Bullard, PMB#509",
+        "street_2": null,
+        "city": "Fresno",
+        "state": "CA",
+        "zip_code": "93711"
+      }
+    },
+    "loan_amount": 50000.0,
+    "loan_interest_rate_terms": "Prime+2%",
+    "loan_incurred_date": "2004-01-30",
+    "loan_due_date_terms": "20050130",
+    "loan_restructured": null,
+    "loan_incurred_date_original": null,
+    "credit_amount_this_draw": null,
+    "total_balance": null,
+    "others_liable": null,
+    "collateral": null,
+    "collateral_description": null,
+    "collateral_value": 0.0,
+    "perfected_interest": null,
+    "future_income": null,
+    "future_income_description": null,
+    "future_income_estimated_value": 0.0,
+    "depository_account_established_date": null,
+    "depository_account_location": null,
+    "depository_account_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "depository_account_authorization_date": null,
+    "basis_of_loan_description": null,
+    "treasurer": {
+      "first_name": "Steven D.",
+      "last_name": "Diebert",
+      "middle_name": null,
+      "prefix": null,
+      "suffix": null
+    },
+    "date_signed": "2004-07-31",
+    "authorized_representative": {
+      "first_name": "",
+      "last_name": "",
+      "middle_name": null,
+      "prefix": null,
+      "suffix": null
+    },
+    "authorized_representative_title": null,
+    "authorized_date": null,
+    "image_number": null
+  }
+]
