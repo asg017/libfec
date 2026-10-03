@@ -1,0 +1,43 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"TEXT_48283.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "TEXT",
+    "form_type": "TEXT",
+    "filer_committee_id": "",
+    "transaction_id": null,
+    "back_reference_transaction_id": "SB17.5755",
+    "back_reference_schedule_name": "SB17",
+    "text": "Internet 11.95, Freeway Transponders 80.00, Fundraiser (room/meal) 118.87, Airfare 562.50, Gifts (cook books) 37,54."
+  },
+  {
+    "family": "TEXT",
+    "form_type": "TEXT",
+    "filer_committee_id": "",
+    "transaction_id": null,
+    "back_reference_transaction_id": "SB17.5854",
+    "back_reference_schedule_name": "SB17",
+    "text": "Senate Gift Shop 340.00 (fundraiser gifts), Internet Fee 11.95, Freeway Express Fees 60.00, Lodging/Meal Fee for Fundraiser 397.04."
+  },
+  {
+    "family": "TEXT",
+    "form_type": "TEXT",
+    "filer_committee_id": "",
+    "transaction_id": null,
+    "back_reference_transaction_id": "SB17.5760",
+    "back_reference_schedule_name": "SB17",
+    "text": "Telephone 50.00, Gas reimb 26.41,  Office supplies 101.06, Signs 276.78."
+  },
+  {
+    "family": "TEXT",
+    "form_type": "TEXT",
+    "filer_committee_id": "",
+    "transaction_id": null,
+    "back_reference_transaction_id": "SB17.5857",
+    "back_reference_schedule_name": "SB17",
+    "text": "Telephone 100.00, Election Night Food/Supplies/Drinks 337.87"
+  }
+]

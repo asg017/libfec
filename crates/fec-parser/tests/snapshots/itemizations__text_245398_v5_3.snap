@@ -1,0 +1,16 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"TEXT_245398.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "TEXT",
+    "form_type": "TEXT",
+    "filer_committee_id": "",
+    "transaction_id": null,
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": "SA11A1",
+    "text": "Please note that the PAC is aware that we follow an alternate method of itemizing payroll receipts rather than the suggested manner of disclosing a single total for the reporting period along with the amount deducted per pay period.  Because the amounts collected per pay period may change often during the time covered by a single report, we find that reporting individual deductions separately more accurately discloses how the receipts are collected."
+  }
+]
