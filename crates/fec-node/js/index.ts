@@ -5,6 +5,7 @@ export const version: string = native.version();
 
 export { FecError, FecParseError, MissingMappingError } from "./errors.js";
 export { readHeader, type Header } from "./header.js";
+export { Row, type InvalidValue, type RowJSON, type RowValues, type Value } from "./row.js";
 export type { Source } from "./source.js";
 
 // The typed covers and itemizations (types, ITEMIZATION_TYPES, COVER_TYPES,
