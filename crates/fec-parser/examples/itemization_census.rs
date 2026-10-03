@@ -79,6 +79,9 @@ fn checked_columns(family: &str) -> (&'static [&'static str], &'static [&'static
         "F93" => (&["expenditure_date", "communication_date"], &["expenditure_amount"]),
         "F132" => (&["donation_date"], &["donation_amount", "donation_aggregate_amount"]),
         "F133" => (&["refund_date"], &["refund_amount"]),
+        "SL" => (
+            &["coverage_from_date", "coverage_through_date"],
+            &["col_a_total_receipts", "col_b_total_receipts", "col_a_total_disbursements", "col_b_total_disbursements", "col_b_cash_on_hand_close_of_period", "col_b_cash_on_hand_close_of_period_TODO_DUP"],
         _ => (&[], &[]),
     }
 }

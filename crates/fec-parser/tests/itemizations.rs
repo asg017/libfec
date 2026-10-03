@@ -100,3 +100,14 @@ itemization_snapshot!(f65_1946674_v8_5, "F65_1946674.fec");
 itemization_snapshot!(f76_1884734_v8_4, "F76_1884734.fec");
 itemization_snapshot!(f132_1904840_v8_4, "F132_1904840.fec");
 itemization_snapshot!(f133_1904839_v8_4, "F133_1904839.fec");
+// Schedule L
+itemization_snapshot!(sl_1922499_v8_5, "SL_1922499.fec");
+itemization_snapshot!(sl_1893062_v8_4, "SL_1893062.fec");
+// TEXT
+itemization_snapshot!(text_1949756_v8_5, "TEXT_1949756.fec");
+itemization_snapshot!(text_1893403_v8_4, "TEXT_1893403.fec");
+itemization_snapshot!(text_727410_v7_0, "TEXT_727410.fec");
+itemization_snapshot!(text_472783_v6_4, "TEXT_472783.fec");
+itemization_snapshot!(text_245398_v5_3, "TEXT_245398.fec");
+itemization_snapshot!(text_98650_v5_00, "TEXT_98650.fec");
+itemization_snapshot!(text_48283_v3, "TEXT_48283.fec");
