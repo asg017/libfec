@@ -936,7 +936,7 @@ class Entity:
         """The person's name, for an individual or a candidate."""
     @property
     def address(self) -> Address:
-        ...
+        """The entity's mailing address."""
     def is_individual(self) -> bool:
         """True for an individual (`IND`) or a candidate (`CAN`), the entity
         types identified by a person's name."""
@@ -961,16 +961,17 @@ class CandidateRef:
         """The candidate's FEC ID (`H0VA01234`)."""
     @property
     def name(self) -> PersonName:
-        ...
+        """The candidate's name."""
     @property
     def office(self) -> str | None:
         """`H` House, `S` Senate, `P` President; see [`CandidateRef::office_label`]."""
     @property
     def state(self) -> str | None:
-        ...
+        """The state of the seat sought (two-letter code); for a presidential
+        candidate, usually blank or `US`."""
     @property
     def district(self) -> str | None:
-        ...
+        """The congressional district of a House seat (`01`); blank otherwise."""
     def is_empty(self) -> bool:
         """True when no part of the reference is filled in."""
     def office_label(self) -> str | None:
@@ -2421,7 +2422,7 @@ class ScheduleFCommittee:
         """The committee's FEC ID; electronic-only."""
     @property
     def name(self) -> str | None:
-        ...
+        """The committee's name."""
     @property
     def address(self) -> Address:
         """Given for the subordinate committee (v2+) and, in v1 only, the
