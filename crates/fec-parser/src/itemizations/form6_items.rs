@@ -46,6 +46,7 @@ use crate::itemizations::{address_either, CandidateRef, Entity};
     )
 )]
 #[derive(Debug, Clone, serde::Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct Form6Contribution {
     /// The row type as filed, `F65`. Column `form_type` (FEC format workbook
     /// v8.4, sheet `F65`, field 1).

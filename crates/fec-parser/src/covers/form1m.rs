@@ -45,6 +45,7 @@ use jiff::civil::Date;
     pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, serde::Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct Form1M {
     /// Form type as filed, e.g. `F1MN`: the base form plus the
     /// amendment-indicator suffix (see [`crate::covers::base_form_type`]).
@@ -85,6 +86,7 @@ pub struct Form1M {
     pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct Form1MAffiliation {
     /// Date the committee's Form 1 was submitted
     /// (`affiliated_date_f1_filed`, field 10).
@@ -105,6 +107,7 @@ pub struct Form1MAffiliation {
     pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct Form1MQualification {
     /// Line 5(a) "Candidates: The committee has made contributions to the five
     /// (5) federal candidates listed below (ONLY State party committees may
@@ -136,6 +139,7 @@ pub struct Form1MQualification {
     pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct Form1MCandidate {
     /// Candidate's FEC ID (`first_candidate_id_number`, field 13). The paper
     /// table has no ID column. In practice some filers enter the candidate's

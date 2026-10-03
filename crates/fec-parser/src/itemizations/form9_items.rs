@@ -46,6 +46,7 @@ use crate::itemizations::{text_any, CandidateRef, Entity};
     )
 )]
 #[derive(Debug, Clone, serde::Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct Form9ControllingPerson {
     /// The row type as filed, `F91`. Column `form_type` (FEC format workbook
     /// v8.4, sheet `F91`, field 1).
@@ -121,6 +122,7 @@ impl Form9ControllingPerson {
     )
 )]
 #[derive(Debug, Clone, serde::Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct Form9Donation {
     /// The row type as filed, `F92`. Column `form_type` (FEC format workbook
     /// v8.4, sheet `F92`, field 1).
@@ -218,6 +220,7 @@ impl Form9Donation {
     )
 )]
 #[derive(Debug, Clone, serde::Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct Form9Disbursement {
     /// The row type as filed, `F93`. Column `form_type` (FEC format workbook
     /// v8.4, sheet `F93`, field 1).
@@ -341,6 +344,7 @@ impl Form9Disbursement {
     )
 )]
 #[derive(Debug, Clone, serde::Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct Form9Candidate {
     /// The row type as filed, `F94`. Column `form_type` (FEC format workbook
     /// v8.4, sheet `F94`, field 1).

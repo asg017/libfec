@@ -116,6 +116,7 @@ pub use text::TextRecord;
 /// Serialized with its [`record_family`] as a `"family"` tag (`"SA"`), then
 /// the struct's fields.
 #[derive(Debug, Clone, Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[serde(tag = "family")]
 pub enum Itemization {
     #[serde(rename = "SA")]
@@ -379,6 +380,7 @@ pub fn entity_type_label(code: &str) -> Option<&'static str> {
     )
 )]
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct Entity {
     /// `IND`, `ORG`, `COM`, … — see [`Entity::entity_type_label`]. Absent
     /// before v5.0 and on paper filings.
@@ -387,6 +389,7 @@ pub struct Entity {
     pub organization_name: Option<String>,
     /// The person's name, for an individual or a candidate.
     pub name: PersonName,
+    /// The entity's mailing address.
     pub address: Address,
 }
 
@@ -465,13 +468,18 @@ impl Entity {
     )
 )]
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct CandidateRef {
     /// The candidate's FEC ID (`H0VA01234`).
     pub fec_id: Option<String>,
+    /// The candidate's name.
     pub name: PersonName,
     /// `H` House, `S` Senate, `P` President; see [`CandidateRef::office_label`].
     pub office: Option<String>,
+    /// The state of the seat sought (two-letter code); for a presidential
+    /// candidate, usually blank or `US`.
     pub state: Option<String>,
+    /// The congressional district of a House seat (`01`); blank otherwise.
     pub district: Option<String>,
 }
 

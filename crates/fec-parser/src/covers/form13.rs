@@ -35,6 +35,7 @@ use serde::Serialize;
     pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct Form13 {
     /// Form type as filed, e.g. `F13N`: the base form plus the
     /// amendment-indicator suffix (see [`crate::covers::base_form_type`]).
