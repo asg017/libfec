@@ -24,7 +24,11 @@ jobs:
         working-directory: crates/fec-node
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      - run: rustup toolchain install stable --profile minimal --component clippy
+      - run: rustup toolchain install stable --profile minimal
+      # clippy pinned to the version the repo is linted with locally, so a new
+      # stable release's lints don't fail this workflow on code it didn't touch.
+      - if: matrix.os == 'ubuntu-latest' && matrix.runtime == 'node24'
+        run: rustup toolchain install 1.96.0 --profile minimal --component clippy
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
           workspaces: ". -> target"
@@ -55,9 +59,9 @@ jobs:
         # Platform-independent; one leg is enough (repo CLAUDE.md rule).
         if: matrix.os == 'ubuntu-latest' && matrix.runtime == 'node24'
         run: |
-          cargo clippy -p fec-node -p fec-js-core -p fec-cli -- -D warnings
+          cargo +1.96.0 clippy -p fec-node -p fec-js-core -p fec-cli -- -D warnings
           cargo test -p fec-js-core
-          cargo clippy -p fec-node --features gen-types --bin gen-types -- -D warnings
+          cargo +1.96.0 clippy -p fec-node --features gen-types --bin gen-types -- -D warnings
       - name: tsc --noEmit
         if: matrix.os == 'ubuntu-latest' && matrix.runtime == 'node24'
         run: make typecheck
