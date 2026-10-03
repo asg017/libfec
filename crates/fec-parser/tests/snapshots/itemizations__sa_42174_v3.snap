@@ -1,0 +1,255 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"SA_42174.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "schedule": "A",
+    "form_type": "SA11A1",
+    "filer_committee_id": "C00213512",
+    "transaction_id": "R5197",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "contributor": {
+      "entity_type": "IND",
+      "organization_name": null,
+      "name": {
+        "first_name": "Michael",
+        "last_name": "Amir",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "211 S. Spalding Drive, #102 N.",
+        "street_2": null,
+        "city": "Beverly Hills",
+        "state": "CA",
+        "zip_code": "90212"
+      }
+    },
+    "election_code": "G2002",
+    "election_other_description": null,
+    "contribution_date": "2002-06-18",
+    "contribution_amount": 500.0,
+    "contribution_aggregate": 500.0,
+    "contribution_purpose_code": null,
+    "contribution_purpose_description": "Check",
+    "contributor_employer": "Amir Development",
+    "contributor_occupation": "Executive",
+    "donor_committee_fec_id": null,
+    "donor_committee_name": null,
+    "donor_candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "memo": false,
+    "memo_text": null,
+    "reference_code": null,
+    "image_number": null
+  },
+  {
+    "schedule": "A",
+    "form_type": "SA11C",
+    "filer_committee_id": "C00213512",
+    "transaction_id": "R5336",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "contributor": {
+      "entity_type": "PAC",
+      "organization_name": "AFLAC Inc. PAC",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "1932 Wynnton Road",
+        "street_2": null,
+        "city": "Columbus",
+        "state": "GA",
+        "zip_code": "31999"
+      }
+    },
+    "election_code": "G2002",
+    "election_other_description": null,
+    "contribution_date": "2002-06-27",
+    "contribution_amount": 1000.0,
+    "contribution_aggregate": 1000.0,
+    "contribution_purpose_code": null,
+    "contribution_purpose_description": "Check",
+    "contributor_employer": null,
+    "contributor_occupation": null,
+    "donor_committee_fec_id": "C00034157",
+    "donor_committee_name": null,
+    "donor_candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "memo": false,
+    "memo_text": null,
+    "reference_code": null,
+    "image_number": null
+  },
+  {
+    "schedule": "A",
+    "form_type": "SA14",
+    "filer_committee_id": "C00213512",
+    "transaction_id": "R5502",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "contributor": {
+      "entity_type": "ORG",
+      "organization_name": "US Airways, Inc.",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "2345 Crystal Drive",
+        "street_2": null,
+        "city": "Arlington",
+        "state": "VA",
+        "zip_code": "22227"
+      }
+    },
+    "election_code": "P2002",
+    "election_other_description": null,
+    "contribution_date": "2002-04-12",
+    "contribution_amount": 463.5,
+    "contribution_aggregate": 0.0,
+    "contribution_purpose_code": null,
+    "contribution_purpose_description": null,
+    "contributor_employer": null,
+    "contributor_occupation": null,
+    "donor_committee_fec_id": null,
+    "donor_committee_name": null,
+    "donor_candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "memo": true,
+    "memo_text": null,
+    "reference_code": null,
+    "image_number": null
+  },
+  {
+    "schedule": "A",
+    "form_type": "SA15",
+    "filer_committee_id": "C00213512",
+    "transaction_id": "R5330",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "contributor": {
+      "entity_type": "ORG",
+      "organization_name": "Union Bank of California (C)",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "400 California Street",
+        "street_2": null,
+        "city": "San Francisco",
+        "state": "CA",
+        "zip_code": "94104"
+      }
+    },
+    "election_code": "G2002",
+    "election_other_description": null,
+    "contribution_date": "2002-04-30",
+    "contribution_amount": 75.11,
+    "contribution_aggregate": 825.71,
+    "contribution_purpose_code": null,
+    "contribution_purpose_description": "Check",
+    "contributor_employer": null,
+    "contributor_occupation": null,
+    "donor_committee_fec_id": null,
+    "donor_committee_name": null,
+    "donor_candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "memo": false,
+    "memo_text": null,
+    "reference_code": null,
+    "image_number": null
+  }
+]

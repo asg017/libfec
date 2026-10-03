@@ -44,4 +44,16 @@ mod _native {
             fec_parser::covers::python::add_classes(m)
         }
     }
+
+    /// The typed itemization classes (`ScheduleA`, …), defined in `fec-parser`
+    /// itself under its `python` feature.
+    #[pymodule]
+    mod itemizations {
+        use pyo3::prelude::*;
+
+        #[pymodule_init]
+        fn init(m: &Bound<'_, PyModule>) -> PyResult<()> {
+            fec_parser::itemizations::python::add_classes(m)
+        }
+    }
 }
