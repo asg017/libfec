@@ -1,0 +1,60 @@
+name: "test-node"
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: test-node-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  test-node:
+    # One node:test suite (crates/fec-node/tests) under every runtime the
+    # package promises to work in, unmodified.
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, ubuntu-22.04-arm, macos-latest, windows-latest]
+        runtime: [node22, node24, deno, bun]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+        working-directory: crates/fec-node
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - run: rustup toolchain install stable --profile minimal --component clippy
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: ". -> target"
+      # Node is needed on every leg: npm ci, `napi build` and scripts/test.mjs.
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ matrix.runtime == 'node22' && '22' || '24' }}
+      - if: matrix.runtime == 'deno'
+        uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2.0.5
+        with:
+          deno-version: v2.x
+      - if: matrix.runtime == 'bun'
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          # The supported floor (package.json engines); scripts/test.mjs works
+          # around its partial node:test.
+          bun-version: 1.2.19
+      - run: npm ci
+      - run: npm run build
+      - name: Test (${{ matrix.runtime }})
+        # node22/node24 -> node; on Node 22 scripts/test.mjs leaves out
+        # tests/using.test.mjs (`using` doesn't parse there) and prints the
+        # file list, so the log shows it wasn't loaded.
+        run: node scripts/test.mjs "${RUNTIME%%[0-9]*}"
+        env:
+          RUNTIME: ${{ matrix.runtime }}
+      - name: clippy
+        # Platform-independent; one leg is enough (repo CLAUDE.md rule).
+        if: matrix.os == 'ubuntu-latest' && matrix.runtime == 'node24'
+        run: cargo clippy -p fec-node -p fec-cli -- -D warnings
+      - name: tsc --noEmit
+        if: matrix.os == 'ubuntu-latest' && matrix.runtime == 'node24'
+        run: npx tsc --noEmit -p tsconfig.json
