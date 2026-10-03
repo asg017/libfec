@@ -48,6 +48,25 @@ cover_class!(
 );
 cover_class!(ScheduleF);
 
+cover_class!(
+    ScheduleH1,
+    "party_federal_percent" py_party_federal_percent = party_federal_percent -> Option<f64>,
+);
+cover_class!(ScheduleH2);
+cover_class!(
+    ScheduleH3,
+    "event_type_label" py_event_type_label = event_type_label -> Label,
+);
+cover_class!(
+    ScheduleH4,
+    "activity_label" py_activity_label = activity_label -> Label,
+);
+cover_class!(ScheduleH5);
+cover_class!(
+    ScheduleH6,
+    "activity_label" py_activity_label = activity_label -> Label,
+);
+
 /// An [`Itemization`] as an instance of its schedule's class.
 pub fn itemization_to_py(py: Python<'_>, item: Itemization) -> PyResult<Bound<'_, PyAny>> {
     Ok(match item {
@@ -55,6 +74,12 @@ pub fn itemization_to_py(py: Python<'_>, item: Itemization) -> PyResult<Bound<'_
         Itemization::ScheduleB(s) => Bound::new(py, *s)?.into_any(),
         Itemization::ScheduleD(s) => Bound::new(py, *s)?.into_any(),
         Itemization::ScheduleF(s) => Bound::new(py, *s)?.into_any(),
+        Itemization::ScheduleH1(s) => Bound::new(py, *s)?.into_any(),
+        Itemization::ScheduleH2(s) => Bound::new(py, *s)?.into_any(),
+        Itemization::ScheduleH3(s) => Bound::new(py, *s)?.into_any(),
+        Itemization::ScheduleH4(s) => Bound::new(py, *s)?.into_any(),
+        Itemization::ScheduleH5(s) => Bound::new(py, *s)?.into_any(),
+        Itemization::ScheduleH6(s) => Bound::new(py, *s)?.into_any(),
     })
 }
 
@@ -71,6 +96,12 @@ pub fn add_classes(module: &Bound<'_, PyModule>) -> PyResult<()> {
         ScheduleD,
         ScheduleFCommittee,
         ScheduleF,
+        ScheduleH1,
+        ScheduleH2,
+        ScheduleH3,
+        ScheduleH4,
+        ScheduleH5,
+        ScheduleH6,
     );
     Ok(())
 }
