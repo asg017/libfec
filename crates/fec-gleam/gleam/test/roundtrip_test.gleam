@@ -407,6 +407,8 @@ pub fn value_helpers_test() {
   assert value.to_string(Text("abc")) == "abc"
   assert value.to_string(Number(1.5)) == "1.5"
   assert value.to_string(Day(Date(987, calendar.February, 3))) == "0987-02-03"
+  assert value.to_string(Day(Date(-1, calendar.January, 2))) == "-0001-01-02"
+  assert value.to_string(Day(Date(-987, calendar.January, 2))) == "-0987-01-02"
   assert value.to_string(Empty) == ""
   assert value.to_float(Number(2.25)) == Ok(2.25)
   assert value.to_float(Text("2.25")) == Error(Nil)

@@ -30,7 +30,7 @@ pub fn to_string(value: Value) -> String {
     Text(s) -> s
     Number(x) -> float.to_string(x)
     Day(d) ->
-      pad(d.year, 4)
+      year(d.year)
       <> "-"
       <> pad(calendar.month_to_int(d.month), 2)
       <> "-"
@@ -44,6 +44,14 @@ pub fn to_float(value: Value) -> Result(Float, Nil) {
   case value {
     Number(x) -> Ok(x)
     _ -> Error(Nil)
+  }
+}
+
+/// ISO 8601 style: `0042`, `-0001`. Padding the signed string would give `00-1`.
+fn year(y: Int) -> String {
+  case y < 0 {
+    True -> "-" <> pad(int.absolute_value(y), 4)
+    False -> pad(y, 4)
   }
 }
 
