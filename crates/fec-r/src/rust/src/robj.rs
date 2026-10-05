@@ -169,6 +169,13 @@ fn raw_date(s: &str) -> Option<i32> {
     Some(era * 146_097 + doe - 719_468)
 }
 
+/// An amount, `None` if unparsable. Like fec-parser's amounts, text that
+/// `f64::from_str` reads as NaN or infinity (`NaN`, `inf`, `1e400`) is
+/// unparsable.
+fn raw_amount(s: &str) -> Option<f64> {
+    s.parse::<f64>().ok().filter(|x| x.is_finite())
+}
+
 fn raw_table(t: &RawTable, filing_id: &str) -> Result<Robj> {
     let n = t.nrow();
     let maps = t.field_maps();
@@ -183,10 +190,9 @@ fn raw_table(t: &RawTable, filing_id: &str) -> Result<Robj> {
             .map(|(rec, id)| cell(maps[*id][j].and_then(|i| rec.get(i))));
         let col = match kind {
             ColKind::Date => date_vec(values.map(|s| s.and_then(raw_date))),
-            ColKind::Float => Doubles::from_values(values.map(|s| {
-                s.and_then(|s| s.parse::<f64>().ok())
-                    .map_or(Rfloat::na(), Rfloat::from)
-            }))
+            ColKind::Float => Doubles::from_values(
+                values.map(|s| s.and_then(raw_amount).map_or(Rfloat::na(), Rfloat::from)),
+            )
             .into(),
             _ => text_vec(n, values),
         };
@@ -234,7 +240,18 @@ pub fn text_kv<'a>(pairs: impl Iterator<Item = (String, &'a str)>) -> Result<Rob
 
 #[cfg(test)]
 mod tests {
-    use super::raw_date;
+    use super::{raw_amount, raw_date};
+
+    #[test]
+    fn raw_amounts() {
+        assert_eq!(raw_amount("12.50"), Some(12.5));
+        assert_eq!(raw_amount("-3"), Some(-3.0));
+        assert_eq!(raw_amount("1e300"), Some(1e300));
+        assert_eq!(raw_amount("junk"), None);
+        for s in ["NaN", "nan", "inf", "-inf", "infinity", "1e400", "-1e400"] {
+            assert_eq!(raw_amount(s), None, "{s}");
+        }
+    }
 
     #[test]
     fn raw_dates() {

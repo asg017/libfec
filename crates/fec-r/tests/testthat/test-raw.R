@@ -76,3 +76,24 @@ test_that("raw dates accept an unpadded month and day, like typed dates", {
   expect_equal(fec_read(path)$schedule_a$contribution_date, expected)
   expect_equal(fec_read(path, raw = TRUE)$schedule_a$contribution_date, expected)
 })
+
+test_that("NaN and infinite amount text is garbage in both modes", {
+  # SA_1920342.fec (v8.5) with each SA row's contribution_amount (field 21) and
+  # contribution_aggregate (field 22) rewritten.
+  lines <- readLines(fixture("SA_1920342.fec"))
+  sa <- which(startsWith(lines, "SA"))
+  amounts <- c("NaN", "inf", "1e400", "-infinity")
+  for (i in seq_along(sa)) {
+    fields <- strsplit(lines[[sa[[i]]]], "\x1c", fixed = TRUE)[[1L]]
+    fields[21:22] <- amounts[[i]]
+    lines[[sa[[i]]]] <- paste(fields, collapse = "\x1c")
+  }
+  path <- withr::local_tempfile(fileext = ".fec")
+  writeLines(lines, path)
+  t <- fec_read(path)$schedule_a
+  expect_equal(t$contribution_amount, rep(0, 4)) # main amount: 0
+  expect_equal(t$contribution_aggregate, rep(NA_real_, 4))
+  r <- fec_read(path, raw = TRUE)$schedule_a
+  expect_equal(r$contribution_amount, rep(NA_real_, 4))
+  expect_equal(r$contribution_aggregate, rep(NA_real_, 4))
+})
