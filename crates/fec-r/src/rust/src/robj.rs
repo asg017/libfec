@@ -119,8 +119,12 @@ fn cell(s: Option<&str>) -> Option<&str> {
     s.map(str::trim).filter(|s| !s.is_empty())
 }
 
-/// `YYYYMMDD` or `MM/DD/YYYY` → days since 1970-01-01; `None` if blank or
-/// not a real date (`20230231`).
+/// `YYYYMMDD` or `M/D/YYYY` (month and day of 1 or 2 digits, as fec-parser's
+/// `%m/%d/%Y` accepts) → days since 1970-01-01; `None` if blank or not a
+/// real date (`20230231`).
+///
+/// Unlike fec-parser, a slash date needs a 4-digit year: the typed reader
+/// takes `07/14/23` as the year 23, a leniency not copied here.
 fn raw_date(s: &str) -> Option<i32> {
     let b = s.as_bytes();
     let num = |r: &[u8]| -> Option<i32> {
@@ -129,10 +133,18 @@ fn raw_date(s: &str) -> Option<i32> {
         }
         Some(r.iter().fold(0, |acc, d| acc * 10 + i32::from(d - b'0')))
     };
-    let (y, m, d) = match b.len() {
-        8 => (num(&b[..4])?, num(&b[4..6])?, num(&b[6..])?),
-        10 if b[2] == b'/' && b[5] == b'/' => (num(&b[6..])?, num(&b[..2])?, num(&b[3..5])?),
-        _ => return None,
+    let (y, m, d) = if !b.contains(&b'/') {
+        if b.len() != 8 {
+            return None;
+        }
+        (num(&b[..4])?, num(&b[4..6])?, num(&b[6..])?)
+    } else {
+        let mut parts = b.split(|&c| c == b'/');
+        let (m, d, y) = (parts.next()?, parts.next()?, parts.next()?);
+        if parts.next().is_some() || m.len() > 2 || d.len() > 2 || y.len() != 4 {
+            return None;
+        }
+        (num(y)?, num(m)?, num(d)?)
     };
     if !(1..=12).contains(&m) {
         return None;
@@ -236,5 +248,29 @@ mod tests {
         assert_eq!(raw_date("ABCDEFGH"), None);
         assert_eq!(raw_date("2023071"), None);
         assert_eq!(raw_date("19691231"), Some(-1));
+        assert_eq!(raw_date("12/31/1969"), Some(-1));
+    }
+
+    #[test]
+    fn raw_slash_dates_take_one_or_two_digit_month_and_day() {
+        let jan_2_2003 = raw_date("01/02/2003");
+        assert_eq!(jan_2_2003, Some(12_054));
+        assert_eq!(raw_date("1/2/2003"), jan_2_2003);
+        assert_eq!(raw_date("01/2/2003"), jan_2_2003);
+        assert_eq!(raw_date("1/02/2003"), jan_2_2003);
+        assert_eq!(raw_date("2/22/2009"), raw_date("20090222"));
+        assert_eq!(raw_date("7/14/2023"), raw_date("20230714"));
+        assert_eq!(raw_date("2/29/2024"), raw_date("20240229"));
+        assert_eq!(raw_date("2/29/2023"), None);
+        assert_eq!(raw_date("13/1/2023"), None);
+        assert_eq!(raw_date("0/1/2023"), None);
+        // The year needs 4 digits; month and day at most 2.
+        assert_eq!(raw_date("07/14/23"), None);
+        assert_eq!(raw_date("7/4/02023"), None);
+        assert_eq!(raw_date("007/4/2023"), None);
+        assert_eq!(raw_date("7//2023"), None);
+        assert_eq!(raw_date("7/4/2023/1"), None);
+        assert_eq!(raw_date("+7/4/2023"), None);
+        assert_eq!(raw_date("2023-07-14"), None);
     }
 }
