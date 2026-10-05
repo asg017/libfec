@@ -107,3 +107,61 @@ setwd("crates/fec-r"); rextendr::use_extendr(crate_name = "fecr", lib_name = "li
 - `src/rust/Cargo.toml` has `[workspace] exclude = ['local']`. Without it, the staged
   `local/fec-parser` sits under the workspace root and becomes a member, so cargo locks its
   dev-dependencies and optional deps (insta, pyo3: 22 extra crates) and `--locked` fails.
+
+## Dev notes: the Rust reader (`fec_read_impl`)
+
+`fec_read_impl(path, raw, n_max)` (internal, in `src/rust/src/lib.rs`) reads a whole filing and
+returns plain lists; `fec_read()` wraps them. The shape is the contract between Rust and R:
+
+```
+list(
+  header      = <named list of scalars>,  # filing_id, record_type, ef_type, fec_version,
+                                          # software_name, software_version, report_id,
+                                          # report_number, comment, style, delimiter,
+                                          # is_paper (logical), name_delimiter,
+                                          # batch_number, received_date (NA when absent)
+  cover       = <named list of length-1 vectors>,
+  cover_info  = list(form_type, filer_id, filer_name, report_code,
+                     coverage_from_date, coverage_through_date,  # Date, NA when absent
+                     cover_kind),                                # "typed" | "raw"
+  tables      = <named list of named column lists>,  # equal lengths, first column filing_id
+  table_kinds = <named chr: "typed" | "raw" | "other">
+)
+```
+
+- **Tables** are named by record family (`fec_parser::itemizations::record_family`), never by
+  row type: `SA` → `schedule_a`, `SA3L` → `schedule_a3l`, `SC1` → `schedule_c1`, `SL` →
+  `schedule_l`, `SI` → `schedule_i`, `H4` → `h4`, `F57` → `f57`, `TEXT` → `text`
+  (`src/rust/src/names.rs`, unit-tested against every family). Order: first seen in the file,
+  then `other`.
+- **Typed** (default): the family's typed struct flattened by `fec_parser::columnar`; the same
+  names for every version. Fields past the layout are not kept on typed rows.
+- **Raw** (`raw = TRUE` for every family; in typed mode, the fallback for a family with no
+  struct, such as `SI`, or a row type with no layout): the version's mapping columns,
+  `DATE_COLUMNS` → `Date`, `FLOAT_COLUMNS` → double, the rest text (trimmed, blank → `NA`).
+  Layouts within one family are unioned by name in first-seen order, `NA`-filled; fields past
+  a row's layout are `extra_1`, `extra_2`, …. A row type with no layout at all gets only
+  `extra_*` columns. If a family has both typed and fallback rows in one filing, the typed
+  rows are `<name>` and the fallback rows `<name>_raw`.
+- **`other`**: rows no family matches (`F3PS`, `F1S`, unknown row types): `filing_id`,
+  `row_type`, `field_1` (the field after the row type), `field_2`, …, all text, `NA`-padded.
+- **Cover**: the typed cover flattened (`Date`, double, logical, integer, character); the raw
+  cover record as text (plus `extra_*`) if the form has no struct, and always with
+  `raw = TRUE`. A file without a cover record is a `header:` error, so `cover` is never `NULL`.
+- **`n_max`**: itemization rows (every row after the cover, `other` included), checked before
+  pulling the next row; `0` returns right after the cover; `Inf` reads everything.
+- **Errors**: R errors whose message starts with `io: ` (open/read failures, a directory),
+  `header: ` (not a `.fec` file, unsupported version, no cover) or `parse: line N: ` (a CSV
+  read error mid-file; `parse: after line N: ` when the CSV layer gives no line). A bad
+  `n_max` (NaN, negative) has no prefix; validate it in R.
+- **Strings** are built with `Rf_mkCharLenCE` + `SET_STRING_ELT` into a `Strings` vector
+  (never `Rstr::from` in a loop), marked UTF-8, with NUL bytes stripped first (an embedded NUL
+  would make R `longjmp` over the Rust frames).
+- **Panics**: extendr 74afddc wraps every `#[extendr]` function in `catch_unwind` and turns a
+  panic into an R error with the panic message (an `Err` is turned into a panic and goes the
+  same way); the panic hook registered in `entrypoint.c` keeps it quiet unless
+  `EXTENDR_BACKTRACE=1`. The code doesn't rely on that: builders are always made from the
+  columns of the value pushed into them.
+- `cargo test --manifest-path src/rust/Cargo.toml` works here: extendr-ffi links `libR`, so
+  the test binary links wherever R is installed. The name mapping and the raw-date parser are
+  pure Rust and tested there.

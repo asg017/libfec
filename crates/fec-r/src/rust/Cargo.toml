@@ -25,9 +25,11 @@ name = 'libfec'
 extendr-api = { git = 'https://github.com/extendr/extendr', rev = '74afddc' }
 # Raw R FFI for the fast string path (ticket 04).
 extendr-ffi = { git = 'https://github.com/extendr/extendr', rev = '74afddc' }
-# Ticket 04 adds `features = ["columnar"]` (the feature comes from ticket 02).
+# `columnar`: typed covers and itemizations flattened into columns.
 # `make build` rewrites this path to 'local/fec-parser' in its staged copy of the package.
-fec-parser = { path = '../../../fec-parser' }
+fec-parser = { path = '../../../fec-parser', features = ['columnar'] }
+# fec-parser's row records (`csv::StringRecord`), kept by raw tables.
+csv = '1.2.2'
 
 [profile.release]
 lto = true

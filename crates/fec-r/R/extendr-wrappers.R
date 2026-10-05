@@ -15,4 +15,47 @@ NULL
 #' fec_version_info()
 fec_version_info <- function() .Call(wrap__fec_version_info)
 
+#' Read a .fec file into a header, a cover and one table per record family
+#'
+#' Internal: `fec_read()` (R) wraps it. Returns
+#' `list(header, cover, cover_info, tables, table_kinds)`:
+#'
+#' - `header`: named list of scalars: `filing_id`, `record_type`, `ef_type`,
+#'   `fec_version`, `software_name`, `software_version`, `report_id`,
+#'   `report_number`, `comment`, `style` (`"hdr"`, `"paper"`,
+#'   `"legacy_block"`), `delimiter` (`"fs"`, `"comma"`), `is_paper`
+#'   (logical), `name_delimiter`, `batch_number`, `received_date` (character,
+#'   `NA` when absent).
+#' - `cover`: named list of length-1 vectors. Typed mode: the typed cover
+#'   flattened (`fec_parser::columnar`; `Date`, `double`, `logical`,
+#'   `integer`, `character`). If the form has no typed struct, and always
+#'   with `raw = TRUE`: the raw cover record as text (mapping names, blank →
+#'   `NA`, fields past the layout as `extra_1`, …). A filing always has a
+#'   cover (a file without one is a `header:` error).
+#' - `cover_info`: the form-independent cover fields, named list:
+#'   `form_type`, `filer_id`, `filer_name`, `report_code` (character),
+#'   `coverage_from_date`, `coverage_through_date` (`Date`, `NA` when
+#'   absent), `cover_kind` (`"typed"` or `"raw"`: which `cover` is).
+#' - `tables`: named list of tables, each a named list of equal-length
+#'   vectors whose first column is `filing_id`. Names: one per
+#'   `record_family()` (`schedule_a`, `schedule_a3l`, `schedule_c1`, `h4`,
+#'   `f57`, `text`, `schedule_i`, …), in first-seen order; `<name>_raw` for a
+#'   family's fallback rows when the same family also has typed rows; then
+#'   `other` (`filing_id`, `row_type`, `field_1`, …, all text) for rows no
+#'   family matches.
+#' - `table_kinds`: named character, same names as `tables`: `"typed"`,
+#'   `"raw"` (raw mapping columns: every table with `raw = TRUE`, or a typed
+#'   mode fallback) or `"other"`.
+#'
+#' Errors are R errors whose message starts with `io: `, `header: ` or
+#' `parse: line N: ` (`parse: after line N: ` / `parse: ` when the CSV layer
+#' gives no line).
+#'
+#' @param path Path to a `.fec` file.
+#' @param raw `TRUE` for raw mapping columns in every table.
+#' @param n_max Stop after this many itemization rows (`Inf` = all; `0`
+#'   reads the header and cover only).
+#' @noRd
+fec_read_impl <- function(path, raw, n_max) .Call(wrap__fec_read_impl, path, raw, n_max)
+
 # nolint end

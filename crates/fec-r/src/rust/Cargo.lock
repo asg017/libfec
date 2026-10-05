@@ -152,6 +152,7 @@ dependencies = [
 name = "fecr"
 version = "0.1.0"
 dependencies = [
+ "csv",
  "extendr-api",
  "extendr-ffi",
  "fec-parser",
