@@ -18,6 +18,8 @@ june/
 !crates/fec-parser/tests/fixtures/**/*.fec
 # committed test fixtures for the Python bindings (see crates/fec-py/tests/README.md)
 !crates/fec-py/tests/fixtures/*.fec
+# example/test fixtures shipped with the R package (crates/fec-r/inst/extdata)
+!crates/fec-r/inst/extdata/*.fec
 *.db.gz
 *.csv
 *.zip
