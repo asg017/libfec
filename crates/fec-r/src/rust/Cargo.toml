@@ -1,0 +1,29 @@
+[package]
+name = 'fecr'
+publish = false
+version = '0.1.0'
+edition = '2021'
+# R13: the dependency tree's real MSRV (indexmap 2.14, hashbrown 0.17).
+rust-version = '1.85'
+
+# Standalone: don't join the libfec workspace. The root Cargo.toml also
+# `exclude`s crates/fec-r.
+[workspace]
+
+[lib]
+crate-type = [ 'staticlib' ]
+name = 'libfec'
+
+[dependencies]
+# Pinned to a git rev, not crates.io: rextendr 0.5.0's document.c calls
+# `write__make_<lib>_wrappers`, which extendr-api 0.9.0 on crates.io doesn't
+# export (see README.md, dev notes).
+extendr-api = { git = 'https://github.com/extendr/extendr', rev = '74afddc' }
+# Raw R FFI for the fast string path (ticket 04).
+extendr-ffi = { git = 'https://github.com/extendr/extendr', rev = '74afddc' }
+# Ticket 04 adds `features = ["columnar"]` (the feature comes from ticket 02).
+fec-parser = { path = '../../../fec-parser' }
+
+[profile.release]
+lto = true
+codegen-units = 1
