@@ -17,4 +17,5 @@ Depends:
 Imports:
     cli,
     rlang,
-    tibble
+    tibble,
+    utils
