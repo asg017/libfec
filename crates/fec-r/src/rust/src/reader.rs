@@ -156,12 +156,8 @@ impl RawTable {
             }
             let kind = if self.other {
                 ColKind::Text
-            } else if DATE_COLUMNS.contains(&unique) {
-                ColKind::Date
-            } else if FLOAT_COLUMNS.contains(&unique) {
-                ColKind::Float
             } else {
-                ColKind::Text
+                raw_column_kind(&unique)
             };
             cols.push(self.column(&unique, kind));
         }
@@ -201,6 +197,37 @@ impl RawTable {
                 map
             })
             .collect()
+    }
+}
+
+/// Raw columns whose kind fec-parser-macros' lists get wrong (they are in
+/// `date_columns.txt` but aren't dates in the FEC spec). Checked first.
+///
+/// - `event_year_to_date` (H4, H6): EVENT YEAR-TO-DATE, an amount (typed
+///   `ScheduleH4/H6::event_year_to_date: Option<f64>`); it is in no float
+///   list.
+/// - `loan_due_date` (SC1): LOAN DUE DATE (TERMS), free text such as
+///   `ON DEMAND` (typed `ScheduleC1::loan_due_date_terms: Option<String>`).
+///
+/// `loan_payment_to_date` (SC, an amount) is in both lists, which the
+/// float-before-date order in [`raw_column_kind`] settles.
+const RAW_KIND_OVERRIDES: &[(&str, ColKind)] = &[
+    ("event_year_to_date", ColKind::Float),
+    ("loan_due_date", ColKind::Text),
+];
+
+/// The kind of a raw mapping column: an override, else an amount, else a
+/// date, else text. Amounts come before dates because a name in both lists
+/// (`loan_payment_to_date`) is an amount.
+fn raw_column_kind(name: &str) -> ColKind {
+    if let Some(&(_, kind)) = RAW_KIND_OVERRIDES.iter().find(|(n, _)| *n == name) {
+        kind
+    } else if FLOAT_COLUMNS.contains(name) {
+        ColKind::Float
+    } else if DATE_COLUMNS.contains(name) {
+        ColKind::Date
+    } else {
+        ColKind::Text
     }
 }
 
@@ -375,4 +402,19 @@ pub fn row_limit(n_max: f64) -> Result<Option<usize>, String> {
     } else {
         Some(n_max as usize)
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{raw_column_kind, ColKind};
+
+    #[test]
+    fn raw_column_kinds() {
+        assert_eq!(raw_column_kind("loan_payment_to_date"), ColKind::Float);
+        assert_eq!(raw_column_kind("event_year_to_date"), ColKind::Float);
+        assert_eq!(raw_column_kind("loan_due_date"), ColKind::Text);
+        assert_eq!(raw_column_kind("contribution_date"), ColKind::Date);
+        assert_eq!(raw_column_kind("contribution_amount"), ColKind::Float);
+        assert_eq!(raw_column_kind("contributor_last_name"), ColKind::Text);
+    }
 }
