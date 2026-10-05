@@ -96,3 +96,19 @@ test_that("a paper filing's unrecognised summary rows go to `other`", {
   local_reproducible_output(unicode = TRUE)
   expect_snapshot(print(f), cran = TRUE)
 })
+
+test_that("whitespace-only lines and a DOS end-of-file byte are not rows", {
+  path <- withr::local_tempfile(fileext = ".fec")
+  lines <- readLines(pfizer_path(), n = 4L)
+  writeBin(c(
+    charToRaw(paste0(paste(lines[1:2], collapse = "\n"), "\n   \n", lines[[3L]], "\n \t \n")),
+    charToRaw(paste0(lines[[4L]], "\n\x1a"))
+  ), path)
+  f <- fec_read(path)
+  expect_equal(names(f$tables), "schedule_a")
+  expect_equal(nrow(f$schedule_a), 2L)
+  expect_equal(names(fec_read(path, raw = TRUE)$tables), "schedule_a")
+  # Skipped lines don't count toward n_max.
+  expect_equal(nrow(fec_read(path, n_max = 1)$schedule_a), 1L)
+  expect_equal(nrow(fec_read(path, n_max = 2)$schedule_a), 2L)
+})

@@ -269,7 +269,16 @@ impl Collector {
         }
     }
 
-    pub fn push_row(&mut self, row: FilingRow) {
+    /// Add a row; `false` if it was skipped as blank (see [`is_blank`]).
+    pub fn push_row(&mut self, row: FilingRow) -> bool {
+        if is_blank(&row.record) {
+            return false;
+        }
+        self.push(row);
+        true
+    }
+
+    fn push(&mut self, row: FilingRow) {
         let Some(family) = record_family(&row.row_type) else {
             self.other.get_or_insert_with(RawTable::new_other).push(
                 &row.row_type,
@@ -330,9 +339,21 @@ impl Collector {
     }
 }
 
+/// A record with no content: every field empty once whitespace and DOS
+/// end-of-file bytes (`0x1A`) are trimmed. The FS reader skips empty lines
+/// but returns a whitespace-only line, or a trailing `0x1A`, as a one-field
+/// record, which would otherwise be an `other` row.
+fn is_blank(record: &StringRecord) -> bool {
+    record.iter().all(|f| {
+        f.trim_matches(|c: char| c.is_whitespace() || c == '\x1a')
+            .is_empty()
+    })
+}
+
 /// Pull up to `limit` itemization rows (`None`: all) into `collector`. The
 /// limit is checked before `next_row()`, so a row is never pulled and
-/// dropped. Returns the number of rows read.
+/// dropped. Blank lines (see [`is_blank`]) are skipped and not counted.
+/// Returns the number of rows read.
 pub fn read_rows<R: Read>(
     filing: &mut Filing<R>,
     collector: &mut Collector,
@@ -344,8 +365,9 @@ pub fn read_rows<R: Read>(
         let Some(row) = filing.next_row() else { break };
         let row = row.map_err(|e| parse_error(&e, last_line))?;
         last_line = row.line;
-        collector.push_row(row);
-        n += 1;
+        if collector.push_row(row) {
+            n += 1;
+        }
     }
     Ok(n)
 }
@@ -406,7 +428,16 @@ pub fn row_limit(n_max: f64) -> Result<Option<usize>, String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{raw_column_kind, ColKind};
+    use super::{is_blank, raw_column_kind, ColKind, StringRecord};
+
+    #[test]
+    fn blank_records() {
+        assert!(is_blank(&StringRecord::from(vec!["   "])));
+        assert!(is_blank(&StringRecord::from(vec!["\x1a"])));
+        assert!(is_blank(&StringRecord::from(vec![" \t", "", " \x1a "])));
+        assert!(!is_blank(&StringRecord::from(vec!["", "x"])));
+        assert!(!is_blank(&StringRecord::from(vec!["ZZZ"])));
+    }
 
     #[test]
     fn raw_column_kinds() {
