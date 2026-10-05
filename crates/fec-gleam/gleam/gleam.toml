@@ -1,0 +1,14 @@
+name = "libfec"
+version = "0.0.32"
+description = "Read FEC campaign finance filings (.fec) with typed records, via a Rust NIF"
+licences = ["MIT", "Apache-2.0"]
+repository = { type = "github", user = "asg017", repo = "libfec" }
+gleam = ">= 1.14.0"
+target = "erlang"
+
+[dependencies]
+gleam_stdlib = ">= 0.44.0 and < 2.0.0"
+gleam_time = ">= 1.11.0 and < 2.0.0"
+
+[dev_dependencies]
+gleeunit = ">= 1.0.0 and < 2.0.0"
