@@ -19,3 +19,8 @@ Imports:
     rlang,
     tibble,
     utils
+Suggests:
+    testthat (>= 3.0.0),
+    vctrs,
+    withr
+Config/testthat/edition: 3
