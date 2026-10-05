@@ -3,8 +3,8 @@
 #' Prints a one-line summary of the filing (filing ID, form type, filer,
 #' coverage period, FEC format version) and the size of each table, rather
 #' than the tables themselves. Tables made from raw columns in a typed read
-#' are marked `(raw columns)`; see "Rows with no typed structure" in
-#' [fec_read()].
+#' are marked `(raw columns)`, and a cover form with no typed structure is
+#' marked `raw cover`; see "Rows with no typed structure" in [fec_read()].
 #'
 #' @param x A `<fec_filing>` from [fec_read()].
 #' @param ... Ignored.
@@ -29,8 +29,10 @@ format.fec_filing <- function(x, ...) {
     na_drop(info$form_type),
     na_drop(info$filer_name),
     format_coverage(info$coverage_from_date, info$coverage_through_date),
-    if (!is.na(header$fec_version)) paste0("v", header$fec_version),
+    format_version(header$fec_version),
     if (isTRUE(header$is_paper)) "paper",
+    # A form with no typed structure (such as F3Z) has its raw fields as the cover.
+    if (!raw && identical(info$cover_kind, "raw")) "raw cover",
     if (raw) "raw = TRUE"
   )
   title <- cli::style_bold(paste0("<fec_filing ", header$filing_id, ">"))
@@ -63,6 +65,14 @@ format.fec_filing <- function(x, ...) {
 print.fec_filing <- function(x, ...) {
   cat(format(x, ...), sep = "\n")
   invisible(x)
+}
+
+# `v8.4`; paper versions already start with `P` (`P2.6`).
+format_version <- function(version) {
+  if (length(version) != 1L || is.na(version)) {
+    return(NULL)
+  }
+  if (startsWith(version, "P")) version else paste0("v", version)
 }
 
 na_drop <- function(x) {

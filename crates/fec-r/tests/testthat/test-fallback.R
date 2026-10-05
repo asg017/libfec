@@ -112,3 +112,27 @@ test_that("whitespace-only lines and a DOS end-of-file byte are not rows", {
   expect_equal(nrow(fec_read(path, n_max = 1)$schedule_a), 1L)
   expect_equal(nrow(fec_read(path, n_max = 2)$schedule_a), 2L)
 })
+
+test_that("print() flags a cover form with no typed structure as a raw cover", {
+  # F3Z (v8.4) has no typed cover struct, so the cover is its raw fields even in typed mode.
+  dir <- withr::local_tempdir()
+  path <- file.path(dir, "9999002.fec")
+  writeBin(charToRaw(paste0(
+    "HDR\x1cFEC\x1c8.4\x1cFECFile\x1c8.4\x1c\x1c\x1c0\x1c\n",
+    "F3Z1\x1cC00016683\x1cPFIZER INC. PAC\x1c20230701\x1c20230731\n"
+  )), path)
+  f <- fec_read(path)
+  expect_equal(attr(f, "cover_info")$cover_kind, "raw")
+  local_reproducible_output(unicode = TRUE)
+  expect_match(format(f)[[1L]], "v8.4 · raw cover$")
+  # With raw = TRUE everything is raw, and the header line says so once.
+  expect_no_match(format(fec_read(path, raw = TRUE))[[1L]], "raw cover")
+  expect_no_match(format(fec_read(pfizer_path(), n_max = 0))[[1L]], "raw cover")
+  expect_snapshot(print(f), cran = TRUE)
+})
+
+test_that("print() shows a paper filing's version without a `v`", {
+  local_reproducible_output(unicode = TRUE)
+  expect_match(format(fec_read(fixture("P2.6_716051.fec")))[[1L]], " · P2.6 · paper$")
+  expect_match(format(fec_read(pfizer_path(), n_max = 0))[[1L]], " · v8.4$")
+})

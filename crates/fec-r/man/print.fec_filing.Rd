@@ -22,8 +22,8 @@
 Prints a one-line summary of the filing (filing ID, form type, filer,
 coverage period, FEC format version) and the size of each table, rather
 than the tables themselves. Tables made from raw columns in a typed read
-are marked \verb{(raw columns)}; see "Rows with no typed structure" in
-\code{\link[=fec_read]{fec_read()}}.
+are marked \verb{(raw columns)}, and a cover form with no typed structure is
+marked \verb{raw cover}; see "Rows with no typed structure" in \code{\link[=fec_read]{fec_read()}}.
 }
 \examples{
 f <- fec_read(system.file("extdata", "1721696.fec", package = "libfec"))
