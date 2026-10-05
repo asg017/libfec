@@ -30,3 +30,13 @@ test_that("raw SC1 loan_due_date is text (it holds terms such as ON DEMAND)", {
   expect_equal(fec_read(path, raw = TRUE)$schedule_c1$loan_due_date, "ON DEMAND")
   expect_equal(fec_read(path)$schedule_c1$loan_due_date_terms, "ON DEMAND")
 })
+
+test_that("raw = TRUE keeps an F99's message text on the cover", {
+  p <- fixture("F99_1909934.fec")
+  t <- fec_read(p)
+  r <- fec_read(p, raw = TRUE)
+  expect_type(r$cover$text, "character")
+  expect_equal(nchar(r$cover$text), nchar(t$cover$text))
+  expect_equal(r$cover$text, t$cover$text)
+  expect_equal(fec_cover(r)$text, t$cover$text)
+})
