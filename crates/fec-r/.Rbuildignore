@@ -4,3 +4,4 @@
 ^src/Makevars$
 ^src/Makevars\.win$
 ^Makefile$
+^libfec_.*\.tar\.gz$

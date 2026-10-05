@@ -8,3 +8,4 @@ src/*.so
 src/*.dll
 src/.cargo
 src/rust/document
+/libfec_*.tar.gz
