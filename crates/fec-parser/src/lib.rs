@@ -34,6 +34,8 @@
 
 #![deny(clippy::unwrap_used)]
 
+#[cfg(feature = "columnar")]
+pub mod columnar;
 pub mod covers;
 pub mod format;
 pub mod itemizations;

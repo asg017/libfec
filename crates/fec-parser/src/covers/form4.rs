@@ -53,6 +53,7 @@ use serde::Serialize;
     pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, Serialize)]
+#[cfg_attr(feature = "columnar", derive(fec_parser_macros::Columnar))]
 pub struct Form4 {
     /// Form type as filed, e.g. `F4N`: the base form plus the
     /// amendment-indicator suffix (see [`crate::covers::base_form_type`]).
@@ -104,6 +105,7 @@ pub struct Form4 {
     pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, Serialize)]
+#[cfg_attr(feature = "columnar", derive(fec_parser_macros::Columnar))]
 pub struct Form4Summary {
     /// Line 6(a), cash on hand January 1 of the year — Column B only
     /// (`col_b_cash_on_hand_beginning_year`)
@@ -178,6 +180,7 @@ pub struct Form4Summary {
     pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, Copy, Default, PartialEq, Serialize)]
+#[cfg_attr(feature = "columnar", derive(fec_parser_macros::Columnar))]
 pub struct Form4ItemizedLine {
     /// (a) itemized amount, This Period.
     pub itemized: f64,
@@ -195,6 +198,7 @@ pub struct Form4ItemizedLine {
     pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, Copy, Default, PartialEq, Serialize)]
+#[cfg_attr(feature = "columnar", derive(fec_parser_macros::Columnar))]
 pub struct Form4LoanLine {
     /// (a) loans received / made, This Period.
     pub loans: f64,
@@ -211,6 +215,7 @@ pub struct Form4LoanLine {
     pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, Serialize)]
+#[cfg_attr(feature = "columnar", derive(fec_parser_macros::Columnar))]
 pub struct Form4DetailedSummary {
     /// "RECEIPTS", Lines 13–20.
     pub receipts: Form4Receipts,
@@ -225,6 +230,7 @@ pub struct Form4DetailedSummary {
     pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, Serialize)]
+#[cfg_attr(feature = "columnar", derive(fec_parser_macros::Columnar))]
 pub struct Form4Receipts {
     /// Line 13, federal funds: "receipts from the Presidential Election
     /// Campaign Fund (US Treasury)" (`col_a_federal_funds`,
@@ -280,6 +286,7 @@ pub struct Form4Receipts {
     pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, Serialize)]
+#[cfg_attr(feature = "columnar", derive(fec_parser_macros::Columnar))]
 pub struct Form4Disbursements {
     /// Line 21, convention expenditures: "disbursements made to defray
     /// convention expenses" (`col_a_convention_expenses_itemized`,

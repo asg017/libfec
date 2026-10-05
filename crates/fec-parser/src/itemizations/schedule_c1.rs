@@ -69,6 +69,7 @@ use crate::itemizations::{text_any, Entity};
     )
 )]
 #[derive(Debug, Clone, serde::Serialize)]
+#[cfg_attr(feature = "columnar", derive(fec_parser_macros::Columnar))]
 pub struct ScheduleC1 {
     /// The row type as filed, `SC1/` plus the line number: `SC1/10`. Column
     /// `form_type` (FEC format workbook v8.4, sheet `Sch C1`, field 1).
