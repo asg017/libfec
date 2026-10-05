@@ -24,7 +24,7 @@
 //! | Rust | Gleam | Erlang term |
 //! |---|---|---|
 //! | `String`, `&'static str` | `String` | binary |
-//! | `f64` | `Float` | float |
+//! | `f64` | `Float` | float; NaN/±inf (no BEAM equivalent) → `0.0`, and `Some` of one → `none` |
 //! | `bool` | `Bool` | `true` / `false` |
 //! | `i16`, `u16` | `Int` | integer |
 //! | `jiff::civil::Date` | `calendar.Date` (gleam_time) | `{date, Year, MonthAtom, Day}`, `MonthAtom` = `january` … `december` |
@@ -208,6 +208,11 @@ pub trait GleamType {
 pub trait GleamValue {
     fn gleam_ty() -> GleamTy;
     fn encode_gleam<'a>(&self, env: rustler::Env<'a>) -> rustler::Term<'a>;
+    /// Whether `Some(self)` is encoded as `None`: true only for a
+    /// non-finite `f64` (see the `f64` impl).
+    fn gleam_absent(&self) -> bool {
+        false
+    }
 }
 
 // Re-exported so the derive's output names `crate::gleam::rustler`.
@@ -239,12 +244,22 @@ impl GleamValue for &'static str {
     }
 }
 
+/// The BEAM has no NaN or infinity: `enif_make_double` raises `badarg` for
+/// them, which would crash the NIF call. `amount`/`amount_opt`
+/// (`covers::fields`) parse with `f64::from_str`, which accepts `nan`,
+/// `inf` and `1e999`, so a filing can produce them. They are treated like
+/// any other unparsable amount: a non-finite `f64` is encoded as `0.0`
+/// (what `amount` gives for garbage) and `Some(non-finite)` as `None` (what
+/// `amount_opt` gives), see [`GleamValue::gleam_absent`].
 impl GleamValue for f64 {
     fn gleam_ty() -> GleamTy {
         GleamTy::Float
     }
     fn encode_gleam<'a>(&self, env: rustler::Env<'a>) -> rustler::Term<'a> {
-        self.encode(env)
+        if self.is_finite() { *self } else { 0.0 }.encode(env)
+    }
+    fn gleam_absent(&self) -> bool {
+        !self.is_finite()
     }
 }
 
@@ -314,11 +329,11 @@ impl<T: GleamValue> GleamValue for Option<T> {
     }
     fn encode_gleam<'a>(&self, env: rustler::Env<'a>) -> rustler::Term<'a> {
         match self {
-            None => atoms::none().encode(env),
-            Some(v) => rustler::types::tuple::make_tuple(
+            Some(v) if !v.gleam_absent() => rustler::types::tuple::make_tuple(
                 env,
                 &[atoms::some().encode(env), v.encode_gleam(env)],
             ),
+            _ => atoms::none().encode(env),
         }
     }
 }
@@ -339,6 +354,9 @@ impl<T: GleamValue> GleamValue for Box<T> {
     }
     fn encode_gleam<'a>(&self, env: rustler::Env<'a>) -> rustler::Term<'a> {
         (**self).encode_gleam(env)
+    }
+    fn gleam_absent(&self) -> bool {
+        (**self).gleam_absent()
     }
 }
 
@@ -536,6 +554,18 @@ mod tests {
         ("Text", "text"),
         ("TextRecord", "text_record"),
     ];
+
+    /// Non-finite floats have no Erlang term; see the `f64` impl.
+    #[test]
+    fn non_finite_f64_is_absent() {
+        for x in ["nan", "inf", "-inf", "1e999"] {
+            let x: f64 = x.parse().unwrap();
+            assert!(x.gleam_absent(), "{x}");
+            assert!(Box::new(x).gleam_absent(), "{x}");
+        }
+        assert!(!1.5f64.gleam_absent());
+        assert!(!0.0f64.gleam_absent());
+    }
 
     #[test]
     fn snake_case_matches_compiled_gleam() {
