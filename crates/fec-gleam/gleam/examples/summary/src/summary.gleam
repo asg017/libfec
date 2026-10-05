@@ -382,8 +382,16 @@ fn amount_column(amount: Float) -> String {
   string.pad_start(money(amount), 18, " ")
 }
 
-/// `-$1,234.56`.
+/// `-$1,234.56`. Amounts too large to count in cents (a filed `1e307` is a
+/// valid float, but `*. 100.0` would overflow) print as the float itself.
 fn money(amount: Float) -> String {
+  case float.absolute_value(amount) <. 1.0e15 {
+    True -> money_in_cents(amount)
+    False -> "$" <> float.to_string(amount)
+  }
+}
+
+fn money_in_cents(amount: Float) -> String {
   let cents = float.round(amount *. 100.0)
   let sign = case cents < 0 {
     True -> "-"
