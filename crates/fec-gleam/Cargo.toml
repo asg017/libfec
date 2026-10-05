@@ -1,0 +1,15 @@
+[package]
+name = "fec-gleam"
+version = "0.0.32"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+publish = false
+
+[lib]
+# Loaded by gleam/src/libfec_nif.erl; the name must match `rustler::init!`.
+name = "libfec_nif"
+crate-type = ["cdylib"]
+
+[dependencies]
+rustler = "0.37"
+fec-parser = { path = "../fec-parser" }

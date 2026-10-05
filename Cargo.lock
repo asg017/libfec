@@ -914,6 +914,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "fec-gleam"
+version = "0.0.32"
+dependencies = [
+ "fec-parser",
+ "rustler",
+]
+
+[[package]]
 name = "fec-parser"
 version = "0.1.0"
 dependencies = [
