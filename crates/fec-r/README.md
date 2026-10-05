@@ -5,9 +5,29 @@ R bindings for libfec: read FEC electronic filings with the `fec-parser` Rust cr
 
 ```r
 library(libfec)
-fec_version_info()
-#> [1] "0.1.0"
+f <- fec_read(system.file("extdata", "1721696.fec", package = "libfec"))
+f
+#> <fec_filing 1721696> F3XN · PFIZER INC. PAC · 2023-07-01 to 2023-07-31 · v8.4
+#>   schedule_a  1,354 × 48
+#>   schedule_b     33 × 49
+f$schedule_a           # a tibble; one per record family, same column names for every version
+f$cover$committee_name # the typed cover, as a named list
+fec_cover(path)        # the cover as a one-row tibble (reads only the header and cover)
 ```
+
+- `fec_read(x, raw = FALSE, n_max = Inf)` returns a `<fec_filing>`:
+  `structure(list(header, cover, tables), class = "fec_filing")`, with attributes `table_kinds`
+  (`"typed"`/`"raw"`/`"other"` per table), `cover_info` (the form-independent cover fields) and
+  `raw`. `f$name` / `f[["name"]]` return `header`, `cover`, `tables` or a table (`NULL` if the
+  filing has none). `names(f)` is left alone (`c("header", "cover", "tables")`): overriding it
+  breaks `str()` and `modifyList()`. List the tables with `names(f$tables)`; `f$<TAB>` completes
+  table names (`.DollarNames`).
+- **A blank or garbage main amount is `0`; other garbage is `NA`; `raw = TRUE` shows the original
+  text.** See `?fec_read`.
+- Errors: `libfec_error_io` (missing file, directory, read failure), `libfec_error_header` (not a
+  `.fec` file, unsupported version, no cover), `libfec_error_parse`, all also `libfec_error`; the
+  condition has a `path` field. Bad arguments are plain `rlang_error`s.
+- `inst/extdata/1721696.fec` (F3XN, 1,354 SA + 33 SB rows) is the examples' fixture.
 
 ## Layout
 
