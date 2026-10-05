@@ -146,6 +146,8 @@ type Summary {
     /// Schedule E independent expenditures.
     supporting: Tally,
     opposing: Tally,
+    /// Unitemized (`UNI`) or unknown support/oppose codes.
+    unclassified: Tally,
     candidates: Dict(String, Float),
     /// TEXT records, other typed families, and rows with no typed family.
     texts: Int,
@@ -176,6 +178,7 @@ fn new_summary() -> Summary {
     payees: dict.new(),
     supporting: zero,
     opposing: zero,
+    unclassified: zero,
     candidates: dict.new(),
     texts: 0,
     other_typed: 0,
@@ -219,10 +222,14 @@ fn tally(s: Summary, row: Row) -> Summary {
       let amount = e.expenditure_amount
       let candidate = libfec.copy(candidate_name(e.candidate))
       let s = Summary(..s, candidates: add_to(s.candidates, candidate, amount))
-      case e.support_oppose_code {
-        Some("S") -> Summary(..s, supporting: add(s.supporting, amount))
-        Some("O") -> Summary(..s, opposing: add(s.opposing, amount))
-        _ -> s
+      // v8 files say `S`/`O`; v5.3 also allows `SUP`/`24E` and `OPP`/`24A`.
+      let code = option.map(e.support_oppose_code, normalize_code)
+      case code {
+        Some("S") | Some("SUP") | Some("24E") ->
+          Summary(..s, supporting: add(s.supporting, amount))
+        Some("O") | Some("OPP") | Some("24A") ->
+          Summary(..s, opposing: add(s.opposing, amount))
+        _ -> Summary(..s, unclassified: add(s.unclassified, amount))
       }
     }
     Some(itemization.Text(_)) -> Summary(..s, texts: s.texts + 1)
@@ -230,6 +237,10 @@ fn tally(s: Summary, row: Row) -> Summary {
     None ->
       Summary(..s, untyped: dict.upsert(s.untyped, row.row_type, increment))
   }
+}
+
+fn normalize_code(code: String) -> String {
+  code |> string.trim |> string.uppercase
 }
 
 fn add(tally: Tally, amount: Float) -> Tally {
@@ -314,12 +325,13 @@ fn print_summary(s: Summary, skipped: Int) -> Nil {
     }
   }
 
-  case s.supporting.count + s.opposing.count {
+  case s.supporting.count + s.opposing.count + s.unclassified.count {
     0 -> Nil
     _ -> {
       io.println("Schedule E, independent expenditures")
       tally_field("Supporting", s.supporting)
       tally_field("Opposing", s.opposing)
+      tally_field("Unitemized or unknown", s.unclassified)
       top_field("Top candidates", s.candidates)
     }
   }
