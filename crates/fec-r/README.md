@@ -29,6 +29,31 @@ fec_cover(path)        # the cover as a one-row tibble (reads only the header an
   condition has a `path` field. Bad arguments are plain `rlang_error`s.
 - `inst/extdata/1721696.fec` (F3XN, 1,354 SA + 33 SB rows) is the examples' fixture.
 
+## Demo
+
+[`examples/campaign-finance.R`](examples/campaign-finance.R) walks through one filing in base R
+(cover totals, receipts without memo double-counting, top states/cities/donors, receipts by month,
+top payees and purposes, `raw = TRUE`, stacking covers). It calls `library(libfec)`, so install
+the package first:
+
+```bash
+cd crates/fec-r
+make install                                                # Rust + R; ~1.5 min cold
+Rscript examples/campaign-finance.R                         # the bundled 1721696.fec
+Rscript examples/campaign-finance.R path/to/filing.fec      # any .fec file
+
+# A big one: Biden for President's June 2024 F3PN (91 MB, 404k Schedule A rows, ~2 s to read)
+curl -o /tmp/1805248.fec https://docquery.fec.gov/dcdev/posted/1805248.fec
+Rscript examples/campaign-finance.R /tmp/1805248.fec
+
+# As an HTML report (needs pandoc: brew install pandoc) -> examples/campaign-finance.html
+Rscript -e 'rmarkdown::render("examples/campaign-finance.R")'
+Rscript -e 'rmarkdown::render("examples/campaign-finance.R", params = list(path = "/tmp/1805248.fec"))'
+```
+
+It's a knitr spin script (`#'` lines are the report text), needs only tibble beyond libfec, and is
+left out of the package tarball (`.Rbuildignore`).
+
 ## Layout
 
 This directory is an R package root. The Rust crate (`fecr`, static lib `libfec`) lives in
