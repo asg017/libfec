@@ -86,11 +86,11 @@ def iter_lines(
 
 def from_http(
     file_number: int | str, options: Options | None = None
-) -> Parsed | None:
+) -> Parsed:
     """Download and parse a filing from docquery.fec.gov.
 
-    `None` if both the electronic and the paper URL 404; raises
-    `FilingUnavailableError` for any other non-200 status. Requires the
+    Raises `FilingUnavailableError` for any non-200 status, including a 404
+    from both the electronic and the paper URL. Requires the
     `[http]` extra (`httpx2`); raises `ImportError` naming it otherwise.
     """
 

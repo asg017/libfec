@@ -88,9 +88,9 @@ Public names: `loads`, `from_file`, `from_http`, `iter_file`, `iter_http`, `iter
 | --- | --- |
 | `from_file(path, options=None)` | Path to a `.fec` file, as a `str` or `os.PathLike` |
 | `loads(content, options=None)` | `bytes`, a `str`, or any iterable of lines |
-| `from_http(filing_id, options=None)` | A filing ID (`int` or `str`), downloaded from `docquery.fec.gov`. `None` if neither the electronic nor the paper URL exists |
+| `from_http(filing_id, options=None)` | A filing ID (`int` or `str`), downloaded from `docquery.fec.gov`. Raises `FilingUnavailableError` if neither the electronic nor the paper URL exists |
 | `iter_file(path, options=None)` | Like `from_file`, streamed as `FecItem`s instead of built into one dict |
-| `iter_http(filing_id, options=None)` | Like `from_http`, streamed; raises instead of returning `None` on a 404 (see the HTTP section below) |
+| `iter_http(filing_id, options=None)` | Like `from_http`, streamed (see the HTTP section below) |
 | `iter_lines(lines, options=None)` | Streamed, from an iterable of `str`/`bytes` lines |
 
 `from_file`, `loads` and `from_http` return a dict with the same shape:
@@ -174,7 +174,7 @@ uv pip install "libfec-parser[http] @ https://github.com/asg017/libfec/releases/
 
 (Swap the wheel filename for your platform — see the table in [Install](#install).) Without `httpx2` installed, `from_http`/`iter_http` raise `ImportError` naming the extra.
 
-`from_http(filing_id)` tries the electronic ("dcdev") URL first and the paper URL on a 404, and returns `None` if both are 404 — matching real `fecfile` (the idiom in the wild is `if fecfile.from_http(n) is None: ...`). Any other non-200 status raises `FilingUnavailableError` instead of trying to parse an error page as a filing, which is what real `fecfile` attempts. `iter_http` streams the same way `iter_file` does — the first item can arrive before the download finishes — and raises `FilingUnavailableError` on *any* non-200, including a 404, since there's no dict to return `None` in its place.
+`from_http(filing_id)` tries the electronic ("dcdev") URL first and the paper URL on a 404. Any status other than 200 raises `FilingUnavailableError`, including a 404 from both URLs. `iter_http` streams the same way `iter_file` does — the first item can arrive before the download finishes — and raises the same way.
 
 ### Parsing single records
 
@@ -221,7 +221,7 @@ Deliberate supersets — things this package does that real `fecfile` doesn't:
 - `from_file` accepts `os.PathLike`, not just `str`.
 - `FecParserMissingMappingError` and `FilingUnavailableError` derive from `FecError` (a `ValueError`), so they're catchable alongside the native API's exceptions.
 - `parse_header` on a line that isn't a header raises `ValueError`; real raises `IndexError`.
-- `from_http` raises `FilingUnavailableError` for a non-404 HTTP error rather than trying to parse the error page as a filing.
+- `from_http` raises `FilingUnavailableError` when the filing doesn't exist (a 404 from both URLs), where real returns `None`; code written as `if fecfile.from_http(n) is None:` should catch the exception instead. Any other non-200 raises too, rather than parsing the error page as a filing.
 
 ### Use the native API instead when…
 

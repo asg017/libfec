@@ -615,8 +615,7 @@ def _fetch(file_number: int | str) -> "Iterator[httpx2.Response]":
     """A streamed response for ``file_number``, closed with its client on exit.
 
     Tries the electronic ("dcdev") URL first and the paper URL if that is a 404.
-    Whatever the second URL answers is handed over as-is: the two callers
-    disagree about what a 404 means.
+    Whatever the second URL answers is handed over as-is.
     """
     with _client() as client:
         for url in (_DCDEV_URL, _PAPER_URL):
@@ -641,21 +640,17 @@ def _iter_response(
 
 def from_http(
     file_number: int | str, options: Mapping[str, Any] | None = None
-) -> dict[str, Any] | None:
+) -> dict[str, Any]:
     """Download and parse a filing from docquery.fec.gov.
 
-    Tries the electronic URL, then the paper URL on a 404. ``None`` if both are
-    404 (real `fecfile`'s behaviour — the idiom in the wild is
-    ``if fecfile.from_http(n) is None``); any other non-200 raises
-    :class:`FilingUnavailableError` instead of trying to parse an error page as
-    a filing. Network errors (DNS, TLS, timeout, …) propagate as `httpx2`
+    Tries the electronic URL, then the paper URL on a 404. Any status other
+    than 200 raises :class:`FilingUnavailableError`, including a 404 from both
+    URLs, where real `fecfile` returns ``None``. Network errors (DNS, TLS, timeout, …) propagate as `httpx2`
     exceptions. Requires the ``[http]`` extra (`httpx2`); see :func:`iter_http`
     for a streaming version that never holds the whole filing in memory.
     """
     opts = _check_options(options)
     with _fetch(file_number) as response:
-        if response.status_code == 404:
-            return None
         return _assemble(_iter_response(response, file_number, opts))
 
 

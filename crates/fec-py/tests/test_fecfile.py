@@ -407,7 +407,7 @@ class TestFromHttp:
         ]
         assert result == loads(sample_fec_bytes)
 
-    def test_404_404_returns_none(self, monkeypatch, httpx2mod):
+    def test_404_404_raises_filing_unavailable(self, monkeypatch, httpx2mod):
         urls = []
 
         def handler(request):
@@ -416,7 +416,8 @@ class TestFromHttp:
 
         monkeypatch.setattr(fecfile, "_client", lambda: _mock_client(httpx2mod, handler))
 
-        assert from_http(1) is None
+        with pytest.raises(FilingUnavailableError, match="404"):
+            from_http(1)
         assert urls == [
             "https://docquery.fec.gov/dcdev/posted/1.fec",
             "https://docquery.fec.gov/paper/posted/1.fec",
