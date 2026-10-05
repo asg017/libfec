@@ -9,14 +9,14 @@
 import gleam/list
 import gleam/option.{Some}
 import gleam/string
+import libfec.{type Reader}
 import libfec/cover
-import libfec/internal/nif.{type Opened}
 import libfec/itemization
 import libfec/row.{type Row}
 import support
 
-fn covers(file: String) -> Opened {
-  support.open(support.parser_fixtures <> "covers/" <> file, False)
+fn covers(file: String) -> Reader {
+  support.reader(support.parser_fixtures <> "covers/" <> file)
 }
 
 pub fn cover_form1_test() {
@@ -268,7 +268,7 @@ pub fn form13_refund_test() {
 }
 
 pub fn form9_cover_synthetic_test() {
-  let o = support.open(support.fixtures <> "form9_items.fec", False)
+  let o = support.reader(support.fixtures <> "form9_items.fec")
   let assert Some(cover.Form9(c)) = o.cover
   assert c.filer_committee_id == "C90009999"
 }

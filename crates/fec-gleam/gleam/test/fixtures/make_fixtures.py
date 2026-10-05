@@ -216,6 +216,31 @@ write(
     ],
 )
 
+# Batch boundaries (fold pulls 1,000 rows at a time): 2,500 short SA rows,
+# transaction_id "T<i>" (i = 1..2,500, line i + 2). Row 1 also has a
+# 100-byte back_reference_tran_id_number: strings under 64 bytes are copied
+# out of the batch binary by the runtime (OTP 28, at least), longer ones stay
+# sub-binaries (the `copy` test).
+write(
+    "many_rows.fec",
+    [HDR, f3x_cover("M")]
+    + [
+        FS.join(["SA11AI", "C00424242", f"T{i}"] + (["B" * 100] if i == 1 else []))
+        for i in range(1, 2501)
+    ],
+)
+
+# Skipped rows count towards a batch: 10 SA rows (T1-T10, lines 3-12), 2,000
+# unmapped rows (lines 13-2012), 10 more SA rows (T11-T20, lines 2013-2022).
+# Under Skip the second batch is empty but not the end.
+write(
+    "skip_heavy.fec",
+    [HDR, f3x_cover("K")]
+    + [FS.join(["SA11AI", "C00424242", f"T{i}"]) for i in range(1, 11)]
+    + [FS.join(["ZZZ9", "C00424242", f"Z{i}"]) for i in range(1, 2001)]
+    + [FS.join(["SA11AI", "C00424242", f"T{i}"]) for i in range(11, 21)],
+)
+
 write(
     "unsupported_version.fec",
     [FS.join(["HDR", "FEC", "9.9", "SoftName", "1.2.3"]), "F3XN" + FS + "C00424242"],
