@@ -71,7 +71,7 @@ def parse_structs() -> tuple[dict[str, tuple[list[str], list[tuple[str, str, lis
         current: str | None = None
         impl: str | None = None
         in_attribute = False
-        for line in path.read_text().splitlines():
+        for line in path.read_text(encoding="utf-8").splitlines():
             stripped = line.strip()
             if in_attribute:  # the rest of a multi-line `#[cfg_attr(...)]`
                 in_attribute = stripped != ")]"
@@ -99,7 +99,7 @@ def parse_structs() -> tuple[dict[str, tuple[list[str], list[tuple[str, str, lis
 
 def parse_methods() -> dict[str, list[tuple[str, str]]]:
     """``{struct: [(python name, rust return type)]}`` from ``cover_class!`` calls."""
-    source = (COVERS / "python.rs").read_text()
+    source = (COVERS / "python.rs").read_text(encoding="utf-8")
     methods: dict[str, list[tuple[str, str]]] = {}
     for call in re.finditer(r"^cover_class!\((.*?)\);", source, re.S | re.M):
         args = call.group(1).strip()
@@ -156,11 +156,11 @@ def render() -> str:
 def main() -> int:
     text = render()
     if "--check" in sys.argv[1:]:
-        if OUT.read_text() != text:
+        if OUT.read_text(encoding="utf-8") != text:
             print(f"{OUT} is stale; run: python {Path(__file__).name}", file=sys.stderr)
             return 1
         return 0
-    OUT.write_text(text)
+    OUT.write_text(text, encoding="utf-8", newline="\n")
     return 0
 
 

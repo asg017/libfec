@@ -49,7 +49,7 @@ def snapshots() -> list[Snapshot]:
     """Every `cover("…")`/`legacy_cover("…")` JSON snapshot of `tests/covers.rs`."""
     found = []
     for snap in sorted((PARSER_TESTS / "snapshots").glob("covers__*.snap")):
-        _, header, body = snap.read_text().split("---\n", 2)
+        _, header, body = snap.read_text(encoding="utf-8").split("---\n", 2)
         m = re.search(r'^expression: "(cover|legacy_cover)\(\\"(.+?)\\"\)"$', header, re.M)
         if m is None:
             continue  # a TUI render snapshot, not a cover
