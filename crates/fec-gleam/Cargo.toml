@@ -11,6 +11,8 @@ name = "libfec_nif"
 crate-type = ["cdylib"]
 
 [dependencies]
+anyhow = "1.0.99"
+jiff = "0.2.5"
 rustler = "0.37"
 # `gleam`: the GleamType descriptions (read by the `gen` bin) and the
 # Encoder impls (used by the NIF).

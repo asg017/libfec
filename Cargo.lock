@@ -917,7 +917,9 @@ dependencies = [
 name = "fec-gleam"
 version = "0.0.32"
 dependencies = [
+ "anyhow",
  "fec-parser",
+ "jiff",
  "rustler",
 ]
 
