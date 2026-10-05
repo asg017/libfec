@@ -76,13 +76,14 @@ jobs:
           CARGO_NET_OFFLINE: "true"
           HTTP_PROXY: http://127.0.0.1:9
           HTTPS_PROXY: http://127.0.0.1:9
-          http_proxy: http://127.0.0.1:9
-          https_proxy: http://127.0.0.1:9
           _R_CHECK_FORCE_SUGGESTS_: "false"
           _R_CHECK_CRAN_INCOMING_: "false"
           _R_CHECK_CRAN_INCOMING_REMOTE_: "false"
           _R_CHECK_SYSTEM_CLOCK_: "false"
         run: |
+          # Lowercase proxy variables are set here: workflow `env:` keys are case-insensitive, so
+          # they can't sit next to HTTP_PROXY / HTTPS_PROXY there.
+          export http_proxy="$HTTP_PROXY" https_proxy="$HTTPS_PROXY"
           version=$(sed -n 's/^Version: *//p' "$PKG_DIR/DESCRIPTION")
           mkdir -p "$RUNNER_TEMP/check"
           cp "$PKG_DIR/libfec_${version}.tar.gz" "$RUNNER_TEMP/check/"
