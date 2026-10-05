@@ -97,3 +97,23 @@ test_that("NaN and infinite amount text is garbage in both modes", {
   expect_equal(r$contribution_amount, rep(NA_real_, 4))
   expect_equal(r$contribution_aggregate, rep(NA_real_, 4))
 })
+
+test_that("raw = TRUE keeps garbage text but not garbage dates or amounts (as documented)", {
+  # SA_1920342.fec (v8.5): contribution_date (field 20), contribution_amount (21) and
+  # contributor_state (16) rewritten on the first SA row.
+  lines <- readLines(fixture("SA_1920342.fec"))
+  sa <- which(startsWith(lines, "SA"))[[1L]]
+  fields <- strsplit(lines[[sa]], "\x1c", fixed = TRUE)[[1L]]
+  fields[c(16L, 20L, 21L)] <- c("I?", "2023-07-14", "$25")
+  lines[[sa]] <- paste(fields, collapse = "\x1c")
+  path <- withr::local_tempfile(fileext = ".fec")
+  writeLines(lines, path)
+  t <- fec_read(path)$schedule_a
+  r <- fec_read(path, raw = TRUE)$schedule_a
+  expect_equal(r$contributor_state[[1L]], "I?")
+  expect_equal(t$contributor_address_state[[1L]], "I?")
+  expect_true(is.na(r$contribution_date[[1L]]))
+  expect_true(is.na(t$contribution_date[[1L]]))
+  expect_true(is.na(r$contribution_amount[[1L]]))
+  expect_equal(t$contribution_amount[[1L]], 0)
+})

@@ -70,8 +70,10 @@ are \code{""} when blank: \code{contributor_name_first_name} is \code{""} on eve
 organization's row.
 }
 
-The original text of a garbage value isn't kept. Read the filing with
-\code{raw = TRUE} to see it.
+The original text of a garbage value isn't kept. \code{raw = TRUE} shows the
+original text of text fields only: it parses dates and amounts too, so a
+garbage date or amount is \code{NA} with \code{raw = TRUE} as well (see "Column
+names").
 }
 
 \section{Column names}{
@@ -84,8 +86,10 @@ different filings stack with \code{dplyr::bind_rows()} or
 \code{purrr::list_rbind()}. Every table starts with \code{filing_id}.
 
 With \code{raw = TRUE}, the columns are the format version's own field names
-(which can differ between versions). They're all \code{character}, except dates
-(\code{Date}) and amounts (\code{double}).
+(which can differ between versions). They're all \code{character} (the text as
+filed, trimmed, blank as \code{NA}), except dates (\code{Date}) and amounts
+(\code{double}), which are parsed as in typed columns: one that can't be read
+is \code{NA}, main amounts included.
 }
 
 \section{Rows with no typed structure}{
