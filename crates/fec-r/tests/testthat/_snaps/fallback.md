@@ -30,9 +30,17 @@
     Code
       print(f)
     Output
-      <fec_filing P2.6_716051> F3A · GRASSLEY COMMITTEE INC. · 2010-10-14 to 2010-11-22 · vP2.6 · paper
+      <fec_filing P2.6_716051> F3A · GRASSLEY COMMITTEE INC. · 2010-10-14 to 2010-11-22 · P2.6 · paper
         schedule_a  12 × 48
         schedule_b   6 × 49
         schedule_d   1 × 38
         other        1 × 33
+
+# print() flags a cover form with no typed structure as a raw cover
+
+    Code
+      print(f)
+    Output
+      <fec_filing 9999002> F3Z1 · 2023-07-01 to 2023-07-31 · v8.4 · raw cover
+        (no itemizations)
 

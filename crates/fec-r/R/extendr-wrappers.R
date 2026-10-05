@@ -30,8 +30,9 @@ fec_version_info <- function() .Call(wrap__fec_version_info)
 #'   flattened (`fec_parser::columnar`; `Date`, `double`, `logical`,
 #'   `integer`, `character`). If the form has no typed struct, and always
 #'   with `raw = TRUE`: the raw cover record as text (mapping names, blank →
-#'   `NA`, fields past the layout as `extra_1`, …). A filing always has a
-#'   cover (a file without one is a `header:` error).
+#'   `NA`, fields past the layout as `extra_1`, …, and an F99's message as
+#'   `text`). A filing always has a cover (a file without one is a
+#'   `header:` error).
 #' - `cover_info`: the form-independent cover fields, named list:
 #'   `form_type`, `filer_id`, `filer_name`, `report_code` (character),
 #'   `coverage_from_date`, `coverage_through_date` (`Date`, `NA` when

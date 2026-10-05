@@ -110,3 +110,16 @@ test_that("bad arguments are plain errors, not libfec errors", {
     fec_read(as.raw(1:3))
   })
 })
+
+test_that("filing_id comes from the path given, not a symlink's target", {
+  skip_on_os("windows")
+  dir <- withr::local_tempdir()
+  blob <- file.path(dir, "blob_ab12cd")
+  file.copy(pfizer_path(), blob)
+  link <- file.path(dir, "1721696.fec")
+  file.symlink(blob, link)
+  f <- fec_read(link, n_max = 5)
+  expect_equal(f$header$filing_id, "1721696")
+  expect_equal(unique(f$schedule_a$filing_id), "1721696")
+  expect_equal(fec_cover(link)$filing_id, "1721696")
+})

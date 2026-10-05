@@ -23,8 +23,10 @@
 #'   are `""` when blank: `contributor_name_first_name` is `""` on every
 #'   organization's row.
 #'
-#' The original text of a garbage value isn't kept. Read the filing with
-#' `raw = TRUE` to see it.
+#' The original text of a garbage value isn't kept. `raw = TRUE` shows the
+#' original text of text fields only: it parses dates and amounts too, so a
+#' garbage date or amount is `NA` with `raw = TRUE` as well (see "Column
+#' names").
 #'
 #' @section Column names:
 #' A typed column is named by the path to its field, joined with `_` and never
@@ -35,8 +37,10 @@
 #' `purrr::list_rbind()`. Every table starts with `filing_id`.
 #'
 #' With `raw = TRUE`, the columns are the format version's own field names
-#' (which can differ between versions). They're all `character`, except dates
-#' (`Date`) and amounts (`double`).
+#' (which can differ between versions). They're all `character` (the text as
+#' filed, trimmed, blank as `NA`), except dates (`Date`) and amounts
+#' (`double`), which are parsed as in typed columns: one that can't be read
+#' is `NA`, main amounts included.
 #'
 #' @section Rows with no typed structure:
 #' Nothing is dropped and nothing errors:

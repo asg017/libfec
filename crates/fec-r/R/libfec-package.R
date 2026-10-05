@@ -11,8 +11,10 @@
 #'   comparing many filings.
 #'
 #' Read "Values in typed columns" in [fec_read()] before summarising amounts:
-#' **a blank or garbage main amount is `0`**, other blank or garbage values
-#' are `NA`, and `raw = TRUE` shows the original text.
+#' **a blank or garbage main amount is `0`**, and other blank or garbage
+#' values are `NA`. `raw = TRUE` shows the original text of text fields, but
+#' parses dates and amounts too, so a garbage date or amount is `NA` there as
+#' well.
 #'
 #' @keywords internal
 "_PACKAGE"

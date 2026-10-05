@@ -1,5 +1,6 @@
 use extendr_api::prelude::*;
 use fec_parser::columnar::{days_since_epoch, new_builders};
+use fec_parser::covers::Cover;
 use fec_parser::Filing;
 
 mod names;
@@ -36,8 +37,9 @@ fn fec_version_info() -> &'static str {
 ///   flattened (`fec_parser::columnar`; `Date`, `double`, `logical`,
 ///   `integer`, `character`). If the form has no typed struct, and always
 ///   with `raw = TRUE`: the raw cover record as text (mapping names, blank →
-///   `NA`, fields past the layout as `extra_1`, …). A filing always has a
-///   cover (a file without one is a `header:` error).
+///   `NA`, fields past the layout as `extra_1`, …, and an F99's message as
+///   `text`). A filing always has a cover (a file without one is a
+///   `header:` error).
 /// - `cover_info`: the form-independent cover fields, named list:
 ///   `form_type`, `filer_id`, `filer_name`, `report_code` (character),
 ///   `coverage_from_date`, `coverage_through_date` (`Date`, `NA` when
@@ -64,16 +66,51 @@ fn fec_version_info() -> &'static str {
 /// @noRd
 #[extendr]
 fn fec_read_impl(path: &str, raw: bool, n_max: f64) -> Result<Robj> {
-    let limit = reader::row_limit(n_max).map_err(Error::Other)?;
-    let mut filing = reader::open(path).map_err(Error::Other)?;
+    // Every failure leaves through here, as an `Err` with a NUL-free message:
+    // extendr hands the message to `CString::new(..).unwrap()`, and a NUL
+    // there (fec-parser quotes file text, e.g. a UTF-16 header) panics
+    // outside its `catch_unwind` and aborts R. Panics are caught here for
+    // the same reason.
+    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        read_filing(path, raw, n_max)
+    }));
+    match result {
+        Ok(Ok(robj)) => Ok(robj),
+        Ok(Err(msg)) => Err(r_error(&msg)),
+        Err(payload) => {
+            let msg = payload
+                .downcast_ref::<&str>()
+                .map(|s| (*s).to_owned())
+                .or_else(|| payload.downcast_ref::<String>().cloned())
+                .unwrap_or_else(|| "fec_read_impl panicked".to_owned());
+            Err(r_error(&msg))
+        }
+    }
+}
+
+/// An R error for `msg`, with each NUL written as `\0`.
+fn r_error(msg: &str) -> Error {
+    Error::Other(sanitize_message(msg))
+}
+
+fn sanitize_message(msg: &str) -> String {
+    msg.replace('\0', "\\0")
+}
+
+/// The body of [`fec_read_impl`]; errors are plain strings (possibly with
+/// NULs, which `fec_read_impl` replaces).
+fn read_filing(path: &str, raw: bool, n_max: f64) -> std::result::Result<Robj, String> {
+    let limit = reader::row_limit(n_max)?;
+    let mut filing = reader::open(path)?;
     let mut collector = reader::Collector::new(&filing, raw);
-    reader::read_rows(&mut filing, &mut collector, limit).map_err(Error::Other)?;
+    reader::read_rows(&mut filing, &mut collector, limit)?;
     let tables = collector.finish();
 
+    let r = |e: Error| e.to_string();
     let header = header_list(&filing);
-    let (cover, cover_kind) = cover_list(&filing, raw)?;
+    let (cover, cover_kind) = cover_list(&filing, raw).map_err(r)?;
     let cover_info = cover_info(&filing, cover_kind);
-    let (tables, table_kinds) = robj::tables(&tables, &filing.filing_id)?;
+    let (tables, table_kinds) = robj::tables(&tables, &filing.filing_id).map_err(r)?;
     Ok(list!(
         header = header,
         cover = cover,
@@ -121,17 +158,29 @@ fn cover_list<R: std::io::Read>(f: &Filing<R>, raw: bool) -> Result<(Robj, &'sta
         }
     }
     let c = &f.cover;
-    let kv = c
+    let mut pairs: Vec<(String, &str)> = c
         .cover_record_kv
         .iter()
-        .map(|(k, v)| (k.clone(), v.as_str()));
+        .map(|(k, v)| (k.clone(), v.as_str()))
+        .collect();
+    // `Filing::from_reader` moves an F99's `[BEGINTEXT]` block into the
+    // typed cover, so it is in no record: keep it as `text` (replacing the
+    // mapping's own `text` column, which the typed cover replaces too).
+    if let Some(Cover::Form99(form)) = &c.cover_data {
+        if let Some(text) = &form.text {
+            match pairs.iter_mut().find(|(k, _)| k == "text") {
+                Some(pair) => pair.1 = text,
+                None => pairs.push(("text".to_owned(), text)),
+            }
+        }
+    }
     let extras = c
         .record
         .iter()
         .skip(c.record_column_names.len())
         .enumerate()
         .map(|(k, v)| (format!("extra_{}", k + 1), v));
-    Ok((robj::text_kv(kv.chain(extras))?, "raw"))
+    Ok((robj::text_kv(pairs.into_iter().chain(extras))?, "raw"))
 }
 
 fn cover_info<R: std::io::Read>(f: &Filing<R>, cover_kind: &str) -> Robj {
@@ -153,6 +202,20 @@ fn cover_info<R: std::io::Read>(f: &Filing<R>, cover_kind: &str) -> Robj {
 // Macro to generate exports.
 // This ensures exported functions are registered with R.
 // See corresponding C code in `entrypoint.c`.
+#[cfg(test)]
+mod tests {
+    use super::sanitize_message;
+
+    #[test]
+    fn error_messages_have_no_nul() {
+        assert_eq!(
+            sanitize_message("header: Incorrect header record type: HD\0R"),
+            "header: Incorrect header record type: HD\\0R"
+        );
+        assert_eq!(sanitize_message("plain"), "plain");
+    }
+}
+
 extendr_module! {
     mod libfec;
     fn fec_version_info;

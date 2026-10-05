@@ -10,15 +10,17 @@
 # `path` is what the user passed (shown in messages); `call` is the frame errors blame.
 read_impl <- function(path, raw, n_max, call = rlang::caller_env()) {
   check_file(path, call = call)
-  full <- normalizePath(path, mustWork = TRUE)
+  # Not `normalizePath()`: it resolves symlinks, and the filing ID is the file name of the
+  # path the user gave, not of a symlink's target.
+  full <- path.expand(path)
   tryCatch(
     fec_read_impl(full, raw, n_max),
     error = function(e) abort_rust(conditionMessage(e), path, full, call = call)
   )
 }
 
-# A missing file is a `libfec_error_io`, like every other read failure, rather than
-# `normalizePath()`'s plain error.
+# A missing file is a `libfec_error_io`, like every other read failure, with a message that
+# names the path as given.
 check_file <- function(path, call = rlang::caller_env()) {
   if (!file.exists(path)) {
     cli::cli_abort(

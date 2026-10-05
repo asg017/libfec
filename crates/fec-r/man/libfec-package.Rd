@@ -20,8 +20,10 @@ comparing many filings.
 }
 
 Read "Values in typed columns" in \code{\link[=fec_read]{fec_read()}} before summarising amounts:
-\strong{a blank or garbage main amount is \code{0}}, other blank or garbage values
-are \code{NA}, and \code{raw = TRUE} shows the original text.
+\strong{a blank or garbage main amount is \code{0}}, and other blank or garbage
+values are \code{NA}. \code{raw = TRUE} shows the original text of text fields, but
+parses dates and amounts too, so a garbage date or amount is \code{NA} there as
+well.
 }
 \seealso{
 Useful links:

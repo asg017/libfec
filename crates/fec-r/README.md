@@ -22,8 +22,10 @@ fec_cover(path)        # the cover as a one-row tibble (reads only the header an
   filing has none). `names(f)` is left alone (`c("header", "cover", "tables")`): overriding it
   breaks `str()` and `modifyList()`. List the tables with `names(f$tables)`; `f$<TAB>` completes
   table names (`.DollarNames`).
-- **A blank or garbage main amount is `0`; other garbage is `NA`; `raw = TRUE` shows the original
-  text.** See `?fec_read`.
+- **A blank or garbage main amount is `0`; other garbage is `NA`.** `raw = TRUE` shows the original
+  text of text fields and the version's own column names, but it parses dates and amounts too, so
+  a garbage date or amount is `NA` in raw mode as well (keeping raw dates/amounts as text is an
+  open question). See `?fec_read`.
 - Errors: `libfec_error_io` (missing file, directory, read failure), `libfec_error_header` (not a
   `.fec` file, unsupported version, no cover), `libfec_error_parse`, all also `libfec_error`; the
   condition has a `path` field. Bad arguments are plain `rlang_error`s.
@@ -183,7 +185,10 @@ list(
   names for every version. Fields past the layout are not kept on typed rows.
 - **Raw** (`raw = TRUE` for every family; in typed mode, the fallback for a family with no
   struct, such as `SI`, or a row type with no layout): the version's mapping columns,
-  `DATE_COLUMNS` → `Date`, `FLOAT_COLUMNS` → double, the rest text (trimmed, blank → `NA`).
+  `FLOAT_COLUMNS` → double (non-finite text such as `NaN`/`inf` → `NA`), else `DATE_COLUMNS` →
+  `Date` (`YYYYMMDD` or `M/D/YYYY`), the rest text (trimmed, blank → `NA`). Amounts are checked
+  first, and `reader.rs::RAW_KIND_OVERRIDES` fixes names fec-parser-macros' lists get wrong
+  (`event_year_to_date` → double, `loan_due_date` → text).
   Layouts within one family are unioned by name in first-seen order, `NA`-filled; fields past
   a row's layout are `extra_1`, `extra_2`, …. A row type with no layout at all gets only
   `extra_*` columns. If a family has both typed and fallback rows in one filing, the typed
@@ -191,22 +196,27 @@ list(
 - **`other`**: rows no family matches (`F3PS`, `F1S`, unknown row types): `filing_id`,
   `row_type`, `field_1` (the field after the row type), `field_2`, …, all text, `NA`-padded.
 - **Cover**: the typed cover flattened (`Date`, double, logical, integer, character); the raw
-  cover record as text (plus `extra_*`) if the form has no struct, and always with
-  `raw = TRUE`. A file without a cover record is a `header:` error, so `cover` is never `NULL`.
+  cover record as text (plus `extra_*`, and an F99's `[BEGINTEXT]` message as `text`) if the
+  form has no struct, and always with `raw = TRUE`. A file without a cover record is a `header:` error, so `cover` is never `NULL`.
+- **Blank lines**: a record whose fields are all empty after trimming whitespace and DOS EOF
+  bytes (`0x1A`) is skipped, and not counted toward `n_max`.
 - **`n_max`**: itemization rows (every row after the cover, `other` included), checked before
   pulling the next row; `0` returns right after the cover; `Inf` reads everything.
 - **Errors**: R errors whose message starts with `io: ` (open/read failures, a directory),
   `header: ` (not a `.fec` file, unsupported version, no cover) or `parse: line N: ` (a CSV
   read error mid-file; `parse: after line N: ` when the CSV layer gives no line). A bad
-  `n_max` (NaN, negative) has no prefix; validate it in R.
+  `n_max` (NaN, negative) has no prefix; validate it in R. Every message has its NULs written
+  as `\0`: fec-parser quotes file text in errors, and extendr's `throw_r_error` does
+  `CString::new(msg).unwrap()`, so a NUL (e.g. a UTF-16 file) would abort R.
 - **Strings** are built with `Rf_mkCharLenCE` + `SET_STRING_ELT` into a `Strings` vector
   (never `Rstr::from` in a loop), marked UTF-8, with NUL bytes stripped first (an embedded NUL
   would make R `longjmp` over the Rust frames).
 - **Panics**: extendr 74afddc wraps every `#[extendr]` function in `catch_unwind` and turns a
   panic into an R error with the panic message (an `Err` is turned into a panic and goes the
   same way); the panic hook registered in `entrypoint.c` keeps it quiet unless
-  `EXTENDR_BACKTRACE=1`. The code doesn't rely on that: builders are always made from the
-  columns of the value pushed into them.
+  `EXTENDR_BACKTRACE=1`. `fec_read_impl` also runs its body under its own `catch_unwind`, so a
+  panic message is NUL-sanitized like an error. The code doesn't rely on either: builders are
+  always made from the columns of the value pushed into them.
 - `cargo test --manifest-path src/rust/Cargo.toml` works here: extendr-ffi links `libR`, so
   the test binary links wherever R is installed. The name mapping and the raw-date parser are
   pure Rust and tested there.
