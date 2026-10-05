@@ -5,6 +5,7 @@
 #   make test             build, then `gleam test`
 #   make gen              regenerate the typed Gleam modules (see below)
 #   make check-gen        fail if the checked-in generated modules are stale (CI)
+#   make example          build, then run gleam/examples/summary on FEC=<file.fec>
 #
 # erlang:load_nif/2 appends ".so" on every Unix (macOS included), so the
 # cdylib is copied to libfec_nif.so whatever cargo called it.
@@ -40,6 +41,13 @@ nif:
 test: nif
 	cd gleam && gleam test
 
+# Relative to this directory; made absolute because the example runs from its
+# own project directory.
+FEC ?= ../fec-py/tests/fixtures/1721696.fec
+
+example: nif
+	cd gleam/examples/summary && gleam run -- $(abspath $(FEC))
+
 gen:
 	cargo run -p fec-gleam --bin gen
 
@@ -47,6 +55,6 @@ check-gen:
 	cargo run -p fec-gleam --bin gen -- --check
 
 clean:
-	rm -rf gleam/priv gleam/build
+	rm -rf gleam/priv gleam/build gleam/examples/summary/build
 
-.PHONY: nif test gen check-gen clean
+.PHONY: nif test example gen check-gen clean
