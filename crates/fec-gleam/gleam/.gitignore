@@ -1,3 +1,4 @@
 build/
 priv/
 erl_crash.dump
+__pycache__/
