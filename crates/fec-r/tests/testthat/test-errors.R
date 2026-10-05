@@ -57,3 +57,22 @@ test_that("print() returns its input invisibly", {
   expect_identical(out$value, f)
   expect_type(format(f), "character")
 })
+
+test_that("a NUL byte in file text that reaches an error message is a classed error", {
+  # fec-parser quotes file text in its messages (`Incorrect header record type: HD\0R`). An
+  # R error message can't hold a NUL; before the fix this aborted the R process.
+  path <- withr::local_tempfile(fileext = ".fec")
+  writeBin(c(charToRaw("HD"), as.raw(0L), charToRaw("R\x1c8.4\n")), path)
+  cnd <- expect_error(fec_read(path), class = "libfec_error_header")
+  expect_match(conditionMessage(cnd), "HD\\0R", fixed = TRUE)
+  expect_error(fec_cover(path), class = "libfec_error_header")
+
+  # A NUL in the version and in the cover's form type (both quoted in fec-parser errors).
+  lines <- readLines(pfizer_path(), n = 2L)
+  writeBin(c(charToRaw(sub("8.4", "8.", lines[[1L]], fixed = TRUE)), as.raw(0L),
+             charToRaw(paste0("4\n", lines[[2L]], "\n"))), path)
+  expect_error(fec_read(path), class = "libfec_error_header")
+  writeBin(c(charToRaw(paste0(lines[[1L]], "\nF3")), as.raw(0L),
+             charToRaw(paste0("ZZ", substring(lines[[2L]], 5L), "\n"))), path)
+  expect_error(fec_read(path), class = "libfec_error")
+})
