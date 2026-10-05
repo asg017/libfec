@@ -1,0 +1,117 @@
+name: "test-r"
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "crates/fec-r/**"
+      - "crates/fec-parser/**"
+      - "crates/fec-parser-macros/**"
+      - ".github/workflows/test-r.yml"
+  pull_request:
+    paths:
+      - "crates/fec-r/**"
+      - "crates/fec-parser/**"
+      - "crates/fec-parser-macros/**"
+      - ".github/workflows/test-r.yml"
+permissions:
+  contents: read
+# A newer push to the same PR cancels the older run; runs on main always finish.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+jobs:
+  # Checks the *built* source tarball (decision R9): `make build` copies fec-parser into the
+  # package and vendors every other crate, and the check installs that tarball with cargo
+  # `--offline`. A package that only works in place (path dependency outside the tarball,
+  # missing vendored crate) fails the install, so the check fails.
+  test-r:
+    runs-on: ubuntu-latest
+    env:
+      PKG_DIR: crates/fec-r
+    steps:
+      - uses: actions/checkout@v4
+      # Same pin as ci.yml; bump on purpose. The package's floor is rustc 1.85 (R13; Phase 1 job).
+      - run: rustup toolchain install 1.96 --profile minimal && rustup default 1.96
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: release
+          use-public-rspm: true
+      # pandoc and checkbashisms (devscripts): without them `R CMD check --as-cran` warns at
+      # "checking top-level files". xz (vendor.tar.xz) is preinstalled on ubuntu runners.
+      - uses: r-lib/actions/setup-pandoc@v2
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends devscripts
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          working-directory: crates/fec-r
+          needs: check
+      - name: Build the source tarball
+        run: make -C "$PKG_DIR" build
+      - name: Check the tarball contents
+        run: |
+          version=$(sed -n 's/^Version: *//p' "$PKG_DIR/DESCRIPTION")
+          tarball="$PKG_DIR/libfec_${version}.tar.gz"
+          tar -tzf "$tarball" > "$RUNNER_TEMP/contents.txt"
+          echo "$tarball: $(wc -l < "$RUNNER_TEMP/contents.txt") files, $(du -h "$tarball" | cut -f1)"
+          bad=$(grep -E '^libfec/src/rust/(target/|vendor/|local/[^/]+/(target|tests/fixtures|tests/snapshots)/)' "$RUNNER_TEMP/contents.txt" || true)
+          if [ -n "$bad" ]; then
+            echo "::error::the tarball contains build output, unpacked vendor/ or test data:"
+            echo "$bad" | head -20
+            exit 1
+          fi
+          for f in libfec/src/rust/vendor.tar.xz libfec/src/rust/vendor-config.toml \
+                   libfec/src/rust/local/fec-parser/Cargo.toml libfec/src/rust/local/fec-parser-macros/Cargo.toml; do
+            grep -qx "$f" "$RUNNER_TEMP/contents.txt" || { echo "::error::the tarball is missing $f"; exit 1; }
+          done
+          if tar -xzOf "$tarball" libfec/src/rust/Cargo.toml | grep -n '\.\./\.\./\.\.'; then
+            echo "::error::the tarball's src/rust/Cargo.toml points outside the package"; exit 1
+          fi
+      # Network effectively off: cargo is told `--offline` by tools/config.R only when NOT_CRAN
+      # is empty, and setup-r exports NOT_CRAN=true (unless already non-empty), so unset it with
+      # `env -u`. CARGO_NET_OFFLINE and a dead proxy make any download attempt fail instead of
+      # silently succeeding. The check runs outside the checkout so nothing can reach
+      # ../../../fec-parser.
+      - name: R CMD check --as-cran (offline)
+        env:
+          CARGO_NET_OFFLINE: "true"
+          HTTP_PROXY: http://127.0.0.1:9
+          HTTPS_PROXY: http://127.0.0.1:9
+          http_proxy: http://127.0.0.1:9
+          https_proxy: http://127.0.0.1:9
+          _R_CHECK_FORCE_SUGGESTS_: "false"
+          _R_CHECK_CRAN_INCOMING_: "false"
+          _R_CHECK_CRAN_INCOMING_REMOTE_: "false"
+          _R_CHECK_SYSTEM_CLOCK_: "false"
+        run: |
+          version=$(sed -n 's/^Version: *//p' "$PKG_DIR/DESCRIPTION")
+          mkdir -p "$RUNNER_TEMP/check"
+          cp "$PKG_DIR/libfec_${version}.tar.gz" "$RUNNER_TEMP/check/"
+          cd "$RUNNER_TEMP/check"
+          status=0
+          env -u NOT_CRAN R CMD check --as-cran --no-manual "libfec_${version}.tar.gz" || status=$?
+          # R CMD check exits non-zero only on ERROR; NOTEs are fine, WARNINGs are not.
+          line=$(grep '^Status:' libfec.Rcheck/00check.log || echo "Status: missing")
+          echo "$line"
+          if [ "$status" -ne 0 ] || echo "$line" | grep -qE 'WARNING|ERROR|missing'; then
+            echo "::error::R CMD check failed ($line, exit $status)"
+            exit 1
+          fi
+      - name: Assert the install used the vendored crates offline
+        run: |
+          log="$RUNNER_TEMP/check/libfec.Rcheck/00install.out"
+          # Whole-line match: make also echoes the recipe, which contains the message in quotes.
+          grep -x '=== Using offline vendor tarball ===' "$log"
+          grep -E 'cargo build .*--offline' "$log"
+          if grep -nE 'Downloading|Downloaded |Updating .*index' "$log"; then
+            echo "::error::cargo touched the network during the install"; exit 1
+          fi
+      - name: Upload check logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: r-check-logs
+          path: |
+            ${{ runner.temp }}/check/libfec.Rcheck/00install.out
+            ${{ runner.temp }}/check/libfec.Rcheck/00check.log
+            ${{ runner.temp }}/check/libfec.Rcheck/tests/testthat.Rout*
+          if-no-files-found: ignore
