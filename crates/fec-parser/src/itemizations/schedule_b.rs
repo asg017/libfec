@@ -49,6 +49,7 @@ use crate::itemizations::{address_either, category_code_label, text_any, Candida
     )
 )]
 #[derive(Debug, Clone, serde::Serialize)]
+#[cfg_attr(feature = "columnar", derive(fec_parser_macros::Columnar))]
 pub struct ScheduleB {
     /// The row type as filed, `SB` plus the line number: `SB17`, `SB21B`,
     /// `SB3L`. Column `form_type` (FEC format workbook v8.4, sheet `Sch B`,

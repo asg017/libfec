@@ -36,6 +36,7 @@ use crate::covers::fields::{amount, amount_opt, date, text, text_or_empty, Field
     )
 )]
 #[derive(Debug, Clone, serde::Serialize)]
+#[cfg_attr(feature = "columnar", derive(fec_parser_macros::Columnar))]
 pub struct ScheduleH3 {
     /// The row type as filed, `H3`. Column `form_type` (FEC format workbook
     /// v8.4, sheet `Sch H3`, field 1).
