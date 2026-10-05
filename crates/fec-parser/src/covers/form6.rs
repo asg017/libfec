@@ -40,6 +40,7 @@ use jiff::civil::Date;
     pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, serde::Serialize)]
+#[cfg_attr(feature = "gleam", derive(fec_parser_macros::GleamType))]
 pub struct Form6 {
     /// Form type as filed, e.g. `F6N`: the base form plus the
     /// amendment-indicator suffix (see [`crate::covers::base_form_type`]).
@@ -83,6 +84,7 @@ pub struct Form6 {
     pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, serde::Serialize)]
+#[cfg_attr(feature = "gleam", derive(fec_parser_macros::GleamType))]
 pub struct Form6Candidate {
     /// The candidate's FEC ID. Electronic-format only: no candidate ID box is
     /// printed on Form 6 (its Line 4 ID is the committee's). Column

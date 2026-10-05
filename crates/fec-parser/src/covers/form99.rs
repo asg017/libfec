@@ -39,6 +39,7 @@ use jiff::civil::Date;
     pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, serde::Serialize)]
+#[cfg_attr(feature = "gleam", derive(fec_parser_macros::GleamType))]
 pub struct Form99 {
     /// Form type as filed: `F99`. Other covers carry an amendment-indicator
     /// suffix here (see [`crate::covers::base_form_type`]); Form 99 has

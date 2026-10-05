@@ -40,6 +40,7 @@ use serde::Serialize;
     pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, Serialize)]
+#[cfg_attr(feature = "gleam", derive(fec_parser_macros::GleamType))]
 pub struct Form7 {
     /// Form type as filed, e.g. `F7N`: the base form plus the
     /// amendment-indicator suffix (see [`crate::covers::base_form_type`]).

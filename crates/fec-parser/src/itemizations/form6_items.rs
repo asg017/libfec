@@ -46,6 +46,7 @@ use crate::itemizations::{address_either, CandidateRef, Entity};
     )
 )]
 #[derive(Debug, Clone, serde::Serialize)]
+#[cfg_attr(feature = "gleam", derive(fec_parser_macros::GleamType))]
 pub struct Form6Contribution {
     /// The row type as filed, `F65`. Column `form_type` (FEC format workbook
     /// v8.4, sheet `F65`, field 1).

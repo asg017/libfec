@@ -20,9 +20,14 @@ anyhow = "1.0.99"
 # `python`: `#[pyclass]` on the typed cover structs (`covers::*`), so the
 # Python bindings (`crates/fec-py`) expose them as-is instead of mirroring them.
 pyo3 = { version = "0.29", optional = true, features = ["jiff-02"] }
+# `gleam`: `GleamType` (fec-parser-macros) on the typed covers and itemizations,
+# so the Gleam bindings (`crates/fec-gleam`) encode them as Gleam records (a
+# `rustler::Encoder` per type) and generate the matching `.gleam` types.
+rustler = { version = "0.37", optional = true }
 
 [features]
 python = ["dep:pyo3"]
+gleam = ["dep:rustler"]
 
 [dev-dependencies]
 insta = { version = "1.45.0", features = ["json"] }

@@ -3,6 +3,19 @@ extern crate proc_macro;
 use proc_macro::TokenStream;
 use quote::quote;
 
+mod gleam;
+
+/// `#[derive(GleamType)]`: implements `fec_parser::gleam::GleamType` (a
+/// description of the Gleam custom type), `GleamValue` and
+/// `rustler::Encoder` (the matching Erlang term) for a struct with named
+/// fields or an enum of single-field tuple variants. Only usable inside
+/// fec-parser with its `gleam` feature; see `fec_parser::gleam`.
+#[proc_macro_derive(GleamType)]
+pub fn derive_gleam_type(input: TokenStream) -> TokenStream {
+    let input = syn::parse_macro_input!(input as syn::DeriveInput);
+    gleam::derive(input).into()
+}
+
 const DATE_COLUMNS_PATH: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/date_columns.txt");
 #[proc_macro]
 pub fn gen_date_columns(_: TokenStream) -> TokenStream {
