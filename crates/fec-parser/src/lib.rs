@@ -23,11 +23,13 @@
 pub mod covers;
 mod format;
 pub mod mappings;
+mod reader;
 pub mod schedules;
 
 use crate::covers::Cover;
 use crate::format::{is_begin_text, is_end_text};
-use csv::{ByteRecord, ByteRecordsIntoIter, StringRecord};
+use crate::reader::Records;
+use csv::{ByteRecord, StringRecord};
 use indexmap::IndexMap;
 use jiff::civil::Date;
 use mappings::column_names_for_field;
@@ -284,47 +286,30 @@ pub struct Filing<R: Read> {
     pub filing_id: String,
     pub header: FilingHeader,
     pub cover: FilingCover,
-    records_iter: Peekable<ByteRecordsIntoIter<R>>,
+    records_iter: Peekable<Records<R>>,
     pub source_length: usize,
 }
 
 impl<R: Read> Filing<R> {
+    /// Parse the header and cover of a filing, leaving the reader
+    /// positioned at the first itemization row.
+    ///
+    /// The first non-blank line is peeked and put back in front of the
+    /// stream, so the csv reader sees the untouched input and records and
+    /// their positions are what they always were.
     pub fn from_reader(rdr: R, filing_id: String, source_length: usize) -> anyhow::Result<Self> {
-        // .fec files have no quoting: the spec forbids `"` in fields, but
-        // filings contain them anyway (`"BUD" SMITH`). With quoting on, a
-        // field that starts with `"` swallows the following delimiters and
-        // lines until the next `"`, silently merging rows. Fields wrapped in
-        // quotes are unwrapped afterwards, one field at a time (`unquote_record`).
-        let csv_reader = csv::ReaderBuilder::new()
-            .delimiter(b"\x1c"[0])
-            .flexible(true)
-            .has_headers(false)
-            .quoting(false)
-            .from_reader(rdr);
-
-        let mut records_iter = csv_reader.into_byte_records().peekable();
-
-        let hdr = records_iter
-            .next()
-            .ok_or_else(|| anyhow::anyhow!("no header record found"))??;
-
-        let hdr_record_type = String::from_utf8(
-            hdr.get(0)
-                .ok_or_else(|| anyhow::anyhow!("file missing header"))?
-                .to_vec(),
-        )
-        .map_err(|e| anyhow::anyhow!("Invalid UTF-8 in header record type: {}", e))?;
-        if hdr_record_type != "HDR" {
-            return Err(anyhow::anyhow!(
-                "Incorrect header record type: {hdr_record_type}"
-            ));
-        }
-
-        let hdr_record = unquote_record(hdr);
-        let cover_record = records_iter
-            .next()
-            .ok_or_else(|| anyhow::anyhow!("No cover record found (2nd record missing)"))??;
-        let header = FilingHeader::from_record(hdr_record)?;
+        let (raw_header, mut records_iter) = open_header(rdr)?;
+        let (header, cover_record) = match raw_header {
+            RawHeader::Record { record } => {
+                // The cover is read before the HDR record is validated, so
+                // errors come out in the order they always have.
+                let cover_record = next_non_blank(&mut records_iter).ok_or_else(|| {
+                    anyhow::anyhow!("No cover record found (2nd record missing)")
+                })??;
+                let header = FilingHeader::from_record(record)?;
+                (header, cover_record)
+            }
+        };
         let mut cover = FilingCover::from_record(&header.fec_version, unquote_record(cover_record))
             .map_err(|e| anyhow::anyhow!("Error parsing cover record: {}", e))?;
 
@@ -440,6 +425,39 @@ impl<R: Read> Filing<R> {
     }
 }
 
+/// The header as read by [`open_header`], before the cover.
+enum RawHeader {
+    /// An `HDR` record, not yet validated.
+    Record { record: StringRecord },
+}
+
+/// Read the header record, leaving the record iterator at the first record
+/// after it.
+fn open_header<R: Read>(rdr: R) -> anyhow::Result<(RawHeader, Peekable<Records<R>>)> {
+    let (prefix, source) = reader::peek_first_line(rdr)?;
+    drop(prefix);
+
+    let mut records_iter = Records::fs(source).peekable();
+    let hdr = records_iter
+        .next()
+        .ok_or_else(|| anyhow::anyhow!("no header record found"))??;
+
+    let hdr_record_type = String::from_utf8(
+        hdr.get(0)
+            .ok_or_else(|| anyhow::anyhow!("file missing header"))?
+            .to_vec(),
+    )
+    .map_err(|e| anyhow::anyhow!("Invalid UTF-8 in header record type: {}", e))?;
+    if hdr_record_type != "HDR" {
+        return Err(anyhow::anyhow!(
+            "Incorrect header record type: {hdr_record_type}"
+        ));
+    }
+
+    let record = unquote_record(hdr);
+    Ok((RawHeader::Record { record }, records_iter))
+}
+
 /// Read the body of a `[BEGINTEXT]` block whose marker record has just been
 /// consumed, up to and including the `[ENDTEXT]` record (or the end of the
 /// file). Fields of a line are re-joined with the FS (`0x1C`) delimiter.
@@ -489,6 +507,17 @@ where
     let body = body.strip_suffix("[ENDTEXT]").unwrap_or(body);
     let body = body.trim_end().trim_start_matches(['\n', '\r']);
     (!body.trim().is_empty()).then(|| body.to_owned())
+}
+
+/// Next record that has a non-whitespace field.
+fn next_non_blank<I>(records: &mut I) -> Option<csv::Result<ByteRecord>>
+where
+    I: Iterator<Item = csv::Result<ByteRecord>>,
+{
+    records.find(|r| match r {
+        Ok(r) => r.iter().any(|f| !f.trim_ascii().is_empty()),
+        Err(_) => true,
+    })
 }
 
 #[derive(Error, Debug)]
