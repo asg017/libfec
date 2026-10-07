@@ -21,5 +21,5 @@ snapshot_kind: text
 "│                                                          │"
 "└──────────────────────────────────────────────────────────┘"
 "────────────────────────────────────────────────────────────"
-"Next refresh: 4:59  │  q quit  r refresh  ↑↓/gg/G nav  Enter"
+"Next refresh: M:SS  │  q quit  r refresh  ↑↓/gg/G nav  Enter"
 "          https://efilingapps.fec.gov/rss/generate          "
