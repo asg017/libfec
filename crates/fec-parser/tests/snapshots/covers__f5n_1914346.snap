@@ -1,0 +1,50 @@
+---
+source: crates/fec-parser/tests/covers.rs
+expression: "cover(\"F5N_1914346.fec\")"
+snapshot_kind: text
+---
+{
+  "form": "Form5",
+  "data": {
+    "form_type": "F5N",
+    "filer_committee_id": "C90013525",
+    "entity_type": "ORG",
+    "organization_name": "Heritage Action for America",
+    "individual": {
+      "first_name": "",
+      "last_name": "",
+      "middle_name": null,
+      "prefix": null,
+      "suffix": null
+    },
+    "change_of_address": false,
+    "address": {
+      "street_1": "214 Massachusetts Avenue NE",
+      "street_2": null,
+      "city": "Washington",
+      "state": "DC",
+      "zip_code": "20002"
+    },
+    "individual_occupation": null,
+    "individual_employer": null,
+    "qualified_nonprofit": null,
+    "report_code": null,
+    "report_type": "24",
+    "original_amendment_date": null,
+    "coverage_from_date": "2025-09-08",
+    "coverage_through_date": "2025-09-08",
+    "election_code": null,
+    "election_date": null,
+    "election_state": null,
+    "total_contributions": 0.0,
+    "total_independent_expenditures": 2790.0,
+    "person_completing": {
+      "first_name": "Tiffany",
+      "last_name": "Justice",
+      "middle_name": null,
+      "prefix": null,
+      "suffix": null
+    },
+    "date_signed": "2025-09-09"
+  }
+}

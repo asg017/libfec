@@ -1,0 +1,42 @@
+---
+source: crates/fec-parser/tests/covers.rs
+expression: "cover(\"F6A_1952182.fec\")"
+snapshot_kind: text
+---
+{
+  "form": "Form6",
+  "data": {
+    "form_type": "F6A",
+    "filer_committee_id": "C00919084",
+    "original_amendment_date": "2026-03-01",
+    "committee_name": "Talarico for Texas",
+    "address": {
+      "street_1": "PO Box 14508",
+      "street_2": null,
+      "city": "Austin",
+      "state": "TX",
+      "zip_code": "78761"
+    },
+    "candidate": {
+      "candidate_id": "S6TX00479",
+      "name": {
+        "first_name": "James",
+        "last_name": "Talarico",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": "S",
+      "state": "TX",
+      "district": null
+    },
+    "signer": {
+      "first_name": "Lauren",
+      "last_name": "Lee",
+      "middle_name": "Decot",
+      "prefix": null,
+      "suffix": null
+    },
+    "date_signed": "2026-03-08"
+  }
+}
