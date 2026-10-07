@@ -1,0 +1,140 @@
+---
+source: crates/fec-parser/tests/covers.rs
+expression: "cover(\"F3N_1918805.fec\")"
+snapshot_kind: text
+---
+{
+  "form": "Form3",
+  "data": {
+    "treasurer": {
+      "first_name": "Marcio",
+      "last_name": "Liam",
+      "middle_name": null,
+      "prefix": null,
+      "suffix": null
+    },
+    "signed": "2025-10-13",
+    "summary": {
+      "line6_total_contributions_no_loans": 62540.0,
+      "line7_total_contribution_refunds": 0.0,
+      "line8_net_contributions": 62540.0,
+      "line9_total_operating_expenditures": 30158.62,
+      "line10_total_offset_to_operating_expenditures": 0.0,
+      "line11_net_operating_expenditures": 30158.62,
+      "line12_cash_on_hand_close_of_period": 82381.38,
+      "line13_debts_owed_to_committee": 0.0,
+      "line14_debts_owed_by_committee": 50000.0
+    },
+    "detailed_summary": {
+      "receipts": {
+        "line11a_i_contributions_from_individuals_itemized": {
+          "column_a": 62100.0,
+          "column_b": 62100.0
+        },
+        "line11a_ii_contributions_from_individuals_unitemized": {
+          "column_a": 440.0,
+          "column_b": 440.0
+        },
+        "line11a_iii_contributions_from_individuals_total": {
+          "column_a": 62540.0,
+          "column_b": 62540.0
+        },
+        "line11b_political_party_committees": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line11c_other_political_committees_pacs": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line11d_the_candidate": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line11e_total_contributions": {
+          "column_a": 62540.0,
+          "column_b": 62540.0
+        },
+        "line12_transfers_from_authorized": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line13a_loans_from_candidate": {
+          "column_a": 50000.0,
+          "column_b": 50000.0
+        },
+        "line13b_other_loans": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line13c_total_loans": {
+          "column_a": 50000.0,
+          "column_b": 50000.0
+        },
+        "line14_offset_to_operating_expenditures": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line15_other_receipts": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line16_total_receipts": {
+          "column_a": 112540.0,
+          "column_b": 112540.0
+        }
+      },
+      "disbursements": {
+        "line_17_operating_expenditures": {
+          "column_a": 30158.62,
+          "column_b": 30158.62
+        },
+        "line_18_transfers_to_authorized": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line_19a_candidate_loan_repayments": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line_19b_other_loan_repayments": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line_19c_total_loan_repayments": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line_20a_refunds_to_individuals": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line_20b_refunds_to_party_committees": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line_20c_refunds_to_other_committees": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line_20d_total_refunds": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line_21_other_disbursements": {
+          "column_a": 0.0,
+          "column_b": 0.0
+        },
+        "line_22_total_disbursements": {
+          "column_a": 30158.62,
+          "column_b": 30158.62
+        }
+      },
+      "cash_on_hand_beginning": 0.0,
+      "total_receipts_period": 112540.0,
+      "subtotals": 112540.0,
+      "total_disbursements_period": 30158.62,
+      "cash_on_hand_close": 82381.38
+    }
+  }
+}

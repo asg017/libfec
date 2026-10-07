@@ -1,0 +1,33 @@
+---
+source: crates/fec-parser/tests/covers.rs
+expression: "cover(\"F1N_1910281.fec\")"
+snapshot_kind: text
+---
+{
+  "form": "Form1",
+  "data": {
+    "committee_name": "Pete Barlow for Congress",
+    "street_1": "PO Box1017",
+    "street_2": null,
+    "city": "Harrisonburg",
+    "state": "VA",
+    "zip_code": "22803",
+    "committee_email": "sonya@pbccompliance.org",
+    "committee_url": null,
+    "effective_date": "2025-08-05",
+    "date_signed": "2025-08-05",
+    "committee_type": "A",
+    "candidate": null,
+    "party_code": "DEM",
+    "party_type": null,
+    "organization_type": null,
+    "leadership_pac": null,
+    "treasurer": {
+      "first_name": "Sonya",
+      "last_name": "McGrady",
+      "middle_name": null,
+      "prefix": null,
+      "suffix": null
+    }
+  }
+}

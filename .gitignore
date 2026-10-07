@@ -14,6 +14,8 @@ june/
 *.fec.part
 *.fec.gz
 *.fec.zst
+# Cover fixtures are tiny (HDR + cover record) and must be committed.
+!crates/fec-parser/tests/fixtures/**/*.fec
 *.db.gz
 *.csv
 *.zip
@@ -34,3 +36,5 @@ examples/*
 
 dist/
 *.so
+# insta pending snapshots
+*.snap.new
