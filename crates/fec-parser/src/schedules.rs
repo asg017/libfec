@@ -40,22 +40,31 @@ pub enum ScheduleType {
     //ScheduleI,
 }
 
+/// The schedule a row type belongs to, by its prefix (`SA11AI` → A,
+/// `SC1/10` → C1). Case-insensitive and trimmed, like the mappings'
+/// lookup, so a `sa11ai` row is classified like `SA11AI`.
 pub fn form_type_schedule_type(form_type: &str) -> Option<ScheduleType> {
-    if form_type.starts_with("SA") {
+    let form_type = form_type.trim();
+    let starts_with = |prefix: &str| {
+        form_type
+            .get(..prefix.len())
+            .is_some_and(|p| p.eq_ignore_ascii_case(prefix))
+    };
+    if starts_with("SA") {
         Some(ScheduleType::ScheduleA)
-    } else if form_type.starts_with("SB") {
+    } else if starts_with("SB") {
         Some(ScheduleType::ScheduleB)
-    } else if form_type.starts_with("SC1") {
+    } else if starts_with("SC1") {
         Some(ScheduleType::ScheduleC1)
-    } else if form_type.starts_with("SC2") {
+    } else if starts_with("SC2") {
         Some(ScheduleType::ScheduleC2)
-    } else if form_type.starts_with("SC") {
+    } else if starts_with("SC") {
         Some(ScheduleType::ScheduleC)
-    } else if form_type.starts_with("SD") {
+    } else if starts_with("SD") {
         Some(ScheduleType::ScheduleD)
-    } else if form_type.starts_with("SE") {
+    } else if starts_with("SE") {
         Some(ScheduleType::ScheduleE)
-    } else if form_type.starts_with("SF") {
+    } else if starts_with("SF") {
         Some(ScheduleType::ScheduleF)
     } else {
         None
@@ -63,16 +72,29 @@ pub fn form_type_schedule_type(form_type: &str) -> Option<ScheduleType> {
 }
 
 impl ScheduleType {
-    pub fn column_names(&self, fec_version: &str) -> anyhow::Result<Vec<String>> {
+    /// A row type of the schedule's ordinary itemizations, whose layout is
+    /// the schedule's: `SA11AI`, `SB21B`, `SC/10`, ... Variant row types
+    /// such as `SA3L` (lobbyist bundling, a different 8.x layout) or paper's
+    /// `SASL` are filed under the schedule too but don't define it.
+    pub fn canonical_row_type(&self) -> &'static str {
         match self {
-            ScheduleType::ScheduleA => {
-                Ok(mappings::column_names_for_field("SAx", fec_version)?.to_owned())
-            }
-            ScheduleType::ScheduleB => {
-                Ok(mappings::column_names_for_field("SBx", fec_version)?.to_owned())
-            }
-            _ => todo!(),
+            ScheduleType::ScheduleA => "SA11AI",
+            ScheduleType::ScheduleB => "SB21B",
+            ScheduleType::ScheduleC => "SC/10",
+            ScheduleType::ScheduleC1 => "SC1/10",
+            ScheduleType::ScheduleC2 => "SC2/10",
+            ScheduleType::ScheduleD => "SD10",
+            ScheduleType::ScheduleE => "SE",
+            ScheduleType::ScheduleF => "SF",
         }
+    }
+
+    /// The columns of the schedule's ordinary itemizations (see
+    /// [`ScheduleType::canonical_row_type`]) in `fec_version`. Exports use
+    /// the `8.5` layout for every row of a schedule, whatever its row type
+    /// and version, so the output doesn't depend on which row comes first.
+    pub fn column_names(&self, fec_version: &str) -> anyhow::Result<Vec<String>> {
+        Ok(mappings::column_names_for_field(self.canonical_row_type(), fec_version)?.to_owned())
     }
 }
 
@@ -103,5 +125,46 @@ impl ScheduleType {
             ScheduleType::ScheduleE => "schedule_e".to_string(),
             ScheduleType::ScheduleF => "schedule_f".to_string(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn every_schedule_has_an_8_5_layout_of_its_own_type() {
+        for schedule in [
+            ScheduleType::ScheduleA,
+            ScheduleType::ScheduleB,
+            ScheduleType::ScheduleC,
+            ScheduleType::ScheduleC1,
+            ScheduleType::ScheduleC2,
+            ScheduleType::ScheduleD,
+            ScheduleType::ScheduleE,
+            ScheduleType::ScheduleF,
+        ] {
+            let row_type = schedule.canonical_row_type();
+            assert_eq!(form_type_schedule_type(row_type), Some(schedule));
+            let columns = schedule.column_names("8.5").expect("8.5 layout");
+            assert_eq!(columns[0], "form_type", "{schedule}");
+        }
+        assert_eq!(
+            form_type_schedule_type(" sa11ai"),
+            Some(ScheduleType::ScheduleA)
+        );
+        assert_eq!(
+            form_type_schedule_type("sc1/10"),
+            Some(ScheduleType::ScheduleC1)
+        );
+        assert_eq!(
+            form_type_schedule_type("Sc/10"),
+            Some(ScheduleType::ScheduleC)
+        );
+        assert_eq!(form_type_schedule_type("s"), None);
+        assert_eq!(form_type_schedule_type("F3XN"), None);
+        // Not the lobbyist-bundling layout of SA3L.
+        let sa = ScheduleType::ScheduleA.column_names("8.5").expect("SA");
+        assert!(sa.iter().any(|c| c == "contributor_last_name"));
     }
 }
