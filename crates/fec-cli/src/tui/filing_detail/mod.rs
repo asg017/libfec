@@ -1,9 +1,9 @@
 //! Filing Detail TUI Component
 //!
 //! This module provides rendering functions for displaying detailed FEC filing information
-//! within a ratatui application. Each typed cover (F1, F3 and F3P) has its own renderer
-//! module, all built on the shared line builders in [`layout`], around common chrome
-//! (title, URL, metadata, help bar, yank popup, key handling).
+//! within a ratatui application. Each typed cover (F1, F1M, F3 and F3P) has its own
+//! renderer module, all built on the shared line builders in [`layout`], around common
+//! chrome (title, URL, metadata, help bar, yank popup, key handling).
 //!
 //! Keyboard shortcuts:
 //! - Esc/q: Return to previous view
@@ -14,6 +14,7 @@
 //! - j/k: Scroll up/down
 
 pub mod f1;
+pub mod f1m;
 pub mod f3;
 pub mod f3p;
 mod layout;
@@ -51,6 +52,7 @@ pub enum FilingDetailAction {
 /// The typed cover of a filing, one variant per form with a renderer.
 pub enum FilingCoverContent {
     Form1(Box<fec_parser::covers::Form1>),
+    Form1M(Box<fec_parser::covers::Form1M>),
     Form3(FilingDetailF3),
     Form3P(FilingDetailF3P),
     /// No typed cover (an unsupported form type or an unparsable cover).
@@ -103,6 +105,7 @@ impl<R: std::io::Read> From<&fec_parser::Filing<R>> for FilingDetail {
         let signed_date = cover.and_then(|c| c.date_signed()).map(|d| d.to_string());
         let cover_content = match cover {
             Some(Cover::Form1(form)) => FilingCoverContent::Form1(Box::new(form.clone())),
+            Some(Cover::Form1M(form)) => FilingCoverContent::Form1M(Box::new(form.clone())),
             Some(Cover::Form3(form)) => FilingCoverContent::Form3(FilingDetailF3::from(form)),
             Some(Cover::Form3P(form)) => FilingCoverContent::Form3P(FilingDetailF3P::from(form)),
             None => FilingCoverContent::Unknown,
@@ -353,6 +356,7 @@ fn render_content(f: &mut Frame, filing: &FilingDetail, state: &FilingDetailStat
     let mut d = layout::Doc::new(&mut lines, area.width);
     match &filing.cover_content {
         FilingCoverContent::Form1(form) => f1::append_f1_content_lines(&mut d, form),
+        FilingCoverContent::Form1M(form) => f1m::append_f1m_content_lines(&mut d, form),
         FilingCoverContent::Form3(data) => f3::append_f3_content_lines(&mut d, data),
         FilingCoverContent::Form3P(data) => f3p::append_f3p_content_lines(&mut d, data),
         FilingCoverContent::Unknown => {}

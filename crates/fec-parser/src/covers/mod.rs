@@ -74,12 +74,14 @@
 
 pub(crate) mod fields;
 mod form1;
+mod form1m;
 mod form3;
 mod form3p;
 
 pub use crate::covers::form1::{
     Form1, Form1Affiliated, Form1Bank, Form1Candidate, Form1Contact, Form1PacFlags,
 };
+pub use crate::covers::form1m::{Form1M, Form1MAffiliation, Form1MCandidate, Form1MQualification};
 
 pub use crate::covers::form3::{
     Form3, Form3CashSummary, Form3DetailedSummary, Form3DetailedSummaryDisbursements,
@@ -102,6 +104,7 @@ pub enum Cover {
     Form1(Form1),
     Form3(Form3),
     Form3P(Form3P),
+    Form1M(Form1M),
 }
 
 impl Cover {
@@ -115,6 +118,7 @@ impl Cover {
             }),
             Cover::Form3(f) => Some(&f.treasurer),
             Cover::Form3P(f) => Some(&f.treasurer),
+            Cover::Form1M(f) => Some(&f.treasurer),
         }
     }
 
@@ -124,6 +128,7 @@ impl Cover {
             Cover::Form1(f) => f.date_signed,
             Cover::Form3(f) => f.date_signed,
             Cover::Form3P(f) => f.date_signed,
+            Cover::Form1M(f) => f.date_signed,
         }
     }
 }
@@ -212,6 +217,7 @@ pub(crate) fn cover_from_form_type(cover_record_form_type: &str, data: &Data) ->
         "F1" => Form1::from_data(data).map(Cover::Form1),
         "F3" => Form3::from_data(data).map(Cover::Form3),
         "F3P" => Form3P::from_data(data).map(Cover::Form3P),
+        "F1M" => Form1M::from_data(data).map(Cover::Form1M),
         _ => None,
     }
 }
