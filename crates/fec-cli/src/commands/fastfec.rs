@@ -13,7 +13,7 @@ use anyhow::Context;
  *
  * Reference: https://github.com/washingtonpost/FastFEC
  */
-use fec_parser::Filing;
+use fec_parser::{Filing, FilingHeader, HeaderStyle};
 use indicatif::{ProgressBar, ProgressStyle};
 use std::{
     collections::{hash_map::Entry, HashMap, HashSet},
@@ -36,6 +36,61 @@ static STYLE: LazyLock<ProgressStyle> = LazyLock::new(|| {
   .expect("valid progress style")
 });
 
+/// `header.csv`: column names from the version's `hdr` mapping (paper and
+/// 3.x–5.x layouts differ from 6.x+), or for a `/* Header` block its keys
+/// (lowercased, as FastFEC writes them) followed by one
+/// `SCHEDULE_COUNTS_<row type>` column per schedule count.
+fn header_rows(header: &FilingHeader) -> (Vec<String>, Vec<String>) {
+    if header.style == HeaderStyle::LegacyBlock {
+        let mut names: Vec<String> = header
+            .legacy_fields
+            .keys()
+            .map(|k| k.to_ascii_lowercase())
+            .collect();
+        let mut values: Vec<String> = header.legacy_fields.values().cloned().collect();
+        for (k, v) in &header.schedule_counts {
+            names.push(format!("SCHEDULE_COUNTS_{}", k.to_ascii_lowercase()));
+            values.push(v.clone());
+        }
+        return (names, values);
+    }
+    let names = match fec_parser::mappings::column_names_for_field("hdr", &header.fec_version) {
+        Ok(names) => names.clone(),
+        // Unreachable for a header the parser accepted; keep the 8.x layout.
+        Err(_) => [
+            "record_type",
+            "ef_type",
+            "fec_version",
+            "soft_name",
+            "soft_ver",
+            "report_id",
+            "report_number",
+            "comment",
+        ]
+        .map(String::from)
+        .to_vec(),
+    };
+    let opt = |v: &Option<String>| v.clone().unwrap_or_default();
+    let values = names
+        .iter()
+        .map(|name| match name.as_str() {
+            "record_type" => header.record_type.clone(),
+            "ef_type" => header.ef_type.clone(),
+            "fec_version" => header.fec_version.clone(),
+            "soft_name" => header.software_name.clone(),
+            "soft_ver" => header.software_version.clone(),
+            "name_delim" => opt(&header.name_delimiter),
+            "report_id" => opt(&header.report_id),
+            "report_number" => opt(&header.report_number),
+            "comment" => opt(&header.comment),
+            "batch_number" => opt(&header.batch_number),
+            "received_date" => opt(&header.received_date),
+            _ => String::new(),
+        })
+        .collect();
+    (names, values)
+}
+
 fn write_header_csv<R: Read>(filing: &Filing<R>, header_csv_path: &Path) -> anyhow::Result<()> {
     let f = File::create_new(header_csv_path)?;
     let mut w = csv::WriterBuilder::new()
@@ -43,26 +98,9 @@ fn write_header_csv<R: Read>(filing: &Filing<R>, header_csv_path: &Path) -> anyh
         .has_headers(false)
         .from_writer(f);
 
-    w.write_record([
-        "record_type",
-        "ef_type",
-        "fec_version",
-        "soft_name",
-        "soft_ver",
-        "report_id",
-        "report_number",
-        "comment",
-    ])?;
-    w.write_record(vec![
-        filing.header.record_type.clone(),
-        filing.header.ef_type.clone(),
-        filing.header.fec_version.clone(),
-        filing.header.software_name.clone(),
-        filing.header.software_version.clone(),
-        filing.header.report_id.clone().unwrap_or_default(),
-        filing.header.report_number.clone().unwrap_or("".to_owned()),
-        filing.header.comment.clone().unwrap_or_default(),
-    ])?;
+    let (names, values) = header_rows(&filing.header);
+    w.write_record(names)?;
+    w.write_record(values)?;
     Ok(())
 }
 

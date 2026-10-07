@@ -128,6 +128,33 @@ mod tests {
         Ok(())
     }
 
+    /// A database created before header_style/batch_number/received_date
+    /// gets them added, and inserts work.
+    #[test]
+    fn test_init_adds_columns_to_old_filings_table() -> anyhow::Result<()> {
+        let mut db = rusqlite::Connection::open_in_memory()?;
+        db.execute(
+            "CREATE TABLE libfec_filings(filing_id TEXT PRIMARY KEY NOT NULL, \
+             fec_version TEXT NOT NULL, software_name TEXT NOT NULL, \
+             software_version TEXT NOT NULL, report_id TEXT, report_number TEXT, \
+             comment TEXT, cover_record_form TEXT NOT NULL, \
+             cover_record_form_amendment_indicator TEXT, filer_id TEXT NOT NULL, \
+             filer_name TEXT NOT NULL, report_code TEXT, coverage_from_date TEXT, \
+             coverage_through_date TEXT)",
+            [],
+        )?;
+        let mut tx = db.transaction()?;
+        init(&mut tx)?;
+        // Idempotent.
+        init(&mut tx)?;
+        insert_filing_metadata(&mut tx, &filing!("1913493"))?;
+        tx.commit()?;
+        let style: String =
+            db.query_row("select header_style from libfec_filings", [], |r| r.get(0))?;
+        assert_eq!(style, "hdr");
+        Ok(())
+    }
+
     #[test]
     fn test_sqlite_docs_in_schema() {
         use super::super::{RecordTable, ALL_TABLES};

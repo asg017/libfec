@@ -61,6 +61,32 @@ pub fn all_filings_failed(failed: usize) -> anyhow::Error {
     )
 }
 
+/// `YYYY-MM-DD` from a `YYYYMMDD` or `MM/DD/YYYY` date (the latter as written
+/// in some legacy and paper filings), or `None` for anything else.
+pub fn normalize_fec_date(value: &str) -> Option<String> {
+    let v = value.trim();
+    let b = v.as_bytes();
+    let digits = |s: &[u8]| s.iter().all(u8::is_ascii_digit);
+    if b.len() == 8 && digits(b) {
+        return Some(format!("{}-{}-{}", &v[0..4], &v[4..6], &v[6..8]));
+    }
+    let mut parts = v.split('/');
+    if let (Some(m), Some(d), Some(y), None) =
+        (parts.next(), parts.next(), parts.next(), parts.next())
+    {
+        if (1..=2).contains(&m.len())
+            && (1..=2).contains(&d.len())
+            && y.len() == 4
+            && digits(m.as_bytes())
+            && digits(d.as_bytes())
+            && digits(y.as_bytes())
+        {
+            return Some(format!("{y}-{m:0>2}-{d:0>2}"));
+        }
+    }
+    None
+}
+
 /// A row type usable as a file name: `SC/10` → `SC-10` (as FastFEC does).
 pub fn file_stem(row_type: &str) -> String {
     row_type
@@ -78,6 +104,26 @@ pub fn file_stem(row_type: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn dates() {
+        assert_eq!(
+            normalize_fec_date("20240131").as_deref(),
+            Some("2024-01-31")
+        );
+        assert_eq!(
+            normalize_fec_date("01/31/2024").as_deref(),
+            Some("2024-01-31")
+        );
+        assert_eq!(
+            normalize_fec_date("1/3/1998").as_deref(),
+            Some("1998-01-03")
+        );
+        assert_eq!(normalize_fec_date(""), None);
+        assert_eq!(normalize_fec_date("1/1/98"), None);
+        assert_eq!(normalize_fec_date("2024013é"), None);
+        assert_eq!(normalize_fec_date("abcdefgh"), None);
+    }
 
     #[test]
     fn file_stems() {
