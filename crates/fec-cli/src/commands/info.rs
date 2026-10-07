@@ -686,7 +686,8 @@ fn process_filing<R: Read>(
 }
 
 /// `libfec info --format json`: one JSON object per filing with the header,
-/// and the generic cover fields, plus per-row-type counts with `--full`.
+/// the generic cover fields, and the typed cover (`cover_data`, see
+/// `fec_parser::covers`), plus per-row-type counts with `--full`.
 fn print_filing_json<R: Read>(filing: &mut Filing<R>, full: bool) {
     let header = &filing.header;
     let cover = &filing.cover;
@@ -703,8 +704,9 @@ fn print_filing_json<R: Read>(filing: &mut Filing<R>, full: bool) {
         "filer_id": cover.filer_id,
         "filer_name": cover.filer_name,
         "report_code": cover.report_code,
-        "coverage_from_date": cover.coverage_from_date.map(|d| d.to_string()),
-        "coverage_through_date": cover.coverage_through_date.map(|d| d.to_string()),
+        "coverage_from_date": cover.coverage_from_date,
+        "coverage_through_date": cover.coverage_through_date,
+        "cover_data": cover.cover_data,
     });
     if full {
         let mut rows: std::collections::BTreeMap<String, Value> = Default::default();
