@@ -1,0 +1,154 @@
+---
+source: crates/fec-parser/tests/legacy.rs
+expression: "render(\"8.x_1892731.fec\")"
+snapshot_kind: text
+---
+FilingHeader {
+    header_record: StringRecord(["HDR", "FEC", "8.4 ", "LifePoint Health PAC - The PAC of LifePoint Corporate Services, General Partnership (\"LCSG", "3.1", "", "0", ""]),
+    record_type: "HDR",
+    ef_type: "FEC",
+    fec_version: "8.4",
+    software_name: "LifePoint Health PAC - The PAC of LifePoint Corporate Services, General Partnership (\"LCSG",
+    software_version: "3.1",
+    report_id: None,
+    report_number: Some(
+        "0",
+    ),
+    comment: None,
+    style: Hdr,
+    delimiter: Fs,
+    name_delimiter: None,
+    batch_number: None,
+    received_date: None,
+    legacy_fields: {},
+    schedule_counts: {},
+}
+cover: form_type="F3XN" filer_id="C00347955" filer_name="LifePoint Health PAC - The PAC of LifePoint Corporate Services, General Partnership (\"LCSGP\") and facilities which are subsidiaries of LifePoint Health (collectively \"LifePoint\")" report_code=Some("M5") from=Some(2025-04-01) through=Some(2025-04-30) typed=true
+  form_type = "F3XN"
+  filer_committee_id_number = "C00347955"
+  committee_name = "LifePoint Health PAC - The PAC of LifePoint Corporate Services, General Partnership (\"LCSGP\") and facilities which are subsidiaries of LifePoint Health (collectively \"LifePoint\")"
+  change_of_address = ""
+  street_1 = "330 Seven Springs Way"
+  street_2 = ""
+  city = "Brentwood"
+  state = "TN"
+  zip_code = "37027"
+  report_code = "M5"
+  election_code = ""
+  date_of_election = ""
+  state_of_election = ""
+  coverage_from_date = "20250401"
+  coverage_through_date = "20250430"
+  qualified_committee = "X"
+  treasurer_last_name = "Clark"
+  treasurer_first_name = "Phillip"
+  treasurer_middle_name = ""
+  treasurer_prefix = ""
+  treasurer_suffix = ""
+  date_signed = "20250519"
+  col_a_cash_on_hand_beginning_period = "3918.33"
+  col_a_total_receipts = "27237.00"
+  col_a_subtotal = "31155.33"
+  col_a_total_disbursements = "8629.68"
+  col_a_cash_on_hand_close_of_period = "22525.65"
+  col_a_debts_to = "0.00"
+  col_a_debts_by = "0.00"
+  col_a_individuals_itemized = "26514.00"
+  col_a_individuals_unitemized = "723.00"
+  col_a_individual_contribution_total = "27237.00"
+  col_a_political_party_committees = "0.00"
+  col_a_other_political_committees_pacs = "0.00"
+  col_a_total_contributions = "27237.00"
+  col_a_transfers_from_aff_other_party_cmttees = "0.00"
+  col_a_total_loans = "0.00"
+  col_a_total_loan_repayments_received = "0.00"
+  col_a_offsets_to_expenditures = "0.00"
+  col_a_federal_refunds = "0.00"
+  col_a_other_federal_receipts = "0.00"
+  col_a_transfers_from_nonfederal_h3 = "0.00"
+  col_a_levin_funds = "0.00"
+  col_a_total_nonfederal_transfers = "0.00"
+  col_a_total_receipts_TODO_DUP = "27237.00"
+  col_a_total_federal_receipts = "27237.00"
+  col_a_shared_operating_expenditures_federal = "0.00"
+  col_a_shared_operating_expenditures_nonfederal = "0.00"
+  col_a_other_federal_operating_expenditures = "129.68"
+  col_a_total_operating_expenditures = "129.68"
+  col_a_transfers_to_affiliated = "0.00"
+  col_a_contributions_to_candidates = "8500.00"
+  col_a_independent_expenditures = "0.00"
+  col_a_coordinated_expenditures_by_party_committees = "0.00"
+  col_a_total_loan_repayments_made = "0.00"
+  col_a_loans_made = "0.00"
+  col_a_refunds_to_individuals = "0.00"
+  col_a_refunds_to_party_committees = "0.00"
+  col_a_refunds_to_other_committees = "0.00"
+  col_a_total_refunds = "0.00"
+  col_a_other_disbursements = "0.00"
+  col_a_federal_election_activity_federal_share = "0.00"
+  col_a_federal_election_activity_levin_share = "0.00"
+  col_a_federal_election_activity_all_federal = "0.00"
+  col_a_federal_election_activity_total = "0.00"
+  col_a_total_disbursements_TODO_DUP = "8629.68"
+  col_a_total_federal_disbursements = "8629.68"
+  col_a_total_contributions_TODO_DUP = "27237.00"
+  col_a_total_contributions_refunds = "0.00"
+  col_a_net_contributions = "27237.00"
+  col_a_total_federal_operating_expenditures = "129.68"
+  col_a_total_offsets_to_expenditures = "0.00"
+  col_a_net_operating_expenditures = "129.68"
+  col_b_cash_on_hand_jan_1 = "66133.02"
+  col_b_year = "2025"
+  col_b_total_receipts = "73566.00"
+  col_b_subtotal = "139699.02"
+  col_b_total_disbursements = "117173.37"
+  col_b_cash_on_hand_close_of_period = "22525.65"
+  col_b_individuals_itemized = "57646.00"
+  col_b_individuals_unitemized = "15920.00"
+  col_b_individual_contribution_total = "73566.00"
+  col_b_political_party_committees = "0.00"
+  col_b_other_political_committees_pacs = "0.00"
+  col_b_total_contributions = "73566.00"
+  col_b_transfers_from_aff_other_party_cmttees = "0.00"
+  col_b_total_loans = "0.00"
+  col_b_total_loan_repayments_received = "0.00"
+  col_b_offsets_to_expenditures = "0.00"
+  col_b_federal_refunds = "0.00"
+  col_b_other_federal_receipts = "0.00"
+  col_b_transfers_from_nonfederal_h3 = "0.00"
+  col_b_levin_funds = "0.00"
+  col_b_total_nonfederal_transfers = "0.00"
+  col_b_total_receipts_TODO_DUP = "73566.00"
+  col_b_total_federal_receipts = "73566.00"
+  col_b_shared_operating_expenditures_federal = "0.00"
+  col_b_shared_operating_expenditures_nonfederal = "0.00"
+  col_b_other_federal_operating_expenditures = "623.37"
+  col_b_total_operating_expenditures = "623.37"
+  col_b_transfers_to_affiliated = "0.00"
+  col_b_contributions_to_candidates = "99750.00"
+  col_b_independent_expenditures = "0.00"
+  col_b_coordinated_expenditures_by_party_committees = "0.00"
+  col_b_total_loan_repayments_made = "0.00"
+  col_b_loans_made = "0.00"
+  col_b_refunds_to_individuals = "0.00"
+  col_b_refunds_to_party_committees = "0.00"
+  col_b_refunds_to_other_committees = "0.00"
+  col_b_total_refunds = "0.00"
+  col_b_other_disbursements = "16800.00"
+  col_b_federal_election_activity_federal_share = "0.00"
+  col_b_federal_election_activity_levin_share = "0.00"
+  col_b_federal_election_activity_all_federal = "0.00"
+  col_b_federal_election_activity_total = "0.00"
+  col_b_total_disbursements_TODO_DUP = "117173.37"
+  col_b_total_federal_disbursements = "117173.37"
+  col_b_total_contributions_TODO_DUP = "73566.00"
+  col_b_total_contributions_refunds = "0.00"
+  col_b_net_contributions = "73566.00"
+  col_b_total_federal_operating_expenditures = "623.37"
+  col_b_total_offsets_to_expenditures = "0.00"
+  col_b_net_operating_expenditures = "623.37"
+row "SA11AI" line=3 byte=1051 record=2 fields=["SA11AI", "C00347955", "A2025-548680", "", "", "IND", "", "Allen", "Keith", "", "", "", "330 Seven Springs Way", "", "Brentwood", "TN", "37027", "", "", "20250404", "75.00", "525.00", "", "LifePoint Health, Inc.", "Vice President", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
+row "SA11AI" line=4 byte=1228 record=3 fields=["SA11AI", "C00347955", "A2025-696019", "", "", "IND", "", "Allen", "Keith", "", "", "", "330 Seven Springs Way", "", "Brentwood", "TN", "37027", "", "", "20250418", "75.00", "600.00", "", "LifePoint Health, Inc.", "Vice President", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
+row "SB21B" line=5 byte=1405 record=4 fields=["SB21B", "C00347955", "B899997", "", "", "ORG", "Regions Bank", "", "", "", "", "", "One Nashville Place, 330 Seven Spr", "", "Brentwood", "TN", "37027", "O2025", "Not Applicable", "20250409", "129.68", "", "Bank Service Charge", "001", "", "", "", "", "", "", "", "", "", "", " ", "", "", "", "", "", "", "", "", ""]
+row "SB23" line=6 byte=1591 record=5 fields=["SB23", "C00347955", "B899118", "", "", "PAC", "BRETTPAC-Leadership PAC of Rep. Brett Guthrie", "", "", "", "", "", "9300 Shelbyville Road Suite 1005", "", "Elizabethtown", "KY", "40222", "O2025", "Not Applicable", "20250414", "2500.00", "", "Contribution", "011", "C00483487", "", "", "", "", "", "", "", "", "", " ", "", "", "", "", "", "", "", "", ""]
+row "SB23" line=7 byte=1814 record=6 fields=["SB23", "C00347955", "B898725", "", "", "PAC", "Denali Leadership Pac", "", "", "", "", "", "901 N Washington St Suite 700", "", "Alexandria", "VA", "22314", "O2025", "Not Applicable", "20250414", "2500.00", "", "Contribution", "011", "C00438291", "", "", "", "", "", "", "", "", "", " ", "", "", "", "", "", "", "", "", ""]

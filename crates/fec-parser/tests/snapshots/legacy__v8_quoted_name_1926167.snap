@@ -1,0 +1,162 @@
+---
+source: crates/fec-parser/tests/legacy.rs
+expression: "render(\"8.x_1926167.fec\")"
+snapshot_kind: text
+---
+FilingHeader {
+    header_record: StringRecord(["HDR", "FEC", "8.5", "FECFile", "8.5", "FEC-1903748", "1", ""]),
+    record_type: "HDR",
+    ef_type: "FEC",
+    fec_version: "8.5",
+    software_name: "FECFile",
+    software_version: "8.5",
+    report_id: Some(
+        "FEC-1903748",
+    ),
+    report_number: Some(
+        "1",
+    ),
+    comment: None,
+    style: Hdr,
+    delimiter: Fs,
+    name_delimiter: None,
+    batch_number: None,
+    received_date: None,
+    legacy_fields: {},
+    schedule_counts: {},
+}
+cover: form_type="F3XA" filer_id="C00066472" filer_name="American Property Casualty Insurance Association Political Action Committee (Insuring America PAC)" report_code=Some("M7") from=Some(2025-06-01) through=Some(2025-06-30) typed=true
+  form_type = "F3XA"
+  filer_committee_id_number = "C00066472"
+  committee_name = "American Property Casualty Insurance Association Political Action Committee (Insuring America PAC)"
+  change_of_address = ""
+  street_1 = "8700 West Bryn Mawr"
+  street_2 = "Suite 1200S"
+  city = "Chicago"
+  state = "IL"
+  zip_code = "606313512"
+  report_code = "M7"
+  election_code = ""
+  date_of_election = ""
+  state_of_election = ""
+  coverage_from_date = "20250601"
+  coverage_through_date = "20250630"
+  qualified_committee = "X"
+  treasurer_last_name = "Wachholz"
+  treasurer_first_name = "Mark"
+  treasurer_middle_name = ""
+  treasurer_prefix = ""
+  treasurer_suffix = ""
+  date_signed = "20251120"
+  col_a_cash_on_hand_beginning_period = "279982.96"
+  col_a_total_receipts = "124140.02"
+  col_a_subtotal = "404122.98"
+  col_a_total_disbursements = "114845.03"
+  col_a_cash_on_hand_close_of_period = "289277.95"
+  col_a_debts_to = "0.00"
+  col_a_debts_by = "0.00"
+  col_a_individuals_itemized = "96630.26"
+  col_a_individuals_unitemized = "2509.76"
+  col_a_individual_contribution_total = "99140.02"
+  col_a_political_party_committees = "0.00"
+  col_a_other_political_committees_pacs = "25000.00"
+  col_a_total_contributions = "124140.02"
+  col_a_transfers_from_aff_other_party_cmttees = "0.00"
+  col_a_total_loans = "0.00"
+  col_a_total_loan_repayments_received = "0.00"
+  col_a_offsets_to_expenditures = "0.00"
+  col_a_federal_refunds = "0.00"
+  col_a_other_federal_receipts = "0.00"
+  col_a_transfers_from_nonfederal_h3 = "0.00"
+  col_a_levin_funds = "0.00"
+  col_a_total_nonfederal_transfers = "0.00"
+  col_a_total_receipts_TODO_DUP = "124140.02"
+  col_a_total_federal_receipts = "124140.02"
+  col_a_shared_operating_expenditures_federal = "0.00"
+  col_a_shared_operating_expenditures_nonfederal = "0.00"
+  col_a_other_federal_operating_expenditures = "1595.03"
+  col_a_total_operating_expenditures = "1595.03"
+  col_a_transfers_to_affiliated = "0.00"
+  col_a_contributions_to_candidates = "109000.00"
+  col_a_independent_expenditures = "0.00"
+  col_a_coordinated_expenditures_by_party_committees = "0.00"
+  col_a_total_loan_repayments_made = "0.00"
+  col_a_loans_made = "0.00"
+  col_a_refunds_to_individuals = "0.00"
+  col_a_refunds_to_party_committees = "0.00"
+  col_a_refunds_to_other_committees = "0.00"
+  col_a_total_refunds = "0.00"
+  col_a_other_disbursements = "4250.00"
+  col_a_federal_election_activity_federal_share = "0.00"
+  col_a_federal_election_activity_levin_share = "0.00"
+  col_a_federal_election_activity_all_federal = "0.00"
+  col_a_federal_election_activity_total = "0.00"
+  col_a_total_disbursements_TODO_DUP = "114845.03"
+  col_a_total_federal_disbursements = "114845.03"
+  col_a_total_contributions_TODO_DUP = "124140.02"
+  col_a_total_contributions_refunds = "0.00"
+  col_a_net_contributions = "124140.02"
+  col_a_total_federal_operating_expenditures = "1595.03"
+  col_a_total_offsets_to_expenditures = "0.00"
+  col_a_net_operating_expenditures = "1595.03"
+  col_b_cash_on_hand_jan_1 = "144823.58"
+  col_b_year = "2025"
+  col_b_total_receipts = "521892.36"
+  col_b_subtotal = "666715.94"
+  col_b_total_disbursements = "377437.99"
+  col_b_cash_on_hand_close_of_period = "289277.95"
+  col_b_individuals_itemized = "395281.41"
+  col_b_individuals_unitemized = "43160.29"
+  col_b_individual_contribution_total = "438441.70"
+  col_b_political_party_committees = "0.00"
+  col_b_other_political_committees_pacs = "67500.00"
+  col_b_total_contributions = "505941.70"
+  col_b_transfers_from_aff_other_party_cmttees = "0.00"
+  col_b_total_loans = "0.00"
+  col_b_total_loan_repayments_received = "0.00"
+  col_b_offsets_to_expenditures = "5950.66"
+  col_b_federal_refunds = "10000.00"
+  col_b_other_federal_receipts = "0.00"
+  col_b_transfers_from_nonfederal_h3 = "0.00"
+  col_b_levin_funds = "0.00"
+  col_b_total_nonfederal_transfers = "0.00"
+  col_b_total_receipts_TODO_DUP = "521892.36"
+  col_b_total_federal_receipts = "521892.36"
+  col_b_shared_operating_expenditures_federal = "0.00"
+  col_b_shared_operating_expenditures_nonfederal = "0.00"
+  col_b_other_federal_operating_expenditures = "7545.69"
+  col_b_total_operating_expenditures = "7545.69"
+  col_b_transfers_to_affiliated = "0.00"
+  col_b_contributions_to_candidates = "356500.00"
+  col_b_independent_expenditures = "0.00"
+  col_b_coordinated_expenditures_by_party_committees = "0.00"
+  col_b_total_loan_repayments_made = "0.00"
+  col_b_loans_made = "0.00"
+  col_b_refunds_to_individuals = "2992.30"
+  col_b_refunds_to_party_committees = "0.00"
+  col_b_refunds_to_other_committees = "0.00"
+  col_b_total_refunds = "2992.30"
+  col_b_other_disbursements = "10400.00"
+  col_b_federal_election_activity_federal_share = "0.00"
+  col_b_federal_election_activity_levin_share = "0.00"
+  col_b_federal_election_activity_all_federal = "0.00"
+  col_b_federal_election_activity_total = "0.00"
+  col_b_total_disbursements_TODO_DUP = "377437.99"
+  col_b_total_federal_disbursements = "377437.99"
+  col_b_total_contributions_TODO_DUP = "505941.70"
+  col_b_total_contributions_refunds = "2992.30"
+  col_b_net_contributions = "502949.40"
+  col_b_total_federal_operating_expenditures = "7545.69"
+  col_b_total_offsets_to_expenditures = "5950.66"
+  col_b_net_operating_expenditures = "1595.03"
+row "SA11AI" line=3 byte=977 record=2 fields=["SA11AI", "C00066472", "79B4E00D32CC4F49A832", "", "", "IND", "", "Abernathy", "Matt", "", "", "", "8700 West Bryn Mawr Ave", "Suite 1200S", "Chicago", "IL", "60631", "", "", "20250618", "250.00", "250.00", "", "FCCI Insurance Group", "AVP, Regional Operations", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
+row "SA11AI" line=4 byte=1186 record=3 fields=["SA11AI", "C00066472", "20250610163622-1", "", "", "IND", "", "Adkins", "John", "H", "", "", "8700 West Bryn Mawr Ave", "Suite 1200S", "Chicago", "IL", "60631", "", "", "20250611", "100.00", "900.00", "", "Texas Farm Bureau Insurance Companies", "Director of Claims - North Division", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
+row "SA11AI" line=5 byte=1417 record=4 fields=["SA11AI", "C00066472", "53F10415D1C54970BFCF", "", "", "IND", "", "Roche", "John", "\"Jack\" C.", "", "", "8700 West Bryn Mawr Ave", "Suite 1200S", "Chicago", "IL", "60631", "", "", "20250627", "5000.00", "5000.00", "", "The Hanover Insurance Group, Inc.", "President and Chief Executive Officer", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
+row "SA11C" line=6 byte=1659 record=5 fields=["SA11C", "C00066472", "F4B0F0CA19C9493B9F96", "", "", "PAC", "Amica Mutual Insurance Company/Fed-Political Action Committee", "", "", "", "", "", "PO Box 6008", "", "Providence", "RI", "029406008", "", "", "20250611", "5000.00", "5000.00", "", "", "", "C00268987", "Amica Mutual Insurance Company/Fed-Political Action Committee", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
+row "SA11C" line=7 byte=1927 record=6 fields=["SA11C", "C00066472", "D420676EEE244A0ABF9B", "", "", "PAC", "Government Employees Insurance Company Political Action Committee", "", "", "", "", "", "1 Geico Plz", "", "Washington", "DC", "200760003", "", "", "20250617", "5000.00", "5000.00", "", "", "", "C00343749", "Government Employees Insurance Company Political Action Committee", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
+row "SB21B" line=8 byte=2203 record=7 fields=["SB21B", "C00066472", "EB7906D948DC0B1C998", "", "", "ORG", "Bank of America", "", "", "", "", "", "135 S LaSalle Street, 7th Floor", "", "Chicago", "IL", "60603", "", "", "20250602", "6.24", "", "Merchant CC Fees 06-02-2025", "001", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
+row "SB21B" line=9 byte=2385 record=8 fields=["SB21B", "C00066472", "1E9796206AC90CDFC25", "", "", "ORG", "Bank of America", "", "", "", "", "", "135 S LaSalle Street, 7th Floor", "", "Chicago", "IL", "60603", "", "", "20250603", "3.32", "", "Merchant CC Fees 06-03-2025", "001", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
+row "SB23" line=10 byte=2567 record=9 fields=["SB23", "C00066472", "836F306A9CF9EBCCCA1", "", "", "PAC", "Alabama First PAC", "", "", "", "", "", "PO Box 3723", "", "Montgomery", "AL", "361090723", "O2025", "Contribution", "20250602", "2500.00", "", "2025 Contribution", "011", "C00821058", "Alabama First PAC", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
+row "SB23" line=11 byte=2773 record=10 fields=["SB23", "C00066472", "26A43007DCA66CAAF97", "", "", "PAC", "Alamo PAC", "", "", "", "", "", "PO Box 13026", "", "Austin", "TX", "787113026", "O2025", "Contribution", "20250602", "2000.00", "", "2025 Contribution", "011", "C00387464", "Alamo PAC", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
+row "SB29" line=12 byte=2960 record=11 fields=["SB29", "C00066472", "EDF5DD945A13036EA68", "", "", "COM", "Friends of Dontavius Jarrells", "", "", "", "", "", "222 E. Town Street, Suite 2W", "", "Columbus", "OH", "43215", "", "", "20250610", "750.00", "", "Nonfederal Contribution", "011", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
+row "SB29" line=13 byte=3151 record=12 fields=["SB29", "C00066472", "A824550F45AEB30D287", "", "", "COM", "House Republican Campaign Committee", "", "", "", "", "", "PO Box 15035", "", "Lansing", "MI", "48901", "", "", "20250609", "2500.00", "", "Nonfederal Contribution", "011", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
