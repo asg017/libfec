@@ -412,10 +412,21 @@ mod tests {
     use crate::cli::{RssArgs, RssPreset};
     use crate::rss::{ActiveFilters, Item};
     use crate::sourcer::FilingSourcer;
-    use insta::assert_snapshot;
     use ratatui::{backend::TestBackend, Terminal};
     use std::collections::HashSet;
     use std::time::{Duration, Instant};
+
+    // The footer countdown is computed from the wall clock at render time, so a
+    // slow runner can show 4:57 instead of 4:59. Mask it in every snapshot.
+    macro_rules! assert_snapshot {
+        ($value:expr) => {
+            insta::with_settings!({
+                filters => vec![(r"Next refresh: \d+:\d{2}", "Next refresh: M:SS")],
+            }, {
+                insta::assert_snapshot!($value);
+            })
+        };
+    }
 
     fn create_test_items() -> Vec<Item> {
         vec![
