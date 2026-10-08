@@ -177,8 +177,16 @@ pub(crate) fn date<F: Fields + ?Sized>(data: &F, key: &str) -> Option<Date> {
     if let [y1, y2, y3, y4, m1, m2, d1, d2] = s.as_bytes() {
         let digits = [y1, y2, y3, y4, m1, m2, d1, d2];
         if digits.iter().all(|b| b.is_ascii_digit()) {
-            let n = |ds: &[&u8]| ds.iter().fold(0i16, |acc, b| acc * 10 + i16::from(**b - b'0'));
-            return Date::new(n(&digits[..4]), n(&digits[4..6]) as i8, n(&digits[6..]) as i8).ok();
+            let n = |ds: &[&u8]| {
+                ds.iter()
+                    .fold(0i16, |acc, b| acc * 10 + i16::from(**b - b'0'))
+            };
+            return Date::new(
+                n(&digits[..4]),
+                n(&digits[4..6]) as i8,
+                n(&digits[6..]) as i8,
+            )
+            .ok();
         }
     }
     Date::strptime("%Y%m%d", s)

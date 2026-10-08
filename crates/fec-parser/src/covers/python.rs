@@ -75,7 +75,11 @@ fn fields<T: Serialize>(value: &T) -> Vec<(String, Value)> {
 fn field_names<T: Serialize + 'static>(value: &T) -> Arc<[String]> {
     static NAMES: OnceLock<RwLock<HashMap<TypeId, Arc<[String]>>>> = OnceLock::new();
     let names = NAMES.get_or_init(Default::default);
-    if let Some(hit) = names.read().unwrap_or_else(|e| e.into_inner()).get(&TypeId::of::<T>()) {
+    if let Some(hit) = names
+        .read()
+        .unwrap_or_else(|e| e.into_inner())
+        .get(&TypeId::of::<T>())
+    {
         return hit.clone();
     }
     let fresh: Arc<[String]> = fields(value).into_iter().map(|(name, _)| name).collect();
@@ -130,7 +134,11 @@ pub(crate) fn to_dict<'py, T: Covered>(slf: &Bound<'py, T>) -> PyResult<Bound<'p
         let value = if let Ok(items) = value.cast::<PyList>() {
             let list = PyList::empty(py);
             for item in items.iter() {
-                list.append(if is_nested(&item)? { item.call_method0("to_dict")? } else { item })?;
+                list.append(if is_nested(&item)? {
+                    item.call_method0("to_dict")?
+                } else {
+                    item
+                })?;
             }
             list.into_any()
         } else if is_nested(&value)? {
