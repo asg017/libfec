@@ -1,5 +1,4 @@
 mod errors;
-mod fecfile;
 mod parser;
 mod row;
 mod source;
@@ -8,9 +7,10 @@ use pyo3::prelude::*;
 
 /// Native extension backing the `libfec` package.
 ///
-/// The public API lives in `python/libfec/{parser,fecfile}.py`, which
-/// re-export from the submodules declared here. `run_cli` backs the `libfec`
-/// command (`python/libfec/_cli.py`).
+/// The public API lives in `python/libfec/{parser,fecfile}.py`; `fecfile.py`
+/// is pure Python over `parser.py`'s `open()` and no longer has a Rust-side module
+/// of its own (the old `src/fecfile.rs` compat layer was deleted in ticket 22).
+/// `run_cli` backs the `libfec` command (`python/libfec/_cli.py`).
 #[pymodule]
 mod _native {
     use pyo3::prelude::*;
@@ -30,14 +30,6 @@ mod _native {
         #[pymodule_export]
         use crate::parser::{fec_header, open_filing, Cover, FilingReader, Header};
         #[pymodule_export]
-        use crate::row::{row_from_parts, Row};
-    }
-
-    #[pymodule]
-    mod fecfile {
-        #[pymodule_export]
-        use crate::fecfile::{
-            from_file, from_http, loads, parse_header, parse_line, print_example,
-        };
+        use crate::row::{column_names, row_from_parts, Row};
     }
 }
