@@ -559,7 +559,7 @@ mod tests {
     #[test]
     fn non_finite_f64_is_absent() {
         for x in ["nan", "inf", "-inf", "1e999"] {
-            let x: f64 = x.parse().unwrap();
+            let x: f64 = x.parse().expect("float literal");
             assert!(x.gleam_absent(), "{x}");
             assert!(Box::new(x).gleam_absent(), "{x}");
         }
@@ -700,7 +700,10 @@ mod tests {
         let GleamShape::Variants { variants } = Cover::gleam_def().shape else {
             panic!()
         };
-        let v = variants.iter().find(|v| v.name == "Form3X").expect("Form3X");
+        let v = variants
+            .iter()
+            .find(|v| v.name == "Form3X")
+            .expect("Form3X");
         assert!(
             matches!(&v.payload, GleamTy::Named(r) if r.rust_name == "Form3X"
             && r.rust_module == "fec_parser::covers::form3x")
