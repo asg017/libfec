@@ -83,10 +83,10 @@ class Header:
         """Whether this is FEC data entry of a paper filing."""
     @property
     def legacy_fields(self) -> dict[str, str]:
-        """`/* Header` block (1.x/2.x): every `key = value` line, in file order; empty otherwise."""
+        """`/* Header` block: every `key = value` line, keys as written. Empty otherwise."""
     @property
     def schedule_counts(self) -> dict[str, str]:
-        """`/* Header` block: the `Schedule_Counts:` lines; empty otherwise."""
+        """`/* Header` block: the `Schedule_Counts:` lines. Empty otherwise."""
     def __repr__(self) -> str: ...
 
 @final

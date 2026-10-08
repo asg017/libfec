@@ -1,7 +1,6 @@
 # libfec
 
-> **Alpha.** The `fecfile` module is not yet a drop-in replacement for the
-> [`fecfile`](https://pypi.org/project/fecfile/) package (Phase 3).
+> **Alpha.** The API may change between releases.
 
 The [libfec](https://github.com/asg017/libfec) command-line tool and Python bindings for its `.fec` parser, in one package. Parse FEC electronic filings from a path, from bytes, or straight from the FEC's website, with the parsing done in Rust.
 
@@ -19,8 +18,9 @@ Two APIs are included:
 
 - [`libfec.parser`](#native-api) (also exported at the top level as `open`/`read`): the
   primary API — a streaming `FilingReader` or an eager `Filing`, both with typed values.
-- [`libfec.fecfile`](#fecfile-api): rows as dicts keyed by column name, modeled on the
-  [`fecfile`](https://pypi.org/project/fecfile/) package; strings only until Phase 3.
+- [`libfec.fecfile`](#fecfile-api): rows as dicts keyed by column name, a drop-in for the
+  [`fecfile`](https://pypi.org/project/fecfile/) package (0.9.1) on FEC format versions 8.0–8.5,
+  typed values included.
 
 For a guided tour, including loading a filing into pandas, see [`examples/quickstart.ipynb`](examples/quickstart.ipynb).
 
@@ -51,20 +51,39 @@ instead, see [Development](#development).
 from libfec import fecfile
 ```
 
+`libfec.fecfile` is a **drop-in replacement for [`fecfile`](https://pypi.org/project/fecfile/) 0.9.1**'s public API, **for filings in FEC format versions 8.0–8.5**: the same keys, in the same order, with the same values *and* the same types. This is enforced by a differential test that compares every value against the real package — on every committed fixture, and on a 408,162-item, 91 MB filing (`tests/test_fecfile_differential.py`, `tests/test_perf.py::test_compat_differential_benchmark_filing`). Inside that scope, [Where it differs](#where-it-differs) lists everything that is not identical.
+
+**The scope, precisely.** 8.0–8.5 is what the differential test holds this module to, so the whole-filing functions — `from_file`, `loads`, `iter_file`, `iter_lines`, `from_http`, `iter_http` — raise `FecParseError` on anything else, where real `fecfile` parses it (the native `open()` reads those filings; this module just doesn't promise fecfile's output for them):
+
+- a v3/v5 comma-delimited filing, a 6.x or 7.x one, or a paper (`P3.x`) filing;
+- a version string outside those six *as spelled* — real matches it by regex prefix, so it also accepts `8.50`, `8.5.1` and the like;
+- a file starting with a multi-line `/* … */` header (format versions 1 and 2).
+
+`parse_header` and `parse_line` have no such limit: column names come from a vendored copy of real's own `mappings.json` (alongside its `types.json`, see `NOTICE`), so they match real for every version it maps, and `parse_header` reads the `/* … */` block exactly as real does.
+
+Lifting the 8.x limit is now mostly a header question: on the legacy fixtures in `crates/fec-parser/tests/fixtures/legacy/`, every filing reads exactly as real reads it except for header assembly — the 1.x/2.x `/*` block, the 3.00 header's `name_delim`, 5.3's `F99_text`, and an 8.4 `fec_version` written with a trailing space (`fec-parser` trims it; real keeps `'8.4 '`).
+
+`parse_line` and `parse_header` have no such limit. Their column mappings match real's name for name and in order for every form in real's `mappings.json`, across versions 8.5, 8.4, 8.3, 8.2, 8.1, 8.0, 7.0, 6.4, 6.1, 5.3, 5.0 and 3.0 — 1,380 `(form, version)` pairs, 1,156 of which both packages map, checked by `test_column_names_match_real_across_mappings`. The one HDR column real has and these don't is `name_delim` (format versions 3.x–5.x), which always reads `''`, since the native `Header` doesn't carry it.
+
+Public names: `loads`, `from_file`, `from_http`, `iter_file`, `iter_http`, `iter_lines`, `parse_header`, `parse_line`, `print_example`, `FecItem`, `FecParserMissingMappingError`, `FilingUnavailableError`, `FecParserTypeWarning`.
+
 ### Loading a filing
 
 | Function | Input |
 | --- | --- |
-| `from_file(path, options=None)` | Path to a `.fec` file, as a `str` |
-| `loads(content, options=None)` | `bytes`, a `str`, or a list of lines |
-| `from_http(filing_id, options=None)` | A filing ID (`int` or `str`), downloaded from `docquery.fec.gov`. Returns `None` if the filing doesn't exist |
+| `from_file(path, options=None)` | Path to a `.fec` file, as a `str` or `os.PathLike` |
+| `loads(content, options=None)` | `bytes`, a `str`, or any iterable of lines |
+| `from_http(filing_id, options=None)` | A filing ID (`int` or `str`), downloaded from `docquery.fec.gov`. Raises `FilingUnavailableError` if neither the electronic nor the paper URL exists |
+| `iter_file(path, options=None)` | Like `from_file`, streamed as `FecItem`s instead of built into one dict |
+| `iter_http(filing_id, options=None)` | Like `from_http`, streamed (see the HTTP section below) |
+| `iter_lines(lines, options=None)` | Streamed, from an iterable of `str`/`bytes` lines |
 
-All three return a dict with the same shape:
+`from_file`, `loads` and `from_http` return a dict with the same shape:
 
 ```python
 {
-    "header": {"record_type": "HDR", "fec_version": "8.4", "software_name": "FECFile", ...},
-    "filing": {"form_type": "F3XN", "filer_committee_id_number": "C00016683", "committee_name": ..., ...},
+    "header": {"record_type": "HDR", "fec_version": "8.5", "soft_name": "FECfile", ...},
+    "filing": {"form_type": "F3N", "filer_committee_id_number": "C00900860", "committee_name": ..., ...},
     "itemizations": {
         "Schedule A": [{"form_type": "SA11AI", "contributor_last_name": ..., ...}, ...],
         "Schedule B": [...],
@@ -73,12 +92,44 @@ All three return a dict with the same shape:
 }
 ```
 
-- `header` is the `HDR` record. `report_id`, `report_number` and `comment` are only present when the filing sets them.
+(Keys shown are real output from `fecfile.from_file("tests/fixtures/1921705.fec")`.)
+
+- `header` is the `HDR` record. `report_id`, `report_number` and `comment` are `''` unless the filing sets them.
 - `filing` is the cover page, with one key for every column on the form.
-- `itemizations` groups rows by schedule. Row types starting with `S` are keyed `"Schedule A"`, `"Schedule B"`, and so on. Anything else is keyed by its row type, such as `"F1S"`. Each row's exact line number is in its `form_type`.
+- `itemizations` groups rows by schedule, in file order. Row types starting with `S` are keyed `"Schedule A"`, `"Schedule B"`, and so on. Anything else is keyed by its row type, such as `"F1S"`.
 - `text` holds free-form `TEXT` records.
 
-Column names come from libfec's mappings for the filing's FEC format version. Rows with no known mapping fall back to `field_0`, `field_1`, ….
+Column names come from libfec's mappings for the filing's FEC format version, the same names real `fecfile` uses.
+
+### Values
+
+Every value is typed from `fecfile`'s own (vendored) type table, exactly as real `fecfile` types it:
+
+- amount columns parse to `float`;
+- date columns parse to a **tz-aware `datetime` in US/Eastern** (via `zoneinfo`, not `pytz` — same instant and same UTC offset as real for every date from 1901-12-14 to 2038-03-14; see [Where it differs](#where-it-differs) for the two windows outside that);
+- an empty amount or date column is `None`;
+- a handful of columns parse to `int`;
+- a value the table types but that doesn't parse (`12,34.5x` in an amount column) is `None`, with a `FecParserTypeWarning` naming the value, column and line;
+- anything else comes back as the raw `str`;
+- `options={"as_strings": True}` turns all of the above off: every value is the raw `str`.
+
+```python
+>>> row = fecfile.from_file("tests/fixtures/1921705.fec")["itemizations"]["Schedule A"][0]
+>>> row["contribution_amount"], row["contribution_date"]
+(500.0, datetime.datetime(2025, 7, 7, 0, 0, tzinfo=zoneinfo.ZoneInfo(key='America/New_York')))
+```
+
+**Windows:** `zoneinfo` needs the `tzdata` package there (macOS and Linux ship a system tz database). A filing with a date raises `ImportError: libfec.fecfile needs the 'tzdata' package on this platform: pip install tzdata` if it's missing.
+
+### Streaming large filings
+
+`iter_file`/`iter_http`/`iter_lines` yield one `FecItem` (`.data_type`, `.data`) at a time — the header, then the summary (cover page), then one itemization/text item per row — instead of building the whole dict, and never hold more than a batch of rows in memory. On the 91 MB, 408,160-row benchmark filing (see [Performance](#performance)), `fecfile.iter_file` peaks at 32.6 MB against 1,106 MB for `from_file`:
+
+```python
+for item in fecfile.iter_file(path):
+    if item.data_type == "itemization":
+        ...
+```
 
 ### Options
 
@@ -95,6 +146,21 @@ fecfile.from_file(path, options={"filter_itemizations": ["SA11AI"]})
 fecfile.from_file(path, options={"filter_itemizations": []})
 ```
 
+Unlike real `fecfile`, `options` is validated up front: an unknown key raises `ValueError`, and a wrong type (a bare `"SA"` instead of `["SA"]`, say) raises `TypeError` rather than silently doing something unintended.
+
+### HTTP: `from_http` / `iter_http`
+
+Requires the `[http]` extra (`httpx2`), not installed by default. Since this package isn't on PyPI, install it by wheel URL with the extra appended, the same way as [Install](#install) above:
+
+```bash
+VERSION=0.0.33   # the release you want, from the releases page
+uv pip install "libfec[http] @ https://github.com/asg017/libfec/releases/download/$VERSION/libfec-$VERSION-cp311-abi3-macosx_11_0_arm64.whl"
+```
+
+(Swap the wheel filename for your platform — see the table in [Install](#install).) Without `httpx2` installed, `from_http`/`iter_http` raise `ImportError` naming the extra.
+
+`from_http(filing_id)` tries the electronic ("dcdev") URL first and the paper URL on a 404. Any status other than 200 raises `FilingUnavailableError`, including a 404 from both URLs. `iter_http` streams the same way `iter_file` does — the first item can arrive before the download finishes — and raises the same way.
+
 ### Parsing single records
 
 ```python
@@ -106,11 +172,45 @@ row = fecfile.parse_line(line, version)
 
 `fecfile.print_example(parsed)` prints the header, cover page, and the first row of each schedule as JSON.
 
-### Differences from `fecfile`
+### Where it differs
 
-- **Every value is a string.** Amounts are not converted to `float`, and dates stay as `YYYYMMDD`. The `as_strings` option is accepted and ignored — the native `Row` API returns typed values.
-- Only the ASCII 28-delimited format (FEC version 6 and later) is supported by `parse_header()` and `parse_line()`.
-- `from_http()` reads the whole response into memory before parsing, and there is no `iter_file()` / `iter_http()` yet.
+For a well-formed FEC 8.0–8.5 filing (the [scope](#fecfile-api) above), **two** differences survive the differential test. Nothing is excluded from a comparison without appearing here:
+
+- **`F99_text` / `[BEGINTEXT]…[ENDTEXT]` bodies are not surfaced.** A form 99's free-form narrative sits between `[BEGINTEXT]` and `[ENDTEXT]` markers that `fec-parser` doesn't parse out (deferred parser item N14), so this package never has an `F99_text` key or item to offer.
+- **Line terminators that real leaves in a row's last field.** Real's `iter_file`/`iter_http` read a line at a time and never strip the `\n` (`'20006\n'`, or just `'\n'` for an empty field); real's `loads`/`iter_lines` split on `"\n"` alone, so CRLF content keeps a `\r` the same way. Both are bugs in the real package, not differences of this one, and neither is reproduced here. (A CRLF filing read from *disk* is clean on both sides — real opens it in text mode — and is compared with no slack at all.)
+
+Everything else about a filing matches, cover page included: a column an FEC layout names twice — an F3X cover's `col_a_total_receipts`, an F2's `candidate_state` — is keyed once and holds the **last** copy's value, exactly as real's dict build leaves it.
+
+**Time zones.** Date columns are localized with `zoneinfo`; real uses `pytz`. The two agree — same instant, same UTC offset, same `str()` — for every date from **1901-12-14 through 2038-03-14**, which is every date a filing can plausibly carry. Outside that window `pytz`'s transition table runs out and the two diverge:
+
+| Date | Real (`pytz`) | Here (`zoneinfo`) |
+| --- | --- | --- |
+| `20380701` (any summer date from 2038-03-15 on) | `-05:00` — no DST rules after 2037 | `-04:00` |
+| `19011213` and earlier back to 1883-11-19 | `-04:56` (LMT) | `-05:00` (EST) |
+| `18830701` and earlier | `-04:56` | `-04:56:02` |
+
+**Malformed input.** Two things a filing has to be broken to hit. None is allowlisted — the differential test excludes nothing for them — and each is pinned by its own test:
+
+- **`filter_itemizations` prefixes match the row type, not the raw line** (and case-insensitively, see below). Real tests `line.startswith(prefix)` or `line.startswith('"' + prefix)`, so a prefix that runs past the first field (`"SA11AI\x1cC"`) or carries a quoted row type's quote (`'"SA'`) can match there and never here. Prefixes that stay inside the row type — every documented use — behave identically.
+- **An element of a `loads`/`iter_lines` iterable is text, not one record.** Real parses each element as exactly one line; this package feeds the iterable to the parser as a byte stream, so an element containing `\n` becomes several records.
+
+One more, on well-formed input: **a blank line shifts warning line numbers.** Real counts every line it is handed; `fec-parser` numbers records and skips blank lines, so the `(line N)` a `FecParserTypeWarning` ends on falls behind by one per blank line above it. The warning's text, and every value in the filing, are unaffected.
+
+**Known limitation, not (so far) an observed difference:** a filing with non-UTF-8 bytes (cp1252 curly quotes, en dashes, say) decodes lossily here — the offending bytes become `�` rather than being transcoded the way real `fecfile`'s `ISO-8859-1` fallback would render them. No committed fixture, and not the 408,160-row benchmark filing either, has ever exercised this, so it isn't part of the list above — but a filing that does contain such bytes could show a difference here.
+
+Deliberate supersets — things this package does that real `fecfile` doesn't:
+
+- `options` is validated: an unknown key raises `ValueError`; a wrong-typed value (a bare `str` where a list is expected) raises `TypeError`.
+- `filter_itemizations` prefixes are matched case-insensitively (real is case-sensitive).
+- `loads` accepts a bytes-like object or any iterable of lines, not just `str`.
+- `from_file` accepts `os.PathLike`, not just `str`.
+- `FecParserMissingMappingError` and `FilingUnavailableError` derive from `FecError` (a `ValueError`), so they're catchable alongside the native API's exceptions.
+- `parse_header` on a line that isn't a header raises `ValueError`; real raises `IndexError`.
+- `from_http` raises `FilingUnavailableError` when the filing doesn't exist (a 404 from both URLs), where real returns `None`; code written as `if fecfile.from_http(n) is None:` should catch the exception instead. Any other non-200 raises too, rather than parsing the error page as a filing.
+
+### Use the native API instead when…
+
+…matching `fecfile`'s exact shape isn't the point. `open()`/`read()` are roughly 9–14× faster on this package's own benchmark filing (see [Performance](#performance) — `read()` vs. `fecfile.from_file`, `open()` vs. `fecfile.iter_file`), hand back a typed `Row` instead of building a `dict` per row, and never consult the vendored type table at all.
 
 ## Native API
 
@@ -343,17 +443,23 @@ pd.to_datetime(df["contribution_date"]).dt.year.min()   # 2023
 
 ## Known issues
 
-Three known gaps come from the underlying Rust parser (`fec-parser`), not the bindings. They
-are tracked as parser bugs and deliberately **not** worked around here, so `fecfile` output
-differs from the `fecfile` package on exactly these points:
+Two gaps come from the underlying Rust parser (`fec-parser`), not the bindings, and are tracked
+as parser bugs, deliberately **not** worked around here:
 
+- **`_TODO_DUP` cover column names, and `TODO_UNKNOWN_BLANK`.** A few Form 2, Form 3X and Form 3P
+  cover-page columns are named twice by the FEC layout, and the parser disambiguates the second
+  copy as `col_a_total_receipts_TODO_DUP` and the like; one Form 3L column that the layout leaves
+  nameless comes back as `TODO_UNKNOWN_BLANK`. Visible in `cover_row.keys()`/`dict(cover_row)` on
+  the native API. The `fecfile` API keys its dicts by real `fecfile`'s own mappings, so they
+  never reach `filing["filing"]` there.
 - **`[BEGINTEXT]…[ENDTEXT]` bodies are dropped.** F99 filings parse, but their free-form text
-  never reaches `filing["text"]`.
-- **`_TODO_DUP` cover column names.** A few Form 3X and Form 3P cover-page columns come back
-  with placeholder names such as `col_a_total_receipts_TODO_DUP` — this shows up in
-  `cover_row.keys()` (and `dict(cover_row)`) too, not just the `fecfile` API's `filing["filing"]`.
-- **Non-UTF-8 bytes become U+FFFD.** Filings written in cp1252 (curly quotes, en dashes) decode
-  lossily: the offending bytes are replaced with `�` rather than transcoded.
+  never reaches a `Row`, and the `fecfile` API never gets an `F99_text` key to offer — the one
+  parser gap that is still on the `fecfile` API's [list of differences](#where-it-differs).
+
+One more is a true limitation of both APIs rather than a parser bug as such, and isn't
+allowlisted because no fixture or benchmark filing has triggered it: **non-UTF-8 bytes become
+U+FFFD.** Filings written in cp1252 (curly quotes, en dashes) decode lossily — the offending
+bytes are replaced with `�` rather than transcoded.
 
 Background and the intended fixes are in [`plans/python/`](../../plans/python/) — see
 [`00-decisions.md`](../../plans/python/00-decisions.md), "Deferred to `fec-parser`".
@@ -369,6 +475,8 @@ Measured 2026-09-18 on an Apple M4 Pro, CPython 3.13, release build, parsing the
 | `open()`, streamed | 0.18 s | 31.6 MB |
 | `read()` (eager `Filing`) | 0.30 s | 1,007 MB |
 | `pd.DataFrame(read(p).rows)` | 5.32 s | 2,389 MB |
+| `fecfile.from_file` (this package) | 2.70 s | 1,106 MB |
+| `fecfile.iter_file` (this package) | 2.53 s | 32.6 MB |
 | PyPI `fecfile.from_file` | 7.14 s | 1,403 MB |
 | PyPI `fecfile.iter_file` | 6.87 s | 36.4 MB |
 
