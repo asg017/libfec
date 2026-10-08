@@ -38,6 +38,10 @@ use jiff::civil::Date;
 /// arithmetic identity on the form (e.g. Line 7 = Line 22 Column A, Line 14 =
 /// 17(e) Column B − 28(d) Column B, the state allocation totals) holds on 100%
 /// of records with this column mapping; see `wiki/covers/F3P.md`.
+#[cfg_attr(
+    feature = "python",
+    pyo3::pyclass(module = "libfec.covers", frozen, get_all, skip_from_py_object)
+)]
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct Form3P {
     /// Form type as filed, e.g. `F3PN`: the base form plus the
@@ -166,6 +170,10 @@ impl Form3P {
 /// Expenditures", are computed from Column B (cycle-to-date) lines even though
 /// the record files them in its Column A block
 /// ([fecfrm3pi.pdf p4](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm3pi.pdf#page=4)).
+#[cfg_attr(
+    feature = "python",
+    pyo3::pyclass(module = "libfec.covers", frozen, get_all, skip_from_py_object)
+)]
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct Form3PSummary {
     /// Line 6, cash on hand at beginning of reporting period
@@ -256,6 +264,10 @@ fn row_dup(data: &Data, col_a_dup: &str, col_a: &str, col_b: &str) -> DetailedSu
 /// ([fecfrm3p.pdf p3](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm3p.pdf#page=3)).
 ///
 /// Column A is "Total This Period", Column B "Election Cycle-to-Date".
+#[cfg_attr(
+    feature = "python",
+    pyo3::pyclass(module = "libfec.covers", frozen, get_all, skip_from_py_object)
+)]
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct Form3PDetailedSummaryReceipts {
     /// Line 16, federal funds received this period, all itemized on Schedule
@@ -416,6 +428,10 @@ impl Form3PDetailedSummaryReceipts {
 /// ([fecfrm3p.pdf p4](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm3p.pdf#page=4)).
 ///
 /// Column A is "Total This Period", Column B "Election Cycle-to-Date".
+#[cfg_attr(
+    feature = "python",
+    pyo3::pyclass(module = "libfec.covers", frozen, get_all, skip_from_py_object)
+)]
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct Form3PDetailedSummaryDisbursements {
     /// Line 23, operating expenditures, e.g. advertising, salaries, travel,
@@ -538,6 +554,10 @@ impl Form3PDetailedSummaryDisbursements {
 /// Form 3P pages 3–4, the Detailed Summary Page
 /// ([fecfrm3p.pdf p3](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm3p.pdf#page=3),
 /// [p4](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm3p.pdf#page=4)).
+#[cfg_attr(
+    feature = "python",
+    pyo3::pyclass(module = "libfec.covers", frozen, get_all, skip_from_py_object)
+)]
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct Form3PDetailedSummary {
     /// Part I, Receipts (Lines 16–22).
@@ -580,6 +600,10 @@ impl Form3PDetailedSummary {
 /// For each state, Column A is "Allocation This Period" (`col_a_<state>`) and
 /// Column B "Total Allocation To Date" (`col_b_<state>`)
 /// ([fecfrm3p.pdf p5](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm3p.pdf#page=5)).
+#[cfg_attr(
+    feature = "python",
+    pyo3::pyclass(module = "libfec.covers", frozen, get_all, skip_from_py_object)
+)]
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct Form3PStateAllocations {
     /// The 54 jurisdictions in the order the form prints them (50 states,
@@ -592,6 +616,10 @@ pub struct Form3PStateAllocations {
 }
 
 /// One state's row on the Form 3P state allocation pages.
+#[cfg_attr(
+    feature = "python",
+    pyo3::pyclass(module = "libfec.covers", frozen, get_all, skip_from_py_object)
+)]
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct Form3PStateAllocation {
     /// The state as printed on the form, e.g. `"District of Columbia"`

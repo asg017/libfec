@@ -63,6 +63,10 @@ use serde::Serialize;
 /// (Line 6(a)) only in Column B, cash at the beginning of the period (6(b))
 /// and debts (Lines 9, 10) only in Column A (workbook fields 23, 28–29, 74–75).
 /// Those are plain `f64`s, not rows.
+#[cfg_attr(
+    feature = "python",
+    pyo3::pyclass(module = "libfec.covers", frozen, get_all, skip_from_py_object)
+)]
 #[derive(Debug, Clone, Serialize)]
 pub struct Form3X {
     /// Form type as filed, e.g. `F3XN`: the base form plus the
@@ -237,6 +241,10 @@ fn row_dup(data: &Data, name: &str) -> DetailedSummaryRow {
 /// Column A is This Period, Column B Calendar Year-to-Date; see [`Form3X`].
 /// Filers complete the Detailed Summary first and carry its totals here
 /// ([fecfrm3xi.pdf p4](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm3xi.pdf#page=4)).
+#[cfg_attr(
+    feature = "python",
+    pyo3::pyclass(module = "libfec.covers", frozen, get_all, skip_from_py_object)
+)]
 #[derive(Debug, Clone, Serialize)]
 pub struct Form3XSummary {
     /// Line 6(a), "Cash on Hand January 1, YYYY": cash on hand at the
@@ -303,6 +311,10 @@ impl Form3XSummary {
 /// ([fecfrm3x.pdf p3–5](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm3x.pdf#page=3)),
 /// in the form's three sections. Column A is This Period, Column B Calendar
 /// Year-to-Date; see [`Form3X`].
+#[cfg_attr(
+    feature = "python",
+    pyo3::pyclass(module = "libfec.covers", frozen, get_all, skip_from_py_object)
+)]
 #[derive(Debug, Clone, Serialize)]
 pub struct Form3XDetailedSummary {
     /// Section I, Receipts (Lines 11–20).
@@ -326,6 +338,10 @@ impl Form3XDetailedSummary {
 /// Detailed Summary Page, Section I — Receipts, Lines 11–20
 /// ([fecfrm3x.pdf p3](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm3x.pdf#page=3);
 /// line instructions [fecfrm3xi.pdf p6–7](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm3xi.pdf#page=6)).
+#[cfg_attr(
+    feature = "python",
+    pyo3::pyclass(module = "libfec.covers", frozen, get_all, skip_from_py_object)
+)]
 #[derive(Debug, Clone, Serialize)]
 pub struct Form3XReceipts {
     /// Line 11(a)(i), contributions from individuals/persons other than
@@ -448,6 +464,10 @@ impl Form3XReceipts {
 /// Detailed Summary Page, Section II — Disbursements, Lines 21–32
 /// ([fecfrm3x.pdf p4](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm3x.pdf#page=4);
 /// line instructions [fecfrm3xi.pdf p7–9](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm3xi.pdf#page=7)).
+#[cfg_attr(
+    feature = "python",
+    pyo3::pyclass(module = "libfec.covers", frozen, get_all, skip_from_py_object)
+)]
 #[derive(Debug, Clone, Serialize)]
 pub struct Form3XDisbursements {
     /// Line 21(a)(i), shared federal/nonfederal operating expenditures,
@@ -608,6 +628,10 @@ impl Form3XDisbursements {
 /// Detailed Summary Page, Section III — Net Contributions/Operating
 /// Expenditures, Lines 33–38: earlier lines repeated to compute two net
 /// figures ([fecfrm3x.pdf p5](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm3x.pdf#page=5)).
+#[cfg_attr(
+    feature = "python",
+    pyo3::pyclass(module = "libfec.covers", frozen, get_all, skip_from_py_object)
+)]
 #[derive(Debug, Clone, Serialize)]
 pub struct Form3XNetContributionsAndOperatingExpenditures {
     /// Line 33, total contributions (other than loans), from Line 11(d)

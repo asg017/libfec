@@ -30,6 +30,10 @@ use serde::Serialize;
 /// **Versions.** All layouts (v5.2 onwards, and the paper `P3.x` layouts) use
 /// the same column names; v5.2–5.3 only order `change_of_address` after the
 /// address.
+#[cfg_attr(
+    feature = "python",
+    pyo3::pyclass(module = "libfec.covers", frozen, get_all, skip_from_py_object)
+)]
 #[derive(Debug, Clone, Serialize)]
 pub struct Form13 {
     /// Form type as filed, e.g. `F13N`: the base form plus the

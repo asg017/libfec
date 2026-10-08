@@ -48,6 +48,10 @@ use serde::Serialize;
 /// `_TODO_DUP` suffix, so the Line 6(c)/7 and 20/25 columns collide and both
 /// read the Line 20/25 value, which the instructions require to be equal
 /// anyway.
+#[cfg_attr(
+    feature = "python",
+    pyo3::pyclass(module = "libfec.covers", frozen, get_all, skip_from_py_object)
+)]
 #[derive(Debug, Clone, Serialize)]
 pub struct Form4 {
     /// Form type as filed, e.g. `F4N`: the base form plus the
@@ -95,6 +99,10 @@ pub struct Form4 {
 /// Page 1, Summary Page
 /// ([fecfrm4.pdf p1](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm4.pdf#page=1)).
 /// Column A = This Period, Column B = Calendar Year-to-Date.
+#[cfg_attr(
+    feature = "python",
+    pyo3::pyclass(module = "libfec.covers", frozen, get_all, skip_from_py_object)
+)]
 #[derive(Debug, Clone, Serialize)]
 pub struct Form4Summary {
     /// Line 6(a), cash on hand January 1 of the year — Column B only
@@ -165,6 +173,10 @@ pub struct Form4Summary {
 /// ([fecfrm4.pdf p2](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm4.pdf#page=2)).
 /// The (a)/(b) boxes are Column A (This Period) only; the subtotal has both
 /// columns.
+#[cfg_attr(
+    feature = "python",
+    pyo3::pyclass(module = "libfec.covers", frozen, get_all, skip_from_py_object)
+)]
 #[derive(Debug, Clone, Copy, Default, PartialEq, Serialize)]
 pub struct Form4ItemizedLine {
     /// (a) itemized amount, This Period.
@@ -178,6 +190,10 @@ pub struct Form4ItemizedLine {
 /// Loans and loan repayments, Form 4 Lines 16 (received) and 23 (made):
 /// (a) loans, (b) loan repayments, (c) subtotal
 /// ([fecfrm4.pdf p2](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm4.pdf#page=2)).
+#[cfg_attr(
+    feature = "python",
+    pyo3::pyclass(module = "libfec.covers", frozen, get_all, skip_from_py_object)
+)]
 #[derive(Debug, Clone, Copy, Default, PartialEq, Serialize)]
 pub struct Form4LoanLine {
     /// (a) loans received / made, This Period.
@@ -190,6 +206,10 @@ pub struct Form4LoanLine {
 
 /// Page 2, Detailed Summary Page
 /// ([fecfrm4.pdf p2](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm4.pdf#page=2)).
+#[cfg_attr(
+    feature = "python",
+    pyo3::pyclass(module = "libfec.covers", frozen, get_all, skip_from_py_object)
+)]
 #[derive(Debug, Clone, Serialize)]
 pub struct Form4DetailedSummary {
     /// "RECEIPTS", Lines 13–20.
@@ -200,6 +220,10 @@ pub struct Form4DetailedSummary {
 
 /// Detailed Summary Page, receipts (Lines 13–20)
 /// ([fecfrm4i.pdf p2–3](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm4i.pdf#page=2)).
+#[cfg_attr(
+    feature = "python",
+    pyo3::pyclass(module = "libfec.covers", frozen, get_all, skip_from_py_object)
+)]
 #[derive(Debug, Clone, Serialize)]
 pub struct Form4Receipts {
     /// Line 13, federal funds: "receipts from the Presidential Election
@@ -251,6 +275,10 @@ pub struct Form4Receipts {
 
 /// Detailed Summary Page, disbursements (Lines 21–25)
 /// ([fecfrm4i.pdf p3](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm4i.pdf#page=3)).
+#[cfg_attr(
+    feature = "python",
+    pyo3::pyclass(module = "libfec.covers", frozen, get_all, skip_from_py_object)
+)]
 #[derive(Debug, Clone, Serialize)]
 pub struct Form4Disbursements {
     /// Line 21, convention expenditures: "disbursements made to defray

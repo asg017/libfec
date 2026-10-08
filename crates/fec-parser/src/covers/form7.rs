@@ -35,6 +35,10 @@ use serde::Serialize;
 /// **Versions.** v6.1–v8.5 share one layout. The legacy v3/v5 layout has a
 /// single caret-delimited `person_designated_name` column, split into the
 /// parts of [`Form7::person_designated`].
+#[cfg_attr(
+    feature = "python",
+    pyo3::pyclass(module = "libfec.covers", frozen, get_all, skip_from_py_object)
+)]
 #[derive(Debug, Clone, Serialize)]
 pub struct Form7 {
     /// Form type as filed, e.g. `F7N`: the base form plus the

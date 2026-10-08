@@ -348,6 +348,39 @@ It follows the same rules as any other `Row` (below). Note that an unparseable c
 back as `None` from `Cover.coverage_from_date`, but as its raw `str` from
 `cover_row["coverage_from_date"]` — the two are not reconciled.
 
+### `cover_data`: typed covers
+
+`filing.cover_data` is the cover as a typed object: one class per form (`Form1`, `Form3`, `Form3P`,
+`Form3X`, `Form24`, `Form99`, … — 15 forms, every cover libfec reads, legacy and paper included),
+from `libfec.covers`. It is `None` for a form with no typed class. The fields are named for
+what they mean on the paper form, grouped the way the form groups them, and typed (`float`
+amounts, `datetime.date`s, `bool` checkboxes, `str | None` text):
+
+```python
+import libfec as fec
+from libfec.covers import Form3, Form3X
+
+with fec.open("1926068.fec") as filing:
+    match filing.cover_data:
+        case Form3X() as f3x:
+            f3x.committee_name                               # 'Ohio Democratic Party - Federal'
+            f3x.coverage_from_date                           # datetime.date(2025, 10, 1)
+            f3x.report_code_label()                          # 'November Monthly'
+            f3x.treasurer.last_name                          # 'Frost-Brooks'
+            f3x.summary.line6c_total_receipts.column_a       # 445072.35 (this period)
+            f3x.summary.line6c_total_receipts.column_b       # 3484593.19 (calendar year to date)
+        case Form3() as f3:
+            ...
+        case None:
+            ...
+```
+
+The classes are `fec-parser`'s own Rust cover structs, exposed as-is, so the names and values are
+exactly `libfec info -f json`'s `cover_data` (`to_dict()` gives the same shape, with `date`s).
+Every field's docstring cites the form line and FEC source it comes from. The objects are
+read-only; `==` compares field values. `CoverData` is the union of the form classes, for
+annotations, and type checkers narrow it on `match`/`isinstance`.
+
 ### `Row`
 
 A `Row` is a mapping from column name to a typed value, plus positional access to the raw fields.
@@ -499,6 +532,9 @@ Tests run against the committed fixtures in [`tests/fixtures/`](tests/fixtures/)
 **Releasing:** the version is read from `Cargo.toml` (not `pyproject.toml`) — bump it together with `crates/fec-cli/Cargo.toml` so the bindings stay in lockstep with the CLI.
 
 To refresh the notebook's saved outputs after an API change, run `make notebook-check`.
+
+`python/libfec/covers.pyi` is generated from `crates/fec-parser/src/covers/` — run
+`make cover-stubs` after changing a cover struct (a test fails while it is stale).
 
 ## License
 

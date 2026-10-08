@@ -1,4 +1,4 @@
-.PHONY: develop develop-release build build-release test test-network test-slow bench notebook notebook-check stubs clean
+.PHONY: develop develop-release build build-release test test-network test-slow bench notebook notebook-check stubs cover-stubs clean
 
 # One-time: uv venv && uv sync --group dev
 
@@ -34,6 +34,9 @@ notebook-check: develop-release       ## re-execute the notebook in place, re-re
 stubs: develop                 ## check python/libfec/*.pyi against the built extension
 	uv run python -m mypy.stubtest libfec --allowlist stubtest-allowlist.txt
 	uv run mypy --check-untyped-defs tests
+
+cover-stubs:                   ## regenerate python/libfec/covers.pyi from fec-parser's cover structs
+	uv run python scripts/gen_cover_stubs.py
 
 clean:
 	rm -rf dist .venv python/libfec/*.so
