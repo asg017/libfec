@@ -10,6 +10,10 @@ members = [
     "crates/fec-py",
 ]
 
+# One version for the CLI and the `libfec` Python wheel (which ships the CLI too).
+[workspace.package]
+version = "0.0.34"
+
 # The profile that 'cargo dist' will build with
 [profile.dist]
 inherits = "release"
