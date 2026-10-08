@@ -262,7 +262,8 @@ These come from the parser and are the same in the Python package:
 - A few column names are placeholders ending in `_TODO_DUP`.
 - Text that isn't valid UTF-8 is decoded lossily (an invalid byte becomes `U+FFFD`). For
   example, a cp1252 `’` becomes `�`.
-- Quotes are literal: the parser doesn't unquote CSV-style quoted fields, so a quoted field
+- Quotes are mostly literal: one pair of quotes wrapping a whole field comes off (`"O""Brien"`
+  reads as `O"Brien`), but the parser doesn't do CSV-style quoting, so a quoted field
   holding a separator or a newline still splits.
 
 ## Examples

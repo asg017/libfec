@@ -47,8 +47,8 @@ const ROWS = [
   ["SC/10", row("SC/10", { filer_committee_id_number: "C00900860", transaction_id_number: "C1", lender_organization_name: "Bank", loan_amount_original: "100" })],
   ["SC1/10", row("SC1/10", { filer_committee_id_number: "C00900860", transaction_id_number: "C2", lender_organization_name: "Bank", loan_amount: "100" })],
   ["mapped, no struct", row("F3S", { filer_committee_id_number: "C00900860" })],
-  // Quotes last: the parser reads quotes literally (quoting is off), so a
-  // quoted \n still ends the line and a quoted \x1c still splits fields.
+  // Quotes last: quoting is off (only a pair wrapping a whole field comes
+  // off), so a quoted \n still ends the line and a quoted \x1c still splits fields.
   ["quoted name", sa({ transaction_id: "E9", contributor_last_name: '"O""Brien"' })],
   ["quote with separators", sa({ transaction_id: "E10", contributor_last_name: '"A\x1cB\nC"' })],
   ["final normal row", sa({ transaction_id: "E11", contributor_last_name: "Last" })],
