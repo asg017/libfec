@@ -4,7 +4,7 @@ use std::io::Cursor;
 use std::path::PathBuf;
 
 /// Python wrapper for FilingHeader
-#[pyclass]
+#[pyclass(module = "libfec.parser", skip_from_py_object)]
 #[derive(Clone)]
 pub struct Header {
     #[pyo3(get)]
@@ -74,7 +74,7 @@ fn pairs<'a>(m: impl IntoIterator<Item = (&'a String, &'a String)>) -> Vec<(Stri
 }
 
 fn pairs_to_dict<'py>(py: Python<'py>, pairs: &[(String, String)]) -> PyResult<Bound<'py, PyDict>> {
-    let dict = PyDict::new_bound(py);
+    let dict = PyDict::new(py);
     for (k, v) in pairs {
         dict.set_item(k, v)?;
     }
@@ -106,7 +106,7 @@ impl Header {
 }
 
 /// Python wrapper for FilingCover
-#[pyclass]
+#[pyclass(module = "libfec.parser", skip_from_py_object)]
 #[derive(Clone)]
 pub struct Cover {
     #[pyo3(get)]
@@ -134,7 +134,7 @@ impl Cover {
 
     /// Get all cover record fields as a dictionary
     fn fields<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
-        let dict = PyDict::new_bound(py);
+        let dict = PyDict::new(py);
         dict.set_item("form_type", &self.form_type)?;
         dict.set_item("filer_id", &self.filer_id)?;
         dict.set_item("filer_name", &self.filer_name)?;
@@ -146,7 +146,7 @@ impl Cover {
 }
 
 /// Python wrapper for FilingRow (itemization)
-#[pyclass]
+#[pyclass(module = "libfec.parser", skip_from_py_object)]
 #[derive(Clone)]
 pub struct Itemization {
     #[pyo3(get)]
@@ -189,7 +189,7 @@ impl Itemization {
 }
 
 /// Main Filing class
-#[pyclass]
+#[pyclass(module = "libfec.parser")]
 pub struct Filing {
     header: Header,
     cover: Cover,
@@ -308,15 +308,4 @@ pub fn fec_header(contents: &[u8]) -> PyResult<String> {
         |e| pyo3::exceptions::PyValueError::new_err(format!("Failed to parse filing: {}", e)),
     )?;
     Ok(f.header.fec_version)
-}
-
-/// Parser submodule for FEC file parsing
-#[pymodule]
-pub fn parser(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(fec_header, m)?)?;
-    m.add_class::<Filing>()?;
-    m.add_class::<Header>()?;
-    m.add_class::<Cover>()?;
-    m.add_class::<Itemization>()?;
-    Ok(())
 }

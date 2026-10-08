@@ -1,9 +1,13 @@
-# libfec_parser
+# libfec
 
-Python bindings for [libfec](https://github.com/asg017/libfec)'s `.fec` parser. Parse FEC electronic filings from a path, from bytes, or straight from the FEC's website, with the parsing done in Rust.
+> **Alpha.** The native `Filing` API will change in upcoming releases (see
+> [`plans/python/`](../../plans/python/)); the `fecfile` module is not yet a drop-in
+> replacement.
+
+The [libfec](https://github.com/asg017/libfec) command-line tool and Python bindings for its `.fec` parser, in one package. Parse FEC electronic filings from a path, from bytes, or straight from the FEC's website, with the parsing done in Rust.
 
 ```python
-from libfec_parser import fecfile
+from libfec import fecfile
 
 filing = fecfile.from_file("1721696.fec")
 
@@ -16,35 +20,36 @@ for row in filing["itemizations"]["Schedule A"]:
 
 Two APIs are included:
 
-- [`libfec_parser.fecfile`](#fecfile-api): rows as dicts keyed by column name, modeled on the [`fecfile`](https://pypi.org/project/fecfile/) package.
-- [`libfec_parser.parser`](#native-api): a lower-level `Filing` class with positional fields.
+- [`libfec.fecfile`](#fecfile-api): rows as dicts keyed by column name, modeled on the [`fecfile`](https://pypi.org/project/fecfile/) package.
+- [`libfec.parser`](#native-api): a lower-level `Filing` class with positional fields.
 
 For a guided tour, including loading a filing into pandas, see [`examples/quickstart.ipynb`](examples/quickstart.ipynb).
 
-> **Status:** early and unpublished. The package is not on PyPI yet, and the API may change.
+## Install
 
-## Installation
-
-`libfec_parser` has to be built from source for now. You'll need a [Rust toolchain](https://rustup.rs/) and [uv](https://docs.astral.sh/uv/) (or `pip install maturin`).
+**Python 3.11 or newer.**
 
 ```bash
-git clone https://github.com/asg017/libfec
-cd libfec/crates/fec-py
-
-# Install into the active virtualenv
-uvx maturin develop --release
-
-# ...or build a wheel into dist/ and install it wherever you like
-uvx maturin build --release --out dist
-pip install dist/libfec_parser-*.whl
+uv add libfec        # or: pip install libfec
 ```
 
-Wheels use the stable ABI (`abi3`), so one build works on Python 3.9 and up.
+The same package installs the `libfec` command-line tool, so you can also run it without
+installing anything:
+
+```bash
+uvx libfec export FEC-1949543 -o filing.db
+```
+
+Wheels cover Linux (glibc 2.17+: x86_64, aarch64, armv7), macOS (Apple silicon and Intel) and
+Windows x64. One wheel per platform covers every Python from 3.11 up: they are built against the
+stable ABI (`cp311-abi3`). Other platforms (musl Linux, 32-bit x86, BSD) build from the source
+distribution, which needs a [Rust toolchain](https://rustup.rs/). To build from a git checkout
+instead, see [Development](#development).
 
 ## `fecfile` API
 
 ```python
-from libfec_parser import fecfile
+from libfec import fecfile
 ```
 
 ### Loading a filing
@@ -111,7 +116,7 @@ row = fecfile.parse_line(line, version)
 ## Native API
 
 ```python
-from libfec_parser.parser import Filing
+from libfec.parser import Filing
 
 filing = Filing("1721696.fec")
 # Filing(form_type='F3XN', filer_id='C00016683', 1387 itemizations)
@@ -182,28 +187,42 @@ item.fields()   # all fields as a list[str]
 
 Takes the `bytes` of a filing and returns just its FEC format version.
 
+## Known issues
+
+Three known gaps come from the underlying Rust parser (`fec-parser`), not the bindings. They
+are tracked as parser bugs and deliberately **not** worked around here, so `fecfile` output
+differs from the `fecfile` package on exactly these points:
+
+- **`[BEGINTEXT]…[ENDTEXT]` bodies are dropped.** F99 filings parse, but their free-form text
+  never reaches `filing["text"]`.
+- **`_TODO_DUP` cover column names.** A few Form 3P cover-page columns come back with
+  placeholder names such as `_TODO_DUP1` instead of a real column name.
+- **Non-UTF-8 bytes become U+FFFD.** Filings written in cp1252 (curly quotes, en dashes) decode
+  lossily: the offending bytes are replaced with `�` rather than transcoded.
+
+Background and the intended fixes are in [`plans/python/`](../../plans/python/) — see
+[`00-decisions.md`](../../plans/python/00-decisions.md), "Deferred to `fec-parser`".
+
 ## Development
 
 Build with `maturin`, not `cargo build`, which can't link a Python extension module on its own.
 
 ```bash
-make build          # debug wheel into dist/
-make build-release  # optimized wheel into dist/
-make test-pytest    # run tests/ against the wheel in dist/
-make notebook       # build, then open examples/quickstart.ipynb in JupyterLab
+cd crates/fec-py
+uv venv && uv sync --group dev   # once
+make develop                     # after Rust changes
+make test
+make notebook
 ```
 
-The tests look for `.fec` files in the repo's `cache/` and `benchmarks/` directories and skip when none are found. See [`tests/README.md`](tests/README.md).
+`make build` produces a wheel into `dist/`, which is what CI and releases install.
 
-Rebuilt wheels keep the same filename, so `uv` will happily reuse a stale cached copy. Pass `--no-cache` whenever you `uv run --with` a wheel from `dist/`, as the Makefile targets do.
+Tests run against the committed fixtures in [`tests/fixtures/`](tests/fixtures/) — see [`tests/README.md`](tests/README.md).
 
-To refresh the notebook's saved outputs after an API change:
+**Releasing:** the version is read from `Cargo.toml` (not `pyproject.toml`) — bump it together with `crates/fec-cli/Cargo.toml` so the bindings stay in lockstep with the CLI.
 
-```bash
-make build
-cd examples
-uv run --no-cache --no-project --isolated \
-  --with "$(ls ../dist/libfec_parser-*.whl | head -1)" \
-  --with pandas --with nbconvert --with ipykernel \
-  jupyter nbconvert --to notebook --execute --inplace quickstart.ipynb
-```
+To refresh the notebook's saved outputs after an API change, run `make notebook-check`.
+
+## License
+
+Dual-licensed under MIT or Apache-2.0, at your option.

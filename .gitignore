@@ -16,6 +16,8 @@ june/
 *.fec.zst
 # Cover fixtures are tiny (HDR + cover record) and must be committed.
 !crates/fec-parser/tests/fixtures/**/*.fec
+# committed test fixtures for the Python bindings (see crates/fec-py/tests/README.md)
+!crates/fec-py/tests/fixtures/*.fec
 *.db.gz
 *.csv
 *.zip
