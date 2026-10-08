@@ -38,6 +38,7 @@ use crate::itemizations::{address_either, text_any, CandidateRef, Entity};
     )
 )]
 #[derive(Debug, Clone, serde::Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct ScheduleA {
     /// The row type as filed, `SA` plus the line number: `SA11AI`. Column
     /// `form_type` (FEC format workbook v8.4, sheet `Sch A`, field 1).

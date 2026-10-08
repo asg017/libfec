@@ -52,6 +52,7 @@ use crate::itemizations::{address_either, text_any, CandidateRef, Entity};
     )
 )]
 #[derive(Debug, Clone, serde::Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct ScheduleF {
     /// The row type as filed, `SF`. Column `form_type` (FEC format workbook
     /// v8.4, sheet `Sch F`, field 1).
@@ -155,9 +156,11 @@ pub struct ScheduleF {
     )
 )]
 #[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct ScheduleFCommittee {
     /// The committee's FEC ID; electronic-only.
     pub fec_id: Option<String>,
+    /// The committee's name.
     pub name: Option<String>,
     /// Given for the subordinate committee (v2+) and, in v1 only, the
     /// designating committee; empty otherwise.

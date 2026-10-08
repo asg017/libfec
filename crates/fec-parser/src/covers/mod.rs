@@ -131,6 +131,7 @@ use serde::Serialize;
 
 /// A typed cover record. See each variant's struct for field documentation.
 #[derive(Debug, Clone, Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[serde(tag = "form", content = "data")]
 // One `Cover` per filing, so variant size differences do not matter.
 #[allow(clippy::large_enum_variant)]
@@ -323,11 +324,17 @@ pub(crate) fn cover_from_form_type(cover_record_form_type: &str, data: &Data) ->
     pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct PersonName {
+    /// First name; `""` when not given.
     pub first_name: String,
+    /// Last name (surname); `""` when not given.
     pub last_name: String,
+    /// Middle name or initial.
     pub middle_name: Option<String>,
+    /// Name prefix (`Mr.`, `Dr.`).
     pub prefix: Option<String>,
+    /// Name suffix (`Jr.`, `III`).
     pub suffix: Option<String>,
 }
 
@@ -393,11 +400,17 @@ impl PersonName {
     pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct Address {
+    /// First street line.
     pub street_1: Option<String>,
+    /// Second street line (suite, unit).
     pub street_2: Option<String>,
+    /// City.
     pub city: Option<String>,
+    /// State or territory, as its two-letter postal code (`CA`).
     pub state: Option<String>,
+    /// ZIP code, 5 or 9 digits as filed.
     pub zip_code: Option<String>,
 }
 
@@ -457,8 +470,12 @@ impl Address {
     pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, Copy, Default, PartialEq, Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct DetailedSummaryRow {
+    /// Column A: on Forms 3, 3P and 3X, "Total This Period".
     pub column_a: f64,
+    /// Column B: "Election Cycle-to-Date" (Forms 3, 3P) or "Calendar
+    /// Year-to-Date" (Form 3X).
     pub column_b: f64,
 }
 

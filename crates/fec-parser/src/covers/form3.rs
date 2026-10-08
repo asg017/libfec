@@ -50,6 +50,7 @@ use jiff::civil::Date;
     pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, serde::Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct Form3 {
     /// Form type as filed, e.g. `F3N`: the base form plus the
     /// amendment-indicator suffix (see [`crate::covers::base_form_type`]).
@@ -188,6 +189,7 @@ fn row(data: &Data, suffix: &str) -> DetailedSummaryRow {
     pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, serde::Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct Form3Summary {
     /// Line 6(a), total contributions (other than loans), carried from Line
     /// 11(e) (`col_a_total_contributions_no_loans`,
@@ -261,6 +263,7 @@ impl Form3Summary {
     pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, serde::Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct Form3DetailedSummaryReceipts {
     /// Line 11(a)(i), contributions from individuals/persons other than
     /// political committees that must be itemized on Schedule A (over $200 in
@@ -368,6 +371,7 @@ impl Form3DetailedSummaryReceipts {
     pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, serde::Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct Form3DetailedSummaryDisbursements {
     /// Line 17, operating expenditures, e.g. advertising, salaries, travel,
     /// rent, telephones (`col_a_operating_expenditures`,
@@ -444,6 +448,7 @@ impl Form3DetailedSummaryDisbursements {
     pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, serde::Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct Form3CashSummary {
     /// Line 23, cash on hand at beginning of reporting period: currency, bank
     /// balances, traveler's checks, CDs, treasury bills and other investments
@@ -487,6 +492,7 @@ impl Form3CashSummary {
     pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, serde::Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct Form3DetailedSummary {
     /// Part I, Receipts (Lines 11–16).
     pub receipts: Form3DetailedSummaryReceipts,

@@ -1,0 +1,107 @@
+name: "test-node"
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: test-node-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  test-node:
+    # One node:test suite (crates/fec-node/tests) under every runtime the
+    # package promises to work in, unmodified.
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, ubuntu-22.04-arm, macos-latest, windows-latest]
+        runtime: [node22, node24, deno, bun]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+        working-directory: crates/fec-node
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - run: rustup toolchain install stable --profile minimal
+      # clippy pinned to the version the repo is linted with locally, so a new
+      # stable release's lints don't fail this workflow on code it didn't touch.
+      - if: matrix.os == 'ubuntu-latest' && matrix.runtime == 'node24'
+        run: rustup toolchain install 1.96.0 --profile minimal --component clippy
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: ". -> target"
+      # Node is needed on every leg: npm ci, `napi build` and scripts/test.mjs.
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ matrix.runtime == 'node22' && '22' || '24' }}
+      - if: matrix.runtime == 'deno'
+        uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2.0.5
+        with:
+          deno-version: v2.x
+      - if: matrix.runtime == 'bun'
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          # The supported floor (package.json engines); scripts/test.mjs works
+          # around its partial node:test.
+          bun-version: 1.2.19
+      - run: npm ci
+      - run: npm run build
+      - name: Test (${{ matrix.runtime }})
+        # node22/node24 -> node; on Node 22 scripts/test.mjs leaves out
+        # tests/using.test.mjs (`using` doesn't parse there) and prints the
+        # file list, so the log shows it wasn't loaded.
+        run: node scripts/test.mjs "${RUNTIME%%[0-9]*}"
+        env:
+          RUNTIME: ${{ matrix.runtime }}
+      - name: clippy
+        # Platform-independent; one leg is enough (repo CLAUDE.md rule).
+        if: matrix.os == 'ubuntu-latest' && matrix.runtime == 'node24'
+        run: |
+          cargo +1.96.0 clippy -p fec-node -p fec-js-core -p fec-cli -- -D warnings
+          cargo test -p fec-js-core
+          cargo +1.96.0 clippy -p fec-node --features gen-types --bin gen-types -- -D warnings
+      - name: tsc --noEmit
+        if: matrix.os == 'ubuntu-latest' && matrix.runtime == 'node24'
+        run: make typecheck
+      - name: Examples
+        # Every examples/*.mjs under the leg's runtime.
+        run: node scripts/examples.mjs "${RUNTIME%%[0-9]*}"
+        env:
+          RUNTIME: ${{ matrix.runtime }}
+      - name: Import dist/index.js by path from outside the package
+        # How the README tells Deno users to load the extracted tarball. Tests
+        # and examples run inside the package, where the runtime resolves more.
+        run: |
+          node -e '
+            const { pathToFileURL } = require("node:url");
+            const path = require("node:path");
+            const url = pathToFileURL(path.resolve("dist/index.js")).href;
+            const fixture = path.resolve("../fec-py/tests/fixtures/1921705.fec").replaceAll("\\", "/");
+            require("node:fs").writeFileSync(path.join(process.env.RUNNER_TEMP, "outside.mjs"), [
+              `import { open } from ${JSON.stringify(url)};`,
+              `const f = open(${JSON.stringify(fixture)});`,
+              `let n = 0; for (const _ of f.itemizations()) n++; f.close();`,
+              `if (n !== 20) throw new Error("expected 20 itemizations, got " + n);`,
+            ].join("\n"));
+          '
+          cd "$RUNNER_TEMP"
+          case "$RUNTIME" in
+            deno) deno run -A outside.mjs ;;
+            bun) bun outside.mjs ;;
+            *) node outside.mjs ;;
+          esac
+        env:
+          RUNTIME: ${{ matrix.runtime }}
+      - name: TypeDoc (no undocumented exports, no broken links)
+        if: matrix.os == 'ubuntu-latest' && matrix.runtime == 'node24'
+        run: make docs
+      - name: Generated types are up to date
+        # js/generated/ and native/native.d.ts are committed; regenerating them
+        # (`make gen-types`, and `npm run build` above) must not change them.
+        if: matrix.os == 'ubuntu-latest' && matrix.runtime == 'node24'
+        run: |
+          make gen-types
+          git diff --exit-code -- js/generated native/native.d.ts
+          test -z "$(git status --porcelain -- js/generated native/native.d.ts)"
