@@ -893,10 +893,11 @@ mod tests {
             env!("CARGO_MANIFEST_DIR"),
             "/../fec-py/tests/fixtures/1921705.fec"
         );
-        let mut filing = Filing::<std::fs::File>::from_path(std::path::Path::new(path)).unwrap();
+        let mut filing =
+            Filing::<std::fs::File>::from_path(std::path::Path::new(path)).expect("open fixture");
         let mut lines = vec![];
         while let Some(row) = filing.next_row() {
-            lines.push(row.unwrap().line);
+            lines.push(row.expect("read row").line);
         }
         assert_eq!(lines, (3..=22).collect::<Vec<u64>>());
     }
@@ -909,11 +910,11 @@ mod tests {
             + "SA11AI\x1cC00776393\x1cJANE DOE\x1c50.00\n\
                [BEGINTEXT]\nsome text\n[ENDTEXT]\n\
                SA11AI\x1cC00776393\x1cJOHN DOE\x1c25.00\n";
-        let mut filing =
-            Filing::from_reader(src.as_bytes(), "FEC-1".to_owned(), src.len()).unwrap();
+        let mut filing = Filing::from_reader(src.as_bytes(), "FEC-1".to_owned(), src.len())
+            .expect("parse filing");
         let mut lines = vec![];
         while let Some(row) = filing.next_row() {
-            lines.push(row.unwrap().line);
+            lines.push(row.expect("read row").line);
         }
         assert_eq!(lines, [3, 7]);
     }
