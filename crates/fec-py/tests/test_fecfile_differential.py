@@ -699,20 +699,19 @@ def test_filter_prefixes_match_the_row_type_not_the_line(sample_fec_content):
     assert mine == {}
 
 
-def test_quoted_row_type_has_no_mapping(sample_fec_content):
-    """A row type in double quotes is a missing mapping here, a record in real.
+def test_quoted_row_type_matches_real(sample_fec_content):
+    """A row type in double quotes maps like the bare one, as in real.
 
-    `fec-parser` reads fields verbatim (the format has no quoting), so the row
-    type of ``"SA11AI"`` is ``"SA11AI"``, quotes included, and has no mapping;
-    real strips the quotes first.  The spec forbids ``"`` in a record and no
-    known filing quotes its row types.
+    `fec-parser` strips one pair of quotes that wrap a whole field, so the row
+    type of ``"SA11AI"`` is ``SA11AI``; real strips the quotes too.  The spec
+    forbids ``"`` in a record and no known filing quotes its row types.
     """
     header, cover = sample_fec_content.split("\n")[:2]
     lines = [header, cover, '"SA11AI"\x1cC00900860']
     theirs = real.loads(lines)["itemizations"]
+    mine = ours.loads(lines)["itemizations"]
     assert sum(map(len, theirs.values())) == 1
-    with pytest.raises(ours.FecParserMissingMappingError):
-        ours.loads(lines)
+    assert mine == theirs
 
 
 def test_quoted_fields_match_real(sample_fec_content):
