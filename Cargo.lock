@@ -926,6 +926,7 @@ dependencies = [
  "insta",
  "jiff",
  "lazy_static",
+ "pyo3",
  "regex",
  "serde",
  "serde_json",

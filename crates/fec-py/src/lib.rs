@@ -32,4 +32,16 @@ mod _native {
         #[pymodule_export]
         use crate::row::{column_names, row_from_parts, Row};
     }
+
+    /// The typed cover classes (`Form3X`, `Form1`, …), defined in `fec-parser`
+    /// itself under its `python` feature.
+    #[pymodule]
+    mod covers {
+        use pyo3::prelude::*;
+
+        #[pymodule_init]
+        fn init(m: &Bound<'_, PyModule>) -> PyResult<()> {
+            fec_parser::covers::python::add_classes(m)
+        }
+    }
 }

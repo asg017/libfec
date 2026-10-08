@@ -39,6 +39,10 @@ use jiff::civil::Date;
 /// v3 and v5.x have one caret-delimited `treasurer_name` column ("NAME/
 /// TREASURER (as signed)") instead of the five name columns; it is split like
 /// every legacy name (see [`Form24::treasurer`]). v3 also lacks `report_type`.
+#[cfg_attr(
+    feature = "python",
+    pyo3::pyclass(module = "libfec.covers", frozen, get_all, skip_from_py_object)
+)]
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct Form24 {
     /// Form type as filed, e.g. `F24N`: the base form plus the
