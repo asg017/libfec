@@ -61,6 +61,7 @@ use crate::itemizations::{address_either, CandidateRef, Entity};
     )
 )]
 #[derive(Debug, Clone, serde::Serialize)]
+#[cfg_attr(feature = "gleam", derive(fec_parser_macros::GleamType))]
 pub struct ScheduleD {
     /// The row type as filed, `SD` plus the line number: `SD10`. Column
     /// `form_type` (FEC format workbook v8.4, sheet `Sch D`, field 1).

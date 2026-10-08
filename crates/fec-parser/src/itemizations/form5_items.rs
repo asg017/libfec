@@ -45,6 +45,7 @@ use crate::itemizations::{
     )
 )]
 #[derive(Debug, Clone, serde::Serialize)]
+#[cfg_attr(feature = "gleam", derive(fec_parser_macros::GleamType))]
 pub struct Form5Contribution {
     /// The row type as filed, `F56`. Column `form_type` (FEC format workbook
     /// v8.4, sheet `F56`, field 1).
@@ -152,6 +153,7 @@ impl Form5Contribution {
     )
 )]
 #[derive(Debug, Clone, serde::Serialize)]
+#[cfg_attr(feature = "gleam", derive(fec_parser_macros::GleamType))]
 pub struct Form5Expenditure {
     /// The row type as filed, `F57`. Column `form_type` (FEC format workbook
     /// v8.4, sheet `F57`, field 1).

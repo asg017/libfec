@@ -43,6 +43,7 @@ use crate::itemizations::Entity;
     )
 )]
 #[derive(Debug, Clone, serde::Serialize)]
+#[cfg_attr(feature = "gleam", derive(fec_parser_macros::GleamType))]
 pub struct ScheduleH4 {
     /// The row type as filed, `H4`. Column `form_type` (FEC format workbook
     /// v8.4, sheet `Sch H4`, field 1).

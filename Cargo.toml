@@ -8,6 +8,7 @@ members = [
     "crates/fec-api", 
     "crates/fec-wasm", 
     "crates/fec-py",
+    "crates/fec-gleam",
 ]
 
 # The profile that 'cargo dist' will build with

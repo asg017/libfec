@@ -36,6 +36,8 @@
 
 pub mod covers;
 pub mod format;
+#[cfg(feature = "gleam")]
+pub mod gleam;
 pub mod itemizations;
 pub mod mappings;
 mod reader;

@@ -1,0 +1,10 @@
+name = "summary"
+version = "0.1.0"
+description = "Example: summarise an FEC filing with the libfec package"
+target = "erlang"
+
+[dependencies]
+gleam_stdlib = ">= 0.44.0 and < 2.0.0"
+gleam_time = ">= 1.11.0 and < 2.0.0"
+argv = ">= 1.0.0 and < 2.0.0"
+libfec = { path = "../.." }

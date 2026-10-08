@@ -1,0 +1,31 @@
+[package]
+name = "fec-gleam"
+version = "0.0.32"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+publish = false
+
+[lib]
+# Loaded by gleam/src/libfec_nif.erl; the name must match `rustler::init!`.
+name = "libfec_nif"
+crate-type = ["cdylib"]
+
+[dependencies]
+anyhow = "1.0.99"
+jiff = "0.2.5"
+rustler = "0.37"
+# `gleam`: the GleamType descriptions (read by the `gen` bin) and the
+# Encoder impls (used by the NIF).
+#
+# Linking: the `gen` executable links rustler through fec-parser, but rustler
+# 0.37 never references `enif_*` as linker symbols: `rustler::sys` holds them
+# as function pointers in a table (`DYN_NIF_CALLBACKS`) that the NIF's init
+# fills at load time via `dlsym(RTLD_DEFAULT, "enif_…")` (libloading,
+# `sys/nif_filler.rs`). So a plain executable has no undefined `enif_*`
+# symbols on Linux or macOS, and needs no separate schema-only feature.
+fec-parser = { path = "../fec-parser", features = ["gleam"] }
+
+# Writes gleam/src/libfec/{cover,itemization}*.gleam (`make gen`, `make check-gen`).
+[[bin]]
+name = "gen"
+path = "src/bin/gen.rs"
