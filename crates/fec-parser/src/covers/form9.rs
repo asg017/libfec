@@ -52,6 +52,7 @@ use jiff::civil::Date;
     pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, serde::Serialize)]
+#[cfg_attr(feature = "columnar", derive(fec_parser_macros::Columnar))]
 pub struct Form9 {
     /// Form type as filed, e.g. `F9N`: the base form plus the
     /// amendment-indicator suffix (see [`crate::covers::base_form_type`]).
@@ -171,6 +172,7 @@ pub struct Form9 {
     pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, serde::Serialize)]
+#[cfg_attr(feature = "columnar", derive(fec_parser_macros::Columnar))]
 pub struct Form9Custodian {
     /// Line 9(a), name. Columns `custodian_last_name`, `custodian_first_name`,
     /// `custodian_middle_name`, `custodian_prefix`, `custodian_suffix` (FEC

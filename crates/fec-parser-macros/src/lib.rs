@@ -3,6 +3,20 @@ extern crate proc_macro;
 use proc_macro::TokenStream;
 use quote::quote;
 
+mod columnar;
+
+/// `#[derive(Columnar)]`: implements `fec_parser::columnar::Columnar` (the
+/// flattened column definitions plus a per-row push into column builders)
+/// for a struct with named fields, or `fec_parser::columnar::ColumnarEnum`
+/// (a per-variant dispatch) for an enum of single-field tuple variants. Only
+/// usable inside fec-parser with its `columnar` feature; see
+/// `fec_parser::columnar`.
+#[proc_macro_derive(Columnar)]
+pub fn derive_columnar(input: TokenStream) -> TokenStream {
+    let input = syn::parse_macro_input!(input as syn::DeriveInput);
+    columnar::derive(input).into()
+}
+
 const DATE_COLUMNS_PATH: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/date_columns.txt");
 #[proc_macro]
 pub fn gen_date_columns(_: TokenStream) -> TokenStream {

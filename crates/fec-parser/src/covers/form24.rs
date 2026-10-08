@@ -44,6 +44,7 @@ use jiff::civil::Date;
     pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, serde::Serialize)]
+#[cfg_attr(feature = "columnar", derive(fec_parser_macros::Columnar))]
 pub struct Form24 {
     /// Form type as filed, e.g. `F24N`: the base form plus the
     /// amendment-indicator suffix (see [`crate::covers::base_form_type`]).

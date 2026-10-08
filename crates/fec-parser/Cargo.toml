@@ -23,6 +23,11 @@ pyo3 = { version = "0.29", optional = true, features = ["jiff-02"] }
 
 [features]
 python = ["dep:pyo3"]
+# `columnar`: `Columnar` (fec-parser-macros) on the typed covers and
+# itemizations, flattening them into typed columns (`fec_parser::columnar`).
+# No runtime dependency: the R bindings (`crates/fec-r`) and, later, Arrow /
+# Parquet writers convert the column builders themselves.
+columnar = []
 
 [dev-dependencies]
 insta = { version = "1.45.0", features = ["json"] }

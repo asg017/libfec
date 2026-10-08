@@ -1,6 +1,9 @@
 [workspace]
 resolver = "2"
 
+# crates/fec-r is an R package with its own [workspace] (see its README).
+exclude = ["crates/fec-r"]
+
 members = [
     "crates/fec-parser-macros",
     "crates/fec-parser",

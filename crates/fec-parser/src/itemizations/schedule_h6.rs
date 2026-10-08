@@ -39,6 +39,7 @@ use crate::itemizations::Entity;
     )
 )]
 #[derive(Debug, Clone, serde::Serialize)]
+#[cfg_attr(feature = "columnar", derive(fec_parser_macros::Columnar))]
 pub struct ScheduleH6 {
     /// The row type as filed, `H6`. Column `form_type` (FEC format workbook
     /// v8.4, sheet `Sch H6`, field 1).

@@ -159,11 +159,14 @@ pub(crate) fn amount<F: Fields + ?Sized>(data: &F, key: &str) -> f64 {
 }
 
 /// Money amount, or `None` if the column is missing, blank, or unparsable.
+/// Text that `f64::from_str` reads as NaN or infinity (`NaN`, `inf`,
+/// `1e400`) is unparsable.
 pub(crate) fn amount_opt<F: Fields + ?Sized>(data: &F, key: &str) -> Option<f64> {
     data.raw(key)
         .map(|s| s.trim())
         .filter(|s| !s.is_empty())
         .and_then(|s| s.parse::<f64>().ok())
+        .filter(|x| x.is_finite())
 }
 
 /// A date in `YYYYMMDD` (v6+) or `MM/DD/YYYY` (some legacy versions).
@@ -289,6 +292,24 @@ mod tests {
         assert_eq!(amount(&d, "b"), 12.5);
         assert_eq!(amount(&d, "c"), 0.0);
         assert_eq!(amount(&d, "d"), -3.0);
+    }
+
+    #[test]
+    fn non_finite_amounts_are_garbage() {
+        // `f64::from_str` accepts these; an FEC amount is never NaN or infinite.
+        let d = data(&[
+            ("nan", "NaN"),
+            ("nan_lower", "nan"),
+            ("inf", "inf"),
+            ("neg_inf", "-infinity"),
+            ("overflow", "1e400"),
+            ("big", "1e300"),
+        ]);
+        for key in ["nan", "nan_lower", "inf", "neg_inf", "overflow"] {
+            assert_eq!(amount_opt(&d, key), None, "{key}");
+            assert_eq!(amount(&d, key), 0.0, "{key}");
+        }
+        assert_eq!(amount_opt(&d, "big"), Some(1e300));
     }
 
     #[test]

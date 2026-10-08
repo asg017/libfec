@@ -1,0 +1,26 @@
+Package: libfec
+Title: Parse FEC Electronic Filings
+Version: 0.0.34.9000
+Authors@R: 
+    person("Alex", "Garcia", , "alexsebastian.garcia@gmail.com", role = c("aut", "cre"))
+Description: Read Federal Election Commission (FEC) electronic filings into
+    data frames, using the 'fec-parser' Rust crate from 'libfec' via 'extendr'.
+License: MIT + file LICENSE | Apache License 2.0
+URL: https://github.com/asg017/libfec
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+Config/roxygen2/version: 8.1.0
+Config/rextendr/version: 0.5.0
+SystemRequirements: Cargo (Rust's package manager), rustc (>= 1.85), xz
+Depends: 
+    R (>= 4.2)
+Imports:
+    cli,
+    rlang,
+    tibble,
+    utils
+Suggests:
+    testthat (>= 3.1.5),
+    vctrs,
+    withr
+Config/testthat/edition: 3

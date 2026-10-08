@@ -1,0 +1,36 @@
+[package]
+name = 'fecr'
+publish = false
+version = '0.1.0'
+edition = '2021'
+# R13: the dependency tree's real MSRV (indexmap 2.14, hashbrown 0.17).
+rust-version = '1.85'
+
+# Standalone: don't join the libfec workspace. The root Cargo.toml also
+# `exclude`s crates/fec-r.
+[workspace]
+# `make build` copies fec-parser + fec-parser-macros into local/ for the tarball. Path
+# dependencies under the workspace root become members by default, which would lock their
+# dev-dependencies and optional deps (insta, pyo3) and break `--locked`.
+exclude = ['local']
+
+[lib]
+crate-type = [ 'staticlib' ]
+name = 'libfec'
+
+[dependencies]
+# Pinned to a git rev, not crates.io: rextendr 0.5.0's document.c calls
+# `write__make_<lib>_wrappers`, which extendr-api 0.9.0 on crates.io doesn't
+# export (see README.md, dev notes).
+extendr-api = { git = 'https://github.com/extendr/extendr', rev = '74afddc' }
+# Raw R FFI for the fast string path (ticket 04).
+extendr-ffi = { git = 'https://github.com/extendr/extendr', rev = '74afddc' }
+# `columnar`: typed covers and itemizations flattened into columns.
+# `make build` rewrites this path to 'local/fec-parser' in its staged copy of the package.
+fec-parser = { path = '../../../fec-parser', features = ['columnar'] }
+# fec-parser's row records (`csv::StringRecord`), kept by raw tables.
+csv = '1.2.2'
+
+[profile.release]
+lto = true
+codegen-units = 1

@@ -1,0 +1,13 @@
+src/rust/target
+src/rust/local
+src/rust/vendor*
+src/Makevars
+src/Makevars.win
+src/*.o
+src/*.so
+src/*.dll
+src/.cargo
+src/rust/document
+/libfec_*.tar.gz
+examples/*.html
+examples/*_files

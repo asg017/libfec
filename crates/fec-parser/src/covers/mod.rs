@@ -131,6 +131,7 @@ use serde::Serialize;
 
 /// A typed cover record. See each variant's struct for field documentation.
 #[derive(Debug, Clone, Serialize)]
+#[cfg_attr(feature = "columnar", derive(fec_parser_macros::Columnar))]
 #[serde(tag = "form", content = "data")]
 // One `Cover` per filing, so variant size differences do not matter.
 #[allow(clippy::large_enum_variant)]
@@ -323,6 +324,7 @@ pub(crate) fn cover_from_form_type(cover_record_form_type: &str, data: &Data) ->
     pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
+#[cfg_attr(feature = "columnar", derive(fec_parser_macros::Columnar))]
 pub struct PersonName {
     pub first_name: String,
     pub last_name: String,
@@ -393,6 +395,7 @@ impl PersonName {
     pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
+#[cfg_attr(feature = "columnar", derive(fec_parser_macros::Columnar))]
 pub struct Address {
     pub street_1: Option<String>,
     pub street_2: Option<String>,
@@ -457,6 +460,7 @@ impl Address {
     pyo3::pyclass(module = "libfec_parser.covers", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, Copy, Default, PartialEq, Serialize)]
+#[cfg_attr(feature = "columnar", derive(fec_parser_macros::Columnar))]
 pub struct DetailedSummaryRow {
     pub column_a: f64,
     pub column_b: f64,

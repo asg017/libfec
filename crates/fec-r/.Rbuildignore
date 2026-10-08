@@ -1,0 +1,8 @@
+^src/\.cargo$
+^src/rust/vendor$
+^src/rust/target$
+^src/Makevars$
+^src/Makevars\.win$
+^Makefile$
+^libfec_.*\.tar\.gz$
+^examples$
