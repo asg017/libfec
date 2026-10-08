@@ -40,6 +40,10 @@ use jiff::civil::Date;
 /// used", "Req if any 51st Contrib fields used"; FEC format workbook v8.4,
 /// sheet `F1M`, fields 10–12 and 63–65), so normally one of the two is
 /// `None`. Real filings occasionally populate both; both are kept.
+#[cfg_attr(
+    feature = "python",
+    pyo3::pyclass(module = "libfec.covers", frozen, get_all, skip_from_py_object)
+)]
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct Form1M {
     /// Form type as filed, e.g. `F1MN`: the base form plus the
@@ -76,6 +80,10 @@ pub struct Form1M {
 /// multicandidate committee through its affiliation with: Committee Name: ___
 /// FEC Identification Number: ___"
 /// ([fecfrm1m.pdf p1](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm1m.pdf#page=1)).
+#[cfg_attr(
+    feature = "python",
+    pyo3::pyclass(module = "libfec.covers", frozen, get_all, skip_from_py_object)
+)]
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 pub struct Form1MAffiliation {
     /// Date the committee's Form 1 was submitted
@@ -92,6 +100,10 @@ pub struct Form1MAffiliation {
 /// Line 5, **status by qualification**
 /// ([fecfrm1m.pdf p1](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm1m.pdf#page=1),
 /// [fecfrm1mi.pdf p1](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm1mi.pdf#page=1)).
+#[cfg_attr(
+    feature = "python",
+    pyo3::pyclass(module = "libfec.covers", frozen, get_all, skip_from_py_object)
+)]
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 pub struct Form1MQualification {
     /// Line 5(a) "Candidates: The committee has made contributions to the five
@@ -119,6 +131,10 @@ pub struct Form1MQualification {
 /// ([fecfrm1m.pdf p1](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm1m.pdf#page=1)).
 /// Column names below use `first_` for row (i); rows (ii)–(v) use `second_`
 /// … `fifth_` (fields 13–22, 23–32, 33–42, 43–52, 53–62).
+#[cfg_attr(
+    feature = "python",
+    pyo3::pyclass(module = "libfec.covers", frozen, get_all, skip_from_py_object)
+)]
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 pub struct Form1MCandidate {
     /// Candidate's FEC ID (`first_candidate_id_number`, field 13). The paper

@@ -45,6 +45,10 @@ use jiff::civil::Date;
 /// (`report_pgi`, `election_date`, `election_state`), and give the person
 /// completing the form as one caret-delimited name (`person_completing_name`);
 /// all are read here where present (FEC format workbook v5.2, sheet F5).
+#[cfg_attr(
+    feature = "python",
+    pyo3::pyclass(module = "libfec.covers", frozen, get_all, skip_from_py_object)
+)]
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct Form5 {
     /// Form type as filed, e.g. `F5N`: the base form plus the

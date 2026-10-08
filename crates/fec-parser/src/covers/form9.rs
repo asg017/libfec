@@ -47,6 +47,10 @@ use jiff::civil::Date;
 ///
 /// The test fixture is a real `F9A` (FEC-2015422, v8.5); no `F9N` was
 /// available locally.
+#[cfg_attr(
+    feature = "python",
+    pyo3::pyclass(module = "libfec.covers", frozen, get_all, skip_from_py_object)
+)]
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct Form9 {
     /// Form type as filed, e.g. `F9N`: the base form plus the
@@ -162,6 +166,10 @@ pub struct Form9 {
 }
 
 /// Form 9 Line 9, custodian of records.
+#[cfg_attr(
+    feature = "python",
+    pyo3::pyclass(module = "libfec.covers", frozen, get_all, skip_from_py_object)
+)]
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct Form9Custodian {
     /// Line 9(a), name. Columns `custodian_last_name`, `custodian_first_name`,

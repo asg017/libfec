@@ -40,4 +40,16 @@ mod _native {
             from_file, from_http, loads, parse_header, parse_line, print_example,
         };
     }
+
+    /// The typed cover classes (`Form3X`, `Form1`, …), defined in `fec-parser`
+    /// itself under its `python` feature.
+    #[pymodule]
+    mod covers {
+        use pyo3::prelude::*;
+
+        #[pymodule_init]
+        fn init(m: &Bound<'_, PyModule>) -> PyResult<()> {
+            fec_parser::covers::python::add_classes(m)
+        }
+    }
 }
