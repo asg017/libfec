@@ -36,12 +36,12 @@ test("records(): every field exactly, so no offset drifts", () => {
   assert.equal(recs.get(20).fields[2], "E11");
 });
 
-test("quotes are literal: the parser doesn't unquote, and a quoted \\n or \\x1c still splits", () => {
-  // fec-parser reads with CSV quoting off (lib.rs tests
-  // quotes_are_kept_verbatim / unbalanced_quote_does_not_merge_rows), and
-  // the bindings pass that through.
+test("quotes: a field wrapped in quotes loses one pair, but a quoted \\n or \\x1c still splits", () => {
+  // fec-parser reads with CSV quoting off and then strips one pair of quotes
+  // that wrap a whole field, reading "" inside as one " (lib.rs
+  // unquote_record); a stray quote is kept and never spans separators.
   const recs = byLine(read("records").rows);
-  assert.equal(recs.get(17).fields[7], '"O""Brien"');
+  assert.equal(recs.get(17).fields[7], 'O"Brien');
   assert.deepEqual(recs.get(18).fields.slice(7), ['"A', "B"]);
   assert.equal(recs.get(19).rowType, 'C"');
 });
