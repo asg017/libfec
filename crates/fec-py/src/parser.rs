@@ -434,12 +434,10 @@ impl FilingReader {
             if let Some(item) = queued {
                 return match item {
                     Ok(row) => match schema_for(py, &row.row_type, &this.version) {
-                        Some(schema) => {
-                            Ok(Some(Py::new(
+                        Some(schema) => Ok(Some(Py::new(
                             py,
                             Row::new(schema, row.record, row.line, this.name_delimiter.clone()),
-                        )?))
-                        }
+                        )?)),
                         None => Err(missing_mapping(py, &row.row_type, &this.version, row.line)),
                     },
                     Err(e) => {
@@ -514,7 +512,12 @@ pub fn open_filing(py: Python<'_>, source: &Bound<'_, PyAny>) -> PyResult<Filing
     })?;
     // The cover record is always the filing's second line.
     let name_delimiter: Option<Arc<str>> = filing.header.name_delimiter.as_deref().map(Arc::from);
-    let cover_row = Row::new(cover_schema, filing.cover.record.clone(), 2, name_delimiter.clone());
+    let cover_row = Row::new(
+        cover_schema,
+        filing.cover.record.clone(),
+        2,
+        name_delimiter.clone(),
+    );
     let cover_data = filing
         .cover
         .cover_data

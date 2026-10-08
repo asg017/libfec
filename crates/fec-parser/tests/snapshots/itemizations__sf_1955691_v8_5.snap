@@ -1,7 +1,6 @@
 ---
 source: crates/fec-parser/tests/itemizations.rs
 expression: "itemizations(\"SF_1955691.fec\")"
-snapshot_kind: text
 ---
 [
   {
@@ -14,7 +13,7 @@ snapshot_kind: text
     "filer_designated": true,
     "designating_committee": {
       "fec_id": "C00003418",
-      "name": "\"REPUBLICAN NATIONAL COMMITTEE\"",
+      "name": "REPUBLICAN NATIONAL COMMITTEE",
       "address": {
         "street_1": null,
         "street_2": null,
@@ -25,28 +24,28 @@ snapshot_kind: text
     },
     "subordinate_committee": {
       "fec_id": "C00075820",
-      "name": "\"NATIONAL REPUBLICAN CONGRESSIONAL COMMITTEE\"",
+      "name": "NATIONAL REPUBLICAN CONGRESSIONAL COMMITTEE",
       "address": {
-        "street_1": "\"320 1ST ST SE\"",
-        "street_2": "\"\"",
-        "city": "\"WASHINGTON\"",
+        "street_1": "320 1ST ST SE",
+        "street_2": null,
+        "city": "WASHINGTON",
         "state": "DC",
         "zip_code": "20003"
       }
     },
     "payee": {
       "entity_type": "ORG",
-      "organization_name": "\"SRCP MEDIA INC\"",
+      "organization_name": "SRCP MEDIA INC",
       "name": {
-        "first_name": "\"\"",
-        "last_name": "\"\"",
-        "middle_name": "\"\"",
-        "prefix": "\"\"",
-        "suffix": "\"\""
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
       },
       "address": {
-        "street_1": "\"201 N UNION ST\"",
-        "street_2": "\"STE 200\"",
+        "street_1": "201 N UNION ST",
+        "street_2": "STE 200",
         "city": "ALEXANDRIA",
         "state": "VA",
         "zip_code": "22314"
@@ -56,17 +55,17 @@ snapshot_kind: text
     "expenditure_amount": 118000.0,
     "aggregate_general_election_expended": 118000.0,
     "expenditure_purpose_code": null,
-    "expenditure_purpose_description": "\"MEDIA\"",
+    "expenditure_purpose_description": "MEDIA",
     "category_code": null,
     "payee_committee_fec_id": null,
     "candidate": {
       "fec_id": "H0TX35015",
       "name": {
-        "first_name": "\"TONY\"",
-        "last_name": "\"GONZALES\"",
-        "middle_name": "\"\"",
-        "prefix": "\"\"",
-        "suffix": "\"\""
+        "first_name": "TONY",
+        "last_name": "GONZALES",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
       },
       "office": "H",
       "state": "TX",
@@ -81,7 +80,7 @@ snapshot_kind: text
       "zip_code": null
     },
     "memo": false,
-    "memo_text": "\"\"",
+    "memo_text": null,
     "increased_limit": null,
     "notice_24_hour": null,
     "image_number": null
