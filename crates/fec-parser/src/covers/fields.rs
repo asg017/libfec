@@ -76,37 +76,118 @@ impl FromIterator<(String, String)> for Data {
     }
 }
 
+/// Where the value helpers read raw column values from: a cover's
+/// [`Data`] map, or an itemization's borrowed record
+/// ([`crate::itemizations::RecordFields`]), which has no per-row map.
+pub trait Fields {
+    /// The raw value of column `key`, or `None` if the layout has no such
+    /// column (or the record is cut short before it).
+    fn raw(&self, key: &str) -> Option<&str>;
+
+    /// Sub-delimiter of legacy combined names (`Last^First^...`).
+    fn name_delimiter(&self) -> &str {
+        "^"
+    }
+}
+
+impl Fields for Kv {
+    fn raw(&self, key: &str) -> Option<&str> {
+        self.get(key).map(String::as_str)
+    }
+}
+
+impl Fields for Data {
+    fn raw(&self, key: &str) -> Option<&str> {
+        self.kv.get(key).map(String::as_str)
+    }
+
+    fn name_delimiter(&self) -> &str {
+        &self.name_delimiter
+    }
+}
+
+/// `{prefix}{suffix}` as a column name, built on the stack: the shared shapes
+/// (names, addresses) read a dozen prefixed columns per record, and on
+/// itemizations allocating each key was a measurable share of the cost.
+pub(crate) fn key(prefix: &str, suffix: &str) -> Key {
+    let len = prefix.len() + suffix.len();
+    if len > KEY_CAPACITY {
+        return Key::Heap(format!("{prefix}{suffix}"));
+    }
+    let mut buf = [0u8; KEY_CAPACITY];
+    buf[..prefix.len()].copy_from_slice(prefix.as_bytes());
+    buf[prefix.len()..len].copy_from_slice(suffix.as_bytes());
+    Key::Stack(buf, len as u8)
+}
+
+const KEY_CAPACITY: usize = 64;
+
+/// A column name from [`key`]; derefs to `&str`.
+pub(crate) enum Key {
+    Stack([u8; KEY_CAPACITY], u8),
+    Heap(String),
+}
+
+impl std::ops::Deref for Key {
+    type Target = str;
+
+    fn deref(&self) -> &str {
+        match self {
+            // Both halves were `&str`, so their concatenation is UTF-8.
+            Key::Stack(buf, len) => std::str::from_utf8(&buf[..*len as usize]).unwrap_or_default(),
+            Key::Heap(s) => s,
+        }
+    }
+}
+
 /// Trimmed text value, or `None` if the column is missing or blank.
-pub(crate) fn text(data: &Kv, key: &str) -> Option<String> {
-    data.get(key)
+pub(crate) fn text<F: Fields + ?Sized>(data: &F, key: &str) -> Option<String> {
+    data.raw(key)
         .map(|s| s.trim())
         .filter(|s| !s.is_empty())
         .map(|s| s.to_owned())
 }
 
 /// Trimmed text value, or `""` if missing or blank.
-pub(crate) fn text_or_empty(data: &Kv, key: &str) -> String {
+pub(crate) fn text_or_empty<F: Fields + ?Sized>(data: &F, key: &str) -> String {
     text(data, key).unwrap_or_default()
 }
 
 /// Money amount. Blank, missing, or unparsable values are `0.0`.
-pub(crate) fn amount(data: &Kv, key: &str) -> f64 {
+pub(crate) fn amount<F: Fields + ?Sized>(data: &F, key: &str) -> f64 {
     amount_opt(data, key).unwrap_or(0.0)
 }
 
 /// Money amount, or `None` if the column is missing, blank, or unparsable.
-pub(crate) fn amount_opt(data: &Kv, key: &str) -> Option<f64> {
-    data.get(key)
+pub(crate) fn amount_opt<F: Fields + ?Sized>(data: &F, key: &str) -> Option<f64> {
+    data.raw(key)
         .map(|s| s.trim())
         .filter(|s| !s.is_empty())
         .and_then(|s| s.parse::<f64>().ok())
 }
 
 /// A date in `YYYYMMDD` (v6+) or `MM/DD/YYYY` (some legacy versions).
-pub(crate) fn date(data: &Kv, key: &str) -> Option<Date> {
-    let s = data.get(key)?.trim();
+pub(crate) fn date<F: Fields + ?Sized>(data: &F, key: &str) -> Option<Date> {
+    let s = data.raw(key)?.trim();
     if s.is_empty() {
         return None;
+    }
+    // Fast path for `YYYYMMDD`, the format of every v6+ date: `strptime`
+    // re-reads its format string on each call, which shows on itemizations.
+    if let [y1, y2, y3, y4, m1, m2, d1, d2] = s.as_bytes() {
+        let digits = [y1, y2, y3, y4, m1, m2, d1, d2];
+        if digits.iter().all(|b| b.is_ascii_digit()) {
+            let n = |ds: &[&u8]| {
+                ds.iter()
+                    .fold(0i16, |acc, b| acc * 10 + i16::from(**b - b'0'))
+            };
+            return Date::new(
+                n(&digits[..4]),
+                n(&digits[4..6]) as i8,
+                n(&digits[6..]) as i8,
+            )
+            .ok();
+        }
     }
     Date::strptime("%Y%m%d", s)
         .or_else(|_| Date::strptime("%m/%d/%Y", s))
@@ -116,8 +197,8 @@ pub(crate) fn date(data: &Kv, key: &str) -> Option<Date> {
 /// A checkbox. The FEC format marks checked boxes with `X`; anything else
 /// (including blank) is unchecked.
 #[allow(dead_code)] // used by the per-form cover modules as they land
-pub(crate) fn flag(data: &Kv, key: &str) -> bool {
-    data.get(key)
+pub(crate) fn flag<F: Fields + ?Sized>(data: &F, key: &str) -> bool {
+    data.raw(key)
         .map(|s| s.trim().eq_ignore_ascii_case("x"))
         .unwrap_or(false)
 }
@@ -134,13 +215,17 @@ pub(crate) fn flag(data: &Kv, key: &str) -> bool {
 ///
 /// Every cover reads a name this way when its mapping has a legacy
 /// single-column name; the legacy key is almost always `{prefix}name`.
-pub(crate) fn person_name_or_legacy(data: &Data, prefix: &str, legacy_key: &str) -> PersonName {
+pub(crate) fn person_name_or_legacy<F: Fields + ?Sized>(
+    data: &F,
+    prefix: &str,
+    legacy_key: &str,
+) -> PersonName {
     let name = person_name(data, prefix);
     if !name.is_empty() {
         return name;
     }
     text(data, legacy_key)
-        .map(|raw| split_legacy_name(&raw, &data.name_delimiter))
+        .map(|raw| split_legacy_name(&raw, data.name_delimiter()))
         .unwrap_or(name)
 }
 
@@ -149,10 +234,10 @@ pub(crate) fn person_name_or_legacy(data: &Data, prefix: &str, legacy_key: &str)
 /// (with `{prefix}first_name` blank) the way [`person_name_or_legacy`]
 /// splits a legacy column. For names whose mappings have no legacy
 /// single-name column.
-pub(crate) fn person_name(data: &Data, prefix: &str) -> PersonName {
+pub(crate) fn person_name<F: Fields + ?Sized>(data: &F, prefix: &str) -> PersonName {
     let name = PersonName::from_prefixed(data, prefix);
-    if name.first_name.is_empty() && name.last_name.contains(data.name_delimiter.as_str()) {
-        return split_legacy_name(&name.last_name, &data.name_delimiter);
+    if name.first_name.is_empty() && name.last_name.contains(data.name_delimiter()) {
+        return split_legacy_name(&name.last_name, data.name_delimiter());
     }
     name
 }

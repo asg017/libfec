@@ -1,0 +1,35 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"H5_1893062.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "H5",
+    "form_type": "H5",
+    "filer_committee_id": "C00190934",
+    "transaction_id": "01-03068-03930",
+    "account_name": "Oklahoma Dem. Party Non-Federal Accoun",
+    "receipt_date": "2025-04-09",
+    "total_amount_transferred": 6903.19,
+    "voter_registration_amount": 0.0,
+    "voter_id_amount": 0.0,
+    "gotv_amount": 6903.19,
+    "generic_campaign_amount": 0.0,
+    "image_number": null
+  },
+  {
+    "family": "H5",
+    "form_type": "H5",
+    "filer_committee_id": "C00190934",
+    "transaction_id": "01-03069-03931",
+    "account_name": "Oklahoma Dem. Party Non-Federal Accoun",
+    "receipt_date": "2025-04-10",
+    "total_amount_transferred": 10000.0,
+    "voter_registration_amount": 0.0,
+    "voter_id_amount": 0.0,
+    "gotv_amount": 10000.0,
+    "generic_campaign_amount": 0.0,
+    "image_number": null
+  }
+]

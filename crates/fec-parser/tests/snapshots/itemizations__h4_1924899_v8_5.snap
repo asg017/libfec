@@ -1,0 +1,359 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"H4_1924899.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "H4",
+    "form_type": "H4",
+    "filer_committee_id": "C00274423",
+    "transaction_id": "EH47502",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "payee": {
+      "entity_type": "IND",
+      "organization_name": null,
+      "name": {
+        "first_name": "Daniel",
+        "last_name": "Weitzman",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "1100 O Street, Ste 200",
+        "street_2": null,
+        "city": "Sacramento",
+        "state": "CA",
+        "zip_code": "95814"
+      }
+    },
+    "activity_event_identifier": "2025 Tower Bridge Awards",
+    "expenditure_date": "2025-10-14",
+    "total_amount": 797.35,
+    "federal_share": 295.02,
+    "nonfederal_share": 502.33,
+    "event_year_to_date": 3018.95,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "Awards",
+    "category_code": "003",
+    "administrative_activity": false,
+    "fundraising_activity": true,
+    "exempt_activity": false,
+    "generic_voter_drive_activity": false,
+    "direct_candidate_support_activity": false,
+    "public_communications_party_activity": false,
+    "memo": false,
+    "memo_text": null,
+    "image_number": null
+  },
+  {
+    "family": "H4",
+    "form_type": "H4",
+    "filer_committee_id": "C00274423",
+    "transaction_id": "XH4541",
+    "back_reference_transaction_id": "EH47502",
+    "back_reference_schedule_name": "H4",
+    "payee": {
+      "entity_type": "ORG",
+      "organization_name": "Klisz dba The Trophy Center, Richard A.",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "2564 21st Street",
+        "street_2": null,
+        "city": "Sacramento",
+        "state": "CA",
+        "zip_code": "95818"
+      }
+    },
+    "activity_event_identifier": "2025 Tower Bridge Awards",
+    "expenditure_date": "2025-10-14",
+    "total_amount": 797.35,
+    "federal_share": 295.02,
+    "nonfederal_share": 502.33,
+    "event_year_to_date": 3018.95,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "Awards",
+    "category_code": "003",
+    "administrative_activity": false,
+    "fundraising_activity": true,
+    "exempt_activity": false,
+    "generic_voter_drive_activity": false,
+    "direct_candidate_support_activity": false,
+    "public_communications_party_activity": false,
+    "memo": true,
+    "memo_text": null,
+    "image_number": null
+  },
+  {
+    "family": "H4",
+    "form_type": "H4",
+    "filer_committee_id": "C00274423",
+    "transaction_id": "EH47506",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "payee": {
+      "entity_type": "ORG",
+      "organization_name": "Chef Zenti Personal Chef Service",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "4124 McKinley Blvd",
+        "street_2": null,
+        "city": "Sacramento",
+        "state": "CA",
+        "zip_code": "95819"
+      }
+    },
+    "activity_event_identifier": "2025 Tower Bridge Awards",
+    "expenditure_date": "2025-10-20",
+    "total_amount": 2221.6,
+    "federal_share": 821.99,
+    "nonfederal_share": 1399.61,
+    "event_year_to_date": 3018.95,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "Catering",
+    "category_code": "003",
+    "administrative_activity": false,
+    "fundraising_activity": true,
+    "exempt_activity": false,
+    "generic_voter_drive_activity": false,
+    "direct_candidate_support_activity": false,
+    "public_communications_party_activity": false,
+    "memo": false,
+    "memo_text": null,
+    "image_number": null
+  },
+  {
+    "family": "H4",
+    "form_type": "H4",
+    "filer_committee_id": "C00274423",
+    "transaction_id": "EH47513",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "payee": {
+      "entity_type": "ORG",
+      "organization_name": "CJ & Associates, Inc.",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "371 Lakeport Blvd., # 391",
+        "street_2": null,
+        "city": "Lakeport",
+        "state": "CA",
+        "zip_code": "95453"
+      }
+    },
+    "activity_event_identifier": "Administrative",
+    "expenditure_date": "2025-10-06",
+    "total_amount": 694.57,
+    "federal_share": 104.19,
+    "nonfederal_share": 590.38,
+    "event_year_to_date": 13506.94,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "Bookkeeping, Copies, Postage and Software Fees",
+    "category_code": "001",
+    "administrative_activity": true,
+    "fundraising_activity": false,
+    "exempt_activity": false,
+    "generic_voter_drive_activity": false,
+    "direct_candidate_support_activity": false,
+    "public_communications_party_activity": false,
+    "memo": false,
+    "memo_text": null,
+    "image_number": null
+  },
+  {
+    "family": "H4",
+    "form_type": "H4",
+    "filer_committee_id": "C00274423",
+    "transaction_id": "EH47503",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "payee": {
+      "entity_type": "ORG",
+      "organization_name": "Downtown Mail and Shipping",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "1017 L Street",
+        "street_2": null,
+        "city": "Sacramento",
+        "state": "CA",
+        "zip_code": "95814"
+      }
+    },
+    "activity_event_identifier": "Administrative",
+    "expenditure_date": "2025-10-14",
+    "total_amount": 276.0,
+    "federal_share": 41.4,
+    "nonfederal_share": 234.6,
+    "event_year_to_date": 13506.94,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "PO Box Fee",
+    "category_code": "001",
+    "administrative_activity": true,
+    "fundraising_activity": false,
+    "exempt_activity": false,
+    "generic_voter_drive_activity": false,
+    "direct_candidate_support_activity": false,
+    "public_communications_party_activity": false,
+    "memo": false,
+    "memo_text": null,
+    "image_number": null
+  },
+  {
+    "family": "H4",
+    "form_type": "H4",
+    "filer_committee_id": "C00274423",
+    "transaction_id": "EH47511",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "payee": {
+      "entity_type": "ORG",
+      "organization_name": "GoDaddy.com",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "14455 North Hayden Road",
+        "street_2": null,
+        "city": "Scottsdale",
+        "state": "AZ",
+        "zip_code": "85260"
+      }
+    },
+    "activity_event_identifier": "Administrative",
+    "expenditure_date": "2025-10-03",
+    "total_amount": 22.19,
+    "federal_share": 3.33,
+    "nonfederal_share": 18.86,
+    "event_year_to_date": 13506.94,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "Website",
+    "category_code": "001",
+    "administrative_activity": true,
+    "fundraising_activity": false,
+    "exempt_activity": false,
+    "generic_voter_drive_activity": false,
+    "direct_candidate_support_activity": false,
+    "public_communications_party_activity": false,
+    "memo": false,
+    "memo_text": null,
+    "image_number": null
+  },
+  {
+    "family": "H4",
+    "form_type": "H4",
+    "filer_committee_id": "C00274423",
+    "transaction_id": "EH47512",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "payee": {
+      "entity_type": "ORG",
+      "organization_name": "MailChimp",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "675 Ponce de Leon Ave, NE Ste 5000",
+        "street_2": null,
+        "city": "Atlanta",
+        "state": "GA",
+        "zip_code": "30308"
+      }
+    },
+    "activity_event_identifier": "Administrative",
+    "expenditure_date": "2025-10-06",
+    "total_amount": 80.0,
+    "federal_share": 12.0,
+    "nonfederal_share": 68.0,
+    "event_year_to_date": 13506.94,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "Email Service",
+    "category_code": "001",
+    "administrative_activity": true,
+    "fundraising_activity": false,
+    "exempt_activity": false,
+    "generic_voter_drive_activity": false,
+    "direct_candidate_support_activity": false,
+    "public_communications_party_activity": false,
+    "memo": false,
+    "memo_text": null,
+    "image_number": null
+  },
+  {
+    "family": "H4",
+    "form_type": "H4",
+    "filer_committee_id": "C00274423",
+    "transaction_id": "EH47509",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "payee": {
+      "entity_type": "ORG",
+      "organization_name": "StorQuest",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "2415 3rd Street",
+        "street_2": null,
+        "city": "Sacramento",
+        "state": "CA",
+        "zip_code": "95818"
+      }
+    },
+    "activity_event_identifier": "Administrative",
+    "expenditure_date": "2025-10-01",
+    "total_amount": 184.0,
+    "federal_share": 27.6,
+    "nonfederal_share": 156.4,
+    "event_year_to_date": 13506.94,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "Storage",
+    "category_code": "001",
+    "administrative_activity": true,
+    "fundraising_activity": false,
+    "exempt_activity": false,
+    "generic_voter_drive_activity": false,
+    "direct_candidate_support_activity": false,
+    "public_communications_party_activity": false,
+    "memo": false,
+    "memo_text": null,
+    "image_number": null
+  }
+]

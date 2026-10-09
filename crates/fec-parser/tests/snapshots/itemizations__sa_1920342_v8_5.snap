@@ -1,0 +1,255 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"SA_1920342.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "SA",
+    "form_type": "SA11AI",
+    "filer_committee_id": "C00727529",
+    "transaction_id": "19148100",
+    "back_reference_transaction_id": "19148100E",
+    "back_reference_schedule_name": "SA11AI",
+    "contributor": {
+      "entity_type": "IND",
+      "organization_name": null,
+      "name": {
+        "first_name": "Kali",
+        "last_name": "Rasala",
+        "middle_name": "Harris",
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "489 Eastwood Ln",
+        "street_2": null,
+        "city": "Chesterton",
+        "state": "IN",
+        "zip_code": "463040205"
+      }
+    },
+    "election_code": "P2026",
+    "election_other_description": null,
+    "contribution_date": "2025-07-14",
+    "contribution_amount": 25.0,
+    "contribution_aggregate": 275.0,
+    "contribution_purpose_code": null,
+    "contribution_purpose_description": null,
+    "contributor_employer": "Self-Employed",
+    "contributor_occupation": "Actresss",
+    "donor_committee_fec_id": null,
+    "donor_committee_name": null,
+    "donor_candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "memo": false,
+    "memo_text": "* Earmarked Contribution: See Below",
+    "reference_code": null,
+    "image_number": null
+  },
+  {
+    "family": "SA",
+    "form_type": "SA11B",
+    "filer_committee_id": "C00727529",
+    "transaction_id": "19334030",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "contributor": {
+      "entity_type": "PTY",
+      "organization_name": "DCCC",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "430 S Capitol St SE",
+        "street_2": "Fl 2",
+        "city": "Washington",
+        "state": "DC",
+        "zip_code": "200034024"
+      }
+    },
+    "election_code": "P2026",
+    "election_other_description": null,
+    "contribution_date": "2025-09-16",
+    "contribution_amount": 37.68,
+    "contribution_aggregate": 1562.66,
+    "contribution_purpose_code": null,
+    "contribution_purpose_description": null,
+    "contributor_employer": null,
+    "contributor_occupation": null,
+    "donor_committee_fec_id": "C00000935",
+    "donor_committee_name": "DCCC",
+    "donor_candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "memo": false,
+    "memo_text": "* In-Kind: Catering & Facility Rental",
+    "reference_code": null,
+    "image_number": null
+  },
+  {
+    "family": "SA",
+    "form_type": "SA11C",
+    "filer_committee_id": "C00727529",
+    "transaction_id": "19174210",
+    "back_reference_transaction_id": "19174210E",
+    "back_reference_schedule_name": "SA11C",
+    "contributor": {
+      "entity_type": "PAC",
+      "organization_name": "Silicorn Valley PAC",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "600 Pennsylvania Ave SE",
+        "street_2": "Unit 15180",
+        "city": "Washington",
+        "state": "DC",
+        "zip_code": "200037508"
+      }
+    },
+    "election_code": "P2026",
+    "election_other_description": null,
+    "contribution_date": "2025-07-02",
+    "contribution_amount": 2000.0,
+    "contribution_aggregate": 2000.0,
+    "contribution_purpose_code": null,
+    "contribution_purpose_description": null,
+    "contributor_employer": null,
+    "contributor_occupation": null,
+    "donor_committee_fec_id": "C00840462",
+    "donor_committee_name": "Silicorn Valley PAC",
+    "donor_candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "memo": false,
+    "memo_text": "* Earmarked Contribution: See Below",
+    "reference_code": null,
+    "image_number": null
+  },
+  {
+    "family": "SA",
+    "form_type": "SA12",
+    "filer_committee_id": "C00727529",
+    "transaction_id": "19333180",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "contributor": {
+      "entity_type": "COM",
+      "organization_name": "Jeffries Battleground Protection Fund",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "430 S Capitol St SE",
+        "street_2": "Fl 2",
+        "city": "Washington",
+        "state": "DC",
+        "zip_code": "200034024"
+      }
+    },
+    "election_code": null,
+    "election_other_description": null,
+    "contribution_date": "2025-09-30",
+    "contribution_amount": 9229.0,
+    "contribution_aggregate": 9229.0,
+    "contribution_purpose_code": null,
+    "contribution_purpose_description": null,
+    "contributor_employer": null,
+    "contributor_occupation": null,
+    "donor_committee_fec_id": "C00916429",
+    "donor_committee_name": "Jeffries Battleground Protection Fund",
+    "donor_candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "memo": false,
+    "memo_text": "Joint Fundraising Transfer",
+    "reference_code": null,
+    "image_number": null
+  }
+]

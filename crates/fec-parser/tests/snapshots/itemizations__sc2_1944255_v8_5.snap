@@ -1,0 +1,37 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"SC2_1944255.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "SC2",
+    "form_type": "SC2/10",
+    "filer_committee_id": "C00915314",
+    "transaction_id": "SC/10.4103.0.SC2",
+    "back_reference_transaction_id": "SC/10.4103",
+    "guarantor": {
+      "entity_type": "IND",
+      "organization_name": null,
+      "name": {
+        "first_name": "Thomas",
+        "last_name": "Stephens",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "2420 Davison Rd",
+        "street_2": null,
+        "city": "Flint",
+        "state": "MI",
+        "zip_code": "48506"
+      }
+    },
+    "guarantor_committee_fec_id": null,
+    "guarantor_employer": "Med-Solve LLC",
+    "guarantor_occupation": "COO",
+    "guaranteed_amount": 500.0,
+    "image_number": null
+  }
+]

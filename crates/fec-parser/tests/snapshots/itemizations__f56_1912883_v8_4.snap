@@ -1,0 +1,160 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"F56_1912883.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "F56",
+    "form_type": "F56",
+    "filer_committee_id": "C90022740",
+    "transaction_id": "8601851",
+    "contributor": {
+      "entity_type": "ORG",
+      "organization_name": "AFT Solidarity 527",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "555 New Jersey Ave NW",
+        "street_2": null,
+        "city": "Washington",
+        "state": "DC",
+        "zip_code": "200012029"
+      }
+    },
+    "contributor_fec_id": null,
+    "contribution_date": "2024-10-29",
+    "contribution_amount": 75000.0,
+    "contributor_employer": null,
+    "contributor_occupation": null,
+    "candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "image_number": null
+  },
+  {
+    "family": "F56",
+    "form_type": "F56",
+    "filer_committee_id": "C90022740",
+    "transaction_id": "6457773",
+    "contributor": {
+      "entity_type": "IND",
+      "organization_name": null,
+      "name": {
+        "first_name": "Lynell",
+        "last_name": "Bangs",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "1648 N Los Robles Ave",
+        "street_2": null,
+        "city": "Pasadena",
+        "state": "CA",
+        "zip_code": "911041045"
+      }
+    },
+    "contributor_fec_id": null,
+    "contribution_date": "2024-11-01",
+    "contribution_amount": 256.0,
+    "contributor_employer": "Retired",
+    "contributor_occupation": "None",
+    "candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "image_number": null
+  },
+  {
+    "family": "F56",
+    "form_type": "F56",
+    "filer_committee_id": "C90022740",
+    "transaction_id": "6457762",
+    "contributor": {
+      "entity_type": "IND",
+      "organization_name": null,
+      "name": {
+        "first_name": "Victoria",
+        "last_name": "Bjorklund",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "76 Prospect Ave",
+        "street_2": null,
+        "city": "Sea Cliff",
+        "state": "NY",
+        "zip_code": "115791006"
+      }
+    },
+    "contributor_fec_id": null,
+    "contribution_date": "2024-10-16",
+    "contribution_amount": 250.0,
+    "contributor_employer": "Not Employed",
+    "contributor_occupation": "Not Employed",
+    "candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "image_number": null
+  }
+]

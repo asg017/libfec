@@ -1,0 +1,37 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"SC2_1883359.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "SC2",
+    "form_type": "SC2/10",
+    "filer_committee_id": "C00719278",
+    "transaction_id": "SC/10.4340.0.SC2",
+    "back_reference_transaction_id": "SC/10.4340",
+    "guarantor": {
+      "entity_type": null,
+      "organization_name": null,
+      "name": {
+        "first_name": "BILL DR",
+        "last_name": "CLIFFORD",
+        "middle_name": null,
+        "prefix": "Dr",
+        "suffix": null
+      },
+      "address": {
+        "street_1": "PO BOX 1342",
+        "street_2": null,
+        "city": "GARDEN CITY",
+        "state": "KS",
+        "zip_code": "67846"
+      }
+    },
+    "guarantor_committee_fec_id": null,
+    "guarantor_employer": "Fry Eye Associates",
+    "guarantor_occupation": "Ophthalmologist",
+    "guaranteed_amount": 250000.0,
+    "image_number": null
+  }
+]
