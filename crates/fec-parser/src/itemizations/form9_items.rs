@@ -39,7 +39,7 @@ use crate::itemizations::{text_any, CandidateRef, Entity};
 #[cfg_attr(
     feature = "python",
     pyo3::pyclass(
-        module = "libfec_parser.itemizations",
+        module = "libfec.itemizations",
         frozen,
         get_all,
         skip_from_py_object
@@ -114,7 +114,7 @@ impl Form9ControllingPerson {
 #[cfg_attr(
     feature = "python",
     pyo3::pyclass(
-        module = "libfec_parser.itemizations",
+        module = "libfec.itemizations",
         frozen,
         get_all,
         skip_from_py_object
@@ -211,7 +211,7 @@ impl Form9Donation {
 #[cfg_attr(
     feature = "python",
     pyo3::pyclass(
-        module = "libfec_parser.itemizations",
+        module = "libfec.itemizations",
         frozen,
         get_all,
         skip_from_py_object
@@ -334,7 +334,7 @@ impl Form9Disbursement {
 #[cfg_attr(
     feature = "python",
     pyo3::pyclass(
-        module = "libfec_parser.itemizations",
+        module = "libfec.itemizations",
         frozen,
         get_all,
         skip_from_py_object

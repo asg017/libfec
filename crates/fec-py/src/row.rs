@@ -192,7 +192,7 @@ impl Row {
     }
 
     /// The row as a typed itemization — `ScheduleA`, … from
-    /// `libfec_parser.itemizations` — or `None` for a row that is not one
+    /// `libfec.itemizations` — or `None` for a row that is not one
     /// (the cover, `TEXT`, …) or whose schedule has no class yet.  Typed anew
     /// on every access.
     #[getter]
