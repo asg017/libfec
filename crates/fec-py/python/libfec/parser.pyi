@@ -129,7 +129,7 @@ class Row:
     @property
     def itemization(self) -> Itemization | None:
         """The row as a typed itemization (`ScheduleA`, … from
-        `libfec_parser.itemizations`), or `None` for a row that is not one or
+        `libfec.itemizations`), or `None` for a row that is not one or
         whose schedule has no class yet.  Typed anew on every access."""
 
     @property

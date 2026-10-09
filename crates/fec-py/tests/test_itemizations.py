@@ -1,4 +1,4 @@
-"""`libfec_parser.itemizations`: the typed itemization classes behind `Row.itemization`.
+"""`libfec.itemizations`: the typed itemization classes behind `Row.itemization`.
 
 Like `test_covers.py`, the main check is differential: for every itemization
 fixture `fec-parser`'s tests snapshot as JSON
@@ -18,10 +18,10 @@ from typing import Any
 
 import pytest
 
-import libfec_parser as fec
-from libfec_parser import itemizations
-from libfec_parser.covers import Address, PersonName
-from libfec_parser.itemizations import CandidateRef, Entity, Itemization, ScheduleA
+import libfec as fec
+from libfec import itemizations
+from libfec.covers import Address, PersonName
+from libfec.itemizations import CandidateRef, Entity, Itemization, ScheduleA
 
 FEC_PY = Path(__file__).resolve().parents[1]
 PARSER_TESTS = FEC_PY.parent / "fec-parser" / "tests"
@@ -67,7 +67,7 @@ def test_itemization_matches_fec_parser_snapshot(fixture: Path, expected: list[d
             assert item is None
             continue
         assert item is not None
-        assert type(item).__module__ == "libfec_parser.itemizations"
+        assert type(item).__module__ == "libfec.itemizations"
         want = dict(want)
         family = want.pop("family")
         data = as_json(item.to_dict())

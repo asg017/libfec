@@ -35,7 +35,7 @@ use crate::itemizations::CandidateRef;
 #[cfg_attr(
     feature = "python",
     pyo3::pyclass(
-        module = "libfec_parser.itemizations",
+        module = "libfec.itemizations",
         frozen,
         get_all,
         skip_from_py_object

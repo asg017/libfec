@@ -3,10 +3,10 @@
 //! Same scheme as [`crate::covers::python`]: every itemization struct is a
 //! `#[pyclass]` through a `cfg_attr` on its definition, and `cover_class!`
 //! adds `__repr__`, `__eq__`, `to_dict()` and the struct's own helpers.
-//! `crates/fec-py` registers the classes in `libfec_parser.itemizations` and
+//! `crates/fec-py` registers the classes in `libfec.itemizations` and
 //! turns an [`Itemization`] into the matching class with [`itemization_to_py`].
 //! The shared [`crate::covers::PersonName`] and [`crate::covers::Address`]
-//! stay classes of `libfec_parser.covers`.
+//! stay classes of `libfec.covers`.
 
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
@@ -158,7 +158,7 @@ pub fn itemization_to_py(py: Python<'_>, item: Itemization) -> PyResult<Bound<'_
     })
 }
 
-/// Add every itemization class to `module` (`libfec_parser.itemizations`).
+/// Add every itemization class to `module` (`libfec.itemizations`).
 pub fn add_classes(module: &Bound<'_, PyModule>) -> PyResult<()> {
     macro_rules! add {
         ($($ty:ty),+ $(,)?) => { $(module.add_class::<$ty>()?;)+ };
