@@ -950,6 +950,7 @@ dependencies = [
  "csv",
  "fec-cli",
  "fec-parser",
+ "fec-rss",
  "jiff",
  "pyo3",
 ]

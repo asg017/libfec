@@ -19,6 +19,8 @@ pyo3 = { version = "0.29", features = ["abi3-py311", "jiff-02"] }
 # `python`: the typed cover structs are `#[pyclass]`es (`libfec.covers`).
 fec-parser = { path="../fec-parser", features = ["python"] }
 csv = "1.3"
+# `libfec.rss`: the feed parser, without the CLI's ureq fetch.
+fec-rss = { path = "../fec-rss" }
 # The workspace already resolves jiff 0.2.x via fec-parser; `jiff-02` converts
 # `jiff::civil::Date` to `datetime.date` (limited-API safe under abi3-py311).
 jiff = "0.2"
