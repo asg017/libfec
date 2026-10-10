@@ -2,7 +2,7 @@
 
 from importlib.metadata import version as _version
 
-from . import fecfile, parser
+from . import fecfile, parser, rss
 from .parser import (
     Cover,
     FecError,
@@ -22,6 +22,7 @@ __version__ = _version("libfec")
 __all__ = [
     "fecfile",
     "parser",
+    "rss",
     "Cover",
     "FecError",
     "FecParseError",
