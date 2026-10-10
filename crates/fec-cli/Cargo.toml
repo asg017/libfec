@@ -46,7 +46,7 @@ etcetera = "0.10.0"
 ratatui = "0.30"
 crossterm = "0.28"
 arboard = "3.6.1"
-xmlparser = "0.13"
+fec-rss = { path = "../fec-rss" }
 open = "5"
 time = "0.3.46"
 indexmap = "2"
