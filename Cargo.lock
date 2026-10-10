@@ -888,6 +888,7 @@ dependencies = [
  "etcetera",
  "fec-api",
  "fec-parser",
+ "fec-rss",
  "indexmap",
  "indicatif",
  "insta",
@@ -909,7 +910,6 @@ dependencies = [
  "ureq",
  "url",
  "uuid",
- "xmlparser",
  "zip",
 ]
 
@@ -940,6 +940,15 @@ dependencies = [
  "quote",
  "serde_json",
  "syn 1.0.109",
+]
+
+[[package]]
+name = "fec-rss"
+version = "0.1.0"
+dependencies = [
+ "jiff",
+ "serde",
+ "xmlparser",
 ]
 
 [[package]]
