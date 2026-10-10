@@ -1,6 +1,7 @@
 use std::borrow::Cow;
 
-use jiff::{Timestamp, Zoned};
+use jiff::fmt::rfc2822::DateTimeParser;
+use jiff::Timestamp;
 
 use crate::{Feed, Item, ParseError};
 
@@ -149,9 +150,8 @@ fn parse_description_metadata(item: &mut Item, desc: &str) {
 /// Parse RFC2822 date format (the feed's `pubDate` and the `Last-Modified` header)
 pub fn parse_rfc2822(s: &str) -> Option<Timestamp> {
     // Format: "Fri, 23 Jan 2026 17:46:22 GMT"
-    jiff::fmt::rfc2822::parse(s)
-        .ok()
-        .map(|z: Zoned| z.timestamp())
+    static PARSER: DateTimeParser = DateTimeParser::new();
+    PARSER.parse_timestamp(s).ok()
 }
 
 #[cfg(test)]
