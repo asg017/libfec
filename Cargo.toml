@@ -4,6 +4,7 @@ resolver = "2"
 members = [
     "crates/fec-parser-macros",
     "crates/fec-parser",
+    "crates/fec-rss",
     "crates/fec-cli",
     "crates/fec-api", 
     "crates/fec-wasm", 

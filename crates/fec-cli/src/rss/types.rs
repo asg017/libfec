@@ -1,31 +1,7 @@
 use std::fmt;
 
+use fec_rss::Feed;
 use jiff::Timestamp;
-
-/// RSS feed structure
-#[derive(Debug, Clone)]
-pub struct Feed {
-    pub title: String,
-    pub link: String,
-    pub description: String,
-    pub items: Vec<Item>,
-}
-
-/// RSS feed item
-#[derive(Debug, Clone)]
-pub struct Item {
-    pub title: String,
-    pub link: String,
-    pub description: String,
-    pub pub_date: Option<Timestamp>,
-    pub guid: String,
-    pub committee_id: Option<String>,
-    pub filing_id: Option<String>,
-    pub form_type: Option<String>,
-    pub coverage_from: Option<String>,
-    pub coverage_through: Option<String>,
-    pub report_type: Option<String>,
-}
 
 /// RSS feed errors
 #[derive(Debug)]
