@@ -1,0 +1,15 @@
+[package]
+name = "fec-rss"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "Parse the FEC e-filing RSS feed (efilingapps.fec.gov/rss) into typed items. No HTTP."
+
+[dependencies]
+jiff = "0.2.5"
+xmlparser = "0.13"
+serde = { version = "1.0", features = ["derive"], optional = true }
+
+[features]
+# Serialize/Deserialize on Feed and Item (pub_date as an RFC 3339 string).
+serde = ["dep:serde", "jiff/serde"]
