@@ -79,7 +79,7 @@ def test_background_thread_progresses_during_parse(benchmark_fec_file):
     263 KB fixture so it stays fast on a debug build): here we parse the full
     91 MB filing once and check that a ticking background thread got at least
     50% of the ticks its measured duration implies -- duration-based, not an
-    absolute tick count, because ``make test-slow``/``make bench``/CI install
+    absolute tick count, because ``make test-slow``/CI install
     the --release extension, where this parse is much faster than under
     ``make test``'s debug build. Same tick-counting pattern as the old
     ``plans/python/probes/edge.py`` probe.

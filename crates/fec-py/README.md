@@ -361,8 +361,7 @@ Background and the intended fixes are in [`plans/python/`](../../plans/python/) 
 ## Performance
 
 Measured 2026-09-18 on an Apple M4 Pro, CPython 3.13, release build, parsing the 91 MB, 408,160-row
-`1805248.fec` filing (gitignored; not one of the committed fixtures). Reproduce with `make bench`
-([`benchmarks/python/bench.py`](../../benchmarks/python/bench.py)).
+`1805248.fec` filing (gitignored; not one of the committed fixtures).
 
 | Operation | Time | Peak RSS |
 | --- | --- | --- |
