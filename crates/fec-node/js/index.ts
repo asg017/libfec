@@ -40,6 +40,8 @@ export { read, Filing, columns, type Column } from "./filing.js";
 export { readHeader, type Header } from "./header.js";
 export { FecError, FecParseError, MissingMappingError } from "./errors.js";
 export type { Source } from "./source.js";
+/** The FEC e-filing RSS feed: `rss.fetch()`, `rss.parseFeed()`, `rss.feedUrl()`. */
+export * as rss from "./rss.js";
 
 /** The package version (lockstep with the libfec workspace). */
 export const version: string = native.version();
