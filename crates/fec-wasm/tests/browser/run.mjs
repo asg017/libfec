@@ -9,28 +9,12 @@
 // - a module worker, a File source, ERR_UNSUPPORTED_SOURCE;
 // - rss.fetch through the proxy, and the CORS explanation without one.
 import assert from "node:assert/strict";
-import { existsSync } from "node:fs";
-import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import puppeteer from "puppeteer-core";
 import { serve } from "../../scripts/serve.mjs";
 import { FIXTURES, bytes, napi } from "../helpers.mjs";
 import { summarize } from "./summarize.mjs";
-
-function findChrome() {
-  if (process.env.CHROME_PATH) return process.env.CHROME_PATH;
-  const candidates = [
-    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-    "/Applications/Chromium.app/Contents/MacOS/Chromium",
-    "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
-  ];
-  for (const c of candidates) if (existsSync(c)) return c;
-  for (const name of ["google-chrome-stable", "google-chrome", "chromium", "chromium-browser"]) {
-    const r = spawnSync("which", [name], { encoding: "utf8" });
-    if (r.status === 0) return r.stdout.trim();
-  }
-  throw new Error("no Chrome found; set CHROME_PATH");
-}
+import { findChrome } from "./chrome.mjs";
 
 const CRATES = fileURLToPath(new URL("../../../", import.meta.url));
 const fixtures = FIXTURES.map(([label]) => `/${label.replaceAll("\\", "/")}`);

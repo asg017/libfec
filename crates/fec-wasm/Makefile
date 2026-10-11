@@ -1,4 +1,4 @@
-.PHONY: install install-tools build build-dev build-js test test-node test-deno test-bun test-browser typecheck bench demo clean
+.PHONY: install install-tools build build-dev build-js test test-node test-deno test-bun test-browser bench-browser demo clean
 
 install:                       ## one-time: npm ci
 	npm ci
@@ -28,8 +28,12 @@ test-deno:
 test-bun:
 	node scripts/test.mjs bun
 
-test-browser:                  ## headless Chrome (CHROME_PATH=...), default and strict CSP, vs the napi build
+test-browser:                  ## headless Chrome (CHROME_PATH=...): the API vs the napi build (default and strict CSP), then the demo
 	node tests/browser/run.mjs
+	node tests/browser/demo.mjs
+
+bench-browser:                 ## the browser build in headless Chrome on BENCH_FILE (default benchmarks/1805248.fec)
+	node tests/browser/bench.mjs $(BENCH_FILE)
 
 demo:                          ## the demo app on http://127.0.0.1:8000/fec-wasm/demo/ (with the FEC proxy)
 	node scripts/serve.mjs --port 8000
