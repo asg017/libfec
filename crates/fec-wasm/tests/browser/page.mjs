@@ -69,7 +69,7 @@ window.__run = async (fixtures) => {
     }),
     await check("worker", async () => {
       const r = await inWorker(await bytesOf(pac));
-      return { n: r.n, first: r.first };
+      return { n: r.n, first: r.first, codegen: r.codegen };
     }),
     await check("rss.fetch via proxy", async () => {
       const feed = await lib.rss.fetch({ preset: "pac", proxy: `${location.origin}/proxy?url=` });

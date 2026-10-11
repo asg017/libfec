@@ -4,16 +4,21 @@
 // - /proxy?url=<encoded>: fetches an FEC URL server-side and adds CORS
 //   headers (the FEC sends none, so a page can't fetch the RSS feed or a
 //   .fec file directly). Only efilingapps.fec.gov and docquery.fec.gov.
-// - ?csp=strict on an .html page: serves it under a CSP without
-//   'unsafe-eval' (only 'wasm-unsafe-eval'), as strict sites do.
+// - --csp strict: every page and script (workers too: a worker takes its CSP
+//   from its own script's response) under a CSP without 'unsafe-eval' (only
+//   'wasm-unsafe-eval'), as strict sites do.
 //
-//   node scripts/serve.mjs [--port 8000] [--root ../] [--feed saved.xml]
+// Development only: it listens on 127.0.0.1 and answers only requests whose
+// Host is 127.0.0.1 or localhost (no DNS rebinding).
+//
+//   node scripts/serve.mjs [--port 8000] [--root ../] [--feed saved.xml] [--csp strict]
 //
 // --root defaults to crates/, so pages can import ../fec-wasm/dist and read
 // the committed fixtures. --feed answers every feed request from a saved
 // file (offline tests). The module also exports `serve()` for the tests.
 import { createReadStream, readFileSync, statSync } from "node:fs";
 import { createServer } from "node:http";
+import { Readable } from "node:stream";
 import { extname, join, normalize, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -38,14 +43,18 @@ const STRICT_CSP = "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; st
  *
  * `files` maps extra URL paths to files outside `root` (the benchmark filing).
  *
- * @param {{ port?: number, root?: string, feed?: string, files?: Record<string, string>, log?: boolean }} options
+ * @param {{ port?: number, root?: string, feed?: string, files?: Record<string, string>, csp?: "strict", log?: boolean }} options
  */
-export function serve({ port = 0, root = fileURLToPath(new URL("../../", import.meta.url)), feed, files = {}, log = false } = {}) {
+export function serve({ port = 0, root = fileURLToPath(new URL("../../", import.meta.url)), feed, files = {}, csp, log = false } = {}) {
   root = resolve(root);
   const savedFeed = feed ? readFileSync(feed) : null;
   const server = createServer(async (req, res) => {
     const url = new URL(req.url ?? "/", "http://localhost");
     if (log) console.log(req.method, url.pathname + url.search);
+    const { port } = server.address();
+    if (req.headers.host !== `127.0.0.1:${port}` && req.headers.host !== `localhost:${port}`) {
+      return send(res, 421, "unexpected Host");
+    }
     try {
       if (url.pathname === "/proxy") return await proxy(url, res, savedFeed);
       let path = files[url.pathname] ?? normalize(join(root, decodeURIComponent(url.pathname)));
@@ -61,9 +70,7 @@ export function serve({ port = 0, root = fileURLToPath(new URL("../../", import.
         "content-length": stat.size,
         "cache-control": "no-store",
       };
-      if (url.searchParams.get("csp") === "strict" && path.endsWith(".html")) {
-        headers["content-security-policy"] = STRICT_CSP;
-      }
+      if (csp === "strict" && /\.(html|m?js)$/.test(path)) headers["content-security-policy"] = STRICT_CSP;
       res.writeHead(200, headers);
       createReadStream(path).pipe(res);
     } catch (e) {
@@ -83,18 +90,41 @@ function send(res, status, body) {
   res.end(body);
 }
 
+/** An FEC URL: https or http, an allowed host, the default port. */
+function allowed(target) {
+  return (target.protocol === "https:" || target.protocol === "http:") && PROXY_HOSTS.has(target.hostname) && target.port === "";
+}
+
 async function proxy(url, res, savedFeed) {
-  const target = new URL(url.searchParams.get("url") ?? "");
-  if (target.protocol !== "https:" && target.protocol !== "http:") return send(res, 400, "bad url");
-  if (!PROXY_HOSTS.has(target.hostname)) return send(res, 403, `not an FEC host: ${target.hostname}`);
+  let target;
+  try {
+    target = new URL(url.searchParams.get("url") ?? "");
+  } catch {
+    return send(res, 400, "bad url");
+  }
+  if (!allowed(target)) return send(res, 403, `not an allowed FEC URL: ${target.href}`);
   const cors = { "access-control-allow-origin": "*", "cache-control": "no-store" };
   if (savedFeed && target.hostname === "efilingapps.fec.gov") {
     res.writeHead(200, { ...cors, "content-type": "application/xml" });
     return res.end(savedFeed);
   }
-  const upstream = await fetch(target, { headers: { "user-agent": "libfec-wasm demo proxy" } });
-  res.writeHead(upstream.status, { ...cors, "content-type": upstream.headers.get("content-type") ?? "application/octet-stream" });
-  res.end(Buffer.from(await upstream.arrayBuffer()));
+  // Follow redirects by hand, so each hop is checked against the allowlist.
+  let upstream;
+  for (let hops = 0; ; hops++) {
+    upstream = await fetch(target, { redirect: "manual", headers: { "user-agent": "libfec-wasm demo proxy" } });
+    const location = upstream.headers.get("location");
+    if (upstream.status < 300 || upstream.status >= 400 || !location) break;
+    if (hops === 5) return send(res, 508, "too many redirects");
+    target = new URL(location, target);
+    if (!allowed(target)) return send(res, 403, `redirected off the allowed hosts: ${target.href}`);
+  }
+  const headers = { ...cors, "content-type": upstream.headers.get("content-type") ?? "application/octet-stream" };
+  // fetch() decompresses, so a compressed response's length isn't the body's.
+  const length = upstream.headers.get("content-length");
+  if (length && !upstream.headers.get("content-encoding")) headers["content-length"] = length;
+  res.writeHead(upstream.status, headers);
+  if (upstream.body) Readable.fromWeb(upstream.body).pipe(res);
+  else res.end();
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
@@ -107,6 +137,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     port: Number(flag("--port") ?? 8000),
     root: flag("--root"),
     feed: flag("--feed"),
+    csp: flag("--csp"),
     log: true,
   });
   console.log(`serving on ${url}/fec-wasm/demo/`);

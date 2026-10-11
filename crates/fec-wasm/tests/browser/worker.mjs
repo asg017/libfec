@@ -13,7 +13,13 @@ self.onmessage = async (e) => {
     const f = open(e.data, { id: "1721696" });
     const rows = [...f.itemizations()];
     f.close();
-    self.postMessage({ n: rows.length, first: rows[0], rows });
+    let codegen;
+    try {
+      codegen = new Function("return 1")() === 1;
+    } catch {
+      codegen = false;
+    }
+    self.postMessage({ n: rows.length, first: rows[0], rows, codegen });
   } catch (err) {
     self.postMessage({ error: String(err) });
   }
