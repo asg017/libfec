@@ -7,7 +7,11 @@ use std::io::Read;
 
 use napi_derive::napi;
 
+pub mod arrays;
+#[cfg(debug_assertions)]
+pub mod debug;
 pub mod errors;
+pub mod tokens;
 
 /// The crate version (lockstep with the workspace).
 #[napi]

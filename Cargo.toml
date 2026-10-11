@@ -10,6 +10,7 @@ members = [
     "crates/fec-wasm", 
     "crates/fec-py",
     "crates/fec-node",
+    "crates/fec-js-core",
 ]
 
 # One version for the CLI and the `libfec` Python wheel (which ships the CLI too).
