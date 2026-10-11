@@ -131,7 +131,12 @@ test("fetch: in a browser, a failed request without a proxy explains CORS", asyn
   globalThis.document = {};
   try {
     await withFetch(failed, async () => {
-      await assert.rejects(rss.fetch(), (e) => e instanceof TypeError && /CORS/.test(e.message) && e.cause?.message === "Failed to fetch");
+      if ("Deno" in globalThis) {
+        // Deno has no CORS (and a WorkerGlobalScope in its workers): never the hint.
+        await assert.rejects(rss.fetch(), { message: "Failed to fetch" });
+      } else {
+        await assert.rejects(rss.fetch(), (e) => e instanceof TypeError && /CORS/.test(e.message) && e.cause?.message === "Failed to fetch");
+      }
       // With a proxy, the error is the proxy's to explain.
       await assert.rejects(rss.fetch({ proxy: "https://p.example/?u=" }), { message: "Failed to fetch" });
     });

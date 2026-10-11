@@ -109,9 +109,9 @@ function proxied(url: string, proxy: FetchOptions["proxy"]): string {
   return proxy.includes("{url}") ? proxy.replaceAll("{url}", encoded) : proxy + encoded;
 }
 
-/** A browser page or worker, where cross-origin requests need CORS. */
+/** A browser page or worker, where cross-origin requests need CORS. (Deno defines `WorkerGlobalScope` in its workers, but has no CORS.) */
 function inBrowser(): boolean {
-  return "document" in globalThis || "WorkerGlobalScope" in globalThis;
+  return ("document" in globalThis || "WorkerGlobalScope" in globalThis) && !("Deno" in globalThis);
 }
 
 function join(value: string | Iterable<string> | undefined): string | null {
@@ -180,8 +180,8 @@ export async function fetch(options: FetchOptions = {}): Promise<Feed> {
     // A CORS block surfaces as a bare "Failed to fetch" TypeError; say why.
     if (e instanceof TypeError && options.proxy === undefined && inBrowser()) {
       throw new TypeError(
-        `fetching ${url} failed: the FEC sends no CORS headers, so browsers block it. ` +
-          "Pass a `proxy` that adds them (see FetchOptions.proxy).",
+        `fetching ${url} failed, probably because the FEC sends no CORS headers and the browser ` +
+          "blocked the response. Pass a `proxy` that adds them (see FetchOptions.proxy). The original error is the `cause`.",
         { cause: e },
       );
     }
