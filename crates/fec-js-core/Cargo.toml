@@ -4,7 +4,7 @@ version = "0.0.32"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 publish = false
-description = "The typed-record token encoding fec-node hands to JS, free of napi so a wasm32 build can share them."
+description = "The batch encodings fec-node hands to JS (raw field offsets, typed-record tokens), free of napi so a wasm32 build can share them."
 
 [dependencies]
 serde = "1"

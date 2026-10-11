@@ -2,16 +2,41 @@
  * Parse FEC electronic filings (`.fec`) in Node, Deno and Bun.
  *
  * ```ts
- * import { readHeader } from "@asg017/libfec";
+ * import { open } from "@asg017/libfec";
  *
- * const header = readHeader("1805248.fec");
- * console.log(header.fecVersion, header.softwareName);
+ * const filing = open("1805248.fec");
+ * try {
+ *   for (const row of filing.itemizations()) {
+ *     switch (row.itemization.type) {
+ *       case "ScheduleA": console.log(row.itemization.contribution_amount); break;
+ *     }
+ *   }
+ * } finally {
+ *   filing.close();
+ * }
  * ```
  *
  * @module
  */
 import * as native from "./native.js";
 
+export {
+  open,
+  FilingReader,
+  type OpenOptions,
+  type CoverSummary,
+  type RawRecord,
+  type SkippedRow,
+} from "./reader.js";
+export {
+  Row,
+  type Value,
+  type RowValues,
+  type RowJSON,
+  type InvalidValue,
+  type DatesOption,
+} from "./row.js";
+export { read, Filing, columns, type Column } from "./filing.js";
 export { readHeader, type Header } from "./header.js";
 export { FecError, FecParseError, MissingMappingError } from "./errors.js";
 export type { Source } from "./source.js";

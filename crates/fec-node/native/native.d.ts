@@ -9,6 +9,61 @@
  */
 export declare const __napiBindingTarget: 'native' | 'wasm32-wasi' | 'wasm32-wasip1'
 
+export declare class NativeReader {
+  static openPath(path: string): NativeReader
+  /** Reads the JS buffer in place (no copy). */
+  static openBytes(bytes: Uint8Array): NativeReader
+  /** The file stem minus any `FEC-` prefix; `null` for bytes. */
+  get id(): string | null
+  get fecVersion(): string
+  get header(): NativeHeader
+  get coverSummary(): NativeCoverSummary
+  /** The raw cover record. */
+  get coverFields(): Array<string>
+  /** The cover record's 1-based physical line. */
+  get coverLine(): number
+  /**
+   * The typed cover as a self-contained token batch (its own struct ids:
+   * decode it with a fresh decoder): one `Cover { form, data }`, or `null`
+   * when the form has no struct.
+   */
+  coverData(): TokenBatch
+  /** Typed mode on or off; only before the first batch. */
+  setTyped(typed: boolean): void
+  /**
+   * Up to `n` rows, or `null` at the end of the file. In typed mode the
+   * `n` counts kept (typed) rows.
+   */
+  nextBatch(n: number): Batch | null
+  /** Drop the parser (and the file or buffer). Idempotent. */
+  close(): void
+  get closed(): boolean
+}
+
+/**
+ * Up to `n` rows: every field of every row concatenated into `text`, with
+ * UTF-16 end offsets (JS `slice` counts UTF-16 units). No separators, so a
+ * field holding `
+` or `\x1c` survives.
+ */
+export interface Batch {
+  text: string
+  /** `ends[k]`: UTF-16 end offset of field `k` within `text`. */
+  ends: Uint32Array
+  /** `row_ends[i]`: index into `ends` one past row `i`'s last field. */
+  rowEnds: Uint32Array
+  /** `lines[i]`: row `i`'s 1-based physical line. */
+  lines: Uint32Array
+  /** Typed mode: one itemization per row of this batch. `None` in raw mode. */
+  typed: TokenBatch | null
+}
+
+export interface Column {
+  name: string
+  /** `"text"`, `"amount"` or `"date"`. */
+  kind: string
+}
+
 export interface DebugTyped {
   /** The typed cover (one value, `null` if the form has no struct). */
   cover: TokenBatch
@@ -19,6 +74,16 @@ export interface DebugTyped {
 }
 
 export declare function debugTypedPath(path: string): DebugTyped
+
+/** The six normalized cover fields (`FilingCover`), dates as ISO strings. */
+export interface NativeCoverSummary {
+  formType: string
+  filerId: string
+  filerName: string
+  reportCode: string | null
+  coverageFromDate: string | null
+  coverageThroughDate: string | null
+}
 
 /** `fec_parser::FilingHeader`, field for field (camelCased by napi-rs). */
 export interface NativeHeader {
@@ -49,6 +114,9 @@ export interface NativeHeaderField {
 export declare function readHeaderBytes(bytes: Uint8Array): NativeHeader
 
 export declare function readHeaderPath(path: string): NativeHeader
+
+/** Column names and kinds for `(row_type, fec_version)`. */
+export declare function schema(rowType: string, fecVersion: string): Array<Column>
 
 /**
  * One batch of typed values, one top-level value per row
