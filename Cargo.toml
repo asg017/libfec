@@ -21,3 +21,12 @@ version = "0.0.34"
 [profile.dist]
 inherits = "release"
 lto = "thin"
+
+# The browser build (crates/fec-wasm, `make build` there): speed over size,
+# then wasm-opt. Its own profile so native release builds are unaffected.
+[profile.wasm-release]
+inherits = "release"
+lto = true
+codegen-units = 1
+opt-level = 3
+panic = "abort"
