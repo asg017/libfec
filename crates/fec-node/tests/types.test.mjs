@@ -58,6 +58,17 @@ test("keys.json has every struct in serde key order", () => {
   for (const t of [...ITEMIZATION_TYPES, ...COVER_TYPES]) assert.ok(keys[t], t);
 });
 
+test("the README lists every Itemization and Cover type", () => {
+  const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8").replace(/\r\n/g, "\n");
+  const listed = (heading) => {
+    const start = readme.indexOf(heading);
+    const para = readme.slice(start, readme.indexOf("\n\n", start));
+    return [...para.matchAll(/`(\w+)`/g)].map((m) => m[1]).filter((t) => /^[A-Z]/.test(t));
+  };
+  assert.deepEqual(listed("Every `Itemization` `type`").filter((t) => t !== "Itemization" && t !== "ITEMIZATION_TYPES"), [...ITEMIZATION_TYPES]);
+  assert.deepEqual(listed("Every `Cover` `type`").filter((t) => t !== "Cover" && t !== "COVER_TYPES"), [...COVER_TYPES]);
+});
+
 test("js/ reaches the platform only through js/native.ts", () => {
   // A future browser build swaps js/native.ts for a wasm adapter, so no other
   // module may import the binding or node:* (plans/nodejs/06-wasm-spike.md W1).
