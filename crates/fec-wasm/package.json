@@ -25,6 +25,7 @@
     "build": "node scripts/build.mjs"
   },
   "devDependencies": {
+    "puppeteer-core": "24.43.1",
     "typescript": "~5.9"
   }
 }
