@@ -61,12 +61,7 @@ use crate::itemizations::{text_any, CandidateRef, Entity};
 /// transaction ID or entity type but carry an `image_number`.
 #[cfg_attr(
     feature = "python",
-    pyo3::pyclass(
-        module = "libfec.itemizations",
-        frozen,
-        get_all,
-        skip_from_py_object
-    )
+    pyo3::pyclass(module = "libfec.itemizations", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct ScheduleC {
@@ -153,12 +148,7 @@ pub struct ScheduleC {
 /// The same facts as a [`crate::itemizations::ScheduleC2`] row.
 #[cfg_attr(
     feature = "python",
-    pyo3::pyclass(
-        module = "libfec.itemizations",
-        frozen,
-        get_all,
-        skip_from_py_object
-    )
+    pyo3::pyclass(module = "libfec.itemizations", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct ScheduleCGuarantor {

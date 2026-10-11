@@ -53,12 +53,7 @@ use crate::itemizations::{address_either, CandidateRef, Entity};
 /// carry an `image_number`.
 #[cfg_attr(
     feature = "python",
-    pyo3::pyclass(
-        module = "libfec.itemizations",
-        frozen,
-        get_all,
-        skip_from_py_object
-    )
+    pyo3::pyclass(module = "libfec.itemizations", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct ScheduleD {

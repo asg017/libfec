@@ -26,12 +26,7 @@ use crate::covers::fields::{amount_opt, flag, text, text_or_empty, Fields};
 /// `image_number`.
 #[cfg_attr(
     feature = "python",
-    pyo3::pyclass(
-        module = "libfec.itemizations",
-        frozen,
-        get_all,
-        skip_from_py_object
-    )
+    pyo3::pyclass(module = "libfec.itemizations", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct ScheduleH2 {

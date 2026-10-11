@@ -38,12 +38,7 @@ fn contributor<F: Fields + ?Sized>(data: &F) -> Entity {
 /// or entity type but carry an `image_number` (and a memo code from P3.2).
 #[cfg_attr(
     feature = "python",
-    pyo3::pyclass(
-        module = "libfec.itemizations",
-        frozen,
-        get_all,
-        skip_from_py_object
-    )
+    pyo3::pyclass(module = "libfec.itemizations", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct Form13Donation {
@@ -126,12 +121,7 @@ impl Form13Donation {
 /// or entity type but carry an `image_number` (and a memo code from P3.2).
 #[cfg_attr(
     feature = "python",
-    pyo3::pyclass(
-        module = "libfec.itemizations",
-        frozen,
-        get_all,
-        skip_from_py_object
-    )
+    pyo3::pyclass(module = "libfec.itemizations", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct Form13Refund {
