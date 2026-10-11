@@ -506,11 +506,19 @@ impl<R: Read> Filing<R> {
 
     /// Return the next itemization row in the filing, or None if at end of file.
     pub fn next_row(&mut self) -> Option<Result<FilingRow, FilingRowReadError>> {
-        let (record, original_size, byte_offset) = match self.records_iter.next() {
+        let (record, original_size, byte_offset, line) = match self.records_iter.next() {
             Some(Ok(record)) => {
                 let n = record.as_slice().len();
+                // `from_byte_record_lossy` drops the position when the record is not
+                // valid UTF-8, so read the position off the `ByteRecord` first.
                 let byte_offset = record.position().map(|p| p.byte()).unwrap_or(0);
-                (string_record(self.header.delimiter, record), n, byte_offset)
+                let line = record.position().map(|p| p.line()).unwrap_or(0);
+                (
+                    string_record(self.header.delimiter, record),
+                    n,
+                    byte_offset,
+                    line,
+                )
             }
             Some(Err(err)) => return Some(Err(FilingRowReadError::CsvError(err))),
             None => return None,
@@ -540,6 +548,7 @@ impl<R: Read> Filing<R> {
                                 };
                                 let original_size = record.as_slice().len();
                                 let byte_offset = record.position().map(|p| p.byte()).unwrap_or(0);
+                                let line = record.position().map(|p| p.line()).unwrap_or(0);
                                 let record = string_record(self.header.delimiter, record);
                                 let row_type = record
                                     .get(0)
@@ -550,6 +559,7 @@ impl<R: Read> Filing<R> {
                                     record,
                                     original_size,
                                     byte_offset,
+                                    line,
                                 }));
                             }
                             None => return None,
@@ -573,6 +583,7 @@ impl<R: Read> Filing<R> {
             record,
             original_size,
             byte_offset,
+            line,
         }))
     }
 }
@@ -795,6 +806,8 @@ pub struct FilingRow {
     pub original_size: usize,
     /// Byte offset of the start of this record in the source stream.
     pub byte_offset: u64,
+    /// 1-based physical line of the row in the source file, or 0 if unknown.
+    pub line: u64,
 }
 
 #[cfg(test)]
