@@ -17,5 +17,16 @@ build-dev:                     ## unoptimized wasm, no wasm-opt (fast rebuilds)
 build-js:                      ## only the TypeScript layer (after changing crates/fec-node/js)
 	node scripts/build.mjs --js
 
+test: test-node test-deno test-bun   ## parity with the napi build + browser-only behavior, under all three runtimes (needs `make build` in ../fec-node)
+
+test-node:
+	node scripts/test.mjs node
+
+test-deno:
+	node scripts/test.mjs deno
+
+test-bun:
+	node scripts/test.mjs bun
+
 clean:
 	rm -rf build dist wasm node_modules
