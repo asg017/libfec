@@ -29,6 +29,7 @@ use crate::covers::fields::{amount_opt, flag, text, text_or_empty, Fields};
     pyo3::pyclass(module = "libfec.itemizations", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, serde::Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct ScheduleH2 {
     /// The row type as filed, `H2`. Column `form_type` (FEC format workbook
     /// v8.4, sheet `Sch H2`, field 1).

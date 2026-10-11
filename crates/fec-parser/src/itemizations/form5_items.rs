@@ -40,6 +40,7 @@ use crate::itemizations::{
     pyo3::pyclass(module = "libfec.itemizations", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, serde::Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct Form5Contribution {
     /// The row type as filed, `F56`. Column `form_type` (FEC format workbook
     /// v8.4, sheet `F56`, field 1).
@@ -142,6 +143,7 @@ impl Form5Contribution {
     pyo3::pyclass(module = "libfec.itemizations", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, serde::Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct Form5Expenditure {
     /// The row type as filed, `F57`. Column `form_type` (FEC format workbook
     /// v8.4, sheet `F57`, field 1).

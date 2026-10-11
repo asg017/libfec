@@ -34,6 +34,7 @@ use crate::itemizations::Entity;
     pyo3::pyclass(module = "libfec.itemizations", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, serde::Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct ScheduleH6 {
     /// The row type as filed, `H6`. Column `form_type` (FEC format workbook
     /// v8.4, sheet `Sch H6`, field 1).

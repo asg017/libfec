@@ -541,30 +541,27 @@ impl<R: Read> Filing<R> {
                 match self.records_iter.next() {
                     Some(Err(e)) => return Some(Err(FilingRowReadError::TextRecordError(e))),
                     Some(Ok(record)) => match record.get(0) {
-                        Some(f) if is_end_text(f) => match self.records_iter.next() {
-                            Some(record) => {
-                                let record = match record {
-                                    Ok(r) => r,
-                                    Err(e) => return Some(Err(FilingRowReadError::CsvError(e))),
-                                };
-                                let original_size = record.as_slice().len();
-                                let byte_offset = record.position().map(|p| p.byte()).unwrap_or(0);
-                                let line = record.position().map(|p| p.line()).unwrap_or(0);
-                                let record = string_record(self.header.delimiter, record);
-                                let row_type = record
-                                    .get(0)
-                                    .map(|s| s.trim().to_owned())
-                                    .unwrap_or_else(|| String::from(""));
-                                return Some(Ok(FilingRow {
-                                    row_type,
-                                    record,
-                                    original_size,
-                                    byte_offset,
-                                    line,
-                                }));
-                            }
-                            None => return None,
-                        },
+                        Some(f) if is_end_text(f) => {
+                            let record = match self.records_iter.next()? {
+                                Ok(r) => r,
+                                Err(e) => return Some(Err(FilingRowReadError::CsvError(e))),
+                            };
+                            let original_size = record.as_slice().len();
+                            let byte_offset = record.position().map(|p| p.byte()).unwrap_or(0);
+                            let line = record.position().map(|p| p.line()).unwrap_or(0);
+                            let record = string_record(self.header.delimiter, record);
+                            let row_type = record
+                                .get(0)
+                                .map(|s| s.trim().to_owned())
+                                .unwrap_or_else(|| String::from(""));
+                            return Some(Ok(FilingRow {
+                                row_type,
+                                record,
+                                original_size,
+                                byte_offset,
+                                line,
+                            }));
+                        }
                         Some(_) => {
                             contents += &String::from_utf8_lossy(record.as_slice());
                             contents += "\n";
@@ -888,5 +885,37 @@ mod tests {
              SA11AI\x1cC00776393\x1cJANE DOE\x1c50.00\r\n",
         );
         assert_eq!(rows, [["SA11AI", "C00776393", "JANE DOE", "50.00"]]);
+    }
+
+    #[test]
+    fn row_lines_are_file_lines() {
+        let path = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../fec-py/tests/fixtures/1921705.fec"
+        );
+        let mut filing =
+            Filing::<std::fs::File>::from_path(std::path::Path::new(path)).expect("open fixture");
+        let mut lines = vec![];
+        while let Some(row) = filing.next_row() {
+            lines.push(row.expect("read row").line);
+        }
+        assert_eq!(lines, (3..=22).collect::<Vec<u64>>());
+    }
+
+    #[test]
+    fn row_after_endtext_has_its_line() {
+        // LF line ends: with CRLF ones every row's `line` is currently one
+        // short (the csv reader starts the record at the previous `\n`).
+        let src = HEADER_AND_COVER.replace("\r\n", "\n")
+            + "SA11AI\x1cC00776393\x1cJANE DOE\x1c50.00\n\
+               [BEGINTEXT]\nsome text\n[ENDTEXT]\n\
+               SA11AI\x1cC00776393\x1cJOHN DOE\x1c25.00\n";
+        let mut filing = Filing::from_reader(src.as_bytes(), "FEC-1".to_owned(), src.len())
+            .expect("parse filing");
+        let mut lines = vec![];
+        while let Some(row) = filing.next_row() {
+            lines.push(row.expect("read row").line);
+        }
+        assert_eq!(lines, [3, 7]);
     }
 }

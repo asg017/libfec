@@ -52,6 +52,7 @@ use crate::itemizations::text_any;
     pyo3::pyclass(module = "libfec.itemizations", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, serde::Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct ScheduleL {
     /// The row type as filed, `SL`. Column `form_type` (FEC format workbook
     /// v8.4, sheet `Sch L`, field 1).
