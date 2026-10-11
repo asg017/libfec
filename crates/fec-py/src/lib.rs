@@ -2,6 +2,7 @@ mod errors;
 mod fecfile;
 mod parser;
 mod row;
+mod rss;
 mod source;
 
 use pyo3::prelude::*;
@@ -39,6 +40,13 @@ mod _native {
         use crate::fecfile::{
             from_file, from_http, loads, parse_header, parse_line, print_example,
         };
+    }
+
+    /// The FEC e-filing RSS feed parser (`fec-rss`); `python/libfec/rss.py` adds `fetch()`.
+    #[pymodule]
+    mod rss {
+        #[pymodule_export]
+        use crate::rss::{feed_url, parse_feed, Feed, Item};
     }
 
     /// The typed cover classes (`Form3X`, `Form1`, …), defined in `fec-parser`
