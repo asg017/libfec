@@ -92,3 +92,5 @@ rss.feedUrl({ preset: "pac", forms: ["F3X"], states: "CA" }) satisfies string;
 // @ts-expect-error: not a preset
 rss.feedUrl({ preset: "weekly" });
 rss.fetch({ signal: AbortSignal.timeout(1000) }) satisfies Promise<rss.Feed>;
+rss.fetch({ proxy: "https://p.example/?url=" });
+rss.fetch({ proxy: (u) => u });

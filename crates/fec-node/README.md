@@ -242,7 +242,9 @@ for (const item of feed.items) {
 
 - `rss.fetch(options?)` downloads the feed with the runtime's global `fetch()` (no
   dependency), with a 60-second timeout unless you pass a `signal`. A non-2xx response
-  throws an `Error`.
+  throws an `Error`. In a browser, pass a `proxy`, because the FEC sends no CORS headers.
+  `proxy` is a URL prefix (`"https://proxy.example/?url="`), a template with `{url}`, or a
+  function. See [`@asg017/libfec-wasm`](../fec-wasm/README.md).
 - `rss.parseFeed(xml)` parses a feed you fetched yourself (a string or UTF-8 bytes).
 - `rss.feedUrl(options?)` gives the URL. `preset` is `"all"` (the default), `"monthly"`,
   `"quarterly"`, `"presidential"`, `"congressional"` or `"pac"`. Any of `committees`,
