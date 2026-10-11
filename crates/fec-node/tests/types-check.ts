@@ -78,3 +78,17 @@ for (const row of filing) row satisfies Row<null>;
 if (filing.cover?.type === "Form3X") filing.cover.summary.line6c_total_receipts.column_a satisfies number;
 // @ts-expect-error: no filter argument
 filing.rows("SA");
+
+// The RSS feed.
+import { rss } from "../js/index.js";
+
+const feed = rss.parseFeed("<rss/>");
+for (const item of feed.items) {
+  item.pubDate satisfies Date | null;
+  item.coverageFrom satisfies string | null;
+  item.committeeName satisfies string;
+}
+rss.feedUrl({ preset: "pac", forms: ["F3X"], states: "CA" }) satisfies string;
+// @ts-expect-error: not a preset
+rss.feedUrl({ preset: "weekly" });
+rss.fetch({ signal: AbortSignal.timeout(1000) }) satisfies Promise<rss.Feed>;

@@ -111,9 +111,46 @@ export interface NativeHeaderField {
   value: string
 }
 
+/** A parsed feed (`fec_rss::Feed`). */
+export interface NativeRssFeed {
+  title: string
+  link: string
+  description: string
+  items: Array<NativeRssItem>
+}
+
+/** One item of the feed (`fec_rss::Item`, camelCased by napi-rs). */
+export interface NativeRssItem {
+  title: string
+  link: string
+  description: string
+  /** `pubDate` as milliseconds since the Unix epoch. */
+  pubDate: number | null
+  guid: string
+  committeeId: string | null
+  filingId: string | null
+  formType: string | null
+  /** `"YYYY-MM-DD"`. */
+  coverageFrom: string | null
+  /** `"YYYY-MM-DD"`. */
+  coverageThrough: string | null
+  reportType: string | null
+  committeeName: string
+}
+
+export declare function parseRssBytes(xml: Uint8Array): NativeRssFeed
+
+export declare function parseRssText(xml: string): NativeRssFeed
+
 export declare function readHeaderBytes(bytes: Uint8Array): NativeHeader
 
 export declare function readHeaderPath(path: string): NativeHeader
+
+/**
+ * The feed URL (`fec_rss::FeedQuery::url`). `preset` is validated in JS;
+ * each filter is comma-separated.
+ */
+export declare function rssFeedUrl(preset: string, committees?: string | undefined | null, forms?: string | undefined | null, states?: string | undefined | null, parties?: string | undefined | null): string
 
 /** Column names and kinds for `(row_type, fec_version)`. */
 export declare function schema(rowType: string, fecVersion: string): Array<Column>
