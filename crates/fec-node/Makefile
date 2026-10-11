@@ -1,4 +1,4 @@
-.PHONY: install build build-release test test-node test-deno test-bun test-slow bench typecheck gen-types docs examples clean
+.PHONY: install build build-release build-browser test test-node test-deno test-bun test-slow bench typecheck gen-types docs examples clean
 
 install:                       ## one-time: npm ci
 	npm ci
@@ -8,6 +8,9 @@ build:                         ## debug addon + JS
 
 build-release:                 ## optimized addon + JS
 	npm run build:native:release && npm run build:js
+
+build-browser:                 ## copy the browser build (make build in ../fec-wasm first) into browser/
+	node scripts/build-browser.mjs
 
 test: test-node test-deno test-bun   ## the same suite under all three runtimes
 

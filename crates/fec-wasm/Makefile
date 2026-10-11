@@ -28,5 +28,11 @@ test-deno:
 test-bun:
 	node scripts/test.mjs bun
 
+test-browser:                  ## headless Chrome (CHROME_PATH=...), default and strict CSP, vs the napi build
+	node tests/browser/run.mjs
+
+demo:                          ## the demo app on http://127.0.0.1:8000/fec-wasm/demo/ (with the FEC proxy)
+	node scripts/serve.mjs --port 8000
+
 clean:
 	rm -rf build dist wasm node_modules
