@@ -74,3 +74,23 @@ test("rows survive structuredClone (postMessage from a worker)", () => {
   assert.deepEqual(clone.values, row.values);
   assert.deepEqual(clone.itemization, row.itemization);
 });
+
+test("filings of 2 GiB or more: a RangeError with code ERR_FILING_TOO_LARGE, not a trap", () => {
+  // Zero-filled and untouched, so this costs address space, not memory.
+  const huge = new Uint8Array(2 ** 31);
+  assert.throws(() => wasm.open(huge), (e) => e instanceof RangeError && e.code === "ERR_FILING_TOO_LARGE" && /Node, Deno or Bun/.test(e.message));
+  // readHeader copies only the start of the file into wasm memory, so it
+  // reports the real problem (no header) instead.
+  assert.throws(() => wasm.readHeader(huge), (e) => e.code === "FEC_PARSE");
+  // And the instance is fine afterwards.
+  const f = wasm.open(bytes(PAC));
+  assert.equal([...f.itemizations()].length, 1387);
+  f.close();
+});
+
+test("readHeader on a big filing reads only its start", () => {
+  const data = bytes(PAC);
+  const big = new Uint8Array(2 ** 27);
+  big.set(data);
+  assert.deepEqual(wasm.readHeader(big), wasm.readHeader(data));
+});
