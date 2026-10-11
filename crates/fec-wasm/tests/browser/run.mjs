@@ -3,8 +3,9 @@
 //   node tests/browser/run.mjs            # CHROME_PATH=... to pick the browser
 //
 // Serves crates/ (scripts/serve.mjs, with the saved RSS feed for the proxy),
-// opens tests/browser/index.html twice (as is, and under a CSP without
-// 'unsafe-eval', which turns off the codegen paths), and checks:
+// opens tests/browser/index.html twice (as is, and with every page and
+// script, the worker's included, under a CSP without 'unsafe-eval', which
+// turns off the codegen paths), and checks:
 // - every committed fixture summarizes identically to the napi build in Node;
 // - a module worker, a File source, ERR_UNSUPPORTED_SOURCE;
 // - rss.fetch through the proxy, and the CORS explanation without one.
@@ -20,17 +21,25 @@ const CRATES = fileURLToPath(new URL("../../../", import.meta.url));
 const fixtures = FIXTURES.map(([label]) => `/${label.replaceAll("\\", "/")}`);
 const expected = Object.fromEntries(FIXTURES.map(([label, path]) => [`/${label.replaceAll("\\", "/")}`, summarize(napi, bytes(path))]));
 
-const server = await serve({ root: CRATES, feed: fileURLToPath(new URL("../../../fec-rss/tests/fixtures/all.xml", import.meta.url)) });
+const FEED = fileURLToPath(new URL("../../../fec-rss/tests/fixtures/all.xml", import.meta.url));
 const browser = await puppeteer.launch({ executablePath: findChrome(), headless: true, args: ["--no-sandbox"], protocolTimeout: 300_000 });
 let failed = 0;
 try {
   for (const csp of [false, true]) {
     const label = csp ? "strict CSP" : "default";
+    const server = await serve({ root: CRATES, feed: FEED, csp: csp ? "strict" : undefined });
     const page = await browser.newPage();
     const errors = [];
     page.on("pageerror", (e) => errors.push(String(e)));
     const t0 = performance.now();
-    await page.goto(`${server.url}/fec-wasm/tests/browser/index.html${csp ? "?csp=strict" : ""}`);
+    // No network: the FEC's feed URL fails like a CORS block would (a TypeError
+    // from fetch), so the "explains CORS" check doesn't depend on the FEC.
+    // Only fec.gov is intercepted (puppeteer's page-wide interception would
+    // also pause the worker's script).
+    const cdp = await page.createCDPSession();
+    cdp.on("Fetch.requestPaused", (e) => cdp.send("Fetch.failRequest", { requestId: e.requestId, errorReason: "AccessDenied" }));
+    await cdp.send("Fetch.enable", { patterns: [{ urlPattern: "*://*.fec.gov/*" }] });
+    await page.goto(`${server.url}/fec-wasm/tests/browser/index.html`);
     await page.waitForFunction(() => window.__ready === true, { timeout: 30_000 });
     const { summaries, checks } = await page.evaluate((f) => window.__run(f), fixtures);
     const seconds = ((performance.now() - t0) / 1000).toFixed(1);
@@ -76,6 +85,7 @@ try {
       const [first] = f.itemizations();
       f.close();
       assert.equal(worker.value.n, 1387);
+      assert.equal(worker.value.codegen, !csp, "the worker runs under the page's CSP mode");
       // A structured clone keeps the own properties (fields included), not toJSON()'s shape.
       assert.deepEqual(worker.value.first, JSON.parse(JSON.stringify({ ...first })));
       console.log(`ok   ${label}: worker`);
@@ -84,10 +94,10 @@ try {
       console.error(`FAIL ${label}: worker: ${e.message}`);
     }
     await page.close();
+    await server.close();
   }
 } finally {
   await browser.close();
-  await server.close();
 }
 if (failed) {
   console.error(`${failed} failure(s)`);
