@@ -7,7 +7,12 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
+      "browser": "./browser/dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./browser": {
+      "types": "./browser/dist/index.d.ts",
+      "default": "./browser/dist/index.js"
     }
   },
   "files": [
@@ -15,6 +20,10 @@
     "native/*.js",
     "native/*.d.ts",
     "native/*.node",
+    "browser/dist",
+    "browser/wasm/libfec.js",
+    "browser/wasm/libfec.d.ts",
+    "browser/wasm/libfec_bg.wasm",
     "LICENSE-MIT",
     "LICENSE-APACHE"
   ],
@@ -39,7 +48,9 @@
     "build:native": "napi build --platform --esm --output-dir native --js native.js --dts native.d.ts",
     "build:native:release": "napi build --platform --esm --release --strip --output-dir native --js native.js --dts native.d.ts",
     "build:js": "tsc -p tsconfig.json",
-    "build": "npm run build:native && npm run build:js"
+    "build": "npm run build:native && npm run build:js",
+    "build:browser": "node scripts/build-browser.mjs",
+    "prepack": "node scripts/build-browser.mjs"
   },
   "devDependencies": {
     "@napi-rs/cli": "3.10.4",

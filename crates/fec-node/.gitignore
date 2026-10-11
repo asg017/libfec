@@ -4,3 +4,4 @@ native/*
 !native/native.d.ts
 *.node
 *.tgz
+browser/

@@ -134,6 +134,9 @@ const columnCache = new Map<string, readonly Column[]>();
  * @category Columns
  */
 export function columns(rowType: string, fecVersion: string): Column[] {
+  if (typeof rowType !== "string" || typeof fecVersion !== "string") {
+    throw new TypeError(`columns() takes two strings, got ${typeof rowType} and ${typeof fecVersion}`);
+  }
   const key = `${rowType}\0${fecVersion}`;
   let cols = columnCache.get(key);
   if (cols === undefined) {

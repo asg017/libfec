@@ -61,6 +61,15 @@ Run with `deno run --allow-read --allow-ffi --allow-env`: `--allow-read` to read
 the native addon, `--allow-ffi` to load the addon, and `--allow-env` because napi-rs's loader
 reads `NAPI_RS_*` environment variables.
 
+### In the browser
+
+Bundlers resolve `@asg017/libfec` to a WebAssembly build of the same API through the
+`"browser"` export condition, and `@asg017/libfec/browser` imports it explicitly. It's
+also published on its own as `@asg017/libfec-wasm`. It reads bytes instead of paths
+(`open(new Uint8Array(await file.arrayBuffer()))`), and `rss.fetch` needs a `proxy`
+because the FEC sends no CORS headers. Everything else behaves the same, and the test
+suite checks that on every fixture. See [`crates/fec-wasm`](../fec-wasm/README.md).
+
 ## Reading a filing
 
 `open(source, options?)` returns a `FilingReader`. It reads the header and cover right away,
@@ -242,7 +251,9 @@ for (const item of feed.items) {
 
 - `rss.fetch(options?)` downloads the feed with the runtime's global `fetch()` (no
   dependency), with a 60-second timeout unless you pass a `signal`. A non-2xx response
-  throws an `Error`.
+  throws an `Error`. In a browser, pass a `proxy`, because the FEC sends no CORS headers.
+  `proxy` is a URL prefix (`"https://proxy.example/?url="`), a template with `{url}`, or a
+  function. See [`@asg017/libfec-wasm`](../fec-wasm/README.md).
 - `rss.parseFeed(xml)` parses a feed you fetched yourself (a string or UTF-8 bytes).
 - `rss.feedUrl(options?)` gives the URL. `preset` is `"all"` (the default), `"monthly"`,
   `"quarterly"`, `"presidential"`, `"congressional"` or `"pac"`. Any of `committees`,

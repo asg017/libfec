@@ -1,33 +1,42 @@
-.PHONY: build test test-deno test-node clean help
+.PHONY: install install-tools build build-dev build-js test test-node test-deno test-bun test-browser bench-browser demo clean
 
-all: build
+install:                       ## one-time: npm ci
+	npm ci
 
-build:
-	@echo "Building fec-wasm..."
-	cargo build --release --target wasm32-unknown-unknown
-	wasm-bindgen --target web --out-dir pkg ../../target/wasm32-unknown-unknown/release/fec_wasm.wasm
+install-tools:                 ## the wasm32 target, wasm-bindgen (pinned to Cargo.toml's) and wasm-opt
+	rustup target add wasm32-unknown-unknown
+	cargo install wasm-bindgen-cli --version 0.2.129 --locked
+	@command -v wasm-opt >/dev/null || echo "also install binaryen for wasm-opt (brew install binaryen / apt install binaryen)"
 
-test: test-deno test-node
+build:                         ## optimized wasm (wasm-release + wasm-opt -O3) + JS
+	node scripts/build.mjs
 
-test-deno:
-	@echo "Running Deno example..."
-	deno run --allow-read example.deno.ts
+build-dev:                     ## unoptimized wasm, no wasm-opt (fast rebuilds)
+	node scripts/build.mjs --dev
+
+build-js:                      ## only the TypeScript layer (after changing crates/fec-node/js)
+	node scripts/build.mjs --js
+
+test: test-node test-deno test-bun   ## parity with the napi build + browser-only behavior, under all three runtimes (needs `make build` in ../fec-node)
 
 test-node:
-	@echo "Running Node.js example..."
-	node example.node.mjs
+	node scripts/test.mjs node
+
+test-deno:
+	node scripts/test.mjs deno
+
+test-bun:
+	node scripts/test.mjs bun
+
+test-browser:                  ## headless Chrome (CHROME_PATH=...): the API vs the napi build (default and strict CSP), then the demo
+	node tests/browser/run.mjs
+	node tests/browser/demo.mjs
+
+bench-browser:                 ## the browser build in headless Chrome on BENCH_FILE (default benchmarks/1805248.fec)
+	node tests/browser/bench.mjs $(BENCH_FILE)
+
+demo:                          ## the demo app on http://127.0.0.1:8000/fec-wasm/demo/ (with the FEC proxy)
+	node scripts/serve.mjs --port 8000
 
 clean:
-	@echo "Cleaning build artifacts..."
-	rm -rf pkg/
-	cargo clean
-
-# Show help
-help:
-	@echo "Available targets:"
-	@echo "  make build      - Build the WASM module"
-	@echo "  make test       - Run all tests (Deno + Node.js)"
-	@echo "  make test-deno  - Run Deno example"
-	@echo "  make test-node  - Run Node.js example"
-	@echo "  make clean      - Clean build artifacts"
-	@echo "  make help       - Show this help message"
+	rm -rf build dist wasm node_modules

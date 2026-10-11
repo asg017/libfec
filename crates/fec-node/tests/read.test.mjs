@@ -70,3 +70,8 @@ test("read(): the id option, and itemizations() keeps it", () => {
   assert.equal(f.itemizations().length, 20);
   assert.equal(read(new Uint8Array(readFileSync(SAMPLE))).id, null);
 });
+
+test("columns() takes strings", () => {
+  assert.throws(() => columns("SA11AI", 8.4), TypeError);
+  assert.throws(() => columns(undefined, "8.4"), TypeError);
+});

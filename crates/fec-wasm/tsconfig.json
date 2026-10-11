@@ -1,0 +1,17 @@
+{
+  // Compiles the shared crates/fec-node/js sources plus js/native.ts, as
+  // assembled into build/src by scripts/build.mjs.
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "target": "ES2022",
+    "lib": ["ES2024", "ESNext.Disposable", "ESNext.Iterator", "DOM"],
+    "types": [],
+    "rootDir": "build/src",
+    "outDir": "dist",
+    "declaration": true,
+    "strict": true,
+    "skipLibCheck": true
+  },
+  "include": ["build/src"]
+}

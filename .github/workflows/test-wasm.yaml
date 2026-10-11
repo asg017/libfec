@@ -1,8 +1,7 @@
 name: "test-wasm"
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   pull_request:
 permissions:
   contents: read
@@ -10,24 +9,74 @@ permissions:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+env:
+  # Must match crates/fec-wasm/Cargo.toml's wasm-bindgen pin.
+  WASM_BINDGEN: "0.2.129"
+  BINARYEN: "version_123"
 jobs:
   test-wasm:
+    # The browser build (crates/fec-wasm): built once, then checked against
+    # the napi build in node, deno, bun and headless Chrome.
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
     steps:
-      - uses: actions/checkout@v4
-      - run: rustup toolchain install stable --profile minimal
-      - run: rustup target add wasm32-unknown-unknown
-      - uses: Swatinem/rust-cache@v2
-      # The CLI's schema version must match the wasm-bindgen crate in Cargo.lock exactly.
-      - name: Install wasm-bindgen-cli
-        run: |
-          version=$(awk '/^name = "wasm-bindgen"$/{getline; gsub(/"/,"",$3); print $3}' Cargo.lock)
-          cargo install wasm-bindgen-cli --locked --version "$version"
-      - name: Build WASM package
-        run: make build
-        working-directory: crates/fec-wasm
-      - name: Upload WASM package
-        uses: actions/upload-artifact@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - run: rustup toolchain install stable --profile minimal --target wasm32-unknown-unknown
+      - run: rustup toolchain install 1.96.0 --profile minimal --component clippy --target wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
-          name: wasm-pkg
-          path: crates/fec-wasm/pkg/
+          workspaces: ". -> target"
+      - name: wasm-bindgen and wasm-opt (prebuilt)
+        run: |
+          mkdir -p "$RUNNER_TEMP/bin"
+          curl -sSfL "https://github.com/wasm-bindgen/wasm-bindgen/releases/download/$WASM_BINDGEN/wasm-bindgen-$WASM_BINDGEN-x86_64-unknown-linux-musl.tar.gz" \
+            | tar xz -C "$RUNNER_TEMP/bin" --strip-components 1 "wasm-bindgen-$WASM_BINDGEN-x86_64-unknown-linux-musl/wasm-bindgen"
+          curl -sSfL "https://github.com/WebAssembly/binaryen/releases/download/$BINARYEN/binaryen-$BINARYEN-x86_64-linux.tar.gz" \
+            | tar xz -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+          echo "$RUNNER_TEMP/binaryen-$BINARYEN/bin" >> "$GITHUB_PATH"
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+      - uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2.0.5
+        with:
+          deno-version: v2.x
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.2.19
+      - name: clippy (wasm32)
+        run: cargo +1.96.0 clippy -p fec-wasm --target wasm32-unknown-unknown -- -D warnings
+      - name: Build the napi build (the parity reference)
+        working-directory: crates/fec-node
+        run: npm ci && npm run build
+      - name: Build the browser build
+        working-directory: crates/fec-wasm
+        run: npm ci && node scripts/build.mjs
+      - name: Size budget
+        # 835 KB gzip today; fail on a regression past 1 MB.
+        working-directory: crates/fec-wasm
+        run: |
+          size=$(gzip -9 -c wasm/libfec_bg.wasm | wc -c)
+          echo "libfec_bg.wasm: $(stat -c %s wasm/libfec_bg.wasm) bytes, $size gzip"
+          test "$size" -lt 1048576
+      - name: Test (node, deno, bun)
+        working-directory: crates/fec-wasm
+        run: |
+          node scripts/test.mjs node
+          node scripts/test.mjs deno
+          node scripts/test.mjs bun
+      - name: Test in headless Chrome
+        working-directory: crates/fec-wasm
+        run: |
+          export CHROME_PATH="$(command -v google-chrome || command -v google-chrome-stable)"
+          node tests/browser/run.mjs
+          node tests/browser/demo.mjs
+      - name: Pack @asg017/libfec-wasm
+        working-directory: crates/fec-wasm
+        run: npm pack
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: libfec-wasm
+          path: crates/fec-wasm/*.tgz
