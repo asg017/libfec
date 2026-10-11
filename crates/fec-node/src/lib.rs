@@ -11,6 +11,7 @@ pub mod arrays;
 #[cfg(debug_assertions)]
 pub mod debug;
 pub mod errors;
+pub mod reader;
 pub mod tokens;
 
 /// The crate version (lockstep with the workspace).
