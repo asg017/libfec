@@ -29,12 +29,7 @@ use crate::itemizations::record_family;
 /// cover is read into [`crate::covers::Form99::text`].
 #[cfg_attr(
     feature = "python",
-    pyo3::pyclass(
-        module = "libfec.itemizations",
-        frozen,
-        get_all,
-        skip_from_py_object
-    )
+    pyo3::pyclass(module = "libfec.itemizations", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct TextRecord {

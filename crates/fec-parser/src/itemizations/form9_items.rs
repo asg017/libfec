@@ -38,12 +38,7 @@ use crate::itemizations::{text_any, CandidateRef, Entity};
 /// an `image_number`.
 #[cfg_attr(
     feature = "python",
-    pyo3::pyclass(
-        module = "libfec.itemizations",
-        frozen,
-        get_all,
-        skip_from_py_object
-    )
+    pyo3::pyclass(module = "libfec.itemizations", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct Form9ControllingPerson {
@@ -113,12 +108,7 @@ impl Form9ControllingPerson {
 /// `image_number`.
 #[cfg_attr(
     feature = "python",
-    pyo3::pyclass(
-        module = "libfec.itemizations",
-        frozen,
-        get_all,
-        skip_from_py_object
-    )
+    pyo3::pyclass(module = "libfec.itemizations", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct Form9Donation {
@@ -210,12 +200,7 @@ impl Form9Donation {
 /// and an `image_number`.
 #[cfg_attr(
     feature = "python",
-    pyo3::pyclass(
-        module = "libfec.itemizations",
-        frozen,
-        get_all,
-        skip_from_py_object
-    )
+    pyo3::pyclass(module = "libfec.itemizations", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct Form9Disbursement {
@@ -333,12 +318,7 @@ impl Form9Disbursement {
 /// schedule or candidate ID but carry an `image_number`.
 #[cfg_attr(
     feature = "python",
-    pyo3::pyclass(
-        module = "libfec.itemizations",
-        frozen,
-        get_all,
-        skip_from_py_object
-    )
+    pyo3::pyclass(module = "libfec.itemizations", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct Form9Candidate {

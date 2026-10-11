@@ -371,12 +371,7 @@ pub fn entity_type_label(code: &str) -> Option<&'static str> {
 /// (e.g. FEC format workbook v8.4, sheet `Sch A`, fields 6–17).
 #[cfg_attr(
     feature = "python",
-    pyo3::pyclass(
-        module = "libfec.itemizations",
-        frozen,
-        get_all,
-        skip_from_py_object
-    )
+    pyo3::pyclass(module = "libfec.itemizations", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
 pub struct Entity {
@@ -457,12 +452,7 @@ impl Entity {
 /// fields 28–36).
 #[cfg_attr(
     feature = "python",
-    pyo3::pyclass(
-        module = "libfec.itemizations",
-        frozen,
-        get_all,
-        skip_from_py_object
-    )
+    pyo3::pyclass(module = "libfec.itemizations", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
 pub struct CandidateRef {
