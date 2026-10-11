@@ -6,7 +6,8 @@
 //   node scripts/build.mjs --dev     # unoptimized wasm, no wasm-opt (fast rebuilds)
 //   node scripts/build.mjs --js      # only the TypeScript step
 import { spawnSync } from "node:child_process";
-import { cpSync, existsSync, mkdirSync, rmSync, statSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { jsSourceHash } from "./source-hash.mjs";
 import { fileURLToPath } from "node:url";
 import { join } from "node:path";
 
@@ -55,6 +56,8 @@ if (!jsOnly) {
     console.warn("wasm-opt not found (binaryen); the wasm is unoptimized by it");
   }
   console.log(`wasm/libfec_bg.wasm: ${(statSync(out).size / 1024).toFixed(0)} KiB`);
+  // What this wasm is, for build-browser.mjs's checks before packing.
+  writeFileSync(join(ROOT, "wasm", "build.json"), JSON.stringify({ release: !dev }) + "\n");
 }
 
 // The shared JS layer, with this package's native.ts in place of the napi one.
@@ -72,3 +75,5 @@ if (!existsSync(join(ROOT, "wasm", "libfec.js"))) {
 cpSync(join(ROOT, "wasm"), join(ROOT, "build", "wasm"), { recursive: true });
 rmSync(join(ROOT, "dist"), { recursive: true, force: true });
 run(process.execPath, [join(ROOT, "node_modules", "typescript", "bin", "tsc"), "-p", "tsconfig.json"]);
+// The JS sources dist/ was compiled from, so a stale dist/ can be caught.
+writeFileSync(join(ROOT, "dist", "build.json"), JSON.stringify({ jsSourceHash: jsSourceHash() }) + "\n");
