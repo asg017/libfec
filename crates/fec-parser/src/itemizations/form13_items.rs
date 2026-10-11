@@ -41,6 +41,7 @@ fn contributor<F: Fields + ?Sized>(data: &F) -> Entity {
     pyo3::pyclass(module = "libfec.itemizations", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, serde::Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct Form13Donation {
     /// The row type as filed, `F132`. Column `form_type` (FEC format
     /// workbook v8.4, sheet `F132`, field 1).
@@ -124,6 +125,7 @@ impl Form13Donation {
     pyo3::pyclass(module = "libfec.itemizations", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, serde::Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct Form13Refund {
     /// The row type as filed, `F133`. Column `form_type` (FEC format
     /// workbook v8.4, sheet `F133`, field 1).
