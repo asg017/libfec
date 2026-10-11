@@ -1,0 +1,100 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"F133_1904839.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "F133",
+    "form_type": "F133",
+    "filer_committee_id": "C00894162",
+    "transaction_id": "F133.1061236",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "recipient": {
+      "entity_type": "ORG",
+      "organization_name": "APPALACHIAN ENGINEERED FLOORING INC.",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "105 INDUSTRIAL PARK DR",
+        "street_2": null,
+        "city": "NORTH TROY",
+        "state": "VT",
+        "zip_code": "05859"
+      }
+    },
+    "refund_date": "2025-04-18",
+    "refund_amount": 2500.0,
+    "memo": false,
+    "memo_text": null,
+    "image_number": null
+  },
+  {
+    "family": "F133",
+    "form_type": "F133",
+    "filer_committee_id": "C00894162",
+    "transaction_id": "F133.1049084",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "recipient": {
+      "entity_type": "ORG",
+      "organization_name": "COOPER'S STEEL FABRICATORS, INC.",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "PO BOX 149",
+        "street_2": null,
+        "city": "SHELBYVILLE",
+        "state": "TN",
+        "zip_code": "37162"
+      }
+    },
+    "refund_date": "2025-02-07",
+    "refund_amount": 250000.0,
+    "memo": false,
+    "memo_text": null,
+    "image_number": null
+  },
+  {
+    "family": "F133",
+    "form_type": "F133",
+    "filer_committee_id": "C00894162",
+    "transaction_id": "F133.1044933",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "recipient": {
+      "entity_type": "IND",
+      "organization_name": null,
+      "name": {
+        "first_name": "LUCY",
+        "last_name": "DONAHUE",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "1 N JEFFERSON AVE",
+        "street_2": null,
+        "city": "ST. LOUIS",
+        "state": "MO",
+        "zip_code": "63103"
+      }
+    },
+    "refund_date": "2025-01-09",
+    "refund_amount": 500000.0,
+    "memo": false,
+    "memo_text": null,
+    "image_number": null
+  }
+]

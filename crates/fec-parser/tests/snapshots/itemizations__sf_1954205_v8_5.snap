@@ -1,0 +1,171 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"SF_1954205.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "SF",
+    "form_type": "SF",
+    "filer_committee_id": "C00038505",
+    "transaction_id": "F8CE43E1D62724B18985",
+    "back_reference_transaction_id": "F8CE43E1D62724B18985",
+    "back_reference_schedule_name": "SF",
+    "filer_designated": false,
+    "designating_committee": {
+      "fec_id": null,
+      "name": null,
+      "address": {
+        "street_1": null,
+        "street_2": null,
+        "city": null,
+        "state": null,
+        "zip_code": null
+      }
+    },
+    "subordinate_committee": {
+      "fec_id": null,
+      "name": null,
+      "address": {
+        "street_1": null,
+        "street_2": null,
+        "city": null,
+        "state": null,
+        "zip_code": null
+      }
+    },
+    "payee": {
+      "entity_type": "ORG",
+      "organization_name": "Majority Strategies",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "12854 Kenan Dr",
+        "street_2": "Ste 145",
+        "city": "Jacksonville",
+        "state": "FL",
+        "zip_code": "322587435"
+      }
+    },
+    "expenditure_date": "2026-02-13",
+    "expenditure_amount": 6750.0,
+    "aggregate_general_election_expended": 51120.87,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "Design Direct Mail",
+    "category_code": null,
+    "payee_committee_fec_id": null,
+    "candidate": {
+      "fec_id": "H4NC14015",
+      "name": {
+        "first_name": "Timothy",
+        "last_name": "Moore",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": "H",
+      "state": "NC",
+      "district": "14"
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "memo": false,
+    "memo_text": null,
+    "increased_limit": null,
+    "notice_24_hour": null,
+    "image_number": null
+  },
+  {
+    "family": "SF",
+    "form_type": "SF",
+    "filer_committee_id": "C00038505",
+    "transaction_id": "F347EFBD560234C9EA85",
+    "back_reference_transaction_id": "F347EFBD560234C9EA85",
+    "back_reference_schedule_name": "SF",
+    "filer_designated": false,
+    "designating_committee": {
+      "fec_id": null,
+      "name": null,
+      "address": {
+        "street_1": null,
+        "street_2": null,
+        "city": null,
+        "state": null,
+        "zip_code": null
+      }
+    },
+    "subordinate_committee": {
+      "fec_id": null,
+      "name": null,
+      "address": {
+        "street_1": null,
+        "street_2": null,
+        "city": null,
+        "state": null,
+        "zip_code": null
+      }
+    },
+    "payee": {
+      "entity_type": "ORG",
+      "organization_name": "Westmoreland Printers, Inc.",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "2020 E Dixon Blvd",
+        "street_2": null,
+        "city": "Shelby",
+        "state": "NC",
+        "zip_code": "281526958"
+      }
+    },
+    "expenditure_date": "2026-02-11",
+    "expenditure_amount": 44370.87,
+    "aggregate_general_election_expended": 44370.87,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "Print/Postage for Dir. Mail",
+    "category_code": null,
+    "payee_committee_fec_id": null,
+    "candidate": {
+      "fec_id": "H4NC14015",
+      "name": {
+        "first_name": "Timothy",
+        "last_name": "Moore",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": "H",
+      "state": "NC",
+      "district": "14"
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "memo": false,
+    "memo_text": null,
+    "increased_limit": null,
+    "notice_24_hour": null,
+    "image_number": null
+  }
+]

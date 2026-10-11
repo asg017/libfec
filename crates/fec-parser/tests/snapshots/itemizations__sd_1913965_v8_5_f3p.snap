@@ -1,0 +1,111 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"SD_1913965.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "SD",
+    "form_type": "SD11",
+    "filer_committee_id": "C00840389",
+    "transaction_id": "SD11.4225",
+    "creditor": {
+      "entity_type": "CCM",
+      "organization_name": "JOSEPH LUIZ GONZAGA  NNE",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "2158 TABLE ROCK ROAD",
+        "street_2": "APT 28",
+        "city": "MEDFORD",
+        "state": "OR",
+        "zip_code": "97501"
+      }
+    },
+    "purpose_of_debt_or_obligation": "or aggregate at this time for candidate salary accountting fee's to correct all reports",
+    "beginning_balance": 20000000.0,
+    "incurred_amount": 0.0,
+    "payment_amount": 0.0,
+    "balance_at_close": 20000000.0,
+    "committee_fec_id": null,
+    "candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "image_number": null
+  },
+  {
+    "family": "SD",
+    "form_type": "SD12",
+    "filer_committee_id": "C00840389",
+    "transaction_id": "SD12.4226",
+    "creditor": {
+      "entity_type": "CAN",
+      "organization_name": null,
+      "name": {
+        "first_name": "JOSEPH",
+        "last_name": "GONZAGA",
+        "middle_name": "LUIZ",
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "2158 TABLE ROCK ROAD",
+        "street_2": "APT 28",
+        "city": "MEDFORD",
+        "state": "OR",
+        "zip_code": "97501"
+      }
+    },
+    "purpose_of_debt_or_obligation": "540 days past due candidate salary",
+    "beginning_balance": 591780.82,
+    "incurred_amount": 0.0,
+    "payment_amount": 0.0,
+    "balance_at_close": 591780.82,
+    "committee_fec_id": null,
+    "candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "image_number": null
+  }
+]

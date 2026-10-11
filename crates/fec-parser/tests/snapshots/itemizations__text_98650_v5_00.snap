@@ -1,0 +1,79 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"TEXT_98650.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "TEXT",
+    "form_type": "TEXT",
+    "filer_committee_id": "",
+    "transaction_id": null,
+    "back_reference_transaction_id": "INC:A:20152",
+    "back_reference_schedule_name": "SA11C",
+    "text": "Refunded 6-30-2003"
+  },
+  {
+    "family": "TEXT",
+    "form_type": "TEXT",
+    "filer_committee_id": "",
+    "transaction_id": null,
+    "back_reference_transaction_id": "INC:A:20154",
+    "back_reference_schedule_name": "SA11C",
+    "text": "Federally Permissible Funds"
+  },
+  {
+    "family": "TEXT",
+    "form_type": "TEXT",
+    "filer_committee_id": "",
+    "transaction_id": null,
+    "back_reference_transaction_id": "INC:A:19775",
+    "back_reference_schedule_name": "SA11AI",
+    "text": "Federally Permissible Funds"
+  },
+  {
+    "family": "TEXT",
+    "form_type": "TEXT",
+    "filer_committee_id": "",
+    "transaction_id": null,
+    "back_reference_transaction_id": "INC:A:20147",
+    "back_reference_schedule_name": "SA11AI",
+    "text": "Federally Permissible Funds"
+  },
+  {
+    "family": "TEXT",
+    "form_type": "TEXT",
+    "filer_committee_id": "",
+    "transaction_id": null,
+    "back_reference_transaction_id": "INC:A:19707",
+    "back_reference_schedule_name": "SA11AI",
+    "text": "Federally Permissible Funds"
+  },
+  {
+    "family": "TEXT",
+    "form_type": "TEXT",
+    "filer_committee_id": "",
+    "transaction_id": null,
+    "back_reference_transaction_id": "INC:A:19776",
+    "back_reference_schedule_name": "SA11AI",
+    "text": "Federally Permissible Funds"
+  },
+  {
+    "family": "TEXT",
+    "form_type": "TEXT",
+    "filer_committee_id": "",
+    "transaction_id": null,
+    "back_reference_transaction_id": "INC:A:20026",
+    "back_reference_schedule_name": "SA15",
+    "text": "Void Check Never Cashed-Refund in April of 2003"
+  },
+  {
+    "family": "TEXT",
+    "form_type": "TEXT",
+    "filer_committee_id": "",
+    "transaction_id": null,
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": "F3A",
+    "text": "Amend to Update Summary Page"
+  }
+]

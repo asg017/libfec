@@ -1,0 +1,219 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"SC_60410.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "SC",
+    "form_type": "SC/10",
+    "filer_committee_id": "C00308742",
+    "transaction_id": "C101545",
+    "receipt_line_number": null,
+    "lender": {
+      "entity_type": "IND",
+      "organization_name": null,
+      "name": {
+        "first_name": "Patricia R.",
+        "last_name": "Boyle",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "7727 Cowan Avenue",
+        "street_2": null,
+        "city": "Los Angeles",
+        "state": "CA",
+        "zip_code": "90045"
+      }
+    },
+    "election_code": "P2002",
+    "election_other_description": null,
+    "loan_amount_original": 1000.0,
+    "loan_payment_to_date": 0.0,
+    "loan_balance": 1000.0,
+    "loan_incurred_date": "1996-10-26",
+    "loan_due_date_terms": "03/01/2003",
+    "loan_interest_rate_terms": "0.00000",
+    "secured": false,
+    "personal_funds": null,
+    "lender_committee_id": null,
+    "lender_candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "memo": false,
+    "memo_text": null,
+    "guarantors": [],
+    "image_number": null
+  },
+  {
+    "family": "SC",
+    "form_type": "SC/10",
+    "filer_committee_id": "C00308742",
+    "transaction_id": "C101546",
+    "receipt_line_number": null,
+    "lender": {
+      "entity_type": "IND",
+      "organization_name": null,
+      "name": {
+        "first_name": "Patricia R.",
+        "last_name": "Boyle",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "7727 Cowan Avenue",
+        "street_2": null,
+        "city": "Los Angeles",
+        "state": "CA",
+        "zip_code": "90045"
+      }
+    },
+    "election_code": "P2002",
+    "election_other_description": null,
+    "loan_amount_original": 1000.0,
+    "loan_payment_to_date": 0.0,
+    "loan_balance": 1000.0,
+    "loan_incurred_date": "1996-10-26",
+    "loan_due_date_terms": "03/01/2003",
+    "loan_interest_rate_terms": "0.00000",
+    "secured": false,
+    "personal_funds": null,
+    "lender_committee_id": null,
+    "lender_candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "memo": false,
+    "memo_text": null,
+    "guarantors": [],
+    "image_number": null
+  },
+  {
+    "family": "SC",
+    "form_type": "SC/10",
+    "filer_committee_id": "C00308742",
+    "transaction_id": "C102605",
+    "receipt_line_number": null,
+    "lender": {
+      "entity_type": "CAN",
+      "organization_name": null,
+      "name": {
+        "first_name": "",
+        "last_name": "Mr. Brad Sherman",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "21755 Ventura Blvd., Box 193",
+        "street_2": null,
+        "city": "Woodland Hills",
+        "state": "CA",
+        "zip_code": "91364"
+      }
+    },
+    "election_code": "P2002",
+    "election_other_description": null,
+    "loan_amount_original": 35000.0,
+    "loan_payment_to_date": 30000.0,
+    "loan_balance": 5000.0,
+    "loan_incurred_date": "1997-12-25",
+    "loan_due_date_terms": "01/01/2003",
+    "loan_interest_rate_terms": "5.00000",
+    "secured": false,
+    "personal_funds": null,
+    "lender_committee_id": null,
+    "lender_candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "memo": false,
+    "memo_text": null,
+    "guarantors": [],
+    "image_number": null
+  },
+  {
+    "family": "SC",
+    "form_type": "SC/10",
+    "filer_committee_id": "C00308742",
+    "transaction_id": "C102089",
+    "receipt_line_number": null,
+    "lender": {
+      "entity_type": "CAN",
+      "organization_name": null,
+      "name": {
+        "first_name": "",
+        "last_name": "Mr. Brad Sherman",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "21755 Ventura Blvd., Box 193",
+        "street_2": null,
+        "city": "Woodland Hills",
+        "state": "CA",
+        "zip_code": "91364"
+      }
+    },
+    "election_code": "P2002",
+    "election_other_description": null,
+    "loan_amount_original": 20000.0,
+    "loan_payment_to_date": 5000.0,
+    "loan_balance": 15000.0,
+    "loan_incurred_date": "1997-01-03",
+    "loan_due_date_terms": "01/01/2003",
+    "loan_interest_rate_terms": "5.00000",
+    "secured": false,
+    "personal_funds": null,
+    "lender_committee_id": null,
+    "lender_candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "memo": false,
+    "memo_text": null,
+    "guarantors": [],
+    "image_number": null
+  }
+]

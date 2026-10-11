@@ -1,0 +1,49 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"H2_1955758.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "H2",
+    "form_type": "H2",
+    "filer_committee_id": "C00395590",
+    "transaction_id": "H2-",
+    "activity_event_name": null,
+    "direct_fundraising": true,
+    "direct_candidate_support": false,
+    "exempt_activity": false,
+    "ratio_code": "S",
+    "federal_percent": null,
+    "nonfederal_percent": null,
+    "image_number": null
+  },
+  {
+    "family": "H2",
+    "form_type": "H2",
+    "filer_committee_id": "C00395590",
+    "transaction_id": "H2-2025  Lincoln Rea",
+    "activity_event_name": "2025  Lincoln Reagan Trump Dinner (2/1/2025)",
+    "direct_fundraising": true,
+    "direct_candidate_support": false,
+    "exempt_activity": false,
+    "ratio_code": "S",
+    "federal_percent": 0.92,
+    "nonfederal_percent": 0.08,
+    "image_number": null
+  },
+  {
+    "family": "H2",
+    "form_type": "H2",
+    "filer_committee_id": "C00395590",
+    "transaction_id": "H2-2026 Lincoln Reag",
+    "activity_event_name": "2026 Lincoln Reagan Trump Dinner (2/28/26)",
+    "direct_fundraising": true,
+    "direct_candidate_support": false,
+    "exempt_activity": false,
+    "ratio_code": "S",
+    "federal_percent": 0.8,
+    "nonfederal_percent": 0.2,
+    "image_number": null
+  }
+]

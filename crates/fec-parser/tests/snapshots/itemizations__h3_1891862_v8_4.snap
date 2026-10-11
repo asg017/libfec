@@ -1,0 +1,35 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"H3_1891862.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "H3",
+    "form_type": "H3",
+    "filer_committee_id": "C00009845",
+    "transaction_id": "129AD",
+    "back_reference_transaction_id": "129AD",
+    "account_name": "Non-Federal",
+    "event_type": "AD",
+    "event_activity_name": null,
+    "receipt_date": "2025-04-19",
+    "total_amount_transferred": 2460.37,
+    "transferred_amount": 2115.41,
+    "image_number": null
+  },
+  {
+    "family": "H3",
+    "form_type": "H3",
+    "filer_committee_id": "C00009845",
+    "transaction_id": "203Q",
+    "back_reference_transaction_id": "129AD",
+    "account_name": "Non-Federal",
+    "event_type": "PC",
+    "event_activity_name": null,
+    "receipt_date": "2025-04-19",
+    "total_amount_transferred": 2460.37,
+    "transferred_amount": 344.96,
+    "image_number": null
+  }
+]

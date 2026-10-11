@@ -1,0 +1,70 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"SB_1902156.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "SB",
+    "form_type": "SB3L",
+    "filer_committee_id": "C00475392",
+    "transaction_id": "3LB145732918",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "payee": {
+      "entity_type": "PAC",
+      "organization_name": "American Israel Public Affairs Committee Political Action Committee",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "251 H St NW",
+        "street_2": null,
+        "city": "Washington",
+        "state": "DC",
+        "zip_code": "200012604"
+      }
+    },
+    "election_code": null,
+    "election_other_description": null,
+    "expenditure_date": null,
+    "expenditure_amount": 6200.0,
+    "semi_annual_refunded_bundled_amount": 6200.0,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": null,
+    "category_code": null,
+    "beneficiary_committee_fec_id": "C00797670",
+    "beneficiary_committee_name": null,
+    "beneficiary_candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "memo": false,
+    "memo_text": null,
+    "reference_code": null,
+    "refund_or_disposal_of_excess": false,
+    "communication_date": null,
+    "image_number": null
+  }
+]

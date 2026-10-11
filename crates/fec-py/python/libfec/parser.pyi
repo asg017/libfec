@@ -13,6 +13,7 @@ from types import TracebackType
 from typing import Any, Literal, Protocol, Self, TypeAlias, final, overload
 
 from .covers import CoverData
+from .itemizations import Itemization
 
 __all__ = [
     "Cover",
@@ -126,6 +127,12 @@ class Row:
         """The row's 1-based physical line in the file."""
 
     @property
+    def itemization(self) -> Itemization | None:
+        """The row as a typed itemization (`ScheduleA`, … from
+        `libfec.itemizations`), or `None` for a row that is not one or
+        whose schedule has no class yet.  Typed anew on every access."""
+
+    @property
     def extra_fields(self) -> list[str]:
         """Fields past the last mapped column, `[]` unless one of them is non-empty."""
 
@@ -151,7 +158,12 @@ class Row:
     def __repr__(self) -> str: ...
 
 def _row_from_parts(
-    row_type: str, version: str, fields: list[str], line: int, /
+    row_type: str,
+    version: str,
+    fields: list[str],
+    line: int,
+    name_delimiter: str | None = None,
+    /,
 ) -> Row:
     """Rebuild a `Row` from its pickled parts; named by `Row.__reduce__`."""
 

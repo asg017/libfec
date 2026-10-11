@@ -1,0 +1,119 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"F57_1888833.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "F57",
+    "form_type": "F57",
+    "filer_committee_id": "C90021932",
+    "transaction_id": "F57.000001",
+    "payee": {
+      "entity_type": "IND",
+      "organization_name": null,
+      "name": {
+        "first_name": "Morgan",
+        "last_name": "Feldt",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "924 Cherry St. 4th Floor",
+        "street_2": null,
+        "city": "Philadelphia",
+        "state": "PA",
+        "zip_code": "19107"
+      }
+    },
+    "payee_committee_fec_id": null,
+    "election_code": "G2024",
+    "election_other_description": null,
+    "dissemination_date": "2025-01-16",
+    "expenditure_amount": 300.0,
+    "calendar_ytd_per_election_office": 0.0,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "election day canvassing",
+    "category_code": "001",
+    "support_oppose_code": "S",
+    "candidate": {
+      "fec_id": "P00009423",
+      "name": {
+        "first_name": "Kamala",
+        "last_name": "Harris",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": "P",
+      "state": "PA",
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "image_number": null
+  },
+  {
+    "family": "F57",
+    "form_type": "F57",
+    "filer_committee_id": "C90021932",
+    "transaction_id": "F57.000002",
+    "payee": {
+      "entity_type": "ORG",
+      "organization_name": "Straight Ahead Organization",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "PO BOX 23032",
+        "street_2": null,
+        "city": "Pittsburgh",
+        "state": "PA",
+        "zip_code": "15222"
+      }
+    },
+    "payee_committee_fec_id": null,
+    "election_code": "G2024",
+    "election_other_description": null,
+    "dissemination_date": "2025-02-05",
+    "expenditure_amount": 2804.3,
+    "calendar_ytd_per_election_office": 0.0,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "AMP's portion of election mass texting",
+    "category_code": "001",
+    "support_oppose_code": "S",
+    "candidate": {
+      "fec_id": "P00009423",
+      "name": {
+        "first_name": "Kamala",
+        "last_name": "Harris",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": "P",
+      "state": "PA",
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "image_number": null
+  }
+]

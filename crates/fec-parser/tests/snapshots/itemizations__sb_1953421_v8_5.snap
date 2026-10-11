@@ -1,0 +1,196 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"SB_1953421.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "SB",
+    "form_type": "SB21B",
+    "filer_committee_id": "C00884908",
+    "transaction_id": "SB21B.4299",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "payee": {
+      "entity_type": "ORG",
+      "organization_name": "ROCK CONSULTING LLC",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "736 TREMONT AVENUE",
+        "street_2": null,
+        "city": "LEXINGTON",
+        "state": "KY",
+        "zip_code": "40502"
+      }
+    },
+    "election_code": null,
+    "election_other_description": null,
+    "expenditure_date": "2026-02-27",
+    "expenditure_amount": 1681.0,
+    "semi_annual_refunded_bundled_amount": null,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "BOOKKEEPING / COMPLIANCE",
+    "category_code": null,
+    "beneficiary_committee_fec_id": null,
+    "beneficiary_committee_name": null,
+    "beneficiary_candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "memo": false,
+    "memo_text": null,
+    "reference_code": null,
+    "refund_or_disposal_of_excess": false,
+    "communication_date": null,
+    "image_number": null
+  },
+  {
+    "family": "SB",
+    "form_type": "SB23",
+    "filer_committee_id": "C00884908",
+    "transaction_id": "SB23.4293",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "payee": {
+      "entity_type": "CCM",
+      "organization_name": "GRAVES FOR CONGRESS",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "PO BOX 201",
+        "street_2": null,
+        "city": "PLATTE CITY",
+        "state": "MO",
+        "zip_code": "64079"
+      }
+    },
+    "election_code": "P2026",
+    "election_other_description": null,
+    "expenditure_date": "2026-02-18",
+    "expenditure_amount": 825.0,
+    "semi_annual_refunded_bundled_amount": null,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "CONTRIBUTION",
+    "category_code": null,
+    "beneficiary_committee_fec_id": "C00359034",
+    "beneficiary_committee_name": "GRAVES FOR CONGRESS",
+    "beneficiary_candidate": {
+      "fec_id": "H0MO06073",
+      "name": {
+        "first_name": "SAMUEL",
+        "last_name": "GRAVES",
+        "middle_name": "B.",
+        "prefix": null,
+        "suffix": "Jr."
+      },
+      "office": "H",
+      "state": "MO",
+      "district": "06"
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "memo": false,
+    "memo_text": null,
+    "reference_code": null,
+    "refund_or_disposal_of_excess": false,
+    "communication_date": null,
+    "image_number": null
+  },
+  {
+    "family": "SB",
+    "form_type": "SB23",
+    "filer_committee_id": "C00884908",
+    "transaction_id": "SB23.4296",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "payee": {
+      "entity_type": "CCM",
+      "organization_name": "JASON SMITH FOR CONGRESS",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "PO BOX 1324",
+        "street_2": null,
+        "city": "CAPE GIRARDEAU",
+        "state": "MO",
+        "zip_code": "63702"
+      }
+    },
+    "election_code": "P2026",
+    "election_other_description": null,
+    "expenditure_date": "2026-02-18",
+    "expenditure_amount": 825.0,
+    "semi_annual_refunded_bundled_amount": null,
+    "expenditure_purpose_code": null,
+    "expenditure_purpose_description": "CONTRIBUTION",
+    "category_code": null,
+    "beneficiary_committee_fec_id": "C00541862",
+    "beneficiary_committee_name": "JASON SMITH FOR CONGRESS",
+    "beneficiary_candidate": {
+      "fec_id": "H4MO08162",
+      "name": {
+        "first_name": "JASON T",
+        "last_name": "SMITH",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": "H",
+      "state": "MO",
+      "district": "08"
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "memo": false,
+    "memo_text": null,
+    "reference_code": null,
+    "refund_or_disposal_of_excess": false,
+    "communication_date": null,
+    "image_number": null
+  }
+]

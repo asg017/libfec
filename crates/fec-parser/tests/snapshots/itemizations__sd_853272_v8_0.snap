@@ -1,0 +1,59 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"SD_853272.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "SD",
+    "form_type": "SD10",
+    "filer_committee_id": "C00536680",
+    "transaction_id": "PAYD2",
+    "creditor": {
+      "entity_type": "ORG",
+      "organization_name": "Henry C. Levy & Co, CPA's",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "5940 College Avenue",
+        "street_2": null,
+        "city": "Oakland",
+        "state": "CA",
+        "zip_code": "94612"
+      }
+    },
+    "purpose_of_debt_or_obligation": "Accounting Services",
+    "beginning_balance": 0.0,
+    "incurred_amount": 634.85,
+    "payment_amount": 0.0,
+    "balance_at_close": 634.85,
+    "committee_fec_id": null,
+    "candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "image_number": null
+  }
+]

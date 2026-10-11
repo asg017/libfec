@@ -1,0 +1,59 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"SD_53060.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "SD",
+    "form_type": "SD10",
+    "filer_committee_id": "C00289603",
+    "transaction_id": "LS0119200223E920",
+    "creditor": {
+      "entity_type": null,
+      "organization_name": "Orloff/Williams & Company",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "2 N. Second St., Ste. 100",
+        "street_2": null,
+        "city": "San Jose",
+        "state": "CA",
+        "zip_code": "95113"
+      }
+    },
+    "purpose_of_debt_or_obligation": "Ad Production-Convention",
+    "beginning_balance": 525.34,
+    "incurred_amount": 0.0,
+    "payment_amount": 525.34,
+    "balance_at_close": 0.0,
+    "committee_fec_id": null,
+    "candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "image_number": null
+  }
+]

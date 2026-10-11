@@ -36,6 +36,7 @@
 
 pub mod covers;
 pub mod format;
+pub mod itemizations;
 pub mod mappings;
 mod reader;
 pub mod schedules;

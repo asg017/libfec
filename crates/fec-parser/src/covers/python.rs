@@ -12,19 +12,22 @@
 
 use pyo3::prelude::*;
 use pyo3::pyclass::boolean_struct::True;
-use pyo3::types::{PyDict, PyList};
+use pyo3::types::{PyDate, PyDict, PyFloat, PyInt, PyList, PyString};
 use pyo3::PyClass;
 use serde::Serialize;
 use serde_json::Value;
+use std::any::TypeId;
+use std::collections::HashMap;
+use std::sync::{Arc, OnceLock, RwLock};
 
 use super::*;
 
 /// What the shared methods need of a cover class: `frozen` (so `Bound::get`
 /// reads it without a borrow flag) and `Serialize` (for its field list).
-trait Covered: Serialize + PyClass<Frozen = True> + Sync {}
-impl<T: Serialize + PyClass<Frozen = True> + Sync> Covered for T {}
+pub(crate) trait Covered: Serialize + PyClass<Frozen = True> + Sync + 'static {}
+impl<T: Serialize + PyClass<Frozen = True> + Sync + 'static> Covered for T {}
 
-/// The field names of `value` in declaration order, each with its JSON shape.
+/// The field names of `value` in declaration order, each with its JSON value.
 ///
 /// `serde` already walks the struct in declaration order with the public field
 /// names, so it is the one place the field list lives; nothing here repeats it.
@@ -64,18 +67,57 @@ fn fields<T: Serialize>(value: &T) -> Vec<(String, Value)> {
         .unwrap_or_default()
 }
 
+/// The field names of `T` in declaration order, from [`fields`] on the first
+/// instance seen and cached per type: serializing a struct on every `to_dict()`
+/// just to learn its names cost ~10x the rest of the call on itemizations.
+/// (No cover or itemization struct skips a field when serializing, so the
+/// names do not depend on the instance.)
+fn field_names<T: Serialize + 'static>(value: &T) -> Arc<[String]> {
+    static NAMES: OnceLock<RwLock<HashMap<TypeId, Arc<[String]>>>> = OnceLock::new();
+    let names = NAMES.get_or_init(Default::default);
+    if let Some(hit) = names
+        .read()
+        .unwrap_or_else(|e| e.into_inner())
+        .get(&TypeId::of::<T>())
+    {
+        return hit.clone();
+    }
+    let fresh: Arc<[String]> = fields(value).into_iter().map(|(name, _)| name).collect();
+    names
+        .write()
+        .unwrap_or_else(|e| e.into_inner())
+        .entry(TypeId::of::<T>())
+        .or_insert(fresh)
+        .clone()
+}
+
+/// A nested cover/itemization class (one of ours, with `to_dict()`), told
+/// apart from the scalar field types by exclusion. Not `hasattr("to_dict")`:
+/// on a scalar that raises and swallows an `AttributeError`, which made
+/// `to_dict()` on an itemization ~10x slower.
+fn is_nested(value: &Bound<'_, PyAny>) -> PyResult<bool> {
+    Ok(!(value.is_none()
+        || value.is_instance_of::<PyString>()
+        || value.is_instance_of::<PyFloat>()
+        || value.is_instance_of::<PyInt>()
+        || value.is_instance_of::<PyDate>()
+        || value.is_instance_of::<PyList>()))
+}
+
 /// `Form3X(form_type='F3XN', filer_committee_id='C00016899', ...)`: the scalar
 /// fields' reprs, and nested structs as `ClassName(...)` so a Form 3X does not
 /// print its whole 100-line detailed summary.
-fn repr<T: Covered>(slf: &Bound<'_, T>) -> PyResult<String> {
+pub(crate) fn repr<T: Covered>(slf: &Bound<'_, T>) -> PyResult<String> {
     let name = slf.as_any().get_type().qualname()?;
     let mut parts = Vec::new();
-    for (key, json) in fields(slf.get()) {
+    for key in field_names(slf.get()).iter() {
         let value = slf.as_any().getattr(key.as_str())?;
-        let shown = match json {
-            Value::Object(_) => format!("{}(...)", value.get_type().qualname()?),
-            Value::Array(items) => format!("[...{} items]", items.len()),
-            _ => value.repr()?.to_string(),
+        let shown = if let Ok(list) = value.cast::<PyList>() {
+            format!("[...{} items]", list.len())
+        } else if is_nested(&value)? {
+            format!("{}(...)", value.get_type().qualname()?)
+        } else {
+            value.repr()?.to_string()
         };
         parts.push(format!("{key}={shown}"));
     }
@@ -84,21 +126,25 @@ fn repr<T: Covered>(slf: &Bound<'_, T>) -> PyResult<String> {
 
 /// The fields as a `dict`, nested covers as nested dicts, values typed as the
 /// attributes are (`datetime.date`, `float`, `bool`, `str`, `None`).
-fn to_dict<'py, T: Covered>(slf: &Bound<'py, T>) -> PyResult<Bound<'py, PyDict>> {
+pub(crate) fn to_dict<'py, T: Covered>(slf: &Bound<'py, T>) -> PyResult<Bound<'py, PyDict>> {
     let py = slf.py();
     let dict = PyDict::new(py);
-    for (key, json) in fields(slf.get()) {
+    for key in field_names(slf.get()).iter() {
         let value = slf.as_any().getattr(key.as_str())?;
-        let value = match json {
-            Value::Object(_) => value.call_method0("to_dict")?,
-            Value::Array(items) if items.iter().any(Value::is_object) => {
-                let list = PyList::empty(py);
-                for item in value.try_iter()? {
-                    list.append(item?.call_method0("to_dict")?)?;
-                }
-                list.into_any()
+        let value = if let Ok(items) = value.cast::<PyList>() {
+            let list = PyList::empty(py);
+            for item in items.iter() {
+                list.append(if is_nested(&item)? {
+                    item.call_method0("to_dict")?
+                } else {
+                    item
+                })?;
             }
-            _ => value,
+            list.into_any()
+        } else if is_nested(&value)? {
+            value.call_method0("to_dict")?
+        } else {
+            value
         };
         dict.set_item(key, value)?;
     }
@@ -109,11 +155,11 @@ fn to_dict<'py, T: Covered>(slf: &Bound<'py, T>) -> PyResult<Bound<'py, PyDict>>
 /// Python's `==`, as a dataclass's `__eq__` does: nested covers recurse, and a
 /// NaN amount is unequal to everything, itself included. (Comparing the serde
 /// JSON instead would be wrong: it writes NaN and both infinities as `null`.)
-fn eq<T: Covered>(slf: &Bound<'_, T>, other: &Bound<'_, PyAny>) -> PyResult<bool> {
+pub(crate) fn eq<T: Covered>(slf: &Bound<'_, T>, other: &Bound<'_, PyAny>) -> PyResult<bool> {
     if !other.is_instance_of::<T>() {
         return Ok(false);
     }
-    for (key, _) in fields(slf.get()) {
+    for key in field_names(slf.get()).iter() {
         let key = key.as_str();
         if !slf.as_any().getattr(key)?.eq(other.getattr(key)?)? {
             return Ok(false);
@@ -134,18 +180,18 @@ macro_rules! cover_class {
         #[pymethods]
         impl $ty {
             fn __repr__(slf: &Bound<'_, Self>) -> PyResult<String> {
-                repr(slf)
+                $crate::covers::python::repr(slf)
             }
 
             fn __eq__(slf: &Bound<'_, Self>, other: &Bound<'_, PyAny>) -> PyResult<bool> {
-                eq(slf, other)
+                $crate::covers::python::eq(slf, other)
             }
 
             /// The fields as a `dict` (nested covers as nested dicts), keyed and
             /// ordered like the attributes and `libfec info -f json`'s
             /// `cover_data`.
             fn to_dict<'py>(slf: &Bound<'py, Self>) -> PyResult<Bound<'py, PyDict>> {
-                to_dict(slf)
+                $crate::covers::python::to_dict(slf)
             }
 
             $(
@@ -158,7 +204,10 @@ macro_rules! cover_class {
     };
 }
 
-type Label = Option<&'static str>;
+// Also used by `itemizations::python`, whose structs follow the same rules.
+pub(crate) use cover_class;
+
+pub(crate) type Label = Option<&'static str>;
 
 cover_class!(PersonName, "is_empty" py_is_empty = is_empty -> bool);
 cover_class!(

@@ -1,0 +1,153 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"SE_1909829.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "SE",
+    "form_type": "SE",
+    "filer_committee_id": "C00753277",
+    "transaction_id": "EB8DD9C74B7CE44799BE",
+    "back_reference_transaction_id": "D75532FEEDD9340928C3",
+    "back_reference_schedule_name": "SD10",
+    "payee": {
+      "entity_type": "ORG",
+      "organization_name": "Targetsmart Communications, LLC",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "37 N Orange Ave",
+        "street_2": "Ste 531",
+        "city": "Orlando",
+        "state": "FL",
+        "zip_code": "328012449"
+      }
+    },
+    "payee_committee_fec_id": null,
+    "election_code": "G2024",
+    "election_other_description": null,
+    "dissemination_date": "2024-10-31",
+    "disbursement_date": "2025-03-11",
+    "expenditure_amount": 284818.53,
+    "calendar_ytd_per_election_office": 284818.53,
+    "expenditure_purpose_description": "PMT for EST from 10/31/2024. Digital Advertising",
+    "expenditure_purpose_code": null,
+    "category_code": null,
+    "support_oppose_code": "S",
+    "candidate": {
+      "fec_id": "P00009423",
+      "name": {
+        "first_name": "Kamala",
+        "last_name": "Harris",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": "P",
+      "state": null,
+      "district": "00"
+    },
+    "signer_name": {
+      "first_name": "Kamau",
+      "last_name": "Franklin",
+      "middle_name": null,
+      "prefix": null,
+      "suffix": null
+    },
+    "date_signed": "2025-07-31",
+    "memo": false,
+    "memo_text": null,
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "payee_candidate": null,
+    "date_notarized": null,
+    "notary_commission_expires": null,
+    "notary_name": null,
+    "image_number": null
+  },
+  {
+    "family": "SE",
+    "form_type": "SE",
+    "filer_committee_id": "C00753277",
+    "transaction_id": "E6584BB021E014F6E8F9",
+    "back_reference_transaction_id": "D39F95099395C4C18B17",
+    "back_reference_schedule_name": "SD10",
+    "payee": {
+      "entity_type": "ORG",
+      "organization_name": "Minuteman Press",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "932 E Hunting Park Ave",
+        "street_2": null,
+        "city": "Philadelphia",
+        "state": "PA",
+        "zip_code": "191244807"
+      }
+    },
+    "payee_committee_fec_id": null,
+    "election_code": "G2024",
+    "election_other_description": null,
+    "dissemination_date": "2024-11-01",
+    "disbursement_date": "2025-06-30",
+    "expenditure_amount": 6310.17,
+    "calendar_ytd_per_election_office": 291128.7,
+    "expenditure_purpose_description": "PMT for EST from 11/1/2024. Literature",
+    "expenditure_purpose_code": null,
+    "category_code": null,
+    "support_oppose_code": "S",
+    "candidate": {
+      "fec_id": "P00009423",
+      "name": {
+        "first_name": "Kamala",
+        "last_name": "Harris",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": "P",
+      "state": null,
+      "district": "00"
+    },
+    "signer_name": {
+      "first_name": "Kamau",
+      "last_name": "Franklin",
+      "middle_name": null,
+      "prefix": null,
+      "suffix": null
+    },
+    "date_signed": "2025-07-31",
+    "memo": false,
+    "memo_text": null,
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "payee_candidate": null,
+    "date_notarized": null,
+    "notary_commission_expires": null,
+    "notary_name": null,
+    "image_number": null
+  }
+]

@@ -1,0 +1,80 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"SE_1883470.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "SE",
+    "form_type": "SE",
+    "filer_committee_id": "C00872366",
+    "transaction_id": "SE.4118",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "payee": {
+      "entity_type": "ORG",
+      "organization_name": "Plaid Payment Systems",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "1098 Harrison St.",
+        "street_2": null,
+        "city": "San Francisco",
+        "state": "CA",
+        "zip_code": "94103"
+      }
+    },
+    "payee_committee_fec_id": "C00872366",
+    "election_code": "G2028",
+    "election_other_description": null,
+    "dissemination_date": null,
+    "disbursement_date": "2025-01-17",
+    "expenditure_amount": 0.89,
+    "calendar_ytd_per_election_office": 0.89,
+    "expenditure_purpose_description": "Banking fees",
+    "expenditure_purpose_code": null,
+    "category_code": null,
+    "support_oppose_code": "O",
+    "candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "Donald",
+        "last_name": "Trump",
+        "middle_name": "J.",
+        "prefix": null,
+        "suffix": null
+      },
+      "office": "P",
+      "state": null,
+      "district": null
+    },
+    "signer_name": {
+      "first_name": "Ted",
+      "last_name": "Wright",
+      "middle_name": "C",
+      "prefix": null,
+      "suffix": null
+    },
+    "date_signed": "2025-04-01",
+    "memo": false,
+    "memo_text": null,
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "payee_candidate": null,
+    "date_notarized": null,
+    "notary_commission_expires": null,
+    "notary_name": null,
+    "image_number": null
+  }
+]

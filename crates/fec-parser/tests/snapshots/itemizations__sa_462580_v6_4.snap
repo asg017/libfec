@@ -1,0 +1,255 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"SA_462580.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "SA",
+    "form_type": "SA11AI",
+    "filer_committee_id": "C00213512",
+    "transaction_id": "C2964003",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "contributor": {
+      "entity_type": "IND",
+      "organization_name": null,
+      "name": {
+        "first_name": "Stephanie",
+        "last_name": "Evans",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "309 3rd Street",
+        "street_2": null,
+        "city": "Sausalito",
+        "state": "CA",
+        "zip_code": "94965"
+      }
+    },
+    "election_code": "P2010",
+    "election_other_description": null,
+    "contribution_date": "2010-03-31",
+    "contribution_amount": 2400.0,
+    "contribution_aggregate": 2500.0,
+    "contribution_purpose_code": null,
+    "contribution_purpose_description": null,
+    "contributor_employer": "Self-Employed",
+    "contributor_occupation": "Psychologist",
+    "donor_committee_fec_id": null,
+    "donor_committee_name": null,
+    "donor_candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "memo": false,
+    "memo_text": null,
+    "reference_code": null,
+    "image_number": null
+  },
+  {
+    "family": "SA",
+    "form_type": "SA11AI",
+    "filer_committee_id": "C00213512",
+    "transaction_id": "C2821824",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "contributor": {
+      "entity_type": "IND",
+      "organization_name": null,
+      "name": {
+        "first_name": "William",
+        "last_name": "Gates",
+        "middle_name": "H.",
+        "prefix": null,
+        "suffix": "III"
+      },
+      "address": {
+        "street_1": "PO Box 97000",
+        "street_2": null,
+        "city": "Kirkland",
+        "state": "WA",
+        "zip_code": "98083"
+      }
+    },
+    "election_code": "P2010",
+    "election_other_description": null,
+    "contribution_date": "2010-01-07",
+    "contribution_amount": 1000.0,
+    "contribution_aggregate": 1000.0,
+    "contribution_purpose_code": null,
+    "contribution_purpose_description": null,
+    "contributor_employer": "Self-Employed",
+    "contributor_occupation": "Entrepreneur",
+    "donor_committee_fec_id": null,
+    "donor_committee_name": null,
+    "donor_candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "memo": false,
+    "memo_text": null,
+    "reference_code": null,
+    "image_number": null
+  },
+  {
+    "family": "SA",
+    "form_type": "SA11C",
+    "filer_committee_id": "C00213512",
+    "transaction_id": "C2921060",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "contributor": {
+      "entity_type": "PAC",
+      "organization_name": "Weyerhauser Company Political Action Committee",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "P.O. Box 75000",
+        "street_2": "MC: 2250",
+        "city": "Detroit",
+        "state": "MI",
+        "zip_code": "48275"
+      }
+    },
+    "election_code": "P2010",
+    "election_other_description": null,
+    "contribution_date": "2010-02-05",
+    "contribution_amount": 2000.0,
+    "contribution_aggregate": 2000.0,
+    "contribution_purpose_code": null,
+    "contribution_purpose_description": null,
+    "contributor_employer": null,
+    "contributor_occupation": null,
+    "donor_committee_fec_id": "C00007948",
+    "donor_committee_name": "Weyerhauser Company Political Action Committee",
+    "donor_candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "memo": false,
+    "memo_text": null,
+    "reference_code": null,
+    "image_number": null
+  },
+  {
+    "family": "SA",
+    "form_type": "SA15",
+    "filer_committee_id": "C00213512",
+    "transaction_id": "C2946442",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "contributor": {
+      "entity_type": "CCM",
+      "organization_name": "Massa for Congress",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "60 East Market Street, Suite 244",
+        "street_2": null,
+        "city": "Corning",
+        "state": "NY",
+        "zip_code": "14830"
+      }
+    },
+    "election_code": "G2010",
+    "election_other_description": null,
+    "contribution_date": "2010-03-18",
+    "contribution_amount": 2000.0,
+    "contribution_aggregate": 2000.0,
+    "contribution_purpose_code": null,
+    "contribution_purpose_description": null,
+    "contributor_employer": null,
+    "contributor_occupation": null,
+    "donor_committee_fec_id": "C00411306",
+    "donor_committee_name": "Massa for Congress",
+    "donor_candidate": {
+      "fec_id": "H6NY29168",
+      "name": {
+        "first_name": "Eric",
+        "last_name": "Massa",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": "H",
+      "state": "NY",
+      "district": "29"
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "memo": false,
+    "memo_text": "Refund",
+    "reference_code": null,
+    "image_number": null
+  }
+]

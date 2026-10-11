@@ -1,0 +1,49 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"H2_1893234.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "H2",
+    "form_type": "H2",
+    "filer_committee_id": "C00006486",
+    "transaction_id": "H2.5407",
+    "activity_event_name": "2025 Spring Dinner (04/10/2025)",
+    "direct_fundraising": true,
+    "direct_candidate_support": false,
+    "exempt_activity": false,
+    "ratio_code": "S",
+    "federal_percent": 0.25,
+    "nonfederal_percent": 0.75,
+    "image_number": null
+  },
+  {
+    "family": "H2",
+    "form_type": "H2",
+    "filer_committee_id": "C00006486",
+    "transaction_id": "H2.5411",
+    "activity_event_name": "2025 Spring Dinner InKinds (04/10/2025)",
+    "direct_fundraising": true,
+    "direct_candidate_support": false,
+    "exempt_activity": false,
+    "ratio_code": "N",
+    "federal_percent": 0.25,
+    "nonfederal_percent": 0.75,
+    "image_number": null
+  },
+  {
+    "family": "H2",
+    "form_type": "H2",
+    "filer_committee_id": "C00006486",
+    "transaction_id": "H2.5408",
+    "activity_event_name": "3.12.25 Dinner (03/12/2025)",
+    "direct_fundraising": true,
+    "direct_candidate_support": false,
+    "exempt_activity": false,
+    "ratio_code": "S",
+    "federal_percent": 0.25,
+    "nonfederal_percent": 0.75,
+    "image_number": null
+  }
+]

@@ -1,0 +1,35 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"H3_1912571.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "H3",
+    "form_type": "H3",
+    "filer_committee_id": "C00274423",
+    "transaction_id": "IH3AD7471",
+    "back_reference_transaction_id": "IH3AD7471",
+    "account_name": "Sacramento County Democratic Central Committee - State",
+    "event_type": "AD",
+    "event_activity_name": "Administrative",
+    "receipt_date": "2025-07-01",
+    "total_amount_transferred": 4534.97,
+    "transferred_amount": 2735.36,
+    "image_number": null
+  },
+  {
+    "family": "H3",
+    "form_type": "H3",
+    "filer_committee_id": "C00274423",
+    "transaction_id": "IH3DF74711",
+    "back_reference_transaction_id": "IH3AD7471",
+    "account_name": "Sacramento County Democratic Central Committee - State",
+    "event_type": "DF",
+    "event_activity_name": "5/14/25 Fundraiser",
+    "receipt_date": "2025-07-01",
+    "total_amount_transferred": 4534.97,
+    "transferred_amount": 1799.61,
+    "image_number": null
+  }
+]

@@ -1,0 +1,77 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"H3_1925226.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "H3",
+    "form_type": "H3",
+    "filer_committee_id": "C00500330",
+    "transaction_id": "H3.21850",
+    "back_reference_transaction_id": "H3.21850",
+    "account_name": "ROCK ISLAND COUNTY DEMOCRATIC CENTRAL COMMITTEE",
+    "event_type": "AD",
+    "event_activity_name": null,
+    "receipt_date": "2025-10-21",
+    "total_amount_transferred": 2249.11,
+    "transferred_amount": 2249.11,
+    "image_number": null
+  },
+  {
+    "family": "H3",
+    "form_type": "H3",
+    "filer_committee_id": "C00500330",
+    "transaction_id": "H3.21851",
+    "back_reference_transaction_id": "H3.21851",
+    "account_name": "ROCK ISLAND COUNTY DEMOCRATIC CENTRAL COMMITTEE",
+    "event_type": "AD",
+    "event_activity_name": null,
+    "receipt_date": "2025-10-21",
+    "total_amount_transferred": 9826.44,
+    "transferred_amount": 0.0,
+    "image_number": null
+  },
+  {
+    "family": "H3",
+    "form_type": "H3",
+    "filer_committee_id": "C00500330",
+    "transaction_id": "H3.21851.0",
+    "back_reference_transaction_id": "H3.21851",
+    "account_name": "Salute to Labor 2025",
+    "event_type": "DF",
+    "event_activity_name": "Salute to Labor 2025 (09/01/2025)",
+    "receipt_date": "2025-10-21",
+    "total_amount_transferred": 9826.44,
+    "transferred_amount": 9826.44,
+    "image_number": null
+  },
+  {
+    "family": "H3",
+    "form_type": "H3",
+    "filer_committee_id": "C00500330",
+    "transaction_id": "H3.21849",
+    "back_reference_transaction_id": "H3.21849",
+    "account_name": "ROCK ISLAND COUNTY DEMOCRATIC CENTRAL COMMITTEE",
+    "event_type": "AD",
+    "event_activity_name": null,
+    "receipt_date": "2025-10-30",
+    "total_amount_transferred": 2298.71,
+    "transferred_amount": 0.0,
+    "image_number": null
+  },
+  {
+    "family": "H3",
+    "form_type": "H3",
+    "filer_committee_id": "C00500330",
+    "transaction_id": "H3.21849.0",
+    "back_reference_transaction_id": "H3.21849",
+    "account_name": "Salute to Labor 2025",
+    "event_type": "DF",
+    "event_activity_name": "Salute to Labor 2025 (09/01/2025)",
+    "receipt_date": "2025-10-30",
+    "total_amount_transferred": 2298.71,
+    "transferred_amount": 2298.71,
+    "image_number": null
+  }
+]

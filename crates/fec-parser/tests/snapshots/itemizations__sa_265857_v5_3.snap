@@ -1,0 +1,255 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"SA_265857.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "SA",
+    "form_type": "SA11AI",
+    "filer_committee_id": "C00213512",
+    "transaction_id": "C8394",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "contributor": {
+      "entity_type": "IND",
+      "organization_name": null,
+      "name": {
+        "first_name": "Shmuel",
+        "last_name": "Arditi",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "104 Las Uvas Ct.",
+        "street_2": null,
+        "city": "Los Gatos",
+        "state": "CA",
+        "zip_code": "95032"
+      }
+    },
+    "election_code": "G2006",
+    "election_other_description": null,
+    "contribution_date": "2006-08-19",
+    "contribution_amount": 500.0,
+    "contribution_aggregate": 500.0,
+    "contribution_purpose_code": null,
+    "contribution_purpose_description": null,
+    "contributor_employer": "Intel",
+    "contributor_occupation": "Executive",
+    "donor_committee_fec_id": null,
+    "donor_committee_name": null,
+    "donor_candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "memo": false,
+    "memo_text": null,
+    "reference_code": null,
+    "image_number": null
+  },
+  {
+    "family": "SA",
+    "form_type": "SA11C",
+    "filer_committee_id": "C00213512",
+    "transaction_id": "C8324",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "contributor": {
+      "entity_type": "PAC",
+      "organization_name": "Accenture PAC",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "800 Connecticut Ave NW",
+        "street_2": "Ste 600",
+        "city": "Washington",
+        "state": "DC",
+        "zip_code": "200062716"
+      }
+    },
+    "election_code": "G2006",
+    "election_other_description": null,
+    "contribution_date": "2006-07-20",
+    "contribution_amount": 1000.0,
+    "contribution_aggregate": 2000.0,
+    "contribution_purpose_code": null,
+    "contribution_purpose_description": null,
+    "contributor_employer": null,
+    "contributor_occupation": null,
+    "donor_committee_fec_id": "C00300707",
+    "donor_committee_name": null,
+    "donor_candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "memo": false,
+    "memo_text": null,
+    "reference_code": null,
+    "image_number": null
+  },
+  {
+    "family": "SA",
+    "form_type": "SA14",
+    "filer_committee_id": "C00213512",
+    "transaction_id": "C8507",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "contributor": {
+      "entity_type": "ORG",
+      "organization_name": "Visa Check/Master Money Antritrust Settlement Fd",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "The Garden City Group, Inc.",
+        "street_2": "P.O. Box 9000",
+        "city": "Merrick",
+        "state": "NY",
+        "zip_code": "11566"
+      }
+    },
+    "election_code": "G2006",
+    "election_other_description": null,
+    "contribution_date": "2006-07-28",
+    "contribution_amount": 33.91,
+    "contribution_aggregate": 33.91,
+    "contribution_purpose_code": null,
+    "contribution_purpose_description": null,
+    "contributor_employer": null,
+    "contributor_occupation": null,
+    "donor_committee_fec_id": null,
+    "donor_committee_name": null,
+    "donor_candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "memo": false,
+    "memo_text": null,
+    "reference_code": null,
+    "image_number": null
+  },
+  {
+    "family": "SA",
+    "form_type": "SA15",
+    "filer_committee_id": "C00213512",
+    "transaction_id": "C8498",
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "contributor": {
+      "entity_type": "ORG",
+      "organization_name": "Union Bank of California (C)",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "400 California St",
+        "street_2": null,
+        "city": "San Francisco",
+        "state": "CA",
+        "zip_code": "941041302"
+      }
+    },
+    "election_code": "G2006",
+    "election_other_description": null,
+    "contribution_date": "2006-07-31",
+    "contribution_amount": 49.53,
+    "contribution_aggregate": 870.01,
+    "contribution_purpose_code": null,
+    "contribution_purpose_description": null,
+    "contributor_employer": null,
+    "contributor_occupation": null,
+    "donor_committee_fec_id": null,
+    "donor_committee_name": null,
+    "donor_candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "memo": false,
+    "memo_text": null,
+    "reference_code": null,
+    "image_number": null
+  }
+]

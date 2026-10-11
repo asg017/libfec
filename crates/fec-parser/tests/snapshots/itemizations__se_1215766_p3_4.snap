@@ -1,0 +1,153 @@
+---
+source: crates/fec-parser/tests/itemizations.rs
+expression: "itemizations(\"SE_1215766.fec\")"
+snapshot_kind: text
+---
+[
+  {
+    "family": "SE",
+    "form_type": "SE",
+    "filer_committee_id": "C00617753",
+    "transaction_id": null,
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "payee": {
+      "entity_type": null,
+      "organization_name": "DELUXE",
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "3680 VICTORIA STREET NORTH",
+        "street_2": null,
+        "city": "SHOREVIEW",
+        "state": "MN",
+        "zip_code": "551262966"
+      }
+    },
+    "payee_committee_fec_id": null,
+    "election_code": null,
+    "election_other_description": null,
+    "dissemination_date": "2014-06-14",
+    "disbursement_date": "2017-06-14",
+    "expenditure_amount": 121.99,
+    "calendar_ytd_per_election_office": null,
+    "expenditure_purpose_description": "PURCHASE BANK CHECKS",
+    "expenditure_purpose_code": null,
+    "category_code": null,
+    "support_oppose_code": null,
+    "candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "signer_name": {
+      "first_name": "",
+      "last_name": "NAVEAUX",
+      "middle_name": null,
+      "prefix": null,
+      "suffix": null
+    },
+    "date_signed": null,
+    "memo": false,
+    "memo_text": "DELUXE",
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "payee_candidate": null,
+    "date_notarized": null,
+    "notary_commission_expires": null,
+    "notary_name": null,
+    "image_number": "201802280300197579"
+  },
+  {
+    "family": "SE",
+    "form_type": "SE",
+    "filer_committee_id": "C00617753",
+    "transaction_id": null,
+    "back_reference_transaction_id": null,
+    "back_reference_schedule_name": null,
+    "payee": {
+      "entity_type": null,
+      "organization_name": null,
+      "name": {
+        "first_name": "MATT",
+        "last_name": "BARRON",
+        "middle_name": "L",
+        "prefix": null,
+        "suffix": null
+      },
+      "address": {
+        "street_1": "54 STAGE RD",
+        "street_2": null,
+        "city": "WILLIAMSBURG",
+        "state": "MA",
+        "zip_code": "01096"
+      }
+    },
+    "payee_committee_fec_id": null,
+    "election_code": null,
+    "election_other_description": null,
+    "dissemination_date": "2017-09-27",
+    "disbursement_date": "2017-09-27",
+    "expenditure_amount": 26.56,
+    "calendar_ytd_per_election_office": null,
+    "expenditure_purpose_description": "AD RESEARCH",
+    "expenditure_purpose_code": null,
+    "category_code": "04",
+    "support_oppose_code": null,
+    "candidate": {
+      "fec_id": null,
+      "name": {
+        "first_name": "",
+        "last_name": "",
+        "middle_name": null,
+        "prefix": null,
+        "suffix": null
+      },
+      "office": null,
+      "state": null,
+      "district": null
+    },
+    "signer_name": {
+      "first_name": "",
+      "last_name": "NAVEAUX",
+      "middle_name": null,
+      "prefix": null,
+      "suffix": null
+    },
+    "date_signed": null,
+    "memo": false,
+    "memo_text": "MATT L BARRON",
+    "conduit_name": null,
+    "conduit_address": {
+      "street_1": null,
+      "street_2": null,
+      "city": null,
+      "state": null,
+      "zip_code": null
+    },
+    "payee_candidate": null,
+    "date_notarized": null,
+    "notary_commission_expires": null,
+    "notary_name": null,
+    "image_number": "201802280300197579"
+  }
+]

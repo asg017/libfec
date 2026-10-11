@@ -1,4 +1,4 @@
-"""Generate ``python/libfec/covers.pyi`` from `fec-parser`'s cover structs.
+"""Generate ``covers.pyi`` and ``itemizations.pyi`` from `fec-parser`'s structs.
 
 The classes in ``libfec.covers`` *are* the Rust structs in
 ``crates/fec-parser/src/covers/`` (a ``#[pyclass]`` through ``cfg_attr``), so
@@ -8,7 +8,7 @@ their stubs are derived from that source rather than written by hand: every
 strict conventions (see ``covers/mod.rs``), which is what lets a small line
 parser stand in for a Rust one.
 
-    python scripts/gen_cover_stubs.py            # rewrite covers.pyi
+    python scripts/gen_cover_stubs.py            # rewrite covers.pyi, itemizations.pyi
     python scripts/gen_cover_stubs.py --check    # exit 1 if it is stale
 
 ``tests/test_covers.py`` runs ``--check``, and ``make stubs`` runs stubtest
@@ -20,13 +20,14 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
-COVERS = ROOT / "crates" / "fec-parser" / "src" / "covers"
-OUT = ROOT / "crates" / "fec-py" / "python" / "libfec" / "covers.pyi"
+SRC = ROOT / "crates" / "fec-parser" / "src"
+PKG = ROOT / "crates" / "fec-py" / "python" / "libfec"
 
 #: Rust types with a fixed Python spelling; any other name is a cover class.
 SCALARS = {
     "String": "str",
     "&'static str": "str",
+    "&str": "str",
     "bool": "bool",
     "f64": "float",
     "i16": "int",
@@ -37,6 +38,7 @@ SCALARS = {
 }
 
 #: The ``CoverData`` union: the top-level form classes, one per `Cover` variant.
+#: (The ``Itemization`` union is read from ``itemization_to_py``'s match arms.)
 FORMS = [
     "Form1", "Form1M", "Form2", "Form3", "Form3L", "Form3P", "Form3X", "Form4",
     "Form5", "Form6", "Form7", "Form9", "Form13", "Form24", "Form99",
@@ -60,31 +62,37 @@ def docstring(lines: list[str], indent: str) -> list[str]:
     return [f'{indent}"""{body}"""']
 
 
-def parse_structs() -> tuple[dict[str, tuple[list[str], list[tuple[str, str, list[str]]]]], dict[tuple[str, str], list[str]]]:
+def parse_structs(src: Path) -> tuple[dict[str, tuple[list[str], list[tuple[str, str, list[str]]]]], dict[tuple[str, str], list[str]]]:
     """``{struct: (doc, [(field, rust type, doc)])}`` and ``{(type, method): doc}``."""
     structs: dict[str, tuple[list[str], list[tuple[str, str, list[str]]]]] = {}
     method_docs: dict[tuple[str, str], list[str]] = {}
-    for path in sorted(COVERS.glob("*.rs")):
+    for path in sorted(src.glob("*.rs")):
         if path.name in ("fields.rs", "python.rs"):
             continue
         doc: list[str] = []
         current: str | None = None
         impl: str | None = None
         in_attribute = False
+        pyclass = False
         for line in path.read_text(encoding="utf-8").splitlines():
             stripped = line.strip()
             if in_attribute:  # the rest of a multi-line `#[cfg_attr(...)]`
                 in_attribute = stripped != ")]"
+                pyclass = pyclass or "pyclass" in stripped
                 continue
             if stripped.startswith("///"):
                 doc.append(stripped[4:] if stripped.startswith("/// ") else stripped[3:])
                 continue
             if stripped.startswith("#["):
                 in_attribute = not stripped.endswith("]")
+                pyclass = pyclass or "pyclass" in stripped
                 continue
             if m := re.match(r"pub struct (\w+) \{", stripped):
-                current, impl = m.group(1), None
-                structs[current] = (doc, [])
+                # Only `#[pyclass]` structs; a plain helper struct is skipped.
+                current, impl = (m.group(1) if pyclass else None), None
+                if current:
+                    structs[current] = (doc, [])
+                pyclass = False
             elif m := re.match(r"impl (\w+) \{", stripped):
                 current, impl = None, m.group(1)
             elif stripped == "}" and not line.startswith(" "):
@@ -97,9 +105,9 @@ def parse_structs() -> tuple[dict[str, tuple[list[str], list[tuple[str, str, lis
     return structs, method_docs
 
 
-def parse_methods() -> dict[str, list[tuple[str, str]]]:
+def parse_methods(src: Path) -> dict[str, list[tuple[str, str]]]:
     """``{struct: [(python name, rust return type)]}`` from ``cover_class!`` calls."""
-    source = (COVERS / "python.rs").read_text(encoding="utf-8")
+    source = (src / "python.rs").read_text(encoding="utf-8")
     methods: dict[str, list[tuple[str, str]]] = {}
     for call in re.finditer(r"^cover_class!\((.*?)\);", source, re.S | re.M):
         args = call.group(1).strip()
@@ -111,29 +119,51 @@ def parse_methods() -> dict[str, list[tuple[str, str]]]:
     return methods
 
 
-def render() -> str:
-    structs, method_docs = parse_structs()
-    methods = parse_methods()
+def union_members(src: Path) -> list[str]:
+    """The ``Itemization`` union: one class per ``itemization_to_py`` match arm,
+    each variant mapped to its struct through the enum (``Text(Box<TextRecord>)``)."""
+    structs = dict(re.findall(r"^\s+(\w+)\(Box<(\w+)>\),", (src / "mod.rs").read_text(encoding="utf-8"), re.M))
+    arms = re.findall(r"Itemization::(\w+)\(\w+\) =>", (src / "python.rs").read_text(encoding="utf-8"))
+    return [structs[arm] for arm in arms]
+
+
+#: ``(module, source dir, union name, union members, extra imports)``.
+TARGETS = [
+    ("covers", SRC / "covers", "CoverData", lambda: FORMS, []),
+    (
+        "itemizations",
+        SRC / "itemizations",
+        "Itemization",
+        lambda: union_members(SRC / "itemizations"),
+        ["from .covers import Address, DetailedSummaryRow, PersonName"],
+    ),
+]
+
+
+def render(module: str, src: Path, union: str, members: list[str], imports: list[str]) -> str:
+    structs, method_docs = parse_structs(src)
+    methods = parse_methods(src)
     missing = set(structs) ^ set(methods)
     if missing:
         raise SystemExit(f"structs and cover_class! calls disagree: {sorted(missing)}")
 
     out = [
-        '"""Type stubs for :mod:`libfec.covers`.',
+        f'"""Type stubs for :mod:`libfec.{module}`.',
         "",
         "Generated by ``crates/fec-py/scripts/gen_cover_stubs.py`` from",
-        "``crates/fec-parser/src/covers/*.rs`` -- do not edit by hand.",
+        f"``crates/fec-parser/src/{module}/*.rs`` -- do not edit by hand.",
         '"""',
         "",
         "from datetime import date",
         "from typing import Any, TypeAlias, final",
+        *imports,
         "",
         "__all__ = [",
-        *[f'    "{name}",' for name in ["CoverData", *structs]],
+        *[f'    "{name}",' for name in [union, *structs]],
         "]",
         "",
-        "CoverData: TypeAlias = (",
-        "    " + " | ".join(FORMS),
+        f"{union}: TypeAlias = (",
+        "    " + " | ".join(members),
         ")",
     ]
     for name, (doc, fields) in structs.items():
@@ -154,14 +184,17 @@ def render() -> str:
 
 
 def main() -> int:
-    text = render()
-    if "--check" in sys.argv[1:]:
-        if OUT.read_text(encoding="utf-8") != text:
-            print(f"{OUT} is stale; run: python {Path(__file__).name}", file=sys.stderr)
-            return 1
-        return 0
-    OUT.write_text(text, encoding="utf-8", newline="\n")
-    return 0
+    stale = False
+    for module, src, union, members, imports in TARGETS:
+        out = PKG / f"{module}.pyi"
+        text = render(module, src, union, members(), imports)
+        if "--check" in sys.argv[1:]:
+            if not out.exists() or out.read_text(encoding="utf-8") != text:
+                print(f"{out} is stale; run: python {Path(__file__).name}", file=sys.stderr)
+                stale = True
+        else:
+            out.write_text(text, encoding="utf-8", newline="\n")
+    return 1 if stale else 0
 
 
 if __name__ == "__main__":
