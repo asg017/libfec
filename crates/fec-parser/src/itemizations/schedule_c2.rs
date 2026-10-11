@@ -38,6 +38,7 @@ use crate::itemizations::{address_either, Entity};
     pyo3::pyclass(module = "libfec.itemizations", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, serde::Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct ScheduleC2 {
     /// The row type as filed, `SC2/` plus the line number: `SC2/10`. Column
     /// `form_type` (FEC format workbook v8.4, sheet `Sch C2`, field 1).
