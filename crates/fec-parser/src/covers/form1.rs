@@ -52,6 +52,10 @@ use jiff::civil::Date;
 /// **Not on this record.** The committee "designation" and "filing frequency"
 /// shown on fec.gov are not columns of the `F1` record in any format version,
 /// so they are not here.
+#[cfg_attr(
+    feature = "python",
+    pyo3::pyclass(module = "libfec.covers", frozen, get_all, skip_from_py_object)
+)]
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct Form1 {
     /// Form type as filed, e.g. `F1N`: the base form plus the
@@ -170,6 +174,10 @@ pub struct Form1 {
 /// box under 5(f) ([fecfrm1.pdf p2](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm1.pdf#page=2));
 /// each box is its own column, `X` = yes (fields 35–39). The 5(g) and 5(h)
 /// columns exist from format v8.4 on; earlier records read as `false`.
+#[cfg_attr(
+    feature = "python",
+    pyo3::pyclass(module = "libfec.covers", frozen, get_all, skip_from_py_object)
+)]
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, serde::Serialize)]
 pub struct Form1PacFlags {
     /// 5(e) separate segregated fund is also a Lobbyist/Registrant PAC
@@ -211,6 +219,10 @@ impl Form1PacFlags {
 /// name, office, state, district and party; a committee supporting or
 /// opposing a single candidate (5(c)) gives the candidate's name
 /// ([fecfrm1.pdf p2](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm1.pdf#page=2)).
+#[cfg_attr(
+    feature = "python",
+    pyo3::pyclass(module = "libfec.covers", frozen, get_all, skip_from_py_object)
+)]
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 pub struct Form1Candidate {
     /// The candidate's FEC ID (`candidate_id_number`, field 23). Not printed
@@ -268,6 +280,10 @@ impl Form1Candidate {
 /// individual, such as a leadership PAC's sponsoring candidate or
 /// officeholder, is named in `name` (with `candidate_id`) (FEC format
 /// workbook v8.4, sheet `F1`, fields 40–53).
+#[cfg_attr(
+    feature = "python",
+    pyo3::pyclass(module = "libfec.covers", frozen, get_all, skip_from_py_object)
+)]
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 pub struct Form1Affiliated {
     /// FEC ID of the affiliated committee (`affiliated_committee_id_number`,
@@ -349,6 +365,10 @@ impl Form1Affiliated {
 /// designated agent. Each has a name, mailing address, "Title or Position"
 /// and optional "Telephone number"
 /// ([fecfrm1.pdf p3–4](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm1.pdf#page=3)).
+#[cfg_attr(
+    feature = "python",
+    pyo3::pyclass(module = "libfec.covers", frozen, get_all, skip_from_py_object)
+)]
 #[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize)]
 pub struct Form1Contact {
     /// Full name (`{role}_last_name` … `{role}_suffix`; the single
@@ -389,6 +409,10 @@ impl Form1Contact {
 
 /// Line 9: a bank, depository, etc. — "Name of Bank, Depository, etc." and
 /// its mailing address ([fecfrm1.pdf p4](https://www.fec.gov/resources/cms-content/documents/policy-guidance/fecfrm1.pdf#page=4)).
+#[cfg_attr(
+    feature = "python",
+    pyo3::pyclass(module = "libfec.covers", frozen, get_all, skip_from_py_object)
+)]
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 pub struct Form1Bank {
     /// `bank_name` / `bank2_name` (fields 90 and 96).

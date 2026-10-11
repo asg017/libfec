@@ -13,6 +13,7 @@ from typing import Protocol, TypeAlias
 # not an importable submodule, so it is bound by attribute access rather than
 # `from ._native.parser import ...`.
 from ._native import parser as _parser
+from .covers import CoverData
 
 Cover = _parser.Cover
 FilingReader = _parser.FilingReader
@@ -71,7 +72,7 @@ class Filing:
     use :func:`open`, which streams.
     """
 
-    __slots__ = ("id", "header", "cover", "cover_row", "rows")
+    __slots__ = ("id", "header", "cover", "cover_row", "cover_data", "rows")
 
     def __init__(self, source: Source) -> None:
         with open(source) as reader:  # this module's open(), not builtins.open
@@ -79,6 +80,7 @@ class Filing:
             self.header = reader.header
             self.cover = reader.cover
             self.cover_row = reader.cover_row
+            self.cover_data: CoverData | None = reader.cover_data
             self.rows: list[Row] = list(reader)  # MissingMappingError propagates (Q15: eager = strict)
 
     @property

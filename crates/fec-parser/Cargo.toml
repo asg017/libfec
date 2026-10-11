@@ -17,6 +17,12 @@ bstr = "1.10.0"
 jiff = { version = "0.2.5", features = ["serde"] }
 serde = { version = "1", features = ["derive"] }
 anyhow = "1.0.99"
+# `python`: `#[pyclass]` on the typed cover structs (`covers::*`), so the
+# Python bindings (`crates/fec-py`) expose them as-is instead of mirroring them.
+pyo3 = { version = "0.29", optional = true, features = ["jiff-02"] }
+
+[features]
+python = ["dep:pyo3"]
 
 [dev-dependencies]
 insta = { version = "1.45.0", features = ["json"] }

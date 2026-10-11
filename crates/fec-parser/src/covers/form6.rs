@@ -35,6 +35,10 @@ use jiff::civil::Date;
 /// v8.0–8.5 carry all 24 fields. v6.1–7.0 lack `original_amendment_date`. v3
 /// and v5.x give the candidate as one caret-delimited `candidate_name` (read
 /// into [`Form6Candidate::name`]) and have no signer name columns.
+#[cfg_attr(
+    feature = "python",
+    pyo3::pyclass(module = "libfec.covers", frozen, get_all, skip_from_py_object)
+)]
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct Form6 {
     /// Form type as filed, e.g. `F6N`: the base form plus the
@@ -74,6 +78,10 @@ pub struct Form6 {
 }
 
 /// The candidate on a Form 6 (Lines 2-3).
+#[cfg_attr(
+    feature = "python",
+    pyo3::pyclass(module = "libfec.covers", frozen, get_all, skip_from_py_object)
+)]
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct Form6Candidate {
     /// The candidate's FEC ID. Electronic-format only: no candidate ID box is
