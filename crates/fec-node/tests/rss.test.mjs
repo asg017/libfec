@@ -100,3 +100,42 @@ test("fetch: a non-2xx response is an Error; the caller's signal is passed throu
   });
   assert.equal(seen, signal);
 });
+
+test("fetch: proxy as a prefix, a {url} template or a function", async () => {
+  const urls = [];
+  await withFetch(async (url) => {
+    urls.push(url);
+    return new Response(FEED);
+  }, async () => {
+    await rss.fetch({ preset: "pac", proxy: "https://p.example/?url=" });
+    await rss.fetch({ preset: "pac", proxy: "https://p.example/get/{url}/raw" });
+    await rss.fetch({ preset: "pac", proxy: (u) => `https://p.example/${u.length}` });
+  });
+  const feed = encodeURIComponent(`${BASE}?preDefinedFilingType=F3X`);
+  assert.deepEqual(urls, [
+    `https://p.example/?url=${feed}`,
+    `https://p.example/get/${feed}/raw`,
+    `https://p.example/${BASE.length + "?preDefinedFilingType=F3X".length}`,
+  ]);
+  await assert.rejects(rss.fetch({ proxy: 42 }), TypeError);
+});
+
+test("fetch: in a browser, a failed request without a proxy explains CORS", async () => {
+  const failed = async () => {
+    throw new TypeError("Failed to fetch");
+  };
+  // Outside a browser the fetch error passes through as is.
+  await withFetch(failed, async () => {
+    await assert.rejects(rss.fetch(), { message: "Failed to fetch" });
+  });
+  globalThis.document = {};
+  try {
+    await withFetch(failed, async () => {
+      await assert.rejects(rss.fetch(), (e) => e instanceof TypeError && /CORS/.test(e.message) && e.cause?.message === "Failed to fetch");
+      // With a proxy, the error is the proxy's to explain.
+      await assert.rejects(rss.fetch({ proxy: "https://p.example/?u=" }), { message: "Failed to fetch" });
+    });
+  } finally {
+    delete globalThis.document;
+  }
+});
