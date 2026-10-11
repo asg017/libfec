@@ -61,6 +61,15 @@ Run with `deno run --allow-read --allow-ffi --allow-env`: `--allow-read` to read
 the native addon, `--allow-ffi` to load the addon, and `--allow-env` because napi-rs's loader
 reads `NAPI_RS_*` environment variables.
 
+### In the browser
+
+Bundlers resolve `@asg017/libfec` to a WebAssembly build of the same API through the
+`"browser"` export condition, and `@asg017/libfec/browser` imports it explicitly. It's
+also published on its own as `@asg017/libfec-wasm`. It reads bytes instead of paths
+(`open(new Uint8Array(await file.arrayBuffer()))`), and `rss.fetch` needs a `proxy`
+because the FEC sends no CORS headers. Everything else behaves the same, and the test
+suite checks that on every fixture. See [`crates/fec-wasm`](../fec-wasm/README.md).
+
 ## Reading a filing
 
 `open(source, options?)` returns a `FilingReader`. It reads the header and cover right away,
