@@ -40,3 +40,13 @@ test("both packages ship the same browser files", () => {
   assert.deepEqual(nodeFiles, wasmFiles);
   assert.equal(pkg("../package.json").version, pkg("../../fec-node/package.json").version);
 });
+
+test("both packages ship real copies of the root license files", () => {
+  // npm pack skips symlinks, so these must be regular files.
+  for (const pkg of ["fec-node", "fec-wasm"]) {
+    for (const name of ["LICENSE-MIT", "LICENSE-APACHE"]) {
+      const root = readFileSync(new URL(`../../../${name}`, import.meta.url), "utf8");
+      assert.equal(readFileSync(new URL(`../../${pkg}/${name}`, import.meta.url), "utf8"), root, `${pkg}/${name}`);
+    }
+  }
+});
