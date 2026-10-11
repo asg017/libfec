@@ -45,20 +45,22 @@ function analyze(L, bytes, id) {
   const t0 = performance.now();
   const f = L.open(bytes, { id });
   const t1 = performance.now();
-  byType = new Map();
+  // Built locally: if a row fails to parse, the previous filing stays browsable.
+  const types = new Map();
   let rows = 0;
   try {
     for (const row of f.itemizations()) {
       rows++;
       const it = row.itemization;
-      let list = byType.get(it.type);
-      if (!list) byType.set(it.type, (list = []));
+      let list = types.get(it.type);
+      if (!list) types.set(it.type, (list = []));
       list.push(it);
     }
   } finally {
     f.close();
   }
   const t2 = performance.now();
+  byType = types;
 
   const a = byType.get("ScheduleA") ?? [];
   const b = byType.get("ScheduleB") ?? [];
