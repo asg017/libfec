@@ -53,7 +53,9 @@ Without a bundler, serve the package directory and import `dist/index.js` from a
 | Sources | path, `file:` URL, `Uint8Array`, `ArrayBuffer` | `Uint8Array` or `ArrayBuffer`. A path or URL throws a `TypeError` with `code: "ERR_UNSUPPORTED_SOURCE"` |
 | `File`/`Blob` | — | `new Uint8Array(await file.arrayBuffer())` |
 | `reader.id` | from the file name, or `{ id }` | `null` unless you pass `{ id }` |
-| Memory | the file is read in place | the bytes are **copied** into wasm memory once. That memory is reused by the next filing but never shrinks, and you can drop your own copy after `open()` |
+| Memory | the file is read in place | the bytes are **copied** into wasm memory once, so peak memory is about twice the file until you drop your copy. That memory is reused by the next filing but never shrinks |
+| Size limit | none | just under **2 GiB** (wasm32 memory). Bigger filings throw a `RangeError` with `code: "ERR_FILING_TOO_LARGE"`; use the Node build for those |
+| Traps | — | if the parser runs out of memory or panics, the call throws an `Error` with `code: "ERR_WASM_TRAP"`. That reader is dead (its `close()` is a no-op), but the module stays usable |
 | `rss.fetch` | works | needs a `proxy`: the FEC sends no CORS headers (see below) |
 | Everything else | | identical: same classes, values, typed records, errors, codes and messages |
 
@@ -93,14 +95,16 @@ const feed = await rss.fetch({ preset: "pac", proxy: "https://your-proxy.example
 ```
 
 `proxy` is a URL prefix, a template containing `{url}`, or a function. Without one, the
-browser blocks the request, and `rss.fetch` throws a `TypeError` that explains this.
-`scripts/serve.mjs` has a small FEC-only proxy for development (`/proxy?url=`).
+browser blocks the request, and `rss.fetch` throws a `TypeError` that names CORS as the
+likely cause (the original error is its `cause`). `scripts/serve.mjs` has a small
+FEC-only proxy for development (`/proxy?url=`). It only answers on localhost, only for
+`efilingapps.fec.gov` and `docquery.fec.gov`, and re-checks every redirect.
 
 ## Content Security Policy
 
 The wasm needs `'wasm-unsafe-eval'` in `script-src`. `'unsafe-eval'` is **not**
 needed: where `new Function` is blocked, the row and record factories fall back to plain
-loops with the same results. The browser tests run under
+loops with the same results. The browser tests run the page and its worker under
 `script-src 'self' 'wasm-unsafe-eval'`.
 
 ## Performance
