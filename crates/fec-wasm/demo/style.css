@@ -91,3 +91,4 @@ footer { padding-bottom: 32px; font-size: 13px; }
   .feed-list li { grid-template-columns: 6ch 1fr; }
   .feed-list li .when, .feed-list li .id { display: none; }
 }
+body.busy .feed-list li, body.busy .drop { cursor: progress; opacity: 0.6; }

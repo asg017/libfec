@@ -45,6 +45,7 @@ function setStatus(text, error = false) {
 
 function busy(on) {
   for (const el of document.querySelectorAll("button, input, select")) el.disabled = on;
+  document.body.classList.toggle("busy", on);
 }
 
 // ---- sources ----------------------------------------------------------------
@@ -73,7 +74,12 @@ async function download(url, label) {
   return bytes;
 }
 
+let loading = false;
+
 async function load(getBytes, id) {
+  // One load at a time: the feed list and the inputs are ignored meanwhile.
+  if (loading) return;
+  loading = true;
   busy(true);
   try {
     const bytes = await getBytes();
@@ -89,6 +95,7 @@ async function load(getBytes, id) {
   } catch (e) {
     setStatus(e.message, true);
   } finally {
+    loading = false;
     busy(false);
   }
 }
