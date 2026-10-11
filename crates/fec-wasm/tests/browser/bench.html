@@ -1,0 +1,36 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>libfec-wasm browser bench</title>
+  </head>
+  <body>
+    <pre id="status">loading</pre>
+    <script type="module">
+      import * as lib from "../../dist/index.js";
+      const MODES = {
+        itemizations: (data) => { const f = lib.open(data); let n = 0; for (const _ of f.itemizations()) n++; f.close(); return n; },
+        rows: (data) => { const f = lib.open(data); let n = 0; for (const _ of f.rows()) n++; f.close(); return n; },
+        records: (data) => { const f = lib.open(data); let n = 0; for (const _ of f.records()) n++; f.close(); return n; },
+        read: (data) => lib.read(data).rows.length,
+      };
+      window.__bench = async (path, runs) => {
+        const t = performance.now();
+        const data = new Uint8Array(await (await fetch(path)).arrayBuffer());
+        const out = { fetchSeconds: (performance.now() - t) / 1000, mb: data.length / 2 ** 20 };
+        for (const [name, f] of Object.entries(MODES)) {
+          let best = Infinity, rows = 0;
+          for (let i = 0; i < runs; i++) {
+            const t0 = performance.now();
+            rows = f(data);
+            best = Math.min(best, performance.now() - t0);
+          }
+          out[name] = { rows, seconds: best / 1000 };
+        }
+        return out;
+      };
+      window.__ready = true;
+      document.getElementById("status").textContent = "ready";
+    </script>
+  </body>
+</html>

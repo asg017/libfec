@@ -36,9 +36,11 @@ const STRICT_CSP = "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; st
 /**
  * Start the server. Resolves to `{ url, close }`.
  *
- * @param {{ port?: number, root?: string, feed?: string, log?: boolean }} options
+ * `files` maps extra URL paths to files outside `root` (the benchmark filing).
+ *
+ * @param {{ port?: number, root?: string, feed?: string, files?: Record<string, string>, log?: boolean }} options
  */
-export function serve({ port = 0, root = fileURLToPath(new URL("../../", import.meta.url)), feed, log = false } = {}) {
+export function serve({ port = 0, root = fileURLToPath(new URL("../../", import.meta.url)), feed, files = {}, log = false } = {}) {
   root = resolve(root);
   const savedFeed = feed ? readFileSync(feed) : null;
   const server = createServer(async (req, res) => {
@@ -46,8 +48,8 @@ export function serve({ port = 0, root = fileURLToPath(new URL("../../", import.
     if (log) console.log(req.method, url.pathname + url.search);
     try {
       if (url.pathname === "/proxy") return await proxy(url, res, savedFeed);
-      let path = normalize(join(root, decodeURIComponent(url.pathname)));
-      if (path !== root && !path.startsWith(root + sep)) return send(res, 403, "forbidden");
+      let path = files[url.pathname] ?? normalize(join(root, decodeURIComponent(url.pathname)));
+      if (!files[url.pathname] && path !== root && !path.startsWith(root + sep)) return send(res, 403, "forbidden");
       let stat = statSync(path, { throwIfNoEntry: false });
       if (stat?.isDirectory()) {
         path = join(path, "index.html");
