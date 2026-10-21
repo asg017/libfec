@@ -1,0 +1,28 @@
+---
+source: crates/fec-cli/src/tui/filing_detail/mod.rs
+expression: terminal.backend()
+---
+"FEC-1910281 F1N by Pete Barlow for Congress (C00914911)                         "
+"Signed by: Sonya McGrady on 2025-08-05                                          "
+"                                                                                "
+"Committee                                                                       "
+"Name:             Pete Barlow for Congress                                      "
+"FEC ID: ┌Copy to Clipboard─────────────────────────────────────────────┐        "
+"Address:│Select what to copy:                                          │        "
+"        │                                                              │        "
+"Email:  │   Filing ID: FEC-1910281                                     │        "
+"Effectiv│   Filer ID: C00914911                                        │        "
+"        │   Filer Name: Pete Barlow for Congress                       │        "
+"Type & d│>> FEC file URL:                                              │        "
+"Committe│https://docquery.fec.gov/dcdev/posted/1910281.fec             │        "
+"Party:  │                                                              │        "
+"        │↑/↓ or j/k navigate  Enter copy  Esc cancel                   │        "
+"Candidat│                                                              │        "
+"Name:   │                                                              │        "
+"Office: │                                                              │        "
+"        └──────────────────────────────────────────────────────────────┘        "
+"Custodian of records                                                            "
+"Name:             Sonya McGrady                                                 "
+"Title:            Treasurer                                                     "
+"────────────────────────────────────────────────────────────────────────────────"
+"                 Esc/q back  c filer  o open  y copy  j/k scroll                "

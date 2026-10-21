@@ -11,7 +11,7 @@
 //! - c: View committee or candidate detail page
 //! - o: Open filing in browser
 //! - w: Open committee website (F1 forms only)
-//! - y: Open copy popup to copy filing ID, filer ID, or filer name to clipboard
+//! - y: Open copy popup to copy filing ID, filer ID, filer name, or FEC file URL
 //! - j/k: Scroll up/down
 
 pub mod f1;
@@ -31,7 +31,10 @@ pub mod f9;
 pub mod f99;
 mod layout;
 
-use crate::tui::{navigation_popup_help_line, HelpBar};
+use crate::{
+    sourcer::FecFilingId,
+    tui::{navigation_popup_help_line, HelpBar},
+};
 use crossterm::event::{KeyCode, KeyEvent};
 use f3::FilingDetailF3;
 use f3p::FilingDetailF3P;
@@ -122,6 +125,13 @@ impl FilingDetail {
         )
     }
 
+    pub fn source_url(&self) -> Option<String> {
+        // Local filenames do not necessarily identify a published FEC filing.
+        FecFilingId::from_str(&self.filing_id)
+            .ok()
+            .map(|id| id.filing_url().to_string())
+    }
+
     pub fn open_in_browser(&self) -> Result<(), std::io::Error> {
         open::that(self.fec_url())
     }
@@ -201,6 +211,7 @@ pub enum YankOption {
     FilingId,
     FilerId,
     FilerName,
+    SourceUrl,
 }
 
 pub struct FilingDetailState {
@@ -222,7 +233,7 @@ impl FilingDetailState {
         &self,
         filing: &FilingDetail,
     ) -> Vec<(YankOption, String, Option<String>)> {
-        vec![
+        let mut options = vec![
             (
                 YankOption::FilingId,
                 "Filing ID".to_string(),
@@ -238,7 +249,11 @@ impl FilingDetailState {
                 "Filer Name".to_string(),
                 Some(filing.filer_name.clone()),
             ),
-        ]
+        ];
+        if let Some(url) = filing.source_url() {
+            options.push((YankOption::SourceUrl, "FEC file URL".to_string(), Some(url)));
+        }
+        options
     }
 
     pub fn copy_selected(&self, filing: &FilingDetail) {
@@ -431,10 +446,6 @@ fn render_content(f: &mut Frame, filing: &FilingDetail, state: &FilingDetailStat
     }
 
     // FEC URL
-    let fec_url = format!(
-        "https://docquery.fec.gov/cgi-bin/forms/{}/{}",
-        filing.filer_id, filing.filing_id
-    );
     lines.push(Line::from(vec![
         Span::styled(
             "URL: ".to_string(),
@@ -443,12 +454,28 @@ fn render_content(f: &mut Frame, filing: &FilingDetail, state: &FilingDetailStat
                 .add_modifier(Modifier::BOLD),
         ),
         Span::styled(
-            fec_url,
+            filing.fec_url(),
             Style::default()
                 .fg(Color::Blue)
                 .add_modifier(Modifier::UNDERLINED),
         ),
     ]));
+    if let Some(url) = filing.source_url() {
+        lines.push(Line::from(vec![
+            Span::styled(
+                "FEC file: ",
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::styled(
+                url,
+                Style::default()
+                    .fg(Color::Blue)
+                    .add_modifier(Modifier::UNDERLINED),
+            ),
+        ]));
+    }
     lines.push(Line::from(""));
 
     // Metadata line
@@ -594,7 +621,8 @@ pub fn render_filing_detail(
 }
 
 fn render_yank_popup(f: &mut Frame, area: Rect, filing: &FilingDetail, state: &FilingDetailState) {
-    let popup_area = super::popup_area(area, 50, 40);
+    // Leave room for the source URL and navigation help when the URL wraps.
+    let popup_area = super::popup_area(area, 80, 60);
 
     // Clear the background
     f.render_widget(Clear, popup_area);
@@ -695,6 +723,109 @@ pub(crate) mod tests {
         assert_eq!(format_usd(-0.5), "-$0.50");
         assert_eq!(format_usd(0.0), "$0.00");
         assert_eq!(format_usd(-0.001), "$0.00");
+    }
+
+    #[test]
+    fn filing_source_url_is_displayed() {
+        let out = render_fixture("F1N_1910281.fec", 100, 80);
+        assert!(
+            out.contains("https://docquery.fec.gov/dcdev/posted/1910281.fec"),
+            "{out}"
+        );
+        assert!(
+            out.contains("https://docquery.fec.gov/cgi-bin/forms/"),
+            "{out}"
+        );
+    }
+
+    #[test]
+    fn filing_source_url_can_be_selected_for_copying() {
+        let detail = detail_from_fixture("F1N_1910281.fec");
+        let mut state = FilingDetailState::new();
+        state.handle_key_event(KeyCode::Char('y').into(), &detail);
+        assert!(state.show_yank_popup);
+        // Moving back from the first item selects the new, final option.
+        state.handle_key_event(KeyCode::Up.into(), &detail);
+        let options = state.get_yank_options(&detail);
+        assert_eq!(options[state.yank_selected].1, "FEC file URL");
+        assert_eq!(
+            options[state.yank_selected].2.as_deref(),
+            Some("https://docquery.fec.gov/dcdev/posted/1910281.fec")
+        );
+        state.handle_key_event(KeyCode::Down.into(), &detail);
+        assert_eq!(state.yank_selected, 0);
+    }
+
+    #[test]
+    fn filing_source_url_handles_local_filenames() {
+        let fixture = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../fec-parser/tests/fixtures/covers/F1N_1910281.fec");
+        let temp = tempfile::tempdir().unwrap();
+        let source_url = "https://docquery.fec.gov/dcdev/posted/1910281.fec";
+
+        for (filename, expected_url) in [
+            ("1910281.fec", Some(source_url)),
+            ("FEC-1910281.fec", Some(source_url)),
+            ("my-copy.fec", None),
+        ] {
+            let path = temp.path().join(filename);
+            std::fs::copy(&fixture, &path).unwrap();
+            let filing = crate::sourcer::resolve_from_path(path).unwrap();
+            let detail = FilingDetail::from(&filing);
+            let mut state = FilingDetailState::new();
+            let mut terminal = Terminal::new(TestBackend::new(100, 80)).unwrap();
+            terminal
+                .draw(|f| render_filing_detail(f, f.area(), &detail, &state))
+                .unwrap();
+            let out = terminal.backend().to_string();
+            assert_eq!(
+                out.contains("FEC file: "),
+                expected_url.is_some(),
+                "{filename}"
+            );
+            if let Some(url) = expected_url {
+                assert!(out.contains(url), "{filename}: {out}");
+            }
+
+            state.handle_key_event(KeyCode::Char('y').into(), &detail);
+            state.handle_key_event(KeyCode::Up.into(), &detail);
+            let options = state.get_yank_options(&detail);
+            let url_option = options
+                .iter()
+                .find(|(kind, _, _)| *kind == YankOption::SourceUrl);
+            assert_eq!(
+                url_option.and_then(|(_, _, value)| value.as_deref()),
+                expected_url,
+                "{filename}"
+            );
+            let expected_last = if expected_url.is_some() {
+                YankOption::SourceUrl
+            } else {
+                YankOption::FilerName
+            };
+            assert_eq!(options[state.yank_selected].0, expected_last, "{filename}");
+            state.handle_key_event(KeyCode::Down.into(), &detail);
+            assert_eq!(state.yank_selected, 0, "{filename}");
+        }
+    }
+
+    #[test]
+    fn filing_source_url_copy_popup() {
+        let detail = detail_from_fixture("F1N_1910281.fec");
+        let mut state = FilingDetailState::new();
+        state.handle_key_event(KeyCode::Char('y').into(), &detail);
+        state.handle_key_event(KeyCode::Up.into(), &detail);
+        for (name, width, height) in [
+            ("filing_copy_wide", 120, 30),
+            ("filing_copy_standard", 80, 24),
+            ("filing_copy_narrow", 60, 20),
+        ] {
+            let mut terminal = Terminal::new(TestBackend::new(width, height)).unwrap();
+            terminal
+                .draw(|f| render_filing_detail(f, f.area(), &detail, &state))
+                .unwrap();
+            assert_snapshot!(name, terminal.backend());
+        }
     }
 
     /// The header metadata sits below the (long) F3 summary, so render tall
