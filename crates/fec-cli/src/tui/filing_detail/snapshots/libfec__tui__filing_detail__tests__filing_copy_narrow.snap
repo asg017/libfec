@@ -1,0 +1,24 @@
+---
+source: crates/fec-cli/src/tui/filing_detail/mod.rs
+expression: terminal.backend()
+---
+"FEC-1910281 F1N by Pete Barlow for Congress (C00914911)     "
+"Signed by: Sonya McGrady on 2025-08-05                      "
+"                                                            "
+"Committee                                                   "
+"Name: ┌Copy to Clipboard─────────────────────────────┐      "
+"FEC ID│Select what to copy:                          │      "
+"Addres│                                              │      "
+"      │   Filing ID: FEC-1910281                     │      "
+"Email:│   Filer ID: C00914911                        │      "
+"Effect│   Filer Name: Pete Barlow for Congress       │      "
+"      │>> FEC file URL:                              │      "
+"Type &│https://docquery.fec.gov/dcdev/posted/1910281.│      "
+"Commit│fec                                           │)     "
+"Party:│                                              │      "
+"      │↑/↓ or j/k navigate  Enter copy  Esc cancel   │      "
+"Candid└──────────────────────────────────────────────┘      "
+"Name:             Pete Barlow                               "
+"Office:           House · VA · District 06                  "
+"────────────────────────────────────────────────────────────"
+"       Esc/q back  c filer  o open  y copy  j/k scroll      "
