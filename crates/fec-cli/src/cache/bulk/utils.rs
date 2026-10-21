@@ -279,14 +279,14 @@ pub(crate) fn sync_item(
             .with_context(|| {
                 format!(
                     "failed to parse last_checked_at datetime from {}",
-                    &row.last_checked_at
+                    row.last_checked_at
                 )
             })?
             .in_tz("UTC")
             .with_context(|| {
                 format!(
                     "failed to convert last_checked_at datetime to UTC timezone for {}",
-                    &row.last_checked_at
+                    row.last_checked_at
                 )
             })?
             .timestamp();
@@ -295,7 +295,7 @@ pub(crate) fn sync_item(
             .with_context(|| {
                 format!(
                     "failed to compute minutes since last_checked_at datetime from {}",
-                    &row.last_checked_at
+                    row.last_checked_at
                 )
             })?
             .total(jiff::Unit::Minute)

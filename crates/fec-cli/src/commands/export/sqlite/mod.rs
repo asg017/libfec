@@ -527,7 +527,7 @@ fn export_itemizations<R: Read>(
             .with_context(|| {
                 format!(
                     "Error inserting itemization row for filing FEC-{}, line {}",
-                    &filing.filing_id,
+                    filing.filing_id,
                     r.record.position().map(|p| p.line()).unwrap_or(0),
                 )
             })?;
@@ -605,7 +605,7 @@ fn insert_filing_metadata(tx: &mut Transaction, filing: &Filing<impl Read>) -> a
     .with_context(|| {
         format!(
             "Error creating record table for form type '{}' and filing FEC-{}",
-            &filing.cover.form_type, &filing.filing_id
+            filing.cover.form_type, filing.filing_id
         )
     })?;
     rt.create_or_adopt(tx)?;
