@@ -24,6 +24,10 @@ install-updater = false
 local-artifacts-jobs = ["./build-pypi", "./build-npm"]
 # Publish jobs to run in CI
 publish-jobs = ["./publish-pypi"]
+# Build only the packages dist ships (`-p fec-cli`), not the whole workspace:
+# a workspace build also compiles fec-py's pyo3 extension, whose abi3-py311
+# floor fails on ubuntu-22.04's Python 3.10.
+precise-builds = true
 # Don't run the Release workflow on pull requests
 pr-run-mode = "skip"
 
