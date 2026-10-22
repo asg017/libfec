@@ -65,6 +65,11 @@ jobs:
       - name: tsc --noEmit
         if: matrix.os == 'ubuntu-latest' && matrix.runtime == 'node24'
         run: make typecheck
+      - name: Examples
+        # Every examples/*.mjs under the leg's runtime.
+        run: node scripts/examples.mjs "${RUNTIME%%[0-9]*}"
+        env:
+          RUNTIME: ${{ matrix.runtime }}
       - name: Import dist/index.js by path from outside the package
         # How the README tells Deno users to load the extracted tarball. Tests
         # and examples run inside the package, where the runtime resolves more.
@@ -89,6 +94,9 @@ jobs:
           esac
         env:
           RUNTIME: ${{ matrix.runtime }}
+      - name: TypeDoc (no undocumented exports, no broken links)
+        if: matrix.os == 'ubuntu-latest' && matrix.runtime == 'node24'
+        run: make docs
       - name: Generated types are up to date
         # js/generated/ and native/native.d.ts are committed; regenerating them
         # (`make gen-types`, and `npm run build` above) must not change them.
