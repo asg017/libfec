@@ -37,6 +37,7 @@ use crate::itemizations::CandidateRef;
     pyo3::pyclass(module = "libfec.itemizations", frozen, get_all, skip_from_py_object)
 )]
 #[derive(Debug, Clone, serde::Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct Form7Communication {
     /// The row type as filed, `F76`. Column `form_type` (FEC format workbook
     /// v8.4, sheet `F76`, field 1).
