@@ -5,6 +5,10 @@ use crate::cli::RssArgs;
 use super::filters::build_feed_url;
 use super::types::{ActiveFilters, Error, FetchResult};
 
+/// Largest feed body we'll read. ureq's 10 MiB default is too small: the
+/// unfiltered feed passed 11 MB in October 2026 and grows toward elections.
+const MAX_FEED_BYTES: u64 = 128 * 1024 * 1024;
+
 /// Fetch feed with filters from args
 pub fn fetch_feed_with_args(args: &RssArgs) -> Result<(FetchResult, ActiveFilters), Error> {
     let (url, filters) = build_feed_url(args);
@@ -27,6 +31,8 @@ pub fn fetch_feed_from_url(url: &str) -> Result<FetchResult, Error> {
 
     let body = response
         .into_body()
+        .with_config()
+        .limit(MAX_FEED_BYTES)
         .read_to_string()
         .map_err(|e| Error::Http(e.to_string()))?;
 
