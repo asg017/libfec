@@ -226,6 +226,34 @@ readable after `close()`:
   `"2023-07-01"`, `"2023-07-31"`.
 - `filing.coverRow`: the cover line as a `Row` (123 columns for an F3XN).
 
+## The RSS feed
+
+`rss` reads the FEC's e-filing RSS feed: new filings, about a week's worth, newest first.
+It uses the same parser as `libfec rss` and Python's `libfec.rss`.
+
+```ts
+import { open, rss } from "@asg017/libfec";
+
+const feed = await rss.fetch({ forms: ["F3X"], states: "CA" });
+for (const item of feed.items) {
+  console.log(item.filingId, item.committeeName, item.formType, item.pubDate);
+}
+```
+
+- `rss.fetch(options?)` downloads the feed with the runtime's global `fetch()` (no
+  dependency), with a 60-second timeout unless you pass a `signal`. A non-2xx response
+  throws an `Error`.
+- `rss.parseFeed(xml)` parses a feed you fetched yourself (a string or UTF-8 bytes).
+- `rss.feedUrl(options?)` gives the URL. `preset` is `"all"` (the default), `"monthly"`,
+  `"quarterly"`, `"presidential"`, `"congressional"` or `"pac"`. Any of `committees`,
+  `forms`, `states` or `parties` (a string or an iterable of strings) switches to custom
+  filters, and the feed then ignores `preset`.
+
+Each item has `filingId`, `committeeId`, `committeeName`, `formType`, `reportType`,
+`coverageFrom`/`coverageThrough` (`"YYYY-MM-DD"`), `pubDate` (a `Date`), and the raw
+`title`, `link`, `description` and `guid`. `link` is the filing's `.fec` URL. Download
+it and pass the bytes to `open()`.
+
 ## Errors
 
 | Error | When |
@@ -236,6 +264,7 @@ readable after `close()`:
 | `FecError` with `code: "ERR_FILING_CONSUMED"` | a second `itemizations()`/`rows()`/`records()`/`for…of` on one reader |
 | `FecError` with `code: "ERR_FILING_CLOSED"` | reading after `close()` |
 | `TypeError` | a bad source or option, or a filter argument |
+| `RangeError` | an unknown `rss` preset |
 
 `FecParseError` and `MissingMappingError` extend `FecError`, which extends `Error`.
 
@@ -269,7 +298,8 @@ These come from the parser and are the same in the Python package:
 ## Examples
 
 `examples/*.mjs` run under all three runtimes (`make examples`, and in CI). Each takes an
-optional filing path and defaults to a committed fixture.
+optional filing path and defaults to a committed fixture. `examples/rss.mjs` parses a saved
+feed and only fetches the live one when given `--live`.
 
 ## Development
 

@@ -944,7 +944,9 @@ version = "0.0.32"
 dependencies = [
  "fec-js-core",
  "fec-parser",
+ "fec-rss",
  "indexmap",
+ "jiff",
  "napi",
  "napi-build",
  "napi-derive",

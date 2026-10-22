@@ -12,6 +12,7 @@ pub mod arrays;
 pub mod debug;
 pub mod errors;
 pub mod reader;
+pub mod rss;
 pub mod tokens;
 
 /// The crate version (lockstep with the workspace).
