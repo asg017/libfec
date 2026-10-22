@@ -15,7 +15,7 @@ members = [
 
 # One version for the CLI and the `libfec` Python wheel (which ships the CLI too).
 [workspace.package]
-version = "0.0.34"
+version = "0.0.35-alpha.1"
 
 # The profile that 'cargo dist' will build with
 [profile.dist]
