@@ -1,18 +1,92 @@
 /*!
  * Integration tests for RSS RPC mode
  *
- * Tests the JSON-RPC protocol over stdio with `libfec rss --rpc`.
+ * Tests the JSON-RPC protocol over stdio with `libfec rss --rpc`. Nothing here
+ * touches the network: every client points LIBFEC_RSS_BASE_URL at a local
+ * server (`FeedServer`) whose feed lists local .fec files as its FilingIds,
+ * which the sync's sourcer reads straight from disk.
  */
 
 use serde_json::json;
-use std::io::{BufRead, BufReader, Write};
+use std::io::{BufRead, BufReader, Read, Write};
+use std::net::TcpListener;
+use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::time::Duration;
-use tempfile::NamedTempFile;
+use tempfile::{NamedTempFile, TempDir};
+
+/// Filings in the local feed. More than the 10 exports the RPC loop runs
+/// before it reads the next request, so a sync started by a test is still
+/// exporting when the test's next request arrives.
+const FEED_FILINGS: u32 = 15;
+
+/// A local stand-in for efilingapps.fec.gov: FEED_FILINGS copies of a fixture
+/// filing, named 9000001.fec and up, in a feed published just now. Answers
+/// every request with that feed; the server thread lives as long as the test
+/// process, the files as long as the FeedServer.
+struct FeedServer {
+    url: String,
+    _filings: TempDir,
+}
+
+impl FeedServer {
+    fn start() -> Self {
+        let filings = TempDir::new().unwrap();
+        let fixture =
+            Path::new(env!("CARGO_MANIFEST_DIR")).join("../fec-py/tests/fixtures/1921705.fec");
+        let pub_date = jiff::Timestamp::now()
+            .strftime("%a, %d %b %Y %H:%M:%S GMT")
+            .to_string();
+        let items: String = (1..=FEED_FILINGS)
+            .map(|i| {
+                let path: PathBuf = filings.path().join(format!("{}.fec", 9_000_000 + i));
+                std::fs::copy(&fixture, &path).expect("copy fixture filing");
+                format!(
+                    "<item><title>New filing by TEST COMMITTEE</title><link>{p}</link>\
+                     <description>*********CommitteeId: C00123456 | FilingId: {p} | FormType: F3XN*********</description>\
+                     <pubDate>{pub_date}</pubDate><guid>{p}</guid></item>",
+                    p = path.display()
+                )
+            })
+            .collect();
+        let feed = format!(
+            r#"<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"><channel><title>FEC Electronic Filing RSS Feed - ALL</title>
+<link>http://docquery.fec.gov//rss</link><description>test feed</description>{items}</channel></rss>"#
+        );
+
+        let listener = TcpListener::bind("127.0.0.1:0").expect("bind local feed server");
+        let addr = listener.local_addr().unwrap();
+        std::thread::spawn(move || {
+            for mut stream in listener.incoming().flatten() {
+                // Read the request head; its contents don't matter.
+                let mut head = Vec::new();
+                let mut buf = [0u8; 1024];
+                while !head.windows(4).any(|w| w == b"\r\n\r\n") {
+                    match stream.read(&mut buf) {
+                        Ok(0) | Err(_) => break,
+                        Ok(n) => head.extend_from_slice(&buf[..n]),
+                    }
+                }
+                let _ = write!(
+                    stream,
+                    "HTTP/1.1 200 OK\r\nContent-Type: application/rss+xml\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                    feed.len(),
+                    feed
+                );
+            }
+        });
+        FeedServer {
+            url: format!("http://{addr}/rss/generate"),
+            _filings: filings,
+        }
+    }
+}
 
 /// Helper to spawn libfec rss --rpc and communicate via JSONL
 struct RpcClient {
     child: std::process::Child,
+    _feed: FeedServer,
     stdin: std::process::ChildStdin,
     stdout: BufReader<std::process::ChildStdout>,
     next_id: i32,
@@ -20,8 +94,10 @@ struct RpcClient {
 
 impl RpcClient {
     fn new() -> Self {
+        let feed = FeedServer::start();
         let mut child = Command::new(env!("CARGO_BIN_EXE_libfec"))
             .args(["rss", "--rpc"])
+            .env("LIBFEC_RSS_BASE_URL", &feed.url)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
@@ -33,6 +109,7 @@ impl RpcClient {
 
         let mut client = RpcClient {
             child,
+            _feed: feed,
             stdin,
             stdout,
             next_id: 1,
