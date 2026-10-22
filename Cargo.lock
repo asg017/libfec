@@ -940,7 +940,7 @@ dependencies = [
 
 [[package]]
 name = "fec-node"
-version = "0.0.32"
+version = "0.0.34"
 dependencies = [
  "fec-js-core",
  "fec-parser",
@@ -1009,7 +1009,7 @@ dependencies = [
 
 [[package]]
 name = "fec-wasm"
-version = "0.0.32"
+version = "0.0.34"
 dependencies = [
  "fec-js-core",
  "fec-parser",
