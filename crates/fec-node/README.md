@@ -1,8 +1,23 @@
 # @asg017/libfec
 
 Parse FEC electronic filings (`.fec`) in Node, Deno and Bun, with libfec's Rust parser
-via [napi-rs](https://napi.rs). **Pre-alpha:** the API is being built; only `version`,
-`readHeader` and the error classes exist so far.
+via [napi-rs](https://napi.rs). **Pre-alpha:** the full README (install per runtime,
+the value rules, examples) lands with the docs.
+
+```ts
+import { open } from "@asg017/libfec";
+
+const filing = open("1805248.fec");
+try {
+  for (const row of filing.itemizations()) {
+    switch (row.itemization.type) {
+      case "ScheduleA": console.log(row.itemization.contribution_amount); break;
+    }
+  }
+} finally {
+  filing.close();
+}
+```
 
 ## Development
 
