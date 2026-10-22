@@ -4,7 +4,7 @@
  * uses); {@link fetch} is a thin wrapper over the runtime's own `fetch()`.
  *
  * ```ts
- * import { rss } from "@asg017/libfec";
+ * import { rss } from "@alex.garcia/libfec";
  *
  * const feed = await rss.fetch({ forms: ["F3X"], states: "CA" });
  * for (const item of feed.items) {

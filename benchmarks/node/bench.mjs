@@ -1,4 +1,4 @@
-// Benchmark @asg017/libfec on one filing under node, deno and bun.
+// Benchmark @alex.garcia/libfec on one filing under node, deno and bun.
 //
 //   node benchmarks/node/bench.mjs [--runtime node|deno|bun|all] [--pkg node|wasm] [file]
 //

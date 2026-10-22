@@ -4,7 +4,7 @@ version = "0.0.32"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 publish = false
-description = "wasm-bindgen bindings for the browser build of @asg017/libfec: the same native surface as crates/fec-node, over fec-js-core's batch encodings."
+description = "wasm-bindgen bindings for the browser build of @alex.garcia/libfec: the same native surface as crates/fec-node, over fec-js-core's batch encodings."
 
 [lib]
 # Loaded by the wasm-bindgen glue in wasm/; the public API is the shared

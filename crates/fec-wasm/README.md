@@ -1,13 +1,13 @@
-# @asg017/libfec-wasm
+# @alex.garcia/libfec-wasm
 
 Parse FEC electronic filings (`.fec`) in the browser. This is libfec's Rust parser
-compiled to WebAssembly, with **the same API as [`@asg017/libfec`](../fec-node/README.md)**
+compiled to WebAssembly, with **the same API as [`@alex.garcia/libfec`](../fec-node/README.md)**
 for Node, Deno and Bun: `open()`, `read()`, `readHeader()`, typed covers and
 itemizations, `rows()`, `records()`, label functions, errors and `rss`. Only the
 sources differ: the browser has no file system, so it reads bytes.
 
 ```ts
-import { open } from "@asg017/libfec-wasm";
+import { open } from "@alex.garcia/libfec-wasm";
 
 const file = input.files[0]; // a <input type="file"> pick, or a drop
 const filing = open(new Uint8Array(await file.arrayBuffer()), { id: "1805248" });
@@ -32,8 +32,8 @@ There are two ways to get it, both from the same build:
 
 | | Package | When |
 |---|---|---|
-| A | `@asg017/libfec-wasm` | browser-only apps |
-| B | `@asg017/libfec` | code that runs in both Node and the browser. Bundlers (Vite, webpack, esbuild, Rollup) pick this build through the `"browser"` export condition, and `@asg017/libfec/browser` imports it explicitly |
+| A | `@alex.garcia/libfec-wasm` | browser-only apps |
+| B | `@alex.garcia/libfec` | code that runs in both Node and the browser. Bundlers (Vite, webpack, esbuild, Rollup) pick this build through the `"browser"` export condition, and `@alex.garcia/libfec/browser` imports it explicitly |
 
 Bundlers need no configuration. The module loads `libfec_bg.wasm` with
 `new URL("../wasm/libfec_bg.wasm", import.meta.url)`, which Vite and webpack 5 recognize
@@ -44,11 +44,11 @@ Without a bundler, serve the package directory and import `dist/index.js` from a
 `<script type="module">`. The server must send `.wasm` as `application/wasm`.
 
 **Loading:** the module initializes the wasm with top-level await. Once
-`import "@asg017/libfec-wasm"` resolves, every call is synchronous, as in Node.
+`import "@alex.garcia/libfec-wasm"` resolves, every call is synchronous, as in Node.
 
 ## Differences from the Node build
 
-| | Node/Deno/Bun (`@asg017/libfec`) | Browser (`@asg017/libfec-wasm`) |
+| | Node/Deno/Bun (`@alex.garcia/libfec`) | Browser (`@alex.garcia/libfec-wasm`) |
 |---|---|---|
 | Sources | path, `file:` URL, `Uint8Array`, `ArrayBuffer` | `Uint8Array` or `ArrayBuffer`. A path or URL throws a `TypeError` with `code: "ERR_UNSUPPORTED_SOURCE"` |
 | `File`/`Blob` | — | `new Uint8Array(await file.arrayBuffer())` |
@@ -73,7 +73,7 @@ statically imported handler exists, and it's lost.
 
 ```js
 // worker.mjs, started with new Worker(url, { type: "module" })
-const lib = import("@asg017/libfec-wasm");
+const lib = import("@alex.garcia/libfec-wasm");
 
 self.onmessage = async ({ data: bytes }) => {
   const { open } = await lib;
@@ -140,8 +140,8 @@ shared unchanged. `scripts/build.mjs` copies it into `build/src`, swaps in this 
 ```
 crates/fec-node/js/*.ts ──────┐  (shared: open/read/Row/tokens/errors/rss/generated types)
 crates/fec-wasm/js/native.ts ─┴─► tsc ─► dist/ ──────────────────────────┐
-crates/fec-wasm/src ─► cargo + wasm-bindgen + wasm-opt ─► wasm/ ─────────┴─► @asg017/libfec-wasm
-                                                                           └─► @asg017/libfec (browser/)
+crates/fec-wasm/src ─► cargo + wasm-bindgen + wasm-opt ─► wasm/ ─────────┴─► @alex.garcia/libfec-wasm
+                                                                           └─► @alex.garcia/libfec (browser/)
 ```
 
 ## Development

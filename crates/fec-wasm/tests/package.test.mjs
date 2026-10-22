@@ -1,5 +1,5 @@
-// Packaging: @asg017/libfec resolves to this build under the "browser"
-// export condition (and at @asg017/libfec/browser), and to napi otherwise.
+// Packaging: @alex.garcia/libfec resolves to this build under the "browser"
+// export condition (and at @alex.garcia/libfec/browser), and to napi otherwise.
 // Runs crates/fec-node/scripts/build-browser.mjs first, which copies this
 // package's dist/ and wasm/ into crates/fec-node/browser/.
 import { test } from "node:test";
@@ -10,11 +10,11 @@ import { fileURLToPath } from "node:url";
 
 const NODE_PKG = fileURLToPath(new URL("../../fec-node/", import.meta.url));
 
-// Self-reference: inside crates/fec-node, `@asg017/libfec` resolves through
+// Self-reference: inside crates/fec-node, `@alex.garcia/libfec` resolves through
 // its own package.json "exports", as it would for a dependent.
 const PROBE = `
-import { open } from "@asg017/libfec";
-import * as sub from "@asg017/libfec/browser";
+import { open } from "@alex.garcia/libfec";
+import * as sub from "@alex.garcia/libfec/browser";
 let code; try { open("missing.fec"); } catch (e) { code = e.code; }
 let subCode; try { sub.open("missing.fec"); } catch (e) { subCode = e.code; }
 console.log(JSON.stringify({ code, subCode }));

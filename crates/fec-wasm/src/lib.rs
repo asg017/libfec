@@ -1,4 +1,4 @@
-//! wasm-bindgen bindings for the browser build of `@asg017/libfec`.
+//! wasm-bindgen bindings for the browser build of `@alex.garcia/libfec`.
 //!
 //! This is the same native surface as `crates/fec-node` (napi), so the whole
 //! TypeScript layer in `crates/fec-node/js` is shared: only `js/native.ts` is

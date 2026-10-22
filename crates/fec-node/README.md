@@ -1,4 +1,4 @@
-# @asg017/libfec
+# @alex.garcia/libfec
 
 Parse FEC electronic filings (`.fec`) in Node, Deno and Bun with
 [libfec](https://github.com/asg017/libfec)'s Rust parser (via [napi-rs](https://napi.rs)).
@@ -8,7 +8,7 @@ Typed covers and itemizations with TypeScript types for every form and schedule.
 > [GitHub Releases](https://github.com/asg017/libfec/releases). The API may still change.
 
 ```js
-import { open } from "@asg017/libfec";
+import { open } from "@alex.garcia/libfec";
 
 const filing = open("1721696.fec");
 try {
@@ -63,9 +63,9 @@ reads `NAPI_RS_*` environment variables.
 
 ### In the browser
 
-Bundlers resolve `@asg017/libfec` to a WebAssembly build of the same API through the
-`"browser"` export condition, and `@asg017/libfec/browser` imports it explicitly. It's
-also published on its own as `@asg017/libfec-wasm`. It reads bytes instead of paths
+Bundlers resolve `@alex.garcia/libfec` to a WebAssembly build of the same API through the
+`"browser"` export condition, and `@alex.garcia/libfec/browser` imports it explicitly. It's
+also published on its own as `@alex.garcia/libfec-wasm`. It reads bytes instead of paths
 (`open(new Uint8Array(await file.arrayBuffer()))`), and `rss.fetch` needs a `proxy`
 because the FEC sends no CORS headers. Everything else behaves the same, and the test
 suite checks that on every fixture. See [`crates/fec-wasm`](../fec-wasm/README.md).
@@ -125,7 +125,7 @@ Rust struct it comes from. A `switch` narrows it, the TypeScript counterpart of 
 `match`/`case`. A `never` default makes the compiler flag any type you didn't handle:
 
 ```ts
-import type { Itemization } from "@asg017/libfec";
+import type { Itemization } from "@alex.garcia/libfec";
 
 function amount(it: Itemization): number | null {
   switch (it.type) {
@@ -241,7 +241,7 @@ readable after `close()`:
 It uses the same parser as `libfec rss` and Python's `libfec.rss`.
 
 ```ts
-import { open, rss } from "@asg017/libfec";
+import { open, rss } from "@alex.garcia/libfec";
 
 const feed = await rss.fetch({ forms: ["F3X"], states: "CA" });
 for (const item of feed.items) {
@@ -253,7 +253,7 @@ for (const item of feed.items) {
   dependency), with a 60-second timeout unless you pass a `signal`. A non-2xx response
   throws an `Error`. In a browser, pass a `proxy`, because the FEC sends no CORS headers.
   `proxy` is a URL prefix (`"https://proxy.example/?url="`), a template with `{url}`, or a
-  function. See [`@asg017/libfec-wasm`](../fec-wasm/README.md).
+  function. See [`@alex.garcia/libfec-wasm`](../fec-wasm/README.md).
 - `rss.parseFeed(xml)` parses a feed you fetched yourself (a string or UTF-8 bytes).
 - `rss.feedUrl(options?)` gives the URL. `preset` is `"all"` (the default), `"monthly"`,
   `"quarterly"`, `"presidential"`, `"congressional"` or `"pac"`. Any of `committees`,

@@ -1,7 +1,7 @@
 // Copy the browser build (crates/fec-wasm: `make build` there) into
 // browser/, which package.json's "browser" export condition points at, so
-// bundlers resolve `@asg017/libfec` to the wasm build for the web. The same
-// files are published on their own as @asg017/libfec-wasm.
+// bundlers resolve `@alex.garcia/libfec` to the wasm build for the web. The same
+// files are published on their own as @alex.garcia/libfec-wasm.
 //
 // Also the package's `prepack`: npm silently leaves out missing "files"
 // entries, so packing without the browser build would publish a "browser"

@@ -3,7 +3,7 @@
 // crates/fec-node/js/native.ts; every other module in js/ is shared as is.
 //
 // The module initializes the wasm with top-level await, so once
-// `import ... from "@asg017/libfec-wasm"` resolves, everything is synchronous,
+// `import ... from "@alex.garcia/libfec-wasm"` resolves, everything is synchronous,
 // as in Node.
 
 import init, * as wasm from "../wasm/libfec.js";
@@ -72,7 +72,7 @@ const HEADER_BYTES = 2 ** 26;
 function tooLarge(n: number): Error {
   const e = new RangeError(
     `the filing is ${n} bytes; the browser build reads at most ${MAX_BYTES} ` +
-      "(wasm32 memory). Use @asg017/libfec in Node, Deno or Bun for bigger filings",
+      "(wasm32 memory). Use @alex.garcia/libfec in Node, Deno or Bun for bigger filings",
   );
   return Object.assign(e, { code: "ERR_FILING_TOO_LARGE" });
 }
