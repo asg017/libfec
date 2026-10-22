@@ -2,7 +2,7 @@
  * Parse FEC electronic filings (`.fec`) in Node, Deno and Bun.
  *
  * ```ts
- * import { open } from "@asg017/libfec";
+ * import { open } from "@alex.garcia/libfec";
  *
  * const filing = open("1805248.fec");
  * try {

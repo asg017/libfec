@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>FEC Filing Explorer</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <header class="top">
+      <div>
+        <h1>FEC Filing Explorer</h1>
+        <p class="sub">
+          Parse FEC electronic filings in your browser with libfec's Rust parser
+          compiled to WebAssembly. Your file never leaves this page.
+          <span id="version" class="muted"></span>
+        </p>
+      </div>
+    </header>
+
+    <main>
+      <section class="sources">
+        <label id="drop" class="drop" tabindex="0">
+          <input id="file" type="file" accept=".fec" hidden />
+          <strong>Drop a .fec file</strong> or click to choose one
+        </label>
+        <form id="by-id" class="by-id">
+          <label for="filing-id">Filing ID</label>
+          <input id="filing-id" inputmode="numeric" placeholder="1721696" pattern="\d+" required />
+          <button>Load</button>
+        </form>
+      </section>
+
+      <section class="feed card">
+        <div class="feed-head">
+          <h2>Latest filings</h2>
+          <select id="preset" aria-label="Feed">
+            <option value="all">All</option>
+            <option value="pac">PACs (F3X)</option>
+            <option value="congressional">Congressional</option>
+            <option value="presidential">Presidential</option>
+            <option value="monthly">Monthly filers</option>
+            <option value="quarterly">Quarterly filers</option>
+          </select>
+        </div>
+        <p id="feed-status" class="muted">Loading the FEC RSS feed…</p>
+        <ul id="feed" class="feed-list"></ul>
+      </section>
+
+      <p id="status" class="status" role="status"></p>
+
+      <section id="result" hidden>
+        <div class="card filer">
+          <div>
+            <h2 id="filer-name"></h2>
+            <p id="filer-meta" class="muted"></p>
+          </div>
+          <div id="kpis" class="kpis"></div>
+        </div>
+
+        <div class="grid">
+          <div class="card">
+            <h3>Itemizations by type</h3>
+            <table id="counts" class="t"></table>
+          </div>
+          <div class="card">
+            <h3>Top contributors <span class="muted">(Schedule A, excluding memos)</span></h3>
+            <table id="contributors" class="t"></table>
+          </div>
+          <div class="card">
+            <h3>Top payees <span class="muted">(Schedule B, excluding memos)</span></h3>
+            <table id="payees" class="t"></table>
+          </div>
+          <div class="card">
+            <h3>Independent expenditures <span class="muted">(Schedule E)</span></h3>
+            <table id="ie" class="t"></table>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="browse-head">
+            <h3>Browse itemizations</h3>
+            <select id="browse-type" aria-label="Itemization type"></select>
+            <input id="browse-q" type="search" placeholder="Search this type" />
+          </div>
+          <div class="scroll"><table id="browse" class="t"></table></div>
+          <div class="pager">
+            <button id="prev">Previous</button>
+            <span id="page-info" class="muted"></span>
+            <button id="next">Next</button>
+          </div>
+        </div>
+
+        <details class="card">
+          <summary>Typed cover and header (JSON)</summary>
+          <pre id="cover-json"></pre>
+        </details>
+      </section>
+    </main>
+
+    <footer class="muted">
+      <code>@alex.garcia/libfec-wasm</code>: the same API as <code>@alex.garcia/libfec</code> for Node.
+      The feed and filing downloads go through this server's <code>/proxy</code>,
+      since the FEC sends no CORS headers.
+    </footer>
+    <script type="module" src="./app.mjs"></script>
+  </body>
+</html>

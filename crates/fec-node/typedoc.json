@@ -1,6 +1,6 @@
 {
   "$schema": "https://typedoc.org/schema.json",
-  "name": "@asg017/libfec",
+  "name": "@alex.garcia/libfec",
   "entryPoints": [
     "js/index.ts"
   ],

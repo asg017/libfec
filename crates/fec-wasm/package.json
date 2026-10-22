@@ -1,0 +1,31 @@
+{
+  "name": "@alex.garcia/libfec-wasm",
+  "version": "0.0.32",
+  "description": "Parse FEC electronic filings (.fec) in the browser: libfec's Rust parser as WebAssembly, with the same API as @alex.garcia/libfec.",
+  "license": "MIT OR Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "sideEffects": [
+    "./dist/native.js"
+  ],
+  "files": [
+    "dist",
+    "wasm/libfec.js",
+    "wasm/libfec.d.ts",
+    "wasm/libfec_bg.wasm",
+    "LICENSE-MIT",
+    "LICENSE-APACHE"
+  ],
+  "scripts": {
+    "build": "node scripts/build.mjs"
+  },
+  "devDependencies": {
+    "puppeteer-core": "24.43.1",
+    "typescript": "~5.9"
+  }
+}

@@ -1,15 +1,23 @@
 [package]
 name = "fec-wasm"
-version = "0.1.0"
-edition = "2024"
+version = "0.0.32"
+edition = "2021"
 license = "MIT OR Apache-2.0"
-
-[dependencies]
-wasm-bindgen = {version="0.2.100", features = ["serde-serialize"] }
-fec-parser = { path = "../fec-parser" }
-serde = { version = "1.0", features = ["derive"] }
-serde-wasm-bindgen = "0.4"
-tsify = "0.5.5"
+publish = false
+description = "wasm-bindgen bindings for the browser build of @alex.garcia/libfec: the same native surface as crates/fec-node, over fec-js-core's batch encodings."
 
 [lib]
+# Loaded by the wasm-bindgen glue in wasm/; the public API is the shared
+# TypeScript layer (crates/fec-node/js) with js/native.ts swapped in.
 crate-type = ["cdylib"]
+
+[dependencies]
+# Pinned exactly: the wasm-bindgen CLI that generates the glue must be the
+# same version (`make install-tools`).
+wasm-bindgen = "=0.2.129"
+js-sys = "0.3"
+fec-parser = { path = "../fec-parser" }
+fec-js-core = { path = "../fec-js-core" }
+fec-rss = { path = "../fec-rss" }
+jiff = { version = "0.2.5", default-features = false, features = ["std"] }
+indexmap = "2.9.0"
