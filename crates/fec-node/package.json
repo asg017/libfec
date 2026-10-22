@@ -1,6 +1,6 @@
 {
   "name": "@alex.garcia/libfec",
-  "version": "0.0.32",
+  "version": "0.0.34",
   "description": "Parse FEC electronic filings (.fec) in Node, Deno and Bun. Rust parser via napi-rs.",
   "license": "MIT OR Apache-2.0",
   "type": "module",

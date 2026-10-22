@@ -1,6 +1,6 @@
 {
   "name": "@alex.garcia/libfec-wasm",
-  "version": "0.0.32",
+  "version": "0.0.34",
   "description": "Parse FEC electronic filings (.fec) in the browser: libfec's Rust parser as WebAssembly, with the same API as @alex.garcia/libfec.",
   "license": "MIT OR Apache-2.0",
   "type": "module",

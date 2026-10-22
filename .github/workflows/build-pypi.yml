@@ -163,3 +163,23 @@ jobs:
         with:
           name: wheels_libfec-sdist
           path: crates/fec-py/dist
+
+  release-assets:
+    # The same wheels and sdist again as one artifacts-* artifact, which
+    # release.yml attaches to the GitHub Release (publish-pypi.yml still reads
+    # the wheels_libfec-* ones). A prerelease tag skips PyPI, so for those
+    # this is the only place the wheels land.
+    needs: [linux, linux-armv7, macos, windows, sdist]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: wheels_libfec-*
+          path: wheels
+          merge-multiple: true
+      - run: ls -l wheels
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: artifacts-wheels
+          path: wheels/*
+          if-no-files-found: error

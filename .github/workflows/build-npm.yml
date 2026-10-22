@@ -1,0 +1,134 @@
+# Build the npm packages (@alex.garcia/libfec and @alex.garcia/libfec-wasm) as
+# `npm pack` tarballs, attached to the GitHub Release. Nothing is published to
+# the npm registry: `npm i <release asset URL>` installs a tarball directly.
+#
+# Assumed to run as a subworkflow of .github/workflows/release.yml, like
+# build-pypi.yml (`local-artifacts-jobs = ["./build-npm"]` in
+# dist-workspace.toml), hence the `workflow_call` + `plan` input shape.
+#
+# The packages' versions come from the Cargo workspace (stamped into
+# package.json here), so a release only bumps Cargo.toml.
+name: "Build npm packages"
+on:
+  workflow_call:
+    inputs:
+      plan:
+        required: true
+        type: string
+
+env:
+  # Must match crates/fec-wasm/Cargo.toml's wasm-bindgen pin (and test-wasm.yaml).
+  WASM_BINDGEN: "0.2.129"
+  BINARYEN: "version_123"
+
+jobs:
+  native:
+    # One napi binary per target. The generated native/native.js loader looks
+    # for native/libfec.<platform>.node first, so a single tarball carrying all
+    # of them works everywhere it has a binary for.
+    name: native-${{ matrix.target }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { runner: macos-latest, target: aarch64-apple-darwin }
+          - { runner: macos-latest, target: x86_64-apple-darwin }
+          # Same runners as test-node.yml (glibc 2.35). No musl binaries yet.
+          - { runner: ubuntu-22.04, target: x86_64-unknown-linux-gnu }
+          - { runner: ubuntu-22.04-arm, target: aarch64-unknown-linux-gnu }
+          - { runner: windows-latest, target: x86_64-pc-windows-msvc }
+    defaults:
+      run:
+        shell: bash
+        working-directory: crates/fec-node
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - run: rustup toolchain install stable --profile minimal --target ${{ matrix.target }}
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+      - run: npm ci
+      - run: npm run build:native:release -- --target ${{ matrix.target }}
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: npm-native-${{ matrix.target }}
+          path: |
+            crates/fec-node/native/*.node
+            crates/fec-node/native/native.js
+          if-no-files-found: error
+
+  pack:
+    needs: native
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - run: rustup toolchain install stable --profile minimal --target wasm32-unknown-unknown
+      - name: wasm-bindgen and wasm-opt (prebuilt)
+        run: |
+          mkdir -p "$RUNNER_TEMP/bin"
+          curl -sSfL "https://github.com/wasm-bindgen/wasm-bindgen/releases/download/$WASM_BINDGEN/wasm-bindgen-$WASM_BINDGEN-x86_64-unknown-linux-musl.tar.gz" \
+            | tar xz -C "$RUNNER_TEMP/bin" --strip-components 1 "wasm-bindgen-$WASM_BINDGEN-x86_64-unknown-linux-musl/wasm-bindgen"
+          curl -sSfL "https://github.com/WebAssembly/binaryen/releases/download/$BINARYEN/binaryen-$BINARYEN-x86_64-linux.tar.gz" \
+            | tar xz -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+          echo "$RUNNER_TEMP/binaryen-$BINARYEN/bin" >> "$GITHUB_PATH"
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+      - name: Version from the Cargo workspace
+        run: |
+          version=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[] | select(.name == "fec-cli") | .version')
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+          echo "version: $version"
+          # npm pack --pack-destination doesn't create it.
+          mkdir -p "$RUNNER_TEMP/npm"
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: npm-native-*
+          path: crates/fec-node/native
+          merge-multiple: true
+      - name: Build and pack @alex.garcia/libfec-wasm
+        working-directory: crates/fec-wasm
+        run: |
+          npm ci
+          node scripts/build.mjs
+          npm version "$VERSION" --no-git-tag-version --allow-same-version
+          npm pack --pack-destination "$RUNNER_TEMP/npm"
+      - name: Pack @alex.garcia/libfec
+        # prepack copies the browser build above into browser/ and refuses a
+        # stale or unoptimized one.
+        working-directory: crates/fec-node
+        run: |
+          ls native
+          npm ci
+          npm run build:js
+          npm version "$VERSION" --no-git-tag-version --allow-same-version
+          npm pack --pack-destination "$RUNNER_TEMP/npm"
+      - name: Smoke test the tarballs
+        run: |
+          ls -l "$RUNNER_TEMP/npm"
+          fixture="$PWD/crates/fec-py/tests/fixtures/1921705.fec"
+          mkdir "$RUNNER_TEMP/smoke" && cd "$RUNNER_TEMP/smoke"
+          npm init -y >/dev/null
+          npm i "$RUNNER_TEMP"/npm/*.tgz
+          cat > smoke.mjs <<EOF
+          import * as napi from "@alex.garcia/libfec";
+          import * as wasm from "@alex.garcia/libfec-wasm";
+          import { readFileSync } from "node:fs";
+          const count = (f) => { let n = 0; for (const _ of f.itemizations()) n++; f.close(); return n; };
+          const a = count(napi.open("$fixture"));
+          const b = count(wasm.open(new Uint8Array(readFileSync("$fixture"))));
+          if (a !== 20 || b !== 20) throw new Error(\`expected 20 itemizations, got napi=\${a} wasm=\${b}\`);
+          console.log("ok: napi and wasm both read 20 itemizations");
+          EOF
+          node smoke.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          # release.yml attaches every artifacts-* artifact to the GitHub Release.
+          name: artifacts-npm
+          path: ${{ runner.temp }}/npm/*.tgz
+          if-no-files-found: error
