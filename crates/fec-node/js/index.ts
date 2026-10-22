@@ -18,3 +18,7 @@ export type { Source } from "./source.js";
 
 /** The package version (lockstep with the libfec workspace). */
 export const version: string = native.version();
+
+// The typed covers and itemizations (types, ITEMIZATION_TYPES, COVER_TYPES,
+// label functions), generated from fec-parser by `make gen-types`.
+export * from "./generated/index.js";

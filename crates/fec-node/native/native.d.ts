@@ -9,6 +9,17 @@
  */
 export declare const __napiBindingTarget: 'native' | 'wasm32-wasi' | 'wasm32-wasip1'
 
+export interface DebugTyped {
+  /** The typed cover (one value, `null` if the form has no struct). */
+  cover: TokenBatch
+  coverJson: string
+  /** One value per row: its `Itemization`, or `null`. */
+  rows: TokenBatch
+  rowsJson: Array<string>
+}
+
+export declare function debugTypedPath(path: string): DebugTyped
+
 /** `fec_parser::FilingHeader`, field for field (camelCased by napi-rs). */
 export interface NativeHeader {
   recordType: string
@@ -38,6 +49,23 @@ export interface NativeHeaderField {
 export declare function readHeaderBytes(bytes: Uint8Array): NativeHeader
 
 export declare function readHeaderPath(path: string): NativeHeader
+
+/**
+ * One batch of typed values, one top-level value per row
+ * (`fec_js_core::tokens::Tokens`).
+ */
+export interface TokenBatch {
+  /** Top-level values in this batch. */
+  rows: number
+  tags: Uint8Array
+  nums: Float64Array
+  /** Every string value, concatenated. */
+  text: string
+  /** UTF-16 end offset of each string value in `text`. */
+  ends: Uint32Array
+  /** Struct types first seen in this batch: `"id\x1fName\x1fkey1\x1fkey2…"`. */
+  newStructs: Array<string>
+}
 
 /** The crate version (lockstep with the workspace). */
 export declare function version(): string
