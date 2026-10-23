@@ -151,6 +151,21 @@ export function readHeaderBytes(bytes: Uint8Array): NativeHeader {
   }
 }
 
+/**
+ * A cover settled further in than this is reported as `null`, which only
+ * means "keep reading": the caller opens the whole file at its end.
+ */
+const COVER_BYTES = HEADER_BYTES;
+
+export function coverEnd(prefix: Uint8Array): number | undefined {
+  need();
+  try {
+    return wasm.coverEnd(prefix.length > COVER_BYTES ? prefix.subarray(0, COVER_BYTES) : prefix);
+  } catch (e) {
+    throw trapped(e);
+  }
+}
+
 export function typeRecord(fields: string[], fecVersion: string, nameDelimiter: string | null): TokenBatch {
   need();
   try {

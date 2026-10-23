@@ -97,6 +97,12 @@ export interface Column {
   kind: string
 }
 
+/**
+ * `fec_parser::cover_end`: how many bytes of `prefix` settle the header and
+ * cover, or `null` while they could depend on bytes after it.
+ */
+export declare function coverEnd(prefix: Uint8Array): number | null
+
 export interface DebugTyped {
   /** The typed cover (one value, `null` if the form has no struct). */
   cover: TokenBatch

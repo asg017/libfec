@@ -32,6 +32,7 @@ test("manual: every call throws ERR_NOT_INITIALIZED until initSync", { skip }, (
 const before = {
   filing: codeOf(() => new lib.Filing(fixture)),
   readHeader: codeOf(() => lib.readHeader(fixture)),
+  coverEnd: codeOf(() => lib.coverEnd(fixture)),
   columns: codeOf(() => lib.columns("SA11AI", "8.4")),
   version: lib.version,
 };
@@ -43,6 +44,7 @@ console.log(JSON.stringify({ before, formType: new lib.Filing(fixture).formType 
   assert.deepEqual(out.before, {
     filing: "ERR_NOT_INITIALIZED",
     readHeader: "ERR_NOT_INITIALIZED",
+    coverEnd: "ERR_NOT_INITIALIZED",
     columns: "ERR_NOT_INITIALIZED",
     version: out.before.version,
   });

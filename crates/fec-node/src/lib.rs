@@ -98,3 +98,10 @@ pub fn read_header_path(path: String) -> errors::Result<NativeHeader> {
 pub fn read_header_bytes(bytes: &[u8]) -> errors::Result<NativeHeader> {
     read_header(bytes)
 }
+
+/// `fec_parser::cover_end`: how many bytes of `prefix` settle the header and
+/// cover, or `null` while they could depend on bytes after it.
+#[napi]
+pub fn cover_end(prefix: &[u8]) -> Option<u32> {
+    fec_parser::cover_end(prefix).map(|n| n as u32)
+}

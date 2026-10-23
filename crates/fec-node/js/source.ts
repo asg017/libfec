@@ -29,7 +29,7 @@ export function normalizeSource(source: Source): NormalizedSource {
   );
 }
 
-function describe(value: unknown): string {
+export function describe(value: unknown): string {
   if (value === null) return "null";
   if (typeof value === "object") return value.constructor?.name ?? "object";
   return typeof value;

@@ -28,7 +28,7 @@ export { Filing, columns, type FilingOptions, type FromIdOptions, type Column } 
 export type { ProxyOption } from "./fetch.js";
 export { Record, type Value, type RecordValues, type RecordJSON, type DatesOption } from "./record.js";
 export { Unknown, type UnknownJSON } from "./unknown.js";
-export { readHeader, type Header } from "./header.js";
+export { coverEnd, readHeader, type Header } from "./header.js";
 export { FecError, FecParseError, MissingMappingError } from "./errors.js";
 export type { Source } from "./source.js";
 /** The FEC e-filing RSS feed: `rss.fetch()`, `rss.parseFeed()`, `rss.feedUrl()`. */

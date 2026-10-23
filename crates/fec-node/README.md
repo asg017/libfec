@@ -318,6 +318,27 @@ source `new Filing()` accepts: `recordType`, `efType`, `fecVersion`, `softwareNa
 `softwareVersion`, `reportId`, `reportNumber`, `comment`, plus the legacy and paper header
 fields (`style`, `isPaper`, `batchNumber`, `receivedDate`, …).
 
+### Streaming: `coverEnd()`
+
+To stop downloading a filing once its header and cover are in, call `coverEnd(prefix)` on
+what you have so far. It returns how many bytes settle the header and cover, or `null`
+while bytes after `prefix` could still change them (an F99's `[BEGINTEXT]` block counts as
+part of its cover). Bytes after that length can't change `header`, `cover` or
+`coverRecord`, or the error opening the filing raises.
+
+```js
+let buf = new Uint8Array(0);
+for await (const chunk of response.body) {
+  buf = concat(buf, chunk);
+  const n = coverEnd(buf);
+  if (n !== null) return new Filing(buf.subarray(0, n)); // and cancel the download
+}
+return new Filing(buf); // the whole file
+```
+
+The `Filing` is an ordinary one over those `n` bytes: its `sourceLength` is `n`, and its
+itemizations are only the complete rows before `n`, if there are any.
+
 ## `Record`
 
 A `Record` is one raw line of the filing: its values by column name, plus the raw fields by

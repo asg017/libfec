@@ -1,6 +1,6 @@
 import * as native from "./native.js";
 import { callNative } from "./errors.js";
-import { normalizeSource, type Source } from "./source.js";
+import { describe, normalizeSource, type Source } from "./source.js";
 
 /**
  * A filing's header: the `HDR` record, or a 1.x/2.x `/* Header` block.
@@ -72,4 +72,36 @@ export function readHeader(source: Source): Header {
       ? callNative(() => native.readHeaderPath(src.path), { path: src.path })
       : callNative(() => native.readHeaderBytes(src.bytes)),
   );
+}
+
+/**
+ * How many bytes at the start of `prefix` settle the filing's header and
+ * cover, or `null` while they could still depend on bytes after `prefix`.
+ * For streaming: download until this isn't `null`, then open that much.
+ * Bytes after it can't change the header, cover or cover record, or the
+ * error opening the filing raises; an F99's `[BEGINTEXT]` block counts as
+ * part of its cover.
+ *
+ * ```ts
+ * let buf = new Uint8Array(0);
+ * for await (const chunk of response.body) {
+ *   buf = concat(buf, chunk);
+ *   const n = coverEnd(buf);
+ *   if (n !== null) return new Filing(buf.subarray(0, n)); // and cancel the download
+ * }
+ * return new Filing(buf); // the whole file: whatever it has
+ * ```
+ *
+ * A `Filing` opened on the prefix is an ordinary `Filing` over those bytes:
+ * its `sourceLength` is `n`, and its itemizations are just the complete rows
+ * before `n`, if any.
+ *
+ * @category Header
+ */
+export function coverEnd(prefix: Uint8Array | ArrayBuffer): number | null {
+  const bytes = prefix instanceof ArrayBuffer ? new Uint8Array(prefix) : prefix;
+  if (!(bytes instanceof Uint8Array)) {
+    throw new TypeError(`coverEnd() takes a Uint8Array or an ArrayBuffer, got ${describe(prefix)}`);
+  }
+  return callNative(() => native.coverEnd(bytes)) ?? null;
 }

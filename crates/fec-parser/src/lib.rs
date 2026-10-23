@@ -49,8 +49,14 @@ use csv::{ByteRecord, StringRecord};
 use indexmap::IndexMap;
 use jiff::civil::Date;
 use mappings::column_names_for_field;
+use std::cell::Cell;
 use std::iter::Peekable;
-use std::{fs, io::Read, path::Path};
+use std::rc::Rc;
+use std::{
+    fs,
+    io::{self, Read},
+    path::Path,
+};
 use thiserror::Error;
 
 pub fn try_format_fec_date(value: &str) -> String {
@@ -670,6 +676,58 @@ pub fn read_header<R: Read>(rdr: R) -> anyhow::Result<(FilingHeader, u64)> {
             Ok((FilingHeader::from_record(record, delimiter)?, 1))
         }
     }
+}
+
+/// How many bytes at the start of `prefix` settle the filing's header and
+/// cover (or the error [`Filing::from_reader`] would return), so a caller
+/// streaming a filing can stop once it has them. `None` while they could
+/// still depend on bytes after `prefix`; at the end of the file, parse
+/// whatever there is.
+///
+/// For `Some(n)`, parsing `prefix[..n]` followed by any bytes gives the same
+/// header and cover as parsing `prefix[..n]` alone. This holds by
+/// construction: [`Filing::from_reader`] runs on a reader that hands out one
+/// line per `read()` and notes whether it was asked for a byte past `prefix`.
+/// Every consumer in `from_reader` (the format sniffer, the csv and line
+/// readers, the `/* Header` block, the F99 text block) needs a whole line
+/// before it decides anything, so a line-sized read never pulls bytes the
+/// parser doesn't need.
+pub fn cover_end(prefix: &[u8]) -> Option<usize> {
+    /// `prefix`, a line (through its `\r` or `\n`) per read. `None` in `read`
+    /// once it runs out: the parse wanted more than `prefix`.
+    struct Lines<'a> {
+        prefix: &'a [u8],
+        read: Rc<Cell<Option<usize>>>,
+    }
+    impl Read for Lines<'_> {
+        fn read(&mut self, out: &mut [u8]) -> io::Result<usize> {
+            let Some(pos) = self.read.get() else {
+                return Err(io::Error::other("need more of the filing"));
+            };
+            let rest = &self.prefix[pos..];
+            if rest.is_empty() {
+                self.read.set(None);
+                return Err(io::Error::other("need more of the filing"));
+            }
+            let line = rest
+                .iter()
+                .position(|b| *b == b'\n' || *b == b'\r')
+                .map_or(rest.len(), |i| i + 1);
+            let n = line.min(out.len());
+            out[..n].copy_from_slice(&rest[..n]);
+            self.read.set(Some(pos + n));
+            Ok(n)
+        }
+    }
+
+    let read = Rc::new(Cell::new(Some(0)));
+    let lines = Lines {
+        prefix,
+        read: Rc::clone(&read),
+    };
+    // Ok or Err, the outcome is settled unless the reader ran out.
+    let _ = Filing::from_reader(lines, String::new(), prefix.len());
+    read.get()
 }
 
 /// Read the body of a `[BEGINTEXT]` block whose marker record has just been

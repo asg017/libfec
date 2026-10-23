@@ -108,6 +108,19 @@ test("parity: bad bytes", () => {
   }
 });
 
+test("parity: coverEnd", () => {
+  for (const [label, path] of FIXTURES) {
+    const data = bytes(path);
+    const n = napi.coverEnd(data);
+    assert.equal(wasm.coverEnd(data), n, label);
+    // Around the settled length, where the answer flips.
+    for (const k of n === null ? [0, data.length >> 1] : [n - 1, n, n + 1]) {
+      const cut = data.subarray(0, Math.max(0, k));
+      assert.equal(wasm.coverEnd(cut), napi.coverEnd(cut), `${label} at ${k}`);
+    }
+  }
+});
+
 test("parity: rss", () => {
   assert.deepEqual(wasm.rss.parseFeed(FEED), napi.rss.parseFeed(FEED));
   assert.deepEqual(wasm.rss.parseFeed(FEED.toString("utf8")), napi.rss.parseFeed(FEED.toString("utf8")));

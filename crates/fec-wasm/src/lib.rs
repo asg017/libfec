@@ -150,6 +150,13 @@ pub fn read_header_bytes(bytes: &[u8]) -> Result<JsValue, JsValue> {
         .map_err(|e| js::parse_error(&e))
 }
 
+/// `fec_parser::cover_end`: how many bytes of `prefix` settle the header and
+/// cover, or `undefined` while they could depend on bytes after it.
+#[wasm_bindgen(js_name = coverEnd)]
+pub fn cover_end(prefix: &[u8]) -> Option<u32> {
+    fec_parser::cover_end(prefix).map(|n| n as u32)
+}
+
 /// Always throws `ERR_UNSUPPORTED_SOURCE`: there are no paths in the browser.
 #[wasm_bindgen(js_name = readHeaderPath, unchecked_return_type = "NativeHeader")]
 pub fn read_header_path(path: String) -> Result<JsValue, JsValue> {
