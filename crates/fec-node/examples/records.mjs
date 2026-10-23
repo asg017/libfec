@@ -1,15 +1,19 @@
-// The raw path: records() with columns() for the names.
-import { columns, open } from "../dist/index.js";
+// The raw view: itemizationRecords(), with values by column name, the raw
+// fields by position, and record.itemization to type one on demand.
+import { Filing } from "../dist/index.js";
 import { PAC, arg } from "./_fixture.mjs";
 
-const filing = open(arg(PAC));
+const filing = new Filing(arg(PAC));
 try {
-  for (const { rowType, line, fields } of filing.records()) {
-    const names = columns(rowType, filing.fecVersion).map((c) => c.name);
-    const at = names.indexOf("contribution_amount");
-    console.log(line, rowType, names[7], fields[7], "contribution_amount", fields[at]);
+  for (const record of filing.itemizationRecords()) {
+    if (record.rowType !== "SA11AI") continue;
+    const at = Object.keys(record.values).indexOf("contribution_amount");
+    console.log(record.line, record.rowType, record.values.contribution_amount, JSON.stringify(record.fields[at]));
+    const item = record.itemization; // typed anew on every access
+    if (item?.type === "ScheduleA") console.log(item.contributor.name.last_name, item.contribution_date);
     break;
   }
+  console.log(filing.coverRecord.rowType, Object.keys(filing.coverRecord.values).length, "cover columns");
 } finally {
   filing.close();
 }

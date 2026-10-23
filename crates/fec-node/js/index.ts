@@ -14,6 +14,12 @@
  * }
  * ```
  *
+ * Each call to {@link Filing.itemizations} or {@link Filing.itemizationRecords}
+ * is a new pass; {@link Filing.fromId} downloads a filing by its ID (pass a
+ * `proxy` in a browser). Importing {@link Record} shadows TypeScript's global
+ * `Record<K, V>` in that module: import it under another name
+ * (`import { Record as FecRecord }`) if you need both.
+ *
  * @module
  */
 import * as native from "./native.js";

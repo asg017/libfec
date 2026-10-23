@@ -1,23 +1,25 @@
 // Every itemization, matched on its type.
 //   node examples/quickstart.mjs [file.fec]
-import { open } from "../dist/index.js";
+import { Filing } from "../dist/index.js";
 import { PAC, arg } from "./_fixture.mjs";
 
-const filing = open(arg(PAC));
+// `using filing = new Filing(…)` closes it on Node 24+, Deno and Bun; Node 22
+// doesn't parse `using`, so the examples use try/finally.
+const filing = new Filing(arg(PAC));
 try {
   let receipts = 0;
   let disbursements = 0;
-  for (const row of filing.itemizations()) {
-    switch (row.itemization.type) {
+  for (const item of filing.itemizations()) {
+    switch (item.type) {
       case "ScheduleA":
-        receipts += row.itemization.contribution_amount;
+        receipts += item.contribution_amount;
         break;
       case "ScheduleB":
-        disbursements += row.itemization.expenditure_amount;
+        disbursements += item.expenditure_amount;
         break;
     }
   }
-  console.log(filing.coverSummary.filerName);
+  console.log(filing.filerName, filing.formType, filing.coverageFromDate, filing.coverageThroughDate);
   console.log({ receipts: receipts.toFixed(2), disbursements: disbursements.toFixed(2) });
 } finally {
   filing.close();

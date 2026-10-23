@@ -1,23 +1,24 @@
-// Count rows per itemization type. In TypeScript, the `never` default makes
+// Count records per itemization type. In TypeScript, the `never` default makes
 // the compiler flag a type added to the union later.
-import { open } from "../dist/index.js";
+import { Filing } from "../dist/index.js";
 import { PAC, arg } from "./_fixture.mjs";
 
-const filing = open(arg(PAC));
-/** @type {Record<string, number>} */
+const filing = new Filing(arg(PAC));
+/** @type {{ [type: string]: number }} */
 const counts = {};
 try {
-  for (const { itemization: it } of filing.itemizations()) {
-    switch (it.type) {
+  for (const item of filing.itemizations()) {
+    switch (item.type) {
       case "ScheduleA":
       case "ScheduleB":
       case "ScheduleC":
       case "ScheduleD":
       case "ScheduleE":
-        counts[it.type] = (counts[it.type] ?? 0) + 1;
+      case "Unknown": // a record with no typed class (a summary record, …)
+        counts[item.type] = (counts[item.type] ?? 0) + 1;
         break;
       default:
-        // TypeScript: `const _exhaustive: never = it;` once every case is listed.
+        // TypeScript: `const _exhaustive: never = item;` once every case is listed.
         counts.other = (counts.other ?? 0) + 1;
     }
   }

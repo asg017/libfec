@@ -1,12 +1,12 @@
 // The typed cover, matched on its form.
-import { open } from "../dist/index.js";
+import { Filing } from "../dist/index.js";
 import { PAC, arg } from "./_fixture.mjs";
 
-const filing = open(arg(PAC));
-filing.close(); // the header and cover stay readable after close()
+const filing = new Filing(arg(PAC));
+filing.close(); // the header, cover and filer attributes stay readable after close()
 
 const cover = filing.cover;
-switch (cover?.type) {
+switch (cover.type) {
   case "Form3X":
     console.log(cover.committee_name, "raised", cover.summary.line6c_total_receipts.column_a);
     break;
@@ -16,6 +16,10 @@ switch (cover?.type) {
   case "Form99":
     console.log(cover.committee_name, "sent a miscellaneous text filing");
     break;
+  case "Unknown":
+    // A form with no typed struct: the raw cover line is still there.
+    console.log(cover.formType, "has no typed cover;", Object.keys(cover.record.values).length, "columns");
+    break;
   default:
-    console.log(filing.coverSummary.formType, "filed by", filing.coverSummary.filerName);
+    console.log(filing.formType, "filed by", filing.filerName);
 }

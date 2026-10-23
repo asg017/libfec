@@ -1,6 +1,8 @@
 // Parses filings off the main thread with the browser build and answers the
-// page's questions about the last one. Plain data in and out: rows are
-// structured-cloned, which works because Row's data are own properties.
+// page's questions about the last one. Plain data in and out: typed
+// itemizations are plain objects, and an Unknown is sent as its record's
+// values. A filing ID is downloaded here, with Filing.fromId through the
+// page's CORS proxy.
 //
 // onmessage is set synchronously and the library imported dynamically: the
 // browser build initializes its wasm with top-level await, and a message that
@@ -41,20 +43,19 @@ function top(rows, key, amount, k = 15) {
     .map((e) => ({ ...e, total: money(e.total) }));
 }
 
-function analyze(L, bytes, id) {
-  const t0 = performance.now();
-  const f = L.open(bytes, { id });
+/** Read every itemization of an open filing and summarize it; closes the filing. */
+function analyze(L, f, timings) {
   const t1 = performance.now();
   // Built locally: if a row fails to parse, the previous filing stays browsable.
   const types = new Map();
   let rows = 0;
   try {
-    for (const row of f.itemizations()) {
+    for (const item of f.itemizations()) {
       rows++;
-      const it = row.itemization;
-      let list = types.get(it.type);
-      if (!list) types.set(it.type, (list = []));
-      list.push(it);
+      let list = types.get(item.type);
+      if (!list) types.set(item.type, (list = []));
+      // A record with no typed class (a summary record, …): browse its raw values.
+      list.push(item.type === "Unknown" ? item.record.values : item);
     }
   } finally {
     f.close();
@@ -68,14 +69,20 @@ function analyze(L, bytes, id) {
   const notMemo = (r) => !r.memo;
   return {
     id: f.id,
-    bytes: bytes.length,
+    bytes: f.sourceLength,
     header: f.header,
-    coverSummary: f.coverSummary,
-    cover: f.cover,
+    filer: {
+      formType: f.formType,
+      filerId: f.filerId,
+      filerName: f.filerName,
+      reportCode: f.reportCode,
+      coverageFromDate: f.coverageFromDate,
+      coverageThroughDate: f.coverageThroughDate,
+    },
+    cover: f.cover.type === "Unknown" ? f.cover.toJSON() : f.cover,
     counts: Object.fromEntries([...byType].map(([t, l]) => [t, l.length]).sort((x, y) => y[1] - x[1])),
     itemizations: rows,
-    invalidValueCount: f.invalidValueCount,
-    timings: { open: t1 - t0, itemizations: t2 - t1 },
+    timings: { ...timings, itemizations: t2 - t1 },
     totals: {
       receipts: money(a.filter(notMemo).reduce((s, r) => s + r.contribution_amount, 0)),
       disbursements: money(b.filter(notMemo).reduce((s, r) => s + r.expenditure_amount, 0)),
@@ -112,8 +119,15 @@ self.onmessage = async ({ data: msg }) => {
   try {
     const L = await lib;
     const reply = (result) => self.postMessage({ id: msg.id, kind: msg.kind, result });
-    if (msg.kind === "parse") reply(analyze(L, msg.bytes, msg.filingId));
-    else if (msg.kind === "page") reply(page(msg));
+    if (msg.kind === "parse") {
+      const t0 = performance.now();
+      const f = new L.Filing(msg.bytes, { id: msg.filingId });
+      reply(analyze(L, f, { download: 0, open: performance.now() - t0 }));
+    } else if (msg.kind === "fromId") {
+      const t0 = performance.now();
+      const f = await L.Filing.fromId(msg.filingId, { proxy: msg.proxy });
+      reply(analyze(L, f, { download: performance.now() - t0, open: 0 }));
+    } else if (msg.kind === "page") reply(page(msg));
     else if (msg.kind === "version") reply(L.version);
   } catch (e) {
     self.postMessage({ id: msg.id, kind: "error", error: `${e.name}: ${e.message}`, code: e.code });

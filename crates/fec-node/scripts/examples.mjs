@@ -1,23 +1,32 @@
 // Run every examples/*.mjs under one runtime; any failure fails the run.
-//   node scripts/examples.mjs node|deno|bun
+//   node scripts/examples.mjs node|deno|bun [--network]
+// An example whose first line starts with `// @network` makes live requests:
+// it is skipped unless `--network` is given.
 import { spawnSync } from "node:child_process";
-import { readdirSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 
 const runtime = process.argv[2];
+const network = process.argv.includes("--network");
 const prefix = {
   node: ["node"],
   bun: ["bun"],
-  deno: ["deno", "run", "--allow-read", "--allow-ffi", "--allow-env"],
+  deno: ["deno", "run", "--allow-read", "--allow-ffi", "--allow-env", ...(network ? ["--allow-net"] : [])],
 }[runtime];
 if (!prefix) {
-  console.error("usage: node scripts/examples.mjs node|deno|bun");
+  console.error("usage: node scripts/examples.mjs node|deno|bun [--network]");
   process.exit(2);
 }
-const examples = readdirSync(new URL("../examples/", import.meta.url))
+const dir = new URL("../examples/", import.meta.url);
+const examples = readdirSync(dir)
   .filter((f) => f.endsWith(".mjs") && !f.startsWith("_"))
   .sort();
+const needsNetwork = (/** @type {string} */ f) => readFileSync(new URL(f, dir), "utf8").startsWith("// @network");
 let failed = 0;
 for (const f of examples) {
+  if (needsNetwork(f) && !network) {
+    console.log(`skip ${runtime} examples/${f} (network; pass --network)`);
+    continue;
+  }
   const [cmd, ...args] = prefix;
   const res = spawnSync(cmd, [...args, `examples/${f}`], {
     encoding: "utf8",

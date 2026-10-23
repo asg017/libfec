@@ -34,7 +34,7 @@ export interface Item {
   readonly guid: string;
   /** The filer's committee ID (`"C00536425"`). */
   readonly committeeId: string | null;
-  /** The filing ID (`"2019253"`): `open()` the `.fec` at {@link Item.link}. */
+  /** The filing ID (`"2019253"`), for `Filing.fromId()` (which downloads the `.fec` at {@link Item.link}). */
   readonly filingId: string | null;
   /** The form type as filed (`"F3XN"`). */
   readonly formType: string | null;

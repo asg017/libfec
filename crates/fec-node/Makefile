@@ -1,4 +1,4 @@
-.PHONY: install build build-release build-browser test test-node test-deno test-bun test-slow test-network bench typecheck gen-types docs examples clean
+.PHONY: install build build-release build-browser test test-node test-deno test-bun test-slow test-network bench typecheck gen-types docs examples examples-network clean
 
 install:                       ## one-time: npm ci
 	npm ci
@@ -47,6 +47,11 @@ examples:                      ## run every examples/*.mjs under node, deno and 
 	node scripts/examples.mjs node
 	node scripts/examples.mjs deno
 	node scripts/examples.mjs bun
+
+examples-network:              ## the examples too, including the ones that fetch from fec.gov
+	node scripts/examples.mjs node --network
+	node scripts/examples.mjs deno --network
+	node scripts/examples.mjs bun --network
 
 GEN_SCRATCH := ../../target/gen-types
 
