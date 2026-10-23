@@ -76,8 +76,9 @@ Form13 = _covers.Form13
 Form24 = _covers.Form24
 Form99 = _covers.Form99
 
-#: What ``cover_data`` can be: one class per form `fec-parser` types.  A
-#: ``match`` or ``isinstance`` on it narrows to that form's class.
+#: The typed forms ``Filing.cover`` can be (otherwise it is a ``libfec.Unknown``):
+#: one class per form `fec-parser` types.  A ``match`` or ``isinstance`` on it
+#: narrows to that form's class.
 CoverData: TypeAlias = (
     Form1 | Form1M | Form2 | Form3 | Form3L | Form3P | Form3X | Form4 | Form5
     | Form6 | Form7 | Form9 | Form13 | Form24 | Form99

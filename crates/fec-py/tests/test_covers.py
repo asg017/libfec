@@ -176,7 +176,7 @@ def test_eq_compares_amounts_as_floats():
     assert cover(b"NaN") != cover(b"NaN")
 
 
-def test_cover_data_union_is_every_form_class():
+def test_cover_union_is_every_form_class():
     forms = {cls.__name__ for cls in CoverData.__args__}
     assert forms == {s.form for s in SNAPSHOTS}
     assert all(cls.__module__ == "libfec.covers" for cls in CoverData.__args__)
