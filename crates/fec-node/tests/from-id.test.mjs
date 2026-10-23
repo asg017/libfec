@@ -195,3 +195,21 @@ test("fromId: in a browser, works through a proxy", async () => {
     assert.equal(calls[0].url, `/proxy?url=${encodeURIComponent(URL_1721696)}`);
   });
 });
+
+test("fromId: the download is read once, in as many passes as a path", async () => {
+  let filing;
+  const calls = await withFetch(ok, async () => {
+    filing = await Filing.fromId(1721696);
+  });
+  const path = new Filing(fixture("1721696.fec"));
+  const json = (it) => [...it].map((x) => JSON.parse(JSON.stringify(x)));
+  const records = json(path.itemizationRecords());
+  assert.deepEqual(json(filing.itemizationRecords()), records);
+  assert.deepEqual(json(filing.itemizationRecords()), records);
+  assert.deepEqual(json(filing.itemizations()), json(path.itemizations()));
+  assert.deepEqual(filing.cover, path.cover);
+  assert.deepEqual(filing.coverRecord.toJSON(), path.coverRecord.toJSON());
+  assert.equal(calls.length, 1);
+  filing.close();
+  path.close();
+});

@@ -9,6 +9,7 @@
 //   several files (the rest pass silently), so each file gets its own `bun test`.
 import { spawnSync } from "node:child_process";
 import { readdirSync } from "node:fs";
+import { tmpdir } from "node:os";
 
 const runtime = process.argv[2];
 // `--slow`: only the *.slow.test.mjs files (perf guards on the 91 MB filing).
@@ -30,7 +31,8 @@ switch (runtime) {
     break;
   }
   case "deno":
-    runs.push(["deno", ["test", "--allow-read", "--allow-ffi", "--allow-env", ...(kind === "network" ? ["--allow-net"] : []), ...files]]);
+    // --allow-write to the temp dir only: tests copy fixtures there to name them.
+    runs.push(["deno", ["test", "--allow-read", "--allow-ffi", "--allow-env", `--allow-write=${tmpdir()}`, ...(kind === "network" ? ["--allow-net"] : []), ...files]]);
     break;
   case "bun":
     for (const f of files) runs.push(["bun", ["test", f]]);

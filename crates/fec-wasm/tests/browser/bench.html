@@ -9,10 +9,8 @@
     <script type="module">
       import * as lib from "../../dist/index.js";
       const MODES = {
-        itemizations: (data) => { const f = lib.open(data); let n = 0; for (const _ of f.itemizations()) n++; f.close(); return n; },
-        rows: (data) => { const f = lib.open(data); let n = 0; for (const _ of f.rows()) n++; f.close(); return n; },
-        records: (data) => { const f = lib.open(data); let n = 0; for (const _ of f.records()) n++; f.close(); return n; },
-        read: (data) => lib.read(data).rows.length,
+        itemizations: (data) => { const f = new lib.Filing(data); let n = 0; for (const _ of f.itemizations()) n++; f.close(); return n; },
+        itemizationRecords: (data) => { const f = new lib.Filing(data); let n = 0; for (const _ of f.itemizationRecords()) n++; f.close(); return n; },
       };
       window.__bench = async (path, runs) => {
         const t = performance.now();

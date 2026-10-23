@@ -1,7 +1,11 @@
-// Smoke test of the Filing API (ticket 02); tickets 04/05 widen it.
+// The Filing class: sources, options, the up-front data, passes, close().
+// Value-level checks are in parity.test.mjs (against Python), edge.test.mjs
+// and record.test.mjs.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { copyFileSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { Filing, Record, Unknown, FecError, FecParseError, MissingMappingError } from "../dist/index.js";
 import { fixture, LEGACY_FIXTURES } from "./helpers.mjs";
@@ -9,7 +13,9 @@ import { fixture, LEGACY_FIXTURES } from "./helpers.mjs";
 const PAC = fixture("1721696.fec");
 /** 31 typed rows and 2 `SI` rows with no typed class. */
 const MIXED = fixture("3.00_13801.fec", LEGACY_FIXTURES);
-const EDGE = fixture("edge.fec", new URL("./fixtures/", import.meta.url));
+const NODE_FIXTURES = new URL("./fixtures/", import.meta.url);
+const EDGE = fixture("edge.fec", NODE_FIXTURES);
+const UNKNOWN_COVER = fixture("unknown-cover.fec", NODE_FIXTURES);
 
 test("every source kind opens; header, cover, filer attributes up front", () => {
   const bytes = readFileSync(PAC);
@@ -138,15 +144,170 @@ test("close() stops a running pass; later calls throw at once", () => {
   assert.equal(f.closed, true);
 });
 
-test("a row with no column mapping throws MissingMappingError in both views", () => {
+test("a row with no column mapping throws MissingMappingError in both views, then the pass is done", () => {
   const f = new Filing(EDGE);
-  for (const pass of [() => [...f.itemizations()], () => [...f.itemizationRecords()]]) {
-    assert.throws(pass, (e) => e instanceof MissingMappingError && e.rowType === "ZZ9");
+  for (const view of ["itemizations", "itemizationRecords"]) {
+    const it = f[view]();
+    const seen = [];
+    assert.throws(
+      () => {
+        for (const x of it) seen.push(x);
+      },
+      (e) => e instanceof MissingMappingError && e instanceof FecError && e.code === "FEC_MISSING_MAPPING" && e.rowType === 'C"' && e.line === 20,
+      view,
+    );
+    // The rows before it were yielded; after it, nothing.
+    assert.equal(seen.length, 17, view);
+    assert.deepEqual(it.next(), { value: undefined, done: true });
+    // A new pass starts over and stops at the same row.
+    assert.throws(() => [...f[view]()], { rowType: 'C"', line: 20 });
   }
-  // The rows before it are still yielded.
-  const seen = [];
-  assert.throws(() => {
-    for (const r of f.itemizationRecords()) seen.push(r.rowType);
-  }, MissingMappingError);
-  assert.ok(seen.length > 0);
+  f.close();
+});
+
+test("ids: the file stem with FEC- stripped, or the id option", () => {
+  const dir = mkdtempSync(join(tmpdir(), "libfec-"));
+  try {
+    for (const [name, id] of [["FEC-1721696.fec", "1721696"], ["1721696.fec", "1721696"], ["report.FEC", "report"]]) {
+      const path = join(dir, name);
+      copyFileSync(PAC, path);
+      assert.equal(new Filing(path).id, id, name);
+      assert.equal(new Filing(pathToFileURL(path)).id, id, `${name} (file: URL)`);
+    }
+    assert.equal(new Filing(join(dir, "FEC-1721696.fec"), { id: "override" }).id, "override");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("filer attributes: dates option, F99, F1", () => {
+  const d = new Filing(PAC, { dates: "date" });
+  assert.deepEqual(d.coverageFromDate, new Date("2023-07-01T00:00:00Z"));
+  assert.deepEqual(d.coverageThroughDate, new Date("2023-07-31T00:00:00Z"));
+  assert.ok(d.coverRecord.values.coverage_from_date instanceof Date);
+  // Typed records keep ISO strings.
+  assert.equal(d.cover.coverage_from_date, "2023-07-01");
+  const f99 = new Filing(fixture("1913493.fec"));
+  assert.equal(f99.formType, "F99");
+  assert.equal(f99.cover.type, "Form99");
+  const f1 = new Filing(fixture("1913562.fec"));
+  assert.equal(f1.formType, "F1A");
+  assert.equal(f1.cover.type, "Form1");
+  assert.equal(f1.reportCode, null);
+  assert.equal(f1.coverageFromDate, null);
+  assert.equal(f1.coverageThroughDate, null);
+});
+
+test("options: unknown keys and bad values are TypeErrors", () => {
+  for (const options of [null, 1, { batchsize: 10 }, { batchSize: 0 }, { batchSize: 1.5 }, { id: 5 }, { dates: "Date" }]) {
+    assert.throws(() => new Filing(PAC, options), TypeError, JSON.stringify(options));
+  }
+  // batchSize doesn't change the results.
+  const a = [...new Filing(PAC, { batchSize: 1 }).itemizationRecords()].map((r) => r.toJSON());
+  const b = [...new Filing(PAC, { batchSize: 100000 }).itemizationRecords()].map((r) => r.toJSON());
+  assert.deepEqual(a, b);
+});
+
+test("a cover with no typed struct is an Unknown", () => {
+  // tests/fixtures/unknown-cover.fec: an F3PS line where the cover goes.
+  const f = new Filing(UNKNOWN_COVER);
+  assert.ok(f.cover instanceof Unknown);
+  assert.equal(f.cover, f.cover);
+  assert.equal(f.cover.type, "Unknown");
+  assert.equal(f.cover.formType, "F3PS");
+  assert.equal(f.cover.record, f.coverRecord);
+  assert.equal(f.coverRecord.rowType, "F3PS");
+  assert.equal(f.coverRecord.line, 2);
+  assert.equal(f.cover.toJSON().values.net_contributions, "10.00");
+  assert.equal(f.formType, "F3PS");
+  assert.equal(f.filerId, "C00900860");
+  assert.deepEqual([...f.itemizations()].map((x) => x.type), ["ScheduleA", "TextRecord"]);
+  assert.deepEqual([...f.itemizationRecords()].map((r) => [r.rowType, r.line]), [["SA11AI", 3], ["TEXT", 4]]);
+  f.close();
+  // The same from bytes made here: any mapped row with no cover struct.
+  const hdr = readFileSync(PAC, "latin1").split("\n")[0];
+  const g = new Filing(new TextEncoder().encode(`${hdr}\nF1S\x1cC00016683\n`));
+  assert.ok(g.cover instanceof Unknown);
+  assert.equal(g.cover.formType, "F1S");
+  assert.equal(g.formType, "F1S");
+  assert.deepEqual([...g.itemizations()], []);
+});
+
+test("Unknown for summary records: F1S, F3PS", () => {
+  const f1 = new Filing(fixture("1913562.fec"));
+  const items = [...f1.itemizations()];
+  const recs = [...f1.itemizationRecords()];
+  const f1s = items.filter((x) => x.type === "Unknown");
+  assert.ok(f1s.length > 0);
+  for (const u of f1s) {
+    assert.equal(u.formType, "F1S");
+    assert.equal(u.record.rowType, "F1S");
+    assert.equal(recs[items.indexOf(u)].line, u.record.line);
+  }
+  const edge = new Filing(EDGE);
+  const it = edge.itemizations();
+  const f3ps = [];
+  try {
+    for (const x of it) if (x.type === "Unknown" && x.formType === "F3PS") f3ps.push(x);
+  } catch (e) {
+    assert.ok(e instanceof MissingMappingError);
+  }
+  assert.equal(f3ps.length, 1);
+  assert.equal(f3ps[0].record.rowType, "F3PS");
+  assert.equal(f3ps[0].record.line, 16);
+  assert.equal(f3ps[0].record.values.a_i_individuals_itemized, 7);
+});
+
+test("one-to-one: itemizations() and itemizationRecords() zip on line", () => {
+  for (const path of [PAC, MIXED, fixture("1913562.fec"), fixture("1921705.fec")]) {
+    const f = new Filing(path);
+    const items = f.itemizations();
+    const recs = f.itemizationRecords();
+    let n = 0;
+    for (;;) {
+      const a = items.next();
+      const b = recs.next();
+      assert.equal(a.done, b.done, path);
+      if (a.done) break;
+      n++;
+      const typedLine = a.value.type === "Unknown" ? a.value.record.line : b.value.line;
+      assert.equal(typedLine, b.value.line);
+      // A typed item has no line; its record is the one at the same step.
+      if (a.value.type !== "Unknown") assert.deepEqual(b.value.itemization, a.value);
+    }
+    assert.ok(n > 0, path);
+    f.close();
+  }
+});
+
+test("passes: two full passes are equal; two interleaved step by step are equal", () => {
+  for (const view of ["itemizations", "itemizationRecords"]) {
+    const f = new Filing(PAC, { batchSize: 64 });
+    const json = (x) => JSON.parse(JSON.stringify(x));
+    const first = [...f[view]()].map(json);
+    const second = [...f[view]()].map(json);
+    assert.equal(first.length, 1387);
+    assert.deepEqual(second, first);
+    // Interleaved, one a step behind the other.
+    const a = f[view]();
+    const b = f[view]();
+    const fromA = [];
+    const fromB = [];
+    let x = a.next();
+    for (;;) {
+      const y = b.next();
+      if (!x.done) fromA.push(json(x.value));
+      if (y.done) break;
+      fromB.push(json(y.value));
+      x = a.next();
+    }
+    assert.deepEqual(fromA, first);
+    assert.deepEqual(fromB, first);
+    // An abandoned pass doesn't disturb a new one.
+    const c = f[view]();
+    c.next();
+    c.return();
+    assert.deepEqual([...f[view]()].map(json), first);
+    f.close();
+  }
 });

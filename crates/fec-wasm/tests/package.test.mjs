@@ -1,7 +1,9 @@
 // Packaging: @alex.garcia/libfec resolves to this build under the "browser"
 // export condition (and at @alex.garcia/libfec/browser), and to napi otherwise.
 // Runs crates/fec-node/scripts/build-browser.mjs first, which copies this
-// package's dist/ and wasm/ into crates/fec-node/browser/.
+// package's dist/ and wasm/ into crates/fec-node/browser/. With --allow-dev,
+// so this runs against `make build-dev` too: it checks how the package
+// resolves, not how the wasm was optimized (packing refuses a dev build).
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
@@ -13,11 +15,10 @@ const NODE_PKG = fileURLToPath(new URL("../../fec-node/", import.meta.url));
 // Self-reference: inside crates/fec-node, `@alex.garcia/libfec` resolves through
 // its own package.json "exports", as it would for a dependent.
 const PROBE = `
-import { open } from "@alex.garcia/libfec";
+import * as main from "@alex.garcia/libfec";
 import * as sub from "@alex.garcia/libfec/browser";
-let code; try { open("missing.fec"); } catch (e) { code = e.code; }
-let subCode; try { sub.open("missing.fec"); } catch (e) { subCode = e.code; }
-console.log(JSON.stringify({ code, subCode }));
+const codeOf = (lib) => { try { new lib.Filing("missing.fec"); } catch (e) { return e.code; } };
+console.log(JSON.stringify({ code: codeOf(main), subCode: codeOf(sub), exports: Object.keys(main).sort(), subExports: Object.keys(sub).sort() }));
 `;
 
 function probe(conditions) {
@@ -27,10 +28,21 @@ function probe(conditions) {
 }
 
 test("the browser condition picks the wasm build", { skip: typeof Deno !== "undefined" || typeof Bun !== "undefined" ? "spawns node" : false }, () => {
-  const copy = spawnSync(process.execPath, ["scripts/build-browser.mjs"], { cwd: NODE_PKG, encoding: "utf8" });
+  const copy = spawnSync(process.execPath, ["scripts/build-browser.mjs", "--allow-dev"], { cwd: NODE_PKG, encoding: "utf8" });
   assert.equal(copy.status, 0, copy.stderr);
-  assert.deepEqual(probe([]), { code: "ENOENT", subCode: "ERR_UNSUPPORTED_SOURCE" });
-  assert.deepEqual(probe(["--conditions=browser"]), { code: "ERR_UNSUPPORTED_SOURCE", subCode: "ERR_UNSUPPORTED_SOURCE" });
+  const plain = probe([]);
+  assert.equal(plain.code, "ENOENT");
+  assert.equal(plain.subCode, "ERR_UNSUPPORTED_SOURCE");
+  const browser = probe(["--conditions=browser"]);
+  assert.equal(browser.code, "ERR_UNSUPPORTED_SOURCE");
+  assert.equal(browser.subCode, "ERR_UNSUPPORTED_SOURCE");
+  // The same API either way.
+  assert.deepEqual(plain.exports, plain.subExports);
+  assert.deepEqual(browser.exports, plain.exports);
+  for (const name of ["Filing", "Record", "Unknown", "MissingMappingError", "FecError", "columns", "readHeader", "rss"]) {
+    assert.ok(plain.exports.includes(name), name);
+  }
+  for (const gone of ["open", "read", "FilingReader", "Row"]) assert.ok(!plain.exports.includes(gone), gone);
 });
 
 test("both packages ship the same browser files", () => {

@@ -2,6 +2,10 @@
 // resolves to what the wasm build says about each fixture, plus the results
 // of the browser-only checks.
 import * as lib from "../../dist/index.js";
+// The same module instance dist/native.js initialized: init() hands back its
+// exports, for the wasm memory.
+import init from "../../wasm/libfec.js";
+import { bigFiling, memoryPerPass } from "./memory.mjs";
 import { summarize } from "./summarize.mjs";
 
 const status = document.getElementById("status");
@@ -45,16 +49,22 @@ async function check(name, f) {
 }
 
 window.__run = async (fixtures) => {
+  const pac = "/fec-py/tests/fixtures/1721696.fec";
+  // First, while the wasm heap is small: freed space from the fixtures below
+  // could hide a copy.
+  const memory = await check("memory per pass", async () => {
+    const { memory } = await init();
+    return memoryPerPass(lib, memory, bigFiling(await bytesOf(pac), 32).data);
+  });
   const summaries = {};
   for (const path of fixtures) summaries[path] = summarize(lib, await bytesOf(path));
 
-  const pac = "/fec-py/tests/fixtures/1721696.fec";
   const checks = [
     await check("codegen", () => codegenAllowed()),
     await check("version", () => lib.version),
     await check("a path is ERR_UNSUPPORTED_SOURCE", () => {
       try {
-        lib.open("1721696.fec");
+        new lib.Filing("1721696.fec");
         return "no error";
       } catch (e) {
         return `${e instanceof TypeError} ${e.code}`;
@@ -62,15 +72,17 @@ window.__run = async (fixtures) => {
     }),
     await check("File source via arrayBuffer()", async () => {
       const file = new File([await bytesOf(pac)], "1721696.fec");
-      const f = lib.open(new Uint8Array(await file.arrayBuffer()), { id: file.name.replace(/\.fec$/, "") });
+      const f = new lib.Filing(new Uint8Array(await file.arrayBuffer()), { id: file.name.replace(/\.fec$/, "") });
       const n = [...f.itemizations()].length;
+      const m = [...f.itemizationRecords()].length;
       f.close();
-      return { id: f.id, n };
+      return { id: f.id, n, m };
     }),
     await check("worker", async () => {
       const r = await inWorker(await bytesOf(pac));
-      return { n: r.n, first: r.first, codegen: r.codegen };
+      return { n: r.n, first: r.first, firstRecord: r.firstRecord, codegen: r.codegen };
     }),
+    memory,
     await check("rss.fetch via proxy", async () => {
       const feed = await lib.rss.fetch({ preset: "pac", proxy: `${location.origin}/proxy?url=` });
       return { n: feed.items.length, first: feed.items[0].committeeName, pubDate: feed.items[0].pubDate instanceof Date };
