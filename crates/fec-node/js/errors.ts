@@ -79,9 +79,23 @@ const IO_CODES: Record<string, string> = {
   EIO: "i/o error",
 };
 
+/**
+ * What a native call that may open a path needs for its errors: the path as
+ * given, and optionally how its message prints it, fixed at an earlier time
+ * (see {@link messagePath}: Node on Windows resolves it against the cwd).
+ *
+ * @internal
+ */
+export interface PathContext {
+  path?: string;
+  messagePath?: string;
+}
+
 /** A Node-style system error, shaped like `fs.openSync`'s. */
-function systemError(code: string, path: string, cause: unknown): Error {
-  const err = new Error(`${code}: ${IO_CODES[code]}, open '${messagePath(path)}'`, { cause });
+function systemError(code: string, context: PathContext, cause: unknown): Error {
+  const path = context.path ?? "";
+  const shown = context.messagePath ?? messagePath(path);
+  const err = new Error(`${code}: ${IO_CODES[code]}, open '${shown}'`, { cause });
   const errno = errnoOf(code);
   return Object.assign(err, {
     code,
@@ -97,7 +111,7 @@ function systemError(code: string, path: string, cause: unknown): Error {
  *
  * @internal
  */
-export function fromNative(e: unknown, context: { path?: string } = {}): unknown {
+export function fromNative(e: unknown, context: PathContext = {}): unknown {
   // Only the `code` matters, not how the binding built the error, so any
   // backend that throws `{ code, message }` (napi, a wasm adapter) maps alike.
   if (e === null || typeof e !== "object" || e instanceof FecError) return e;
@@ -111,14 +125,14 @@ export function fromNative(e: unknown, context: { path?: string } = {}): unknown
       return new FecError(msg, { code });
     default:
       if (typeof code === "string" && code in IO_CODES) {
-        return systemError(code, context.path ?? "", e);
+        return systemError(code, context, e);
       }
       return e;
   }
 }
 
 /** Run a native call, converting what it throws. @internal */
-export function callNative<T>(f: () => T, context?: { path?: string }): T {
+export function callNative<T>(f: () => T, context?: PathContext): T {
   try {
     return f();
   } catch (e) {

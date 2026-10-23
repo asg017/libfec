@@ -181,12 +181,16 @@ test("a relative path is the file it named at construction, after chdir too", ()
     assert.equal([...f.itemizations()].length, 1387);
     assert.equal([...f.itemizationRecords()].length, 1387);
     // A later pass that can't reopen it names the path as given, like the constructor.
+    // Node on Windows prints the resolved path, as its own fs does: resolved
+    // when the Filing was made, so it names the file in a/, not b/.
+    const nodeOnWindows = process.platform === "win32" && !("Deno" in globalThis) && !("Bun" in globalThis);
+    const shown = nodeOnWindows ? join(dir, "a", "FEC-1721696.fec") : "FEC-1721696.fec";
     rmSync(join(dir, "a", "FEC-1721696.fec"));
     assert.throws(() => f.itemizations().next(), {
       code: "ENOENT",
       syscall: "open",
       path: "FEC-1721696.fec",
-      message: "ENOENT: no such file or directory, open 'FEC-1721696.fec'",
+      message: `ENOENT: no such file or directory, open '${shown}'`,
     });
     f.close();
   } finally {

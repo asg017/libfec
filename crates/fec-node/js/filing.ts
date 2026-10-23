@@ -1,5 +1,5 @@
 import * as native from "./native.js";
-import { callNative, FecError, MissingMappingError } from "./errors.js";
+import { callNative, FecError, MissingMappingError, type PathContext } from "./errors.js";
 import { fetchExplained, inBrowser, proxied, withTimeout, type ProxyOption } from "./fetch.js";
 import type { Cover, Itemization } from "./generated/index.js";
 import { toHeader, type Header } from "./header.js";
@@ -190,8 +190,11 @@ export class Filing implements Disposable {
   readonly #source: native.NativeSource;
   readonly #options: ResolvedOptions;
   readonly #builder: RecordBuilder;
-  /** The path given, for the errors of later passes; `undefined` for bytes. */
-  readonly #path: string | undefined;
+  /**
+   * The path given and how errors print it, both fixed at construction, for
+   * the errors of later passes (after a `chdir` too); `undefined` for bytes.
+   */
+  readonly #pathContext: PathContext | undefined;
   /**
    * The readers of passes running now, for {@link close} to stop. Strong refs
    * to readers only; a pass whose generator is collected leaves the set (see
@@ -206,7 +209,8 @@ export class Filing implements Disposable {
   constructor(source: Source, options: FilingOptions = {}) {
     const opts = checkOptions(options);
     const src = normalizeSource(source);
-    this.#path = src.kind === "path" ? src.path : undefined;
+    this.#pathContext =
+      src.kind === "path" ? { path: src.path, messagePath: native.messagePath(src.path) } : undefined;
     this.#source =
       src.kind === "path"
         ? callNative(() => native.NativeSource.openPath(src.path), { path: src.path })
@@ -380,7 +384,7 @@ export class Filing implements Disposable {
    */
   #open(typed: boolean): { pass: LivePass } {
     if (this.#closed) throw closedError();
-    const reader = callNative(() => this.#source.reader(typed), { path: this.#path });
+    const reader = callNative(() => this.#source.reader(typed), this.#pathContext);
     const pass: LivePass = { reader, live: this.#live };
     const token = { pass };
     this.#live.add(pass);
