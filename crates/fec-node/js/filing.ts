@@ -190,6 +190,8 @@ export class Filing implements Disposable {
   readonly #source: native.NativeSource;
   readonly #options: ResolvedOptions;
   readonly #builder: RecordBuilder;
+  /** The path given, for the errors of later passes; `undefined` for bytes. */
+  readonly #path: string | undefined;
   /**
    * The readers of passes running now, for {@link close} to stop. Strong refs
    * to readers only; a pass whose generator is collected leaves the set (see
@@ -204,6 +206,7 @@ export class Filing implements Disposable {
   constructor(source: Source, options: FilingOptions = {}) {
     const opts = checkOptions(options);
     const src = normalizeSource(source);
+    this.#path = src.kind === "path" ? src.path : undefined;
     this.#source =
       src.kind === "path"
         ? callNative(() => native.NativeSource.openPath(src.path), { path: src.path })
@@ -371,7 +374,7 @@ export class Filing implements Disposable {
    */
   #open(typed: boolean): { pass: LivePass } {
     if (this.#closed) throw closedError();
-    const reader = callNative(() => this.#source.reader(typed));
+    const reader = callNative(() => this.#source.reader(typed), { path: this.#path });
     const pass: LivePass = { reader, live: this.#live };
     const token = { pass };
     this.#live.add(pass);

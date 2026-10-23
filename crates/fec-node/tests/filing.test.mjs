@@ -3,7 +3,7 @@
 // and record.test.mjs.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { copyFileSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -163,6 +163,36 @@ test("a row with no column mapping throws MissingMappingError in both views, the
     assert.throws(() => [...f[view]()], { rowType: 'C"', line: 20 });
   }
   f.close();
+});
+
+test("a relative path is the file it named at construction, after chdir too", () => {
+  const cwd = process.cwd();
+  const dir = mkdtempSync(join(tmpdir(), "libfec-"));
+  try {
+    mkdirSync(join(dir, "a"));
+    mkdirSync(join(dir, "b"));
+    copyFileSync(PAC, join(dir, "a", "FEC-1721696.fec"));
+    // The same relative path under the next working directory: another filing.
+    copyFileSync(EDGE, join(dir, "b", "FEC-1721696.fec"));
+    process.chdir(join(dir, "a"));
+    const f = new Filing("FEC-1721696.fec");
+    assert.equal(f.id, "1721696");
+    process.chdir(join(dir, "b"));
+    assert.equal([...f.itemizations()].length, 1387);
+    assert.equal([...f.itemizationRecords()].length, 1387);
+    // A later pass that can't reopen it names the path as given, like the constructor.
+    rmSync(join(dir, "a", "FEC-1721696.fec"));
+    assert.throws(() => f.itemizations().next(), {
+      code: "ENOENT",
+      syscall: "open",
+      path: "FEC-1721696.fec",
+      message: "ENOENT: no such file or directory, open 'FEC-1721696.fec'",
+    });
+    f.close();
+  } finally {
+    process.chdir(cwd);
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
 
 test("ids: the file stem with FEC- stripped, or the id option", () => {

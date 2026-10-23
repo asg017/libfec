@@ -43,11 +43,16 @@ export declare class NativeReader {
 
 /**
  * A filing's source, held once, for any number of passes
- * ([`NativeSource::reader`]). A path is reopened for each pass; bytes are the
- * JS buffer, read in place by every reader.
+ * ([`NativeSource::reader`]). A path is reopened for each pass, as the
+ * absolute path it named when the source was opened, so a later
+ * `process.chdir()` doesn't change which file a pass reads (Python's
+ * `Filing` likewise). Bytes are the JS buffer, read in place by every reader.
  */
 export declare class NativeSource {
-  /** Checks the path opens (so `ENOENT` surfaces now), then keeps only the path. */
+  /**
+   * Checks the path opens (so `ENOENT` surfaces now), then keeps only the
+   * path, made absolute against the current directory.
+   */
   static openPath(path: string): NativeSource
   /** Keeps a reference to the JS buffer (no copy). */
   static openBytes(bytes: Uint8Array): NativeSource

@@ -17,7 +17,7 @@
 
 use std::fs::File;
 use std::io::{Cursor, Read};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
 use fec_parser::covers::Cover;
@@ -137,8 +137,7 @@ impl NativeReader {
 
 /// Open `path`, with its length and its ID (the file stem minus any `FEC-`).
 fn open_file(path: &str) -> Result<(File, usize, Option<String>)> {
-    let file = File::open(path).map_err(|e| io_error(e, path))?;
-    let len = file.metadata().map(|m| m.len() as usize).unwrap_or(0);
+    let (file, len) = open_at(Path::new(path), path)?;
     let stem = Path::new(path)
         .file_stem()
         .map(|s| s.to_string_lossy().into_owned());
@@ -146,14 +145,25 @@ fn open_file(path: &str) -> Result<(File, usize, Option<String>)> {
     Ok((file, len, id))
 }
 
+/// Open `path` and get its length; errors name `given`, the path as the
+/// caller wrote it.
+fn open_at(path: &Path, given: &str) -> Result<(File, usize)> {
+    let file = File::open(path).map_err(|e| io_error(e, given))?;
+    let len = file.metadata().map(|m| m.len() as usize).unwrap_or(0);
+    Ok((file, len))
+}
+
 enum SourceData {
-    Path(String),
+    /// `absolute` is what each pass opens; `given` is for error messages.
+    Path { absolute: PathBuf, given: String },
     Bytes(Rc<Uint8Array>),
 }
 
 /// A filing's source, held once, for any number of passes
-/// ([`NativeSource::reader`]). A path is reopened for each pass; bytes are the
-/// JS buffer, read in place by every reader.
+/// ([`NativeSource::reader`]). A path is reopened for each pass, as the
+/// absolute path it named when the source was opened, so a later
+/// `process.chdir()` doesn't change which file a pass reads (Python's
+/// `Filing` likewise). Bytes are the JS buffer, read in place by every reader.
 #[napi]
 pub struct NativeSource {
     data: Option<SourceData>,
@@ -163,12 +173,17 @@ pub struct NativeSource {
 
 #[napi]
 impl NativeSource {
-    /// Checks the path opens (so `ENOENT` surfaces now), then keeps only the path.
+    /// Checks the path opens (so `ENOENT` surfaces now), then keeps only the
+    /// path, made absolute against the current directory.
     #[napi(factory)]
     pub fn open_path(path: String) -> Result<Self> {
         let (_file, len, id) = open_file(&path)?;
+        let absolute = std::path::absolute(&path).map_err(|e| io_error(e, &path))?;
         Ok(NativeSource {
-            data: Some(SourceData::Path(path)),
+            data: Some(SourceData::Path {
+                absolute,
+                given: path,
+            }),
             id,
             len,
         })
@@ -191,8 +206,8 @@ impl NativeSource {
     pub fn reader(&self, typed: bool) -> Result<NativeReader> {
         match &self.data {
             None => Err(closed_error()),
-            Some(SourceData::Path(path)) => {
-                let (file, len, _) = open_file(path)?;
+            Some(SourceData::Path { absolute, given }) => {
+                let (file, len) = open_at(absolute, given)?;
                 NativeReader::open(Box::new(file), self.id.clone(), len, typed)
             }
             Some(SourceData::Bytes(bytes)) => NativeReader::open(
