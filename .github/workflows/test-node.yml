@@ -80,8 +80,8 @@ jobs:
             const url = pathToFileURL(path.resolve("dist/index.js")).href;
             const fixture = path.resolve("../fec-py/tests/fixtures/1921705.fec").replaceAll("\\", "/");
             require("node:fs").writeFileSync(path.join(process.env.RUNNER_TEMP, "outside.mjs"), [
-              `import { open } from ${JSON.stringify(url)};`,
-              `const f = open(${JSON.stringify(fixture)});`,
+              `import { Filing } from ${JSON.stringify(url)};`,
+              `const f = new Filing(${JSON.stringify(fixture)});`,
               `let n = 0; for (const _ of f.itemizations()) n++; f.close();`,
               `if (n !== 20) throw new Error("expected 20 itemizations, got " + n);`,
             ].join("\n"));
