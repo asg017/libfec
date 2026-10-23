@@ -217,6 +217,13 @@ fn ui(f: &mut Frame, app: &mut App) {
     render_help(f, help_area);
 }
 
+/// The banner's version. Fixed under test, so snapshots don't change (or shift
+/// their padding) with every release.
+#[cfg(not(test))]
+const VERSION: &str = concat!("v", env!("CARGO_PKG_VERSION"));
+#[cfg(test)]
+const VERSION: &str = "v0.0.0";
+
 fn render_menu(f: &mut Frame, app: &App, area: Rect) {
     // ASCII art (3) + blank + tagline + blank + 3 menu items = 9 lines
     let menu_height = 9u16;
@@ -245,14 +252,13 @@ fn render_menu(f: &mut Frame, app: &App, area: Rect) {
     for (i, (line, color)) in logo_lines.iter().zip(gradient.iter()).enumerate() {
         if i == logo_lines.len() - 1 {
             // Last logo line: append version floated right
-            let version = format!("v{}", env!("CARGO_PKG_VERSION"));
             let logo_len = line.chars().count();
-            let version_len = version.len();
+            let version_len = VERSION.len();
             let padding = (menu_width as usize).saturating_sub(logo_len + version_len);
             lines.push(Line::from(vec![
                 Span::styled(*line, Style::default().fg(*color)),
                 Span::raw(" ".repeat(padding)),
-                Span::styled(version, Style::default().fg(Color::White)),
+                Span::styled(VERSION, Style::default().fg(Color::White)),
             ]));
         } else {
             lines.push(Line::from(Span::styled(*line, Style::default().fg(*color))));
@@ -318,16 +324,8 @@ fn render_help(f: &mut Frame, area: Rect) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use insta::assert_snapshot;
     use ratatui::{backend::TestBackend, Terminal};
-
-    // The banner shows the crate version; mask it so release bumps don't break snapshots.
-    macro_rules! assert_snapshot {
-        ($value:expr) => {
-            insta::with_settings!({ filters => vec![(r"v\d+\.\d+\.\d+", "v[VERSION]")] }, {
-                insta::assert_snapshot!($value);
-            })
-        };
-    }
 
     fn create_app() -> App {
         App::new()

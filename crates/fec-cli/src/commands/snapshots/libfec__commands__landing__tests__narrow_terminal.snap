@@ -1,7 +1,6 @@
 ---
 source: crates/fec-cli/src/commands/landing.rs
 expression: terminal.backend()
-snapshot_kind: text
 ---
 "                                                            "
 "                                                            "
@@ -10,7 +9,7 @@ snapshot_kind: text
 "                                                            "
 "▄▄    ▄▄ ▄▄▄▄  ▄▄▄▄▄ ▄▄▄▄▄  ▄▄▄▄                            "
 "██    ██ ██▄██ ██▄▄  ██▄▄  ██▀▀▀                            "
-"██▄▄▄ ██ ██▄█▀ ██    ██▄▄▄ ▀████                        v0.0"
+"██▄▄▄ ██ ██▄█▀ ██    ██▄▄▄ ▀████                         v0."
 "                                                            "
 "A CLI for exploring federal campaign finance data from the F"
 "                                                            "
