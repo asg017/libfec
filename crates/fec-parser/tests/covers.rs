@@ -69,6 +69,8 @@ cover_snapshot!(f5a_1900837, "F5A_1900837.fec");
 cover_snapshot!(f6n_1947008, "F6N_1947008.fec");
 cover_snapshot!(f6a_1952182, "F6A_1952182.fec");
 cover_snapshot!(f9a_2015422, "F9A_2015422.fec");
+// Mosaic e-filing: every field quoted, `"HDR"` included, with FS separators.
+cover_snapshot!(f3xn_1964251, "F3XN_1964251.fec");
 
 // Legacy (pre-8.0 and paper) covers. `cover_snapshot!` fixtures above are
 // trimmed to HDR + cover; `legacy_cover_snapshot!` reads the multi-record

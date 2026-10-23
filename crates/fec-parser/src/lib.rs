@@ -642,19 +642,21 @@ fn open_header<R: Read>(rdr: R) -> anyhow::Result<(RawHeader, Peekable<Records<R
                 .next()
                 .ok_or_else(|| anyhow::anyhow!("no header record found"))??;
 
-            let hdr_record_type = String::from_utf8(
-                hdr.get(0)
-                    .ok_or_else(|| anyhow::anyhow!("file missing header"))?
-                    .to_vec(),
-            )
-            .map_err(|e| anyhow::anyhow!("Invalid UTF-8 in header record type: {}", e))?;
+            let raw_record_type = hdr
+                .get(0)
+                .ok_or_else(|| anyhow::anyhow!("file missing header"))?;
+            std::str::from_utf8(raw_record_type)
+                .map_err(|e| anyhow::anyhow!("Invalid UTF-8 in header record type: {}", e))?;
+
+            // Check the record type after unquoting: FS filings may quote
+            // every field, `"HDR"` included (e.g. Mosaic e-filing).
+            let record = string_record(delimiter, hdr);
+            let hdr_record_type = record.get(0).unwrap_or_default();
             if !hdr_record_type.trim().eq_ignore_ascii_case("HDR") {
                 return Err(anyhow::anyhow!(
                     "Incorrect header record type: {hdr_record_type}"
                 ));
             }
-
-            let record = string_record(delimiter, hdr);
             Ok((RawHeader::Record { record, delimiter }, records_iter))
         }
     }
