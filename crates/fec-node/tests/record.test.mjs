@@ -159,10 +159,11 @@ test("amount grammar matches Rust's f64 parse", () => {
   }
 });
 
-test("date validity: 8 digits forming a real calendar date", () => {
+test("date validity: 8 digits forming a real calendar date, years 1..=9999", () => {
   assert.deepEqual(parseDate("20240229"), [2024, 2, 29]);
-  assert.deepEqual(parseDate("00000101"), [0, 1, 1]);
-  for (const s of ["20230229", "20230230", "20231301", "20230100", "2023011", "+20230101", "2023-01-01", "202301011", "19000229"]) {
+  assert.deepEqual(parseDate("00010101"), [1, 1, 1]);
+  assert.deepEqual(parseDate("99991231"), [9999, 12, 31]);
+  for (const s of ["00000101", "00001231", "-0010101", "20230229", "20230230", "20231301", "20230100", "2023011", "+20230101", "2023-01-01", "202301011", "19000229"]) {
     assert.equal(parseDate(s), undefined, s);
   }
   assert.deepEqual(parseDate("20000229"), [2000, 2, 29]);

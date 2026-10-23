@@ -225,6 +225,21 @@ class TestHeaderAndCover:
         assert reader.coverage_from_date == date(2025, 7, 1)
         assert reader.coverage_through_date == date(2025, 9, 30)
 
+    @pytest.mark.parametrize("raw", [b"00000101", b"-0010101"])
+    def test_year_out_of_range_is_unparseable(self, sample_fec_bytes, raw):
+        """A year below 1 can't be a `datetime.date`: reads never raise, the
+        typed cover gives `None` and the raw record keeps the raw string."""
+        bad = sample_fec_bytes.replace(b"\x1c20250701\x1c", b"\x1c" + raw + b"\x1c", 1)
+        bad = bad.replace(b"\x1c20250707\x1c", b"\x1c" + raw + b"\x1c", 1)
+        reader = Filing(bad)
+
+        assert reader.coverage_from_date is None
+        assert reader.cover.to_dict()["coverage_from_date"] is None
+        assert reader.cover_record["coverage_from_date"] == raw.decode()
+        record = next(reader.itemization_records)
+        assert record["contribution_date"] == raw.decode()
+        assert record.itemization.contribution_date is None
+
     def test_non_periodic_form_has_no_report_code(self, f99_fec_file):
         reader = Filing(f99_fec_file)
 

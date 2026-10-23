@@ -120,9 +120,9 @@ impl Record {
                 Ok(v) => v.into_bound_py_any(py),
                 Err(_) => PyString::new(py, raw).into_bound_py_any(py),
             },
-            ColumnKind::Date => match jiff::civil::Date::strptime("%Y%m%d", trimmed) {
-                Ok(d) => d.into_bound_py_any(py),
-                Err(_) => PyString::new(py, raw).into_bound_py_any(py),
+            ColumnKind::Date => match fec_parser::covers::fields::yyyymmdd(trimmed) {
+                Some(d) => d.into_bound_py_any(py),
+                None => PyString::new(py, raw).into_bound_py_any(py),
             },
             ColumnKind::Text => unreachable!("handled above"),
         }
