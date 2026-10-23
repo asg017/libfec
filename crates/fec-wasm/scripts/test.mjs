@@ -4,6 +4,8 @@
 //
 // A script rather than Makefile globs so it runs the same on Windows CI, and
 // because each runtime needs a different invocation:
+// - gc() for the GC tests: node --expose-gc (via NODE_OPTIONS), deno --v8-flags=--expose-gc
+//   (bun has Bun.gc()).
 // - node: `using` is a SyntaxError before Node 24, so tests/using.test.mjs is
 //   left out there (by file: a parse error can't be caught).
 // - bun: Bun 1.2's node:test shim only runs the first file's tests when given
@@ -24,13 +26,15 @@ switch (runtime) {
   case "node": {
     const major = Number(process.versions.node.split(".")[0]);
     if (major < 24) files = files.filter((f) => !f.endsWith("/using.test.mjs"));
-    runs.push(["node", ["--test", ...files]]);
+    // In NODE_OPTIONS: `node --test` doesn't pass its own flags to the
+    // per-file child processes.
+    runs.push(["node", ["--test", ...files], { NODE_OPTIONS: `${process.env.NODE_OPTIONS ?? ""} --expose-gc`.trim() }]);
     break;
   }
   case "deno":
     // --no-check: the tests are .mjs, and type-checking the napi build's
     // .d.ts would want its @types/node.
-    runs.push(["deno", ["test", "--no-check", "--allow-read", "--allow-ffi", "--allow-env", ...files]]);
+    runs.push(["deno", ["test", "--v8-flags=--expose-gc", "--no-check", "--allow-read", "--allow-ffi", "--allow-env", ...files]]);
     break;
   case "bun":
     for (const f of files) runs.push(["bun", ["test", f]]);
@@ -41,9 +45,10 @@ switch (runtime) {
 }
 
 console.log(`${runtime}: ${files.join(" ")}`);
-for (const [cmd, args] of runs) {
+for (const [cmd, args, env] of runs) {
   const { status, error } = spawnSync(cmd, args, {
     stdio: "inherit",
+    env: { ...process.env, ...env },
     shell: process.platform === "win32",
   });
   if (error) throw error;

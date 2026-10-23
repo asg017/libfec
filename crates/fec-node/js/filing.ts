@@ -100,6 +100,28 @@ function checkOptions(options: FilingOptions): ResolvedOptions {
   return { dates, batchSize, id: id ?? null };
 }
 
+/**
+ * One running pass's native reader, as {@link Filing.close} sees it. It holds
+ * the reader, never the generator, so an abandoned pass can be collected.
+ */
+interface LivePass {
+  readonly reader: native.NativeReader;
+  /** The filing's set of live passes, to leave when the pass is collected. */
+  readonly live: Set<LivePass>;
+}
+
+/**
+ * Closes the reader of a pass whose generator was dropped mid-pass (started
+ * with `next()`, never finished or `return()`ed). The target is the token in
+ * the generator's frame, so the reader (and its file descriptor or wasm
+ * memory) goes when the generator does, not at {@link Filing.close}. The held
+ * {@link LivePass} doesn't reference the token or the generator.
+ */
+const abandoned = new FinalizationRegistry<LivePass>((pass) => {
+  pass.live.delete(pass);
+  pass.reader.close();
+});
+
 function closedError(): FecError {
   return new FecError("the filing is closed", { code: "ERR_FILING_CLOSED" });
 }
@@ -168,7 +190,12 @@ export class Filing implements Disposable {
   readonly #source: native.NativeSource;
   readonly #options: ResolvedOptions;
   readonly #builder: RecordBuilder;
-  readonly #live = new Set<native.NativeReader>();
+  /**
+   * The readers of passes running now, for {@link close} to stop. Strong refs
+   * to readers only; a pass whose generator is collected leaves the set (see
+   * {@link abandoned}).
+   */
+  readonly #live = new Set<LivePass>();
   #closed = false;
 
   /**
@@ -327,7 +354,7 @@ export class Filing implements Disposable {
    */
   close(): void {
     this.#closed = true;
-    for (const reader of this.#live) reader.close();
+    for (const pass of this.#live) pass.reader.close();
     this.#live.clear();
     this.#source.close();
   }
@@ -337,17 +364,26 @@ export class Filing implements Disposable {
     this.close();
   }
 
-  /** A new native pass, tracked so {@link close} can stop it. Opened on the generator's first step. */
-  #open(typed: boolean): native.NativeReader {
+  /**
+   * A new native pass, opened on the generator's first step and tracked so
+   * {@link close} can stop it. The generator keeps the returned token in its
+   * frame until {@link release}: the token's reachability is the generator's.
+   */
+  #open(typed: boolean): { pass: LivePass } {
     if (this.#closed) throw closedError();
     const reader = callNative(() => this.#source.reader(typed));
-    this.#live.add(reader);
-    return reader;
+    const pass: LivePass = { reader, live: this.#live };
+    const token = { pass };
+    this.#live.add(pass);
+    abandoned.register(token, pass, token);
+    return token;
   }
 
-  #release(reader: native.NativeReader): void {
-    this.#live.delete(reader);
-    reader.close();
+  /** End a pass: exhausted, `return()`ed or thrown. */
+  #release(token: { pass: LivePass }): void {
+    abandoned.unregister(token);
+    this.#live.delete(token.pass);
+    token.pass.reader.close();
   }
 
   #nextBatch(reader: native.NativeReader): native.Batch | null {
@@ -356,7 +392,8 @@ export class Filing implements Disposable {
   }
 
   *#records(): Generator<Record, void, undefined> {
-    const reader = this.#open(false);
+    const token = this.#open(false);
+    const reader = token.pass.reader;
     try {
       for (let batch; (batch = this.#nextBatch(reader)); ) {
         for (const r of this.#builder.build(batch)) {
@@ -366,12 +403,13 @@ export class Filing implements Disposable {
         }
       }
     } finally {
-      this.#release(reader);
+      this.#release(token);
     }
   }
 
   *#itemizations(): Generator<Itemization | Unknown, void, undefined> {
-    const reader = this.#open(true);
+    const token = this.#open(true);
+    const reader = token.pass.reader;
     try {
       const decoder = new TokenDecoder();
       for (let batch; (batch = this.#nextBatch(reader)); ) {
@@ -390,7 +428,7 @@ export class Filing implements Disposable {
         }
       }
     } finally {
-      this.#release(reader);
+      this.#release(token);
     }
   }
 }

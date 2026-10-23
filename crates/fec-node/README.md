@@ -157,7 +157,9 @@ coverage dates are `null` for forms that are not periodic reports (F1, F2, F24, 
   the filing, so you can read it as many times as you like, one pass after another or
   interleaved. A single pass is an ordinary generator: once exhausted, it stays exhausted.
 - A pass opens its native reader on its first `next()`, not when you call the method, so a
-  pass you never step costs nothing.
+  pass you never step costs nothing. It closes the reader when it is exhausted,
+  `return()`ed (a `break` out of `for…of`) or throws; one you start and drop midway is closed
+  when it's garbage-collected, or by `close()`, whichever comes first.
 - `close()` releases the source and stops every live pass: a running pass throws
   `FecError` with `code: "ERR_FILING_CLOSED"` on its next step, and so does a new call. It's
   idempotent, and `header`, `cover`, `coverRecord` and the filer attributes stay readable
