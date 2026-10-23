@@ -1,4 +1,5 @@
-// The private native layer (NativeReader, schema): batches, modes, the cover.
+// The private native layer (NativeSource, NativeReader, schema, typeRecord):
+// batches, modes, the cover.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -58,26 +59,31 @@ test("batch size doesn't change the rows", () => {
   assert.deepEqual(a, b);
 });
 
-test("typed mode: tokens for exactly the kept rows; untyped rows skipped", () => {
-  const r = native.NativeReader.openPath(PAC);
-  r.setTyped(true);
-  const rows = drain(r);
+test("typed mode: one token per row, null for untyped rows", () => {
+  const rows = drain(native.NativeSource.openPath(PAC).reader(true));
   assert.equal(rows.length, 1387); // Python: every row of this file types
+  assert.ok(rows.every((r) => r.item !== null));
   const sa = rows.find((x) => x.fields[0] === "SA11AI").item;
   assert.equal(sa.type, "ScheduleA");
   assert.equal(sa.contributor.name.last_name, "Aaronson");
   assert.equal(sa.contribution_amount, 104.17);
   assert.equal(sa.form_type, "SA11AI");
-  // 1913562 (F1A): 3 rows, none with a typed struct (Python agrees).
-  const f1 = native.NativeReader.openPath(fixture("1913562.fec"));
-  f1.setTyped(true);
-  assert.equal(drain(f1).length, 0);
-  assert.equal(drain(native.NativeReader.openPath(fixture("1913562.fec"))).length, 3);
+  // 1913562 (F1A): 3 F1S rows, none with a typed struct (Python agrees):
+  // they are kept, with a null token each.
+  const f1 = drain(native.NativeSource.openPath(fixture("1913562.fec")).reader(true), 2);
+  assert.deepEqual(
+    f1.map((r) => [r.fields[0], r.item]),
+    [["F1S", null], ["F1S", null], ["F1S", null]],
+  );
+  assert.deepEqual(
+    f1.map((r) => r.fields),
+    drain(native.NativeReader.openPath(fixture("1913562.fec"))).map((r) => r.fields),
+  );
 });
 
 test("struct ids are stable across batches (new structs listed once)", () => {
-  const r = native.NativeReader.openPath(PAC);
-  r.setTyped(true);
+  const r = native.NativeSource.openPath(PAC).reader(true);
+  assert.equal(r.typed, true);
   const seen = new Set();
   for (let b; (b = r.nextBatch(50)); ) {
     for (const d of b.typed.newStructs) {
@@ -89,10 +95,67 @@ test("struct ids are stable across batches (new structs listed once)", () => {
   assert.ok(seen.size > 3);
 });
 
-test("setTyped after the first batch is refused", () => {
-  const r = native.NativeReader.openPath(SAMPLE);
-  r.nextBatch(1);
-  assert.throws(() => r.setTyped(true), { code: "ERR_FILING_CONSUMED" });
+test("NativeSource: many readers, identical passes, interleaved", () => {
+  for (const src of [
+    native.NativeSource.openPath(PAC),
+    native.NativeSource.openBytes(new Uint8Array(readFileSync(PAC))),
+  ]) {
+    const a = drain(src.reader(false));
+    const b = drain(src.reader(false));
+    assert.equal(a.length, 1387);
+    assert.deepEqual(a.map((r) => r.fields), b.map((r) => r.fields));
+    // Two passes in lockstep don't disturb each other.
+    const raw = src.reader(false);
+    const typed = src.reader(true);
+    assert.equal(raw.typed, false);
+    let n = 0;
+    for (let x, y; (x = raw.nextBatch(100)), (y = typed.nextBatch(100)), x || y; ) {
+      assert.deepEqual(x.rowEnds, y.rowEnds);
+      assert.equal(x.text, y.text);
+      assert.equal(x.typed, null);
+      assert.equal(y.typed.rows, y.rowEnds.length);
+      n += x.rowEnds.length;
+    }
+    assert.equal(n, 1387);
+    // Each reader has the header and cover.
+    assert.equal(src.reader(true).coverSummary.filerId, "C00016683");
+  }
+});
+
+test("NativeSource: id, sourceLength, close", () => {
+  const p = native.NativeSource.openPath(PAC);
+  assert.equal(p.id, "1721696");
+  assert.equal(p.sourceLength, readFileSync(PAC).length);
+  const bytes = new Uint8Array(readFileSync(SAMPLE));
+  const b = native.NativeSource.openBytes(bytes);
+  assert.equal(b.id, null);
+  assert.equal(b.sourceLength, bytes.length);
+  // A reader made before close() keeps reading; new ones are refused.
+  const r = b.reader(false);
+  assert.equal(b.closed, false);
+  b.close();
+  b.close();
+  assert.equal(b.closed, true);
+  assert.throws(() => b.reader(false), { code: "ERR_FILING_CLOSED" });
+  assert.equal(drain(r).length, 20);
+  assert.throws(() => native.NativeSource.openPath("nope.fec"), { code: "ENOENT" });
+  // Bytes are parsed by reader(), not by openBytes.
+  const g = native.NativeSource.openBytes(new TextEncoder().encode("garbage"));
+  assert.throws(() => g.reader(false), { code: "FEC_PARSE" });
+});
+
+test("typeRecord: one row, the same value the typed batch has", () => {
+  const rows = drain(native.NativeSource.openPath(PAC).reader(true));
+  for (const r of [rows[0], rows.find((x) => x.fields[0] === "SB23")]) {
+    const batch = native.typeRecord(r.fields, "8.4", null);
+    assert.equal(batch.rows, 1);
+    assert.deepEqual(new TokenDecoder().decode(batch), [r.item]);
+  }
+  const f1s = readFileSync(fixture("1913562.fec"), "latin1").split(/\r?\n/)[2].split("\x1c");
+  assert.equal(f1s[0], "F1S");
+  assert.deepEqual(new TokenDecoder().decode(native.typeRecord(f1s, "8.4", null)), [null]);
+  assert.deepEqual(new TokenDecoder().decode(native.typeRecord(["XX"], "8.4", null)), [null]);
+  assert.deepEqual(new TokenDecoder().decode(native.typeRecord([], "8.4", null)), [null]);
 });
 
 test("cover: summary, raw fields, line, typed cover tokens", () => {

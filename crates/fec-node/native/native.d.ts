@@ -10,8 +10,9 @@
 export declare const __napiBindingTarget: 'native' | 'wasm32-wasi' | 'wasm32-wasip1'
 
 export declare class NativeReader {
+  /** A raw (untyped) reader over a path; see [`NativeSource`] for passes. */
   static openPath(path: string): NativeReader
-  /** Reads the JS buffer in place (no copy). */
+  /** A raw reader over the JS buffer, read in place (no copy). */
   static openBytes(bytes: Uint8Array): NativeReader
   /** The file stem minus any `FEC-` prefix; `null` for bytes. */
   get id(): string | null
@@ -28,14 +29,41 @@ export declare class NativeReader {
    * when the form has no struct.
    */
   coverData(): TokenBatch
-  /** Typed mode on or off; only before the first batch. */
-  setTyped(typed: boolean): void
+  /** Whether batches carry typed tokens (fixed when the reader is made). */
+  get typed(): boolean
   /**
-   * Up to `n` rows, or `null` at the end of the file. In typed mode the
-   * `n` counts kept (typed) rows.
+   * Up to `n` rows, or `null` at the end of the file. In typed mode every
+   * row has one token value, `null` when it has no typed struct.
    */
   nextBatch(n: number): Batch | null
   /** Drop the parser (and the file or buffer). Idempotent. */
+  close(): void
+  get closed(): boolean
+}
+
+/**
+ * A filing's source, held once, for any number of passes
+ * ([`NativeSource::reader`]). A path is reopened for each pass; bytes are the
+ * JS buffer, read in place by every reader.
+ */
+export declare class NativeSource {
+  /** Checks the path opens (so `ENOENT` surfaces now), then keeps only the path. */
+  static openPath(path: string): NativeSource
+  /** Keeps a reference to the JS buffer (no copy). */
+  static openBytes(bytes: Uint8Array): NativeSource
+  /**
+   * A new pass from the top of the filing: header and cover parsed again,
+   * then rows raw or `typed`.
+   */
+  reader(typed: boolean): NativeReader
+  /** The file stem minus any `FEC-` prefix; `null` for bytes. */
+  get id(): string | null
+  /** The source's size in bytes (`0` if unknown). */
+  get sourceLength(): number
+  /**
+   * Drop the path or the buffer reference; later `reader()` calls throw
+   * `ERR_FILING_CLOSED`. Readers already made keep their own. Idempotent.
+   */
   close(): void
   get closed(): boolean
 }
@@ -171,6 +199,14 @@ export interface TokenBatch {
   /** Struct types first seen in this batch: `"id\x1fName\x1fkey1\x1fkey2…"`. */
   newStructs: Array<string>
 }
+
+/**
+ * Type one record on demand (`Record.itemization`): `fields` as filed (field
+ * 0 the row type), with the filing's version and header name delimiter. A
+ * self-contained one-row token batch (its own struct ids: decode it with a
+ * fresh decoder), `null` when the record has no typed struct.
+ */
+export declare function typeRecord(fields: Array<string>, fecVersion: string, nameDelimiter?: string | undefined | null): TokenBatch
 
 /** The crate version (lockstep with the workspace). */
 export declare function version(): string

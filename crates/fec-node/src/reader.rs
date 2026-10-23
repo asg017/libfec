@@ -1,17 +1,24 @@
-//! `NativeReader`: a filing's rows as batches the JS layer turns into `Row`s.
+//! `NativeSource` and `NativeReader`: a filing's rows as batches the JS layer
+//! turns into `Record`s and itemizations.
 //!
 //! Rust stays small: it parses, optionally types, and ships each batch as one
 //! string plus typed arrays, because every JS value created from Rust costs a
-//! Node-API call (plans/nodejs/01-bindings.md). Two modes:
+//! Node-API call (plans/nodejs/01-bindings.md).
 //!
-//! - **raw** (`rows()`, `records()`): fields only; nothing is typed.
+//! A `NativeSource` holds the filing (a path, or the JS buffer, read in place)
+//! and hands out any number of `NativeReader`s, each one pass from the top.
+//! The mode is fixed when the reader is made:
+//!
+//! - **raw** (`itemizationRecords()`): fields only; nothing is typed.
 //! - **typed** (`itemizations()`): every row goes through
-//!   `Itemization::from_record`; rows with no typed struct are skipped, and
-//!   the batch carries the kept rows' itemizations as tokens (`tokens.rs`).
+//!   `Itemization::from_record`, and the batch carries one token value per
+//!   row (`tokens.rs`): the itemization, or `null` for a row with no typed
+//!   struct (a summary record, a schedule not typed yet).
 
 use std::fs::File;
 use std::io::{Cursor, Read};
 use std::path::Path;
+use std::rc::Rc;
 
 use fec_parser::covers::Cover;
 use fec_parser::itemizations::Itemization;
@@ -28,8 +35,9 @@ use crate::tokens::{StructTable, TokenBatch, TokenWriter};
 use crate::NativeHeader;
 
 /// A borrowed JS `Uint8Array`, read in place. The reference keeps the buffer
-/// alive for the reader's lifetime; the JS docs say not to mutate it meanwhile.
-struct JsBytes(Uint8Array);
+/// alive while the source or any of its readers holds it; the JS docs say not
+/// to mutate it meanwhile.
+struct JsBytes(Rc<Uint8Array>);
 
 impl AsRef<[u8]> for JsBytes {
     fn as_ref(&self) -> &[u8] {
@@ -89,7 +97,6 @@ pub struct NativeReader {
     cover_line: u32,
     cover: Option<Cover>,
     typed: bool,
-    started: bool,
     structs: StructTable,
     tokens: TokenWriter,
     /// A row error met mid-batch: the rows before it go out first, then this.
@@ -97,7 +104,7 @@ pub struct NativeReader {
 }
 
 impl NativeReader {
-    fn open(source: Source, id: Option<String>, len: usize) -> Result<Self> {
+    fn open(source: Source, id: Option<String>, len: usize, typed: bool) -> Result<Self> {
         let filing = Filing::from_reader(source, id.clone().unwrap_or_default(), len)
             .map_err(|e| parse_error(&e))?;
         let cover = &filing.cover;
@@ -120,8 +127,7 @@ impl NativeReader {
             cover_line: cover.record.position().map_or(2, |p| p.line() as u32),
             cover: cover.cover_data.clone(),
             filing: Some(filing),
-            typed: false,
-            started: false,
+            typed,
             structs: StructTable::default(),
             tokens: TokenWriter::default(),
             pending_error: None,
@@ -129,24 +135,123 @@ impl NativeReader {
     }
 }
 
+/// Open `path`, with its length and its ID (the file stem minus any `FEC-`).
+fn open_file(path: &str) -> Result<(File, usize, Option<String>)> {
+    let file = File::open(path).map_err(|e| io_error(e, path))?;
+    let len = file.metadata().map(|m| m.len() as usize).unwrap_or(0);
+    let stem = Path::new(path)
+        .file_stem()
+        .map(|s| s.to_string_lossy().into_owned());
+    let id = stem.map(|s| s.strip_prefix("FEC-").map(str::to_owned).unwrap_or(s));
+    Ok((file, len, id))
+}
+
+enum SourceData {
+    Path(String),
+    Bytes(Rc<Uint8Array>),
+}
+
+/// A filing's source, held once, for any number of passes
+/// ([`NativeSource::reader`]). A path is reopened for each pass; bytes are the
+/// JS buffer, read in place by every reader.
 #[napi]
-impl NativeReader {
+pub struct NativeSource {
+    data: Option<SourceData>,
+    id: Option<String>,
+    len: usize,
+}
+
+#[napi]
+impl NativeSource {
+    /// Checks the path opens (so `ENOENT` surfaces now), then keeps only the path.
     #[napi(factory)]
     pub fn open_path(path: String) -> Result<Self> {
-        let file = File::open(&path).map_err(|e| io_error(e, &path))?;
-        let len = file.metadata().map(|m| m.len() as usize).unwrap_or(0);
-        let stem = Path::new(&path)
-            .file_stem()
-            .map(|s| s.to_string_lossy().into_owned());
-        let id = stem.map(|s| s.strip_prefix("FEC-").map(str::to_owned).unwrap_or(s));
-        Self::open(Box::new(file), id, len)
+        let (_file, len, id) = open_file(&path)?;
+        Ok(NativeSource {
+            data: Some(SourceData::Path(path)),
+            id,
+            len,
+        })
     }
 
-    /// Reads the JS buffer in place (no copy).
+    /// Keeps a reference to the JS buffer (no copy).
+    #[napi(factory)]
+    pub fn open_bytes(bytes: Uint8Array) -> Self {
+        let len = bytes.len();
+        NativeSource {
+            data: Some(SourceData::Bytes(Rc::new(bytes))),
+            id: None,
+            len,
+        }
+    }
+
+    /// A new pass from the top of the filing: header and cover parsed again,
+    /// then rows raw or `typed`.
+    #[napi]
+    pub fn reader(&self, typed: bool) -> Result<NativeReader> {
+        match &self.data {
+            None => Err(closed_error()),
+            Some(SourceData::Path(path)) => {
+                let (file, len, _) = open_file(path)?;
+                NativeReader::open(Box::new(file), self.id.clone(), len, typed)
+            }
+            Some(SourceData::Bytes(bytes)) => NativeReader::open(
+                Box::new(Cursor::new(JsBytes(bytes.clone()))),
+                None,
+                self.len,
+                typed,
+            ),
+        }
+    }
+
+    /// The file stem minus any `FEC-` prefix; `null` for bytes.
+    #[napi(getter)]
+    pub fn id(&self) -> Option<String> {
+        self.id.clone()
+    }
+
+    /// The source's size in bytes (`0` if unknown).
+    #[napi(getter)]
+    pub fn source_length(&self) -> u32 {
+        self.len.min(u32::MAX as usize) as u32
+    }
+
+    /// Drop the path or the buffer reference; later `reader()` calls throw
+    /// `ERR_FILING_CLOSED`. Readers already made keep their own. Idempotent.
+    #[napi]
+    pub fn close(&mut self) {
+        self.data = None;
+    }
+
+    #[napi(getter)]
+    pub fn closed(&self) -> bool {
+        self.data.is_none()
+    }
+}
+
+fn closed_error() -> napi::Error<String> {
+    napi::Error::new("ERR_FILING_CLOSED".to_owned(), "the filing is closed")
+}
+
+#[napi]
+impl NativeReader {
+    /// A raw (untyped) reader over a path; see [`NativeSource`] for passes.
+    #[napi(factory)]
+    pub fn open_path(path: String) -> Result<Self> {
+        let (file, len, id) = open_file(&path)?;
+        Self::open(Box::new(file), id, len, false)
+    }
+
+    /// A raw reader over the JS buffer, read in place (no copy).
     #[napi(factory)]
     pub fn open_bytes(bytes: Uint8Array) -> Result<Self> {
         let len = bytes.len();
-        Self::open(Box::new(Cursor::new(JsBytes(bytes))), None, len)
+        Self::open(
+            Box::new(Cursor::new(JsBytes(Rc::new(bytes)))),
+            None,
+            len,
+            false,
+        )
     }
 
     /// The file stem minus any `FEC-` prefix; `null` for bytes.
@@ -194,32 +299,21 @@ impl NativeReader {
         Ok(w.take().into())
     }
 
-    /// Typed mode on or off; only before the first batch.
-    #[napi]
-    pub fn set_typed(&mut self, typed: bool) -> Result<()> {
-        if self.started {
-            return Err(napi::Error::new(
-                "ERR_FILING_CONSUMED".to_owned(),
-                "set_typed after the first batch",
-            ));
-        }
-        self.typed = typed;
-        Ok(())
+    /// Whether batches carry typed tokens (fixed when the reader is made).
+    #[napi(getter)]
+    pub fn typed(&self) -> bool {
+        self.typed
     }
 
-    /// Up to `n` rows, or `null` at the end of the file. In typed mode the
-    /// `n` counts kept (typed) rows.
+    /// Up to `n` rows, or `null` at the end of the file. In typed mode every
+    /// row has one token value, `null` when it has no typed struct.
     #[napi]
     pub fn next_batch(&mut self, n: u32) -> Result<Option<Batch>> {
-        self.started = true;
         if let Some(e) = self.pending_error.take() {
             return Err(e);
         }
         let Some(filing) = self.filing.as_mut() else {
-            return Err(napi::Error::new(
-                "ERR_FILING_CLOSED".to_owned(),
-                "the filing is closed",
-            ));
+            return Err(closed_error());
         };
         let mut w = FieldsWriter::default();
         while (w.rows() as u32) < n {
@@ -237,9 +331,8 @@ impl NativeReader {
                     &self.fec_version,
                     self.name_delimiter.as_deref(),
                 );
-                let Some(it) = it else { continue };
                 self.tokens
-                    .push(&mut self.structs, Some(&it))
+                    .push(&mut self.structs, it.as_ref())
                     .map_err(|e| parse_error(&e))?;
             }
             w.push(row.record.iter(), row.line as u32);
@@ -290,6 +383,25 @@ pub fn schema(row_type: String, fec_version: String) -> Result<Vec<Column>> {
             .to_owned(),
         })
         .collect())
+}
+
+/// Type one record on demand (`Record.itemization`): `fields` as filed (field
+/// 0 the row type), with the filing's version and header name delimiter. A
+/// self-contained one-row token batch (its own struct ids: decode it with a
+/// fresh decoder), `null` when the record has no typed struct.
+#[napi]
+pub fn type_record(
+    fields: Vec<String>,
+    fec_version: String,
+    name_delimiter: Option<String>,
+) -> Result<TokenBatch> {
+    let record = csv::StringRecord::from(fields);
+    let it = Itemization::from_record(&record, &fec_version, name_delimiter.as_deref());
+    let mut table = StructTable::default();
+    let mut w = TokenWriter::default();
+    w.push(&mut table, it.as_ref())
+        .map_err(|e| parse_error(&e))?;
+    Ok(w.take().into())
 }
 
 #[cfg(test)]
