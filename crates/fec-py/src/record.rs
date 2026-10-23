@@ -1,4 +1,4 @@
-//! `Row`: one itemization line, mapping-first.
+//! `Record`: one raw line of a filing, mapping-first.
 //!
 //! By name the value is typed (`float` / `datetime.date` / `str` / `None`), by
 //! position it is the raw `str` exactly as it appears in the file.  Column names
@@ -10,7 +10,7 @@ use std::sync::{Arc, Mutex};
 
 use pyo3::exceptions::{PyIndexError, PyKeyError, PyTypeError, PyValueError};
 use pyo3::prelude::*;
-use pyo3::types::{PyList, PySlice, PyString, PyTuple};
+use pyo3::types::{PyDict, PyList, PySlice, PyString, PyTuple};
 use pyo3::IntoPyObjectExt;
 
 use fec_parser::mappings::{column_kind, column_names_for_field, ColumnKind};
@@ -37,7 +37,7 @@ static SCHEMAS: Mutex<Option<HashMap<SchemaKey, Arc<Schema>>>> = Mutex::new(None
 /// caller turns `None` into `MissingMappingError`.
 pub fn schema_for(py: Python<'_>, row_type: &str, version: &str) -> Option<Arc<Schema>> {
     // `column_names_for_field` is case-insensitive on the row type, but the cache is
-    // keyed on the spelling in the file so `Row.row_type` round-trips it.
+    // keyed on the spelling in the file so `Record.row_type` round-trips it.
     let key: SchemaKey = (row_type.to_owned(), version.to_owned());
 
     {
@@ -72,27 +72,27 @@ pub fn schema_for(py: Python<'_>, row_type: &str, version: &str) -> Option<Arc<S
     ))
 }
 
-/// One itemization row.
+/// One raw record of a filing.
 #[pyclass(module = "libfec.parser", frozen)]
-pub struct Row {
+pub struct Record {
     schema: Arc<Schema>,
     /// Raw fields, including field 0 (the row type).
     record: csv::StringRecord,
     /// 1-based physical line of the row in the file.
     line: u64,
     /// The header's name delimiter, for splitting legacy combined names in
-    /// [`Row::itemization`]; `None` means `^`.
+    /// [`Record::itemization`]; `None` means `^`.
     name_delimiter: Option<Arc<str>>,
 }
 
-impl Row {
+impl Record {
     pub fn new(
         schema: Arc<Schema>,
         record: csv::StringRecord,
         line: u64,
         name_delimiter: Option<Arc<str>>,
     ) -> Self {
-        Row {
+        Record {
             schema,
             record,
             line,
@@ -158,7 +158,7 @@ impl Row {
 }
 
 #[pymethods]
-impl Row {
+impl Record {
     /// The row type, as written in the file.
     #[getter]
     fn row_type(&self) -> &str {
@@ -306,7 +306,7 @@ impl Row {
 
     fn __eq__(&self, other: &Bound<'_, PyAny>) -> PyResult<Py<PyAny>> {
         let py = other.py();
-        let Ok(other) = other.cast::<Row>() else {
+        let Ok(other) = other.cast::<Record>() else {
             return Ok(py.NotImplemented());
         };
         let other = other.get();
@@ -324,7 +324,7 @@ impl Row {
         // `libfec.parser`, not `_native.parser`: the latter is an attribute of
         // the extension module, not importable, so pickle cannot resolve it.
         let module = py.import("libfec.parser")?;
-        let rebuild = module.getattr("_row_from_parts")?;
+        let rebuild = module.getattr("_record_from_parts")?;
         let args = (
             &self.schema.row_type,
             &self.schema.version,
@@ -337,7 +337,7 @@ impl Row {
 
     fn __repr__(&self) -> String {
         format!(
-            "Row(row_type='{}', line={}, {} fields)",
+            "Record(row_type='{}', line={}, {} fields)",
             self.row_type(),
             self.line,
             self.record.len()
@@ -345,23 +345,83 @@ impl Row {
     }
 }
 
-/// Rebuild a `Row` from its pickled parts.  Private; exists for `Row.__reduce__`.
+/// A record with no typed class: a cover `libfec.covers` has no struct for, a
+/// summary record (`F3PS`, …), or an itemization schedule not typed yet.
+///
+/// Stands in for the typed object in `Filing.cover` and
+/// `Filing.itemizations`, so neither ever yields `None`.
+#[pyclass(module = "libfec.parser", frozen)]
+pub struct Unknown {
+    record: Py<Record>,
+}
+
+impl Unknown {
+    pub fn new(record: Py<Record>) -> Self {
+        Unknown { record }
+    }
+}
+
+#[pymethods]
+impl Unknown {
+    /// The row type as filed, e.g. `F3PS`; the same name the typed classes use.
+    #[getter]
+    fn form_type(&self) -> &str {
+        self.record.get().row_type()
+    }
+
+    /// The underlying `Record`.
+    #[getter]
+    fn record(&self, py: Python<'_>) -> Py<Record> {
+        self.record.clone_ref(py)
+    }
+
+    /// The record's typed values by column name, like the typed classes' `to_dict()`.
+    fn to_dict<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
+        let dict = PyDict::new(py);
+        for (name, value) in self.record.get().items(py)? {
+            dict.set_item(name, value)?;
+        }
+        Ok(dict)
+    }
+
+    fn __eq__(&self, other: &Bound<'_, PyAny>) -> PyResult<Py<PyAny>> {
+        let py = other.py();
+        let Ok(other) = other.cast::<Unknown>() else {
+            return Ok(py.NotImplemented());
+        };
+        self.record
+            .bind(py)
+            .eq(other.get().record.bind(py))?
+            .into_py_any(py)
+    }
+
+    fn __repr__(&self) -> String {
+        let record = self.record.get();
+        format!(
+            "Unknown(form_type='{}', line={})",
+            record.row_type(),
+            record.line
+        )
+    }
+}
+
+/// Rebuild a `Record` from its pickled parts.  Private; exists for `Record.__reduce__`.
 #[pyfunction]
-#[pyo3(name = "_row_from_parts", signature = (row_type, version, fields, line, name_delimiter=None, /))]
-pub fn row_from_parts(
+#[pyo3(name = "_record_from_parts", signature = (row_type, version, fields, line, name_delimiter=None, /))]
+pub fn record_from_parts(
     py: Python<'_>,
     row_type: &str,
     version: &str,
     fields: Vec<String>,
     line: u64,
     name_delimiter: Option<&str>,
-) -> PyResult<Row> {
+) -> PyResult<Record> {
     let schema = schema_for(py, row_type, version).ok_or_else(|| {
         PyValueError::new_err(format!(
             "no column mapping for row type '{row_type}' in FEC version '{version}'"
         ))
     })?;
-    Ok(Row::new(
+    Ok(Record::new(
         schema,
         csv::StringRecord::from(fields),
         line,

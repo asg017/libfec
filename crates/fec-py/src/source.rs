@@ -1,7 +1,7 @@
 //! Turning a Python object into something the parser can `Read`.
 //!
-//! [`resolve`] is the one place that decides what `open()`, `read()`, `Filing()`
-//! and `fec_header()` accept.  Resolution order, first match wins:
+//! [`resolve`] is the one place that decides what `Filing()` and `fec_header()`
+//! accept.  Resolution order, first match wins:
 //!
 //! 1. the **buffer protocol** (`bytes`, `bytearray`, `memoryview`, `mmap`, …) —
 //!    read straight out of the exporter's memory, no copy;
@@ -77,6 +77,10 @@ pub struct SourceReader {
     pub id: Option<String>,
     /// See [`ErrorSlot`]; always empty for sources that cannot run Python code.
     pub raised: ErrorSlot,
+    /// Whether [`resolve`] can be called on the same object again for an
+    /// independent pass from byte 0: true for paths and buffers, false for file
+    /// objects, which are consumed as they are read.
+    pub reopenable: bool,
 }
 
 /// The exception a Python source raised, if any, else `fallback`.
@@ -257,6 +261,7 @@ fn buffer_source(py: Python<'_>, buffer: PyUntypedBuffer) -> PyResult<SourceRead
         length,
         id: None,
         raised: ErrorSlot::default(),
+        reopenable: true,
     })
 }
 
@@ -284,6 +289,7 @@ fn read_source(source: &Bound<'_, PyAny>) -> SourceReader {
         length: length_from_fileno(source),
         id: id_from_name(source),
         raised,
+        reopenable: false,
     }
 }
 
@@ -300,6 +306,7 @@ pub fn resolve(source: &Bound<'_, PyAny>) -> PyResult<SourceReader> {
             length,
             id: id_from_path(&path),
             raised: ErrorSlot::default(),
+            reopenable: true,
         });
     }
     if is_text_io(source)? {

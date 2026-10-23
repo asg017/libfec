@@ -1,7 +1,7 @@
 mod errors;
 mod fecfile;
 mod parser;
-mod row;
+mod record;
 mod rss;
 mod source;
 
@@ -29,9 +29,9 @@ mod _native {
         #[pymodule_export]
         use crate::errors::{FecError, FecParseError};
         #[pymodule_export]
-        use crate::parser::{fec_header, open_filing, Cover, FilingReader, Header};
+        use crate::parser::{fec_header, Filing, FilingIterator, Header};
         #[pymodule_export]
-        use crate::row::{row_from_parts, Row};
+        use crate::record::{record_from_parts, Record, Unknown};
     }
 
     #[pymodule]

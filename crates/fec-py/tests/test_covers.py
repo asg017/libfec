@@ -1,4 +1,4 @@
-"""`libfec.covers`: the typed cover classes behind `cover_data`.
+"""`libfec.covers`: the typed cover classes behind `Filing.cover`.
 
 The classes are `fec-parser`'s own Rust structs, so the main check is a
 differential one: for every cover fixture `fec-parser`'s tests snapshot as JSON
@@ -79,9 +79,9 @@ def test_every_cover_snapshot_is_found():
 
 
 @pytest.mark.parametrize("snap", SNAPSHOTS, ids=lambda s: s.fixture.name)
-def test_cover_data_matches_fec_parser_snapshot(snap: Snapshot):
-    with fec.open(snap.fixture) as filing:
-        cover = filing.cover_data
+def test_cover_matches_fec_parser_snapshot(snap: Snapshot):
+    with fec.Filing(snap.fixture) as filing:
+        cover = filing.cover
     assert type(cover).__name__ == snap.form
     assert cover is not None
     got = as_json(cover.to_dict())
@@ -89,19 +89,19 @@ def test_cover_data_matches_fec_parser_snapshot(snap: Snapshot):
     assert got == snap.data
 
 
-def test_cover_data_is_the_same_object_every_time():
-    with fec.open(FIXTURES["cover"] / "F3XN_1926068.fec") as filing:
-        assert filing.cover_data is filing.cover_data
+def test_cover_is_the_same_object_every_time():
+    with fec.Filing(FIXTURES["cover"] / "F3XN_1926068.fec") as filing:
+        assert filing.cover is filing.cover
 
 
-def test_filing_carries_cover_data():
-    filing = fec.read(FIXTURES["cover"] / "F1N_1906351.fec")
-    assert isinstance(filing.cover_data, Form1)
+def test_reader_carries_typed_cover():
+    with fec.Filing(FIXTURES["cover"] / "F1N_1906351.fec") as filing:
+        assert isinstance(filing.cover, Form1)
 
 
 def test_typed_fields():
-    with fec.open(FIXTURES["cover"] / "F3XN_1926068.fec") as filing:
-        cover = filing.cover_data
+    with fec.Filing(FIXTURES["cover"] / "F3XN_1926068.fec") as filing:
+        cover = filing.cover
     # Narrowing with `match` (and `isinstance`) is what the `CoverData` union is
     # for; mypy checks every attribute access below against the generated stubs.
     match cover:
@@ -114,8 +114,8 @@ def test_typed_fields():
 
 
 def test_typed_field_values():
-    with fec.open(FIXTURES["cover"] / "F3XN_1926068.fec") as filing:
-        cover = filing.cover_data
+    with fec.Filing(FIXTURES["cover"] / "F3XN_1926068.fec") as filing:
+        cover = filing.cover
     assert isinstance(cover, Form3X)
     assert cover.form_type == "F3XN"
     assert cover.filer_committee_id == "C00016899"
@@ -134,15 +134,15 @@ def test_typed_field_values():
 
 def test_form99_text():
     fixture = next(s.fixture for s in SNAPSHOTS if s.form == "Form99")
-    with fec.open(fixture) as filing:
-        cover = filing.cover_data
+    with fec.Filing(fixture) as filing:
+        cover = filing.cover
     assert isinstance(cover, Form99)
     assert cover.text is None or isinstance(cover.text, str)
 
 
 def test_frozen():
-    with fec.open(FIXTURES["cover"] / "F3XN_1926068.fec") as filing:
-        cover = filing.cover_data
+    with fec.Filing(FIXTURES["cover"] / "F3XN_1926068.fec") as filing:
+        cover = filing.cover
     assert isinstance(cover, Form3X)
     with pytest.raises(AttributeError):
         cover.form_type = "F3XA"  # type: ignore[misc]
@@ -152,11 +152,11 @@ def test_frozen():
 
 def test_eq_and_repr():
     path = FIXTURES["cover"] / "F3XN_1926068.fec"
-    with fec.open(path) as a, fec.open(path) as b:
-        assert a.cover_data == b.cover_data
-        assert a.cover_data is not b.cover_data
-        assert a.cover_data != a.cover_data.treasurer  # type: ignore[union-attr]
-        text = repr(a.cover_data)
+    with fec.Filing(path) as a, fec.Filing(path) as b:
+        assert a.cover == b.cover
+        assert a.cover is not b.cover
+        assert a.cover != a.cover.treasurer  # type: ignore[union-attr]
+        text = repr(a.cover)
     assert text.startswith("Form3X(form_type='F3XN', filer_committee_id='C00016899', ")
     assert "summary=Form3XSummary(...)" in text
 
@@ -167,8 +167,8 @@ def test_eq_compares_amounts_as_floats():
     assert b"1976082.12" in raw  # Line 6(b), cash on hand at the beginning of the period
 
     def cover(amount: bytes) -> Any:
-        with fec.open(raw.replace(b"1976082.12", amount)) as filing:
-            return filing.cover_data
+        with fec.Filing(raw.replace(b"1976082.12", amount)) as filing:
+            return filing.cover
 
     assert cover(b"inf") == cover(b"inf")
     assert cover(b"inf") != cover(b"-inf")
@@ -176,7 +176,7 @@ def test_eq_compares_amounts_as_floats():
     assert cover(b"NaN") != cover(b"NaN")
 
 
-def test_cover_data_union_is_every_form_class():
+def test_cover_union_is_every_form_class():
     forms = {cls.__name__ for cls in CoverData.__args__}
     assert forms == {s.form for s in SNAPSHOTS}
     assert all(cls.__module__ == "libfec.covers" for cls in CoverData.__args__)
