@@ -1,4 +1,4 @@
-// Run tests/*.test.mjs under one runtime: `node scripts/test.mjs node|deno|bun [--slow]`.
+// Run tests/*.test.mjs under one runtime: `node scripts/test.mjs node|deno|bun [--slow|--network]`.
 //
 // A script rather than Makefile globs so it runs the same on Windows CI, and
 // because each runtime needs a different invocation:
@@ -12,9 +12,12 @@ import { readdirSync } from "node:fs";
 
 const runtime = process.argv[2];
 // `--slow`: only the *.slow.test.mjs files (perf guards on the 91 MB filing).
-const slow = process.argv.includes("--slow");
+// `--network`: only the *.network.test.mjs files (live requests to fec.gov).
+// Neither kind runs by default.
+const kind = process.argv.includes("--slow") ? "slow" : process.argv.includes("--network") ? "network" : null;
+const kindOf = (f) => (f.endsWith(".slow.test.mjs") ? "slow" : f.endsWith(".network.test.mjs") ? "network" : null);
 let files = readdirSync(new URL("../tests/", import.meta.url))
-  .filter((f) => f.endsWith(".test.mjs") && f.endsWith(".slow.test.mjs") === slow)
+  .filter((f) => f.endsWith(".test.mjs") && kindOf(f) === kind)
   .sort()
   .map((f) => `./tests/${f}`);
 
@@ -27,7 +30,7 @@ switch (runtime) {
     break;
   }
   case "deno":
-    runs.push(["deno", ["test", "--allow-read", "--allow-ffi", "--allow-env", ...files]]);
+    runs.push(["deno", ["test", "--allow-read", "--allow-ffi", "--allow-env", ...(kind === "network" ? ["--allow-net"] : []), ...files]]);
     break;
   case "bun":
     for (const f of files) runs.push(["bun", ["test", f]]);

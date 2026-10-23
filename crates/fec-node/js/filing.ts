@@ -1,5 +1,6 @@
 import * as native from "./native.js";
 import { callNative, FecError, MissingMappingError } from "./errors.js";
+import { fetchExplained, inBrowser, proxied, withTimeout, type ProxyOption } from "./fetch.js";
 import type { Cover, Itemization } from "./generated/index.js";
 import { toHeader, type Header } from "./header.js";
 import { batchFields, Record, RecordBuilder, type DatesOption } from "./record.js";
@@ -30,6 +31,42 @@ export interface FilingOptions {
   /** Rows per native batch (default 1024). A tuning knob; results don't depend on it. */
   batchSize?: number;
 }
+
+/** Options for {@link Filing.fromId}: the {@link FilingOptions} (but `id`), plus how to fetch. */
+export interface FromIdOptions extends Omit<FilingOptions, "id"> {
+  /**
+   * Fetch through a proxy. docquery.fec.gov sends no CORS headers, so a
+   * browser page can't read a filing directly. Not needed in Node, Deno or
+   * Bun.
+   *
+   * - a string containing `{url}`: that placeholder is replaced by the
+   *   URL-encoded filing URL (`"https://proxy.example/fetch?u={url}"`);
+   * - any other string: a prefix for the URL-encoded filing URL
+   *   (`"https://proxy.example/?url="`);
+   * - a function: given the filing URL, returns the URL to fetch.
+   */
+  proxy?: ProxyOption;
+  /** Abort the download. Combined with {@link timeout}: whichever comes first. */
+  signal?: AbortSignal;
+  /** Milliseconds before the download is aborted (default 60 000; `Infinity` for none). */
+  timeout?: number;
+}
+
+/** `1721696`, `"1721696"` or `"FEC-1721696"` → `"1721696"`, like Python's `normalize_filing_id`. */
+function normalizeFilingId(filingId: unknown): string {
+  // A number goes through `String()`, so a negative one (or `1.5`) fails the
+  // digit check below like any other malformed id.
+  if (typeof filingId !== "number" && typeof filingId !== "string") {
+    throw new TypeError(`filing id must be a number or a string, got ${filingId === null ? "null" : typeof filingId}`);
+  }
+  const raw = String(filingId);
+  const trimmed = raw.trim();
+  const id = trimmed.startsWith("FEC-") ? trimmed.slice(4) : trimmed.startsWith("FEC") ? trimmed.slice(3) : trimmed;
+  if (!/^[0-9]+$/.test(id)) throw new TypeError(`not an FEC filing id: ${JSON.stringify(raw)}`);
+  return id;
+}
+
+const DEFAULT_TIMEOUT = 60_000;
 
 interface ResolvedOptions {
   dates: DatesOption;
@@ -177,6 +214,64 @@ export class Filing implements Disposable {
       this.#source.close();
       throw e;
     }
+  }
+
+  /**
+   * Download an electronic filing from docquery.fec.gov
+   * (`https://docquery.fec.gov/dcdev/posted/<id>.fec`) into memory and open
+   * it, with {@link Filing.id} set. Mirrors Python's `Filing.from_id`; like
+   * it, there is no fallback to paper filings.
+   *
+   * ```ts
+   * const filing = await Filing.fromId(1721696); // or "1721696", "FEC-1721696"
+   * console.log(filing.filerName);
+   * ```
+   *
+   * In a browser, pass a {@link FromIdOptions.proxy}: docquery sends no CORS
+   * headers. Without one, the request fails with a `TypeError` that says so
+   * (`code: "ERR_CORS"`).
+   *
+   * @param id - The filing ID: digits, optionally prefixed `FEC-` or `FEC`.
+   * @throws `TypeError` for a malformed id or option, before any request;
+   *   {@link FecError} `ERR_FILING_NOT_FOUND` (`status: 404`) if there is no
+   *   such filing, `ERR_HTTP` (with `status`) for any other non-2xx response;
+   *   the `fetch()` error on a network failure, an abort or the timeout
+   *   (`TimeoutError`); otherwise as the {@link Filing} constructor.
+   */
+  static async fromId(id: number | string, options: FromIdOptions = {}): Promise<Filing> {
+    const filingId = normalizeFilingId(id);
+    if (options === null || typeof options !== "object") {
+      throw new TypeError(`options must be an object, got ${options === null ? "null" : typeof options}`);
+    }
+    const { proxy, signal, timeout = DEFAULT_TIMEOUT, ...filingOptions } = options;
+    if ("id" in filingOptions) {
+      throw new TypeError("fromId() takes the filing id as its first argument, not an id option");
+    }
+    checkOptions(filingOptions);
+    if (typeof timeout !== "number" || Number.isNaN(timeout) || timeout <= 0) {
+      throw new TypeError(`timeout must be a positive number of milliseconds, got ${String(timeout)}`);
+    }
+    if (signal !== undefined && !(signal instanceof AbortSignal)) {
+      throw new TypeError("signal must be an AbortSignal");
+    }
+    const target = `https://docquery.fec.gov/dcdev/posted/${filingId}.fec`;
+    const url = proxied(target, proxy);
+    // A browser ignores User-Agent at best, and at worst preflights for it.
+    const headers: { [name: string]: string } = inBrowser() ? {} : { "User-Agent": `libfec-js/${native.version()}` };
+    const response = await fetchExplained(url, { headers, signal: withTimeout(signal, timeout) }, proxy);
+    if (!response.ok) {
+      const status = response.status;
+      void response.body?.cancel().catch(() => {});
+      if (status === 404) {
+        throw new FecError(`no filing ${filingId} on docquery.fec.gov (GET ${url}: 404)`, {
+          code: "ERR_FILING_NOT_FOUND",
+          status,
+        });
+      }
+      throw new FecError(`GET ${url}: ${status} ${response.statusText}`, { code: "ERR_HTTP", status });
+    }
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    return new Filing(bytes, { ...filingOptions, id: filingId });
   }
 
   /** Whether {@link close} has been called. */

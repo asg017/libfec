@@ -1,4 +1,4 @@
-.PHONY: install build build-release build-browser test test-node test-deno test-bun test-slow bench typecheck gen-types docs examples clean
+.PHONY: install build build-release build-browser test test-node test-deno test-bun test-slow test-network bench typecheck gen-types docs examples clean
 
 install:                       ## one-time: npm ci
 	npm ci
@@ -27,6 +27,11 @@ test-slow: build-release        ## perf guards on benchmarks/1805248.fec (all th
 	node scripts/test.mjs node --slow
 	node scripts/test.mjs deno --slow
 	node scripts/test.mjs bun --slow
+
+test-network:                  ## live requests to fec.gov (Filing.fromId), all three runtimes
+	node scripts/test.mjs node --network
+	node scripts/test.mjs deno --network
+	node scripts/test.mjs bun --network
 
 BENCH_FILE ?= ../../benchmarks/1805248.fec
 

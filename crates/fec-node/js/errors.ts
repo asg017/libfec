@@ -9,20 +9,28 @@ import { errnoOf, messagePath } from "./native.js";
  * | `FEC_PARSE` | {@link FecParseError}: the header, cover or a row can't be parsed |
  * | `FEC_MISSING_MAPPING` | {@link MissingMappingError}: no column mapping for a row type |
  * | `ERR_FILING_CLOSED` | reading a {@link Filing} after `close()` |
+ * | `ERR_FILING_NOT_FOUND` | {@link Filing.fromId}: docquery has no such filing (HTTP 404); `status` is set |
+ * | `ERR_HTTP` | {@link Filing.fromId}: any other non-2xx response; `status` is set |
  *
  * A missing or unreadable path is not a `FecError`: it throws the same error
  * Node's `fs.openSync` would (`code: "ENOENT"`, `path`, `syscall: "open"`).
+ * Nor is a network failure: {@link Filing.fromId} and `rss.fetch` let the
+ * runtime's `fetch()` error through, except that a browser's CORS block
+ * becomes a `TypeError` with `code: "ERR_CORS"` that explains it.
  *
  * @category Errors
  */
 export class FecError extends Error {
   /** What went wrong; see the table above. */
   code?: string;
+  /** The HTTP status, for `ERR_FILING_NOT_FOUND` and `ERR_HTTP`. */
+  status?: number;
 
-  constructor(message: string, options?: { code?: string; cause?: unknown }) {
+  constructor(message: string, options?: { code?: string; status?: number; cause?: unknown }) {
     super(message, options?.cause === undefined ? undefined : { cause: options.cause });
     this.name = new.target.name;
     if (options?.code !== undefined) this.code = options.code;
+    if (options?.status !== undefined) this.status = options.status;
   }
 }
 

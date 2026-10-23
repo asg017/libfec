@@ -18,7 +18,8 @@
  */
 import * as native from "./native.js";
 
-export { Filing, columns, type FilingOptions, type Column } from "./filing.js";
+export { Filing, columns, type FilingOptions, type FromIdOptions, type Column } from "./filing.js";
+export type { ProxyOption } from "./fetch.js";
 export { Record, type Value, type RecordValues, type RecordJSON, type DatesOption } from "./record.js";
 export { Unknown, type UnknownJSON } from "./unknown.js";
 export { readHeader, type Header } from "./header.js";
