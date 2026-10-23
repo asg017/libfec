@@ -120,8 +120,8 @@ jobs:
           import * as wasm from "@alex.garcia/libfec-wasm";
           import { readFileSync } from "node:fs";
           const count = (f) => { let n = 0; for (const _ of f.itemizations()) n++; f.close(); return n; };
-          const a = count(napi.open("$fixture"));
-          const b = count(wasm.open(new Uint8Array(readFileSync("$fixture"))));
+          const a = count(new napi.Filing("$fixture"));
+          const b = count(new wasm.Filing(new Uint8Array(readFileSync("$fixture"))));
           if (a !== 20 || b !== 20) throw new Error(\`expected 20 itemizations, got napi=\${a} wasm=\${b}\`);
           console.log("ok: napi and wasm both read 20 itemizations");
           EOF

@@ -20,62 +20,53 @@ const PKGS = {
 /** The wasm build with paths read into bytes, so every scenario runs unchanged. */
 function bytesOnly(lib) {
   const bytes = (p) => (typeof p === "string" ? new Uint8Array(readFileSync(p)) : p);
-  return { ...lib, open: (p, o) => lib.open(bytes(p), o), read: (p, o) => lib.read(bytes(p), o) };
+  const Filing = class extends lib.Filing {
+    constructor(p, o) {
+      super(bytes(p), o);
+    }
+  };
+  return { ...lib, Filing };
 }
 const DEFAULT_FILE = fileURLToPath(new URL("../1805248.fec", import.meta.url));
 
-const SCENARIOS = {
-  itemizations: (lib, p) => {
-    const f = lib.open(p);
+/** Count what `pass(filing)` yields, then close the filing. */
+function count(lib, source, pass) {
+  const f = new lib.Filing(source);
+  try {
     let n = 0;
-    for (const _ of f.itemizations()) n++;
-    f.close();
+    for (const _ of pass(f)) n++;
     return n;
-  },
+  } finally {
+    f.close();
+  }
+}
+
+const SCENARIOS = {
+  itemizations: (lib, p) => count(lib, p, (f) => f.itemizations()),
   itemizations_touch: (lib, p) => {
-    const f = lib.open(p);
+    const f = new lib.Filing(p);
     let n = 0;
     let sum = 0;
-    for (const row of f.itemizations()) {
+    for (const item of f.itemizations()) {
       n++;
-      switch (row.itemization.type) {
-        case "ScheduleA": sum += row.itemization.contribution_amount; break;
-        case "ScheduleB": sum += row.itemization.expenditure_amount; break;
-        default: sum += row.itemization.form_type.length;
+      switch (item.type) {
+        case "ScheduleA": sum += item.contribution_amount; break;
+        case "ScheduleB": sum += item.expenditure_amount; break;
+        case "Unknown": sum += item.formType.length; break;
+        default: sum += item.form_type.length;
       }
     }
     f.close();
     return sum > 0 ? n : -1;
   },
-  rows: (lib, p) => {
-    const f = lib.open(p);
-    let n = 0;
-    for (const _ of f.rows()) n++;
-    f.close();
-    return n;
-  },
-  rows_bytes: (lib, p) => {
-    const f = lib.open(new Uint8Array(readFileSync(p)));
-    let n = 0;
-    for (const _ of f.rows()) n++;
-    f.close();
-    return n;
-  },
-  records: (lib, p) => {
-    const f = lib.open(p);
-    let n = 0;
-    for (const _ of f.records()) n++;
-    f.close();
-    return n;
-  },
-  read: (lib, p) => lib.read(p).rows.length,
-  read_itemizations: (lib, p) => lib.read(p).itemizations().length,
-  read_json: (lib, p) => {
-    const f = lib.open(p);
+  itemization_records: (lib, p) => count(lib, p, (f) => f.itemizationRecords()),
+  itemization_records_bytes: (lib, p) => count(lib, new Uint8Array(readFileSync(p)), (f) => f.itemizationRecords()),
+  itemizations_json: (lib, p) => {
+    const f = new lib.Filing(p);
     let bytes = 0;
     let n = 0;
-    for (const row of f.itemizations()) {
-      bytes += JSON.stringify(row).length;
+    for (const item of f.itemizations()) {
+      bytes += JSON.stringify(item).length;
       n++;
     }
     f.close();
