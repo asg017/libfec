@@ -18,7 +18,7 @@
  */
 import * as native from "./native.js";
 import { callNative } from "./errors.js";
-import { fetchExplained, proxied, type ProxyOption } from "./fetch.js";
+import { fetchExplained, proxied, withTimeout, type ProxyOption } from "./fetch.js";
 
 /** One new filing in the feed. */
 export interface Item {
@@ -161,9 +161,18 @@ export function parseFeed(xml: string | Uint8Array | ArrayBuffer): Feed {
  */
 export async function fetch(options: FetchOptions = {}): Promise<Feed> {
   const url = proxied(feedUrl(options), options.proxy);
-  const response = await fetchExplained(url, { signal: options.signal ?? AbortSignal.timeout(60_000) }, options.proxy);
-  if (!response.ok) {
-    throw new Error(`GET ${url}: ${response.status} ${response.statusText}`);
+  // The caller's signal as is; without one, a 60 s timeout.
+  const deadline = withTimeout(options.signal, options.signal === undefined ? 60_000 : Infinity);
+  let body: Uint8Array;
+  try {
+    const response = await fetchExplained(url, { signal: deadline.signal }, options.proxy);
+    if (!response.ok) {
+      void response.body?.cancel().catch(() => {});
+      throw new Error(`GET ${url}: ${response.status} ${response.statusText}`);
+    }
+    body = new Uint8Array(await response.arrayBuffer());
+  } finally {
+    deadline.cleanup();
   }
-  return parseFeed(new Uint8Array(await response.arrayBuffer()));
+  return parseFeed(body);
 }

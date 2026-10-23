@@ -58,22 +58,39 @@ export async function fetchExplained(
   }
 }
 
+/** A request's abort signal, and `cleanup()` to call when the request is done. @internal */
+export interface Deadline {
+  /** Aborts when the caller's signal does or the time is up; `undefined` if neither applies. */
+  signal: AbortSignal | undefined;
+  /** Clear the timer and remove the listener on the caller's signal. Idempotent. */
+  cleanup(): void;
+}
+
 /**
  * A signal that aborts when `signal` does or after `ms` milliseconds
- * (`Infinity`: never). `undefined` if neither applies. @internal
+ * (`Infinity`: never), with a `TimeoutError` like `AbortSignal.timeout()`'s.
+ *
+ * A cancellable timer rather than `AbortSignal.timeout()`, which can't be
+ * cleared (Deno keeps the process alive until it fires), and one listener on
+ * the caller's signal rather than `AbortSignal.any()`, which older runtimes
+ * lack. Call `cleanup()` once the response has been read, on every path, or
+ * a long-lived caller's signal collects a listener per request. @internal
  */
-export function withTimeout(signal: AbortSignal | undefined, ms: number): AbortSignal | undefined {
-  const timeout = Number.isFinite(ms) ? AbortSignal.timeout(ms) : undefined;
-  if (signal === undefined || timeout === undefined) return signal ?? timeout;
-  if (typeof AbortSignal.any === "function") return AbortSignal.any([signal, timeout]);
-  // Pre-`AbortSignal.any` runtimes.
+export function withTimeout(signal: AbortSignal | undefined, ms: number): Deadline {
+  if (!Number.isFinite(ms)) return { signal, cleanup: () => {} };
   const controller = new AbortController();
-  for (const s of [signal, timeout]) {
-    if (s.aborted) {
-      controller.abort(s.reason);
-      break;
-    }
-    s.addEventListener("abort", () => controller.abort(s.reason), { once: true });
-  }
-  return controller.signal;
+  const onAbort = () => controller.abort(signal!.reason);
+  const timer = setTimeout(
+    () => controller.abort(new DOMException("The operation was aborted due to timeout", "TimeoutError")),
+    ms,
+  );
+  const cleanup = () => {
+    clearTimeout(timer);
+    signal?.removeEventListener("abort", onAbort);
+  };
+  // Aborted either way: nothing left to wait for.
+  controller.signal.addEventListener("abort", cleanup, { once: true });
+  if (signal?.aborted) onAbort();
+  else signal?.addEventListener("abort", onAbort, { once: true });
+  return { signal: controller.signal, cleanup };
 }

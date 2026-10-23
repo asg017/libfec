@@ -288,19 +288,25 @@ export class Filing implements Disposable {
     const url = proxied(target, proxy);
     // A browser ignores User-Agent at best, and at worst preflights for it.
     const headers: { [name: string]: string } = inBrowser() ? {} : { "User-Agent": `libfec-js/${native.version()}` };
-    const response = await fetchExplained(url, { headers, signal: withTimeout(signal, timeout) }, proxy);
-    if (!response.ok) {
-      const status = response.status;
-      void response.body?.cancel().catch(() => {});
-      if (status === 404) {
-        throw new FecError(`no filing ${filingId} on docquery.fec.gov (GET ${url}: 404)`, {
-          code: "ERR_FILING_NOT_FOUND",
-          status,
-        });
+    const deadline = withTimeout(signal, timeout);
+    let bytes: Uint8Array;
+    try {
+      const response = await fetchExplained(url, { headers, signal: deadline.signal }, proxy);
+      if (!response.ok) {
+        const status = response.status;
+        void response.body?.cancel().catch(() => {});
+        if (status === 404) {
+          throw new FecError(`no filing ${filingId} on docquery.fec.gov (GET ${url}: 404)`, {
+            code: "ERR_FILING_NOT_FOUND",
+            status,
+          });
+        }
+        throw new FecError(`GET ${url}: ${status} ${response.statusText}`, { code: "ERR_HTTP", status });
       }
-      throw new FecError(`GET ${url}: ${status} ${response.statusText}`, { code: "ERR_HTTP", status });
+      bytes = new Uint8Array(await response.arrayBuffer());
+    } finally {
+      deadline.cleanup();
     }
-    const bytes = new Uint8Array(await response.arrayBuffer());
     return new Filing(bytes, { ...filingOptions, id: filingId });
   }
 

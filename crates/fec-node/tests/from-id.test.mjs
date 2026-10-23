@@ -4,7 +4,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { Filing, FecError, FecParseError, rss, version } from "../dist/index.js";
-import { fixture } from "./helpers.mjs";
+import { fixture, leftovers } from "./helpers.mjs";
 
 const PAC = readFileSync(fixture("1721696.fec"));
 const URL_1721696 = "https://docquery.fec.gov/dcdev/posted/1721696.fec";
@@ -145,6 +145,56 @@ test("fromId: timeout and signal abort, whichever comes first", async () => {
     (await Filing.fromId(1721696, { timeout: Infinity })).close();
   });
   assert.equal(calls[0].init.signal, undefined);
+});
+
+test("fromId: no timer or abort listener outlives a request, on any path", async () => {
+  // The review's reproducer: a runtime without AbortSignal.any, a long-lived
+  // signal, three 404s. Each used to leave a listener on the signal.
+  const any = AbortSignal.any;
+  AbortSignal.any = undefined;
+  try {
+    const { signal } = new AbortController();
+    const left = await leftovers(12_345, signal, async () => {
+      await withFetch(() => new Response("not found", { status: 404 }), async () => {
+        for (let i = 0; i < 3; i++) {
+          await assert.rejects(Filing.fromId(1, { signal, timeout: 12_345 }), { code: "ERR_FILING_NOT_FOUND" });
+        }
+      });
+      await withFetch(ok, async () => {
+        (await Filing.fromId(1721696, { signal, timeout: 12_345 })).close();
+      });
+      await withFetch(() => new Response(new Uint8Array(0)), async () => {
+        await assert.rejects(Filing.fromId(1, { signal, timeout: 12_345 }), FecParseError);
+      });
+      await withFetch(() => Promise.reject(new TypeError("fetch failed")), async () => {
+        await assert.rejects(Filing.fromId(1, { signal, timeout: 12_345 }), TypeError);
+      });
+    });
+    assert.deepEqual(left, { timers: 0, listeners: 0 });
+  } finally {
+    AbortSignal.any = any;
+  }
+  // The default timeout, no signal: the timer is cleared too (an uncleared
+  // one kept Deno running for 60 s after a fast download).
+  const left = await leftovers(60_000, undefined, () =>
+    withFetch(ok, async () => (await Filing.fromId(1721696)).close()),
+  );
+  assert.equal(left.timers, 0);
+  // Aborted by the caller or timed out: released too.
+  const controller = new AbortController();
+  const aborted = await leftovers(12_345, controller.signal, () =>
+    withFetch(hang, async () => {
+      const pending = Filing.fromId(1, { signal: controller.signal, timeout: 12_345 });
+      controller.abort(new Error("stop"));
+      await assert.rejects(pending, { message: "stop" });
+    }),
+  );
+  assert.deepEqual(aborted, { timers: 0, listeners: 0 });
+  const { signal } = new AbortController();
+  const timedOut = await leftovers(15, signal, () =>
+    withFetch(hang, () => assert.rejects(Filing.fromId(1, { signal, timeout: 15 }), { name: "TimeoutError" })),
+  );
+  assert.deepEqual(timedOut, { timers: 0, listeners: 0 });
 });
 
 test("fromId: proxy as a prefix, a {url} template or a function", async () => {
