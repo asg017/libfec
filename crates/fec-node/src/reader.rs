@@ -155,7 +155,10 @@ fn open_at(path: &Path, given: &str) -> Result<(File, usize)> {
 
 enum SourceData {
     /// `absolute` is what each pass opens; `given` is for error messages.
-    Path { absolute: PathBuf, given: String },
+    Path {
+        absolute: PathBuf,
+        given: String,
+    },
     Bytes(Rc<Uint8Array>),
 }
 
