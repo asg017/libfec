@@ -10,6 +10,8 @@ import subprocess
 import sys
 from importlib.metadata import entry_points
 
+from packaging.version import Version
+
 import libfec
 
 
@@ -29,10 +31,16 @@ def test_console_script_is_registered():
 
 
 def test_version_matches_package():
-    """`libfec --version` reports the same version as libfec.__version__"""
+    """`libfec --version` reports the same version as libfec.__version__
+
+    The CLI prints Cargo's semver (0.0.35-alpha.1), the package carries the
+    PEP 440 form maturin derives from it (0.0.35a1), so compare them parsed.
+    """
     result = run_cli("--version")
     assert result.returncode == 0, result.stderr
-    assert result.stdout.strip() == f"libfec {libfec.__version__}"
+    name, version = result.stdout.split()
+    assert name == "libfec"
+    assert Version(version) == Version(libfec.__version__)
 
 
 def test_unknown_command_exits_2():
