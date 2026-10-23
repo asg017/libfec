@@ -16,13 +16,12 @@ from .covers import CoverData
 from .itemizations import Itemization
 
 __all__ = [
+    "Filing",
     "FilingIterator",
-    "FilingReader",
     "Header",
     "Record",
     "Unknown",
     "fec_header",
-    "open",
     "FecError",
     "FecParseError",
     "MissingMappingError",
@@ -39,7 +38,7 @@ class _Readable(Protocol):
 Source: TypeAlias = (
     str | os.PathLike[str] | bytes | bytearray | memoryview | mmap.mmap | _Readable
 )
-"""What `open()`/`fec_header()` accept as a filing source.
+"""What `Filing()`/`fec_header()` accept as a filing source.
 
 A path, any bytes-like object (read without copying), or a binary file object
 (read in chunks).  A text-mode file raises `TypeError`.
@@ -152,8 +151,8 @@ class Unknown:
     """A record with no typed class: a cover `libfec.covers` has no struct for,
     a summary record (`F3PS`, …), or an itemization schedule not typed yet.
 
-    Stands in for the typed object in `FilingReader.cover` and
-    `FilingReader.itemizations`, so neither is ever `None`.
+    Stands in for the typed object in `Filing.cover` and
+    `Filing.itemizations`, so neither is ever `None`.
     """
 
     @property
@@ -173,22 +172,44 @@ class Unknown:
 @final
 class FilingIterator:
     """One pass over a filing's records after the cover; see
-    `FilingReader.itemizations` and `FilingReader.itemization_records`."""
+    `Filing.itemizations` and `Filing.itemization_records`."""
 
     def __iter__(self) -> Self: ...
     def __next__(self) -> Any: ...
     def __repr__(self) -> str: ...
 
 @final
-class FilingReader:
+class Filing:
     """A streaming reader over one filing.
 
-    Built by `open()`.  The `HDR` and cover records are parsed eagerly, so
+    The `HDR` and cover records are parsed eagerly, so
     `header`, `cover` and the filer attributes are available up front.  The
     records after the cover are streamed by `itemizations` (typed) or
     `itemization_records` (raw), a batch at a time with the GIL released.
     There is no `len()` — the record count is unknown without a full pass.
     """
+
+    def __new__(cls, source: Source, /) -> Self:
+        """Open a filing for streaming.
+
+        `source` is a filesystem path (`str` or `os.PathLike`), a bytes-like
+        object (`bytes`, `bytearray`, `memoryview`, `mmap` — read without
+        copying), or a binary file object, which is read a chunk at a time.  A
+        missing path raises `FileNotFoundError`, a text-mode file raises
+        `TypeError`, and unparseable input raises `FecParseError`.  An exception
+        raised by the source's own `read()` propagates unchanged.
+        """
+
+    @staticmethod
+    def from_id(filing_id: int | str, /, *, timeout: float = 60.0) -> Filing:
+        """Download a filing from docquery.fec.gov by its id (`1721696`,
+        `"1721696"` or `"FEC-1721696"`).
+
+        The download is spooled to an anonymous temporary file and memory-mapped,
+        so it can be read in as many passes as a path.  HTTP and network errors
+        propagate as `urllib.error` exceptions (`HTTPError` 404 for an unknown
+        id); a malformed id raises `ValueError`.
+        """
 
     @property
     def header(self) -> Header:
@@ -270,19 +291,8 @@ class FilingReader:
     ) -> None: ...
     def __repr__(self) -> str: ...
 
-def open(source: Source, /) -> FilingReader:
-    """Open a filing for streaming.
-
-    `source` is a filesystem path (`str` or `os.PathLike`), a bytes-like object
-    (`bytes`, `bytearray`, `memoryview`, `mmap` — read without copying), or a
-    binary file object, which is read a chunk at a time.  A missing path raises
-    `FileNotFoundError`, a text-mode file raises `TypeError`, and unparseable
-    input raises `FecParseError`.  An exception raised by the source's own
-    `read()` propagates unchanged.
-    """
-
 def fec_header(source: Source, /) -> str:
-    """The `fec_version` of a filing, from anything `open()` accepts."""
+    """The `fec_version` of a filing, from anything `Filing()` accepts."""
 
 class FecError(ValueError):
     """Base class for libfec errors."""

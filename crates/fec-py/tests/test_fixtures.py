@@ -7,7 +7,7 @@ so dropping a new filing into that directory automatically extends this suite.
 from pathlib import Path
 
 from libfec import fecfile
-from libfec.parser import open
+from libfec.parser import Filing
 
 # name -> (fec_version, form_type, filer_id, itemization row count)
 EXPECTED = {
@@ -25,9 +25,9 @@ def test_all_fixtures_present(all_fixture_files):
 
 
 def test_parser_api_parses_fixture(fec_fixture: Path):
-    """open() parses every fixture with the documented shape"""
+    """Filing() parses every fixture with the documented shape"""
     version, form_type, filer_id, n_rows = EXPECTED[fec_fixture.name]
-    reader = open(fec_fixture)
+    reader = Filing(fec_fixture)
 
     assert reader.header.fec_version == version
     assert reader.form_type == form_type
@@ -50,16 +50,16 @@ def test_fecfile_api_parses_fixture(fec_fixture: Path):
 
 def test_both_apis_agree_on_row_count(fec_fixture: Path):
     """The parser and fecfile layers see the same number of itemizations"""
-    n_rows = sum(1 for _ in open(fec_fixture).itemizations)
+    n_rows = sum(1 for _ in Filing(fec_fixture).itemizations)
     result = fecfile.from_file(str(fec_fixture))
 
     assert n_rows == sum(len(v) for v in result["itemizations"].values())
 
 
 def test_bytes_and_path_agree(fec_fixture: Path):
-    """open(bytes) and open(path) read the same filing (`id` aside)"""
-    from_path = open(fec_fixture)
-    from_bytes = open(fec_fixture.read_bytes())
+    """Filing(bytes) and Filing(path) read the same filing (`id` aside)"""
+    from_path = Filing(fec_fixture)
+    from_bytes = Filing(fec_fixture.read_bytes())
 
     assert from_path.cover == from_bytes.cover
     assert from_path.cover_record.fields() == from_bytes.cover_record.fields()

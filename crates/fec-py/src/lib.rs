@@ -29,7 +29,7 @@ mod _native {
         #[pymodule_export]
         use crate::errors::{FecError, FecParseError};
         #[pymodule_export]
-        use crate::parser::{fec_header, open_filing, FilingIterator, FilingReader, Header};
+        use crate::parser::{fec_header, Filing, FilingIterator, Header};
         #[pymodule_export]
         use crate::record::{record_from_parts, Record, Unknown};
     }

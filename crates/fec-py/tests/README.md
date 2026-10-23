@@ -6,15 +6,16 @@ This directory contains pytest-based tests for the `libfec` Python package.
 
 - `test_parser.py` - Tests for the `libfec.parser` module
   - Tests for `fec_header()` function
-  - Tests for `Header`, `Cover`, `Row` and the eager `Filing` class
+  - Tests for `Header` and `Record`
   - Tests for the `FecError`/`FecParseError`/`MissingMappingError` hierarchy
 
-- `test_reader.py` - Tests for `open()` and the `FilingReader` it returns
+- `test_reader.py` - Tests for `Filing`
   - Accepted sources (paths, bytes-like objects, binary file objects) and rejected ones
-  - `rows(*prefixes)` filtering, `close()`/context manager, `id`, `fec_version`
-  - Threading: the GIL released during a pull, one reader shared across threads
+  - `itemizations` / `itemization_records`, passes, `Unknown`, `close()`/context manager, `id`
+  - `Filing.from_id()` against a mocked `urlopen` (plus one `network` test)
+  - Threading: the GIL released during a pull, one pass shared across threads
 
-- `test_pandas.py` - `pd.DataFrame(read(p).rows)` gets typed (`float64`/`date`) columns
+- `test_pandas.py` - `pd.DataFrame(Filing(p).itemization_records)` gets typed (`float64`/`date`) columns
 
 - `test_perf.py` - `@pytest.mark.slow` tests for the Phase 2 done-when numbers (peak RSS,
   GIL-released thread progress) against the gitignored 91 MB filing
@@ -146,9 +147,9 @@ def test_large_file_parsing(benchmark_fec_file):
 ## Test Coverage
 
 Current coverage includes:
-- ✅ Native `open()`/`FilingReader` streaming API: sources, filtering, threading (`test_reader.py`)
-- ✅ Native `Header`, `Cover`, `Row` and eager `Filing`/`read()` (`test_parser.py`)
-- ✅ pandas interop: typed `float64`/`date` columns from `Filing.rows` (`test_pandas.py`)
+- ✅ Native `Filing` streaming API: sources, passes, `from_id`, threading (`test_reader.py`)
+- ✅ Native `Header` and `Record` (`test_parser.py`)
+- ✅ pandas interop: typed `float64`/`date` columns from `Filing.itemization_records` (`test_pandas.py`)
 - ✅ Fecfile module (fecfile compatibility layer)
 - ✅ `FecError`/`FecParseError`/`MissingMappingError` hierarchy and edge cases
 - ✅ Integration tests

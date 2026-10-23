@@ -43,7 +43,7 @@ def _peak_mb(body: str) -> float:
 @pytest.mark.slow
 @pytest.mark.skipif(sys.platform == "win32", reason="no getrusage on Windows")
 def test_open_streams_under_100mb(benchmark_fec_file):
-    """Phase 2 done-when: iterating the 91 MB filing via open() peaks under 100 MB.
+    """Phase 2 done-when: iterating the 91 MB filing via Filing() peaks under 100 MB.
 
     Measured 2026-09-18 (this ticket, M-series Mac, release build, CPython 3.13):
     ~32-39 MB peak RSS across a few runs, against a ~15-20 MB base interpreter --
@@ -53,7 +53,7 @@ def test_open_streams_under_100mb(benchmark_fec_file):
     """
     body = (
         "import libfec\n"
-        f"n = sum(1 for _ in libfec.open({str(benchmark_fec_file)!r}).itemizations)\n"
+        f"n = sum(1 for _ in libfec.Filing({str(benchmark_fec_file)!r}).itemizations)\n"
         "assert n == 408160"
     )
     peak = _peak_mb(body)
@@ -90,7 +90,7 @@ def test_background_thread_progresses_during_parse(benchmark_fec_file):
         time.sleep(0.05)  # let the ticker warm up before starting the clock
         n0 = len(ticks)
         started = time.monotonic()
-        n = sum(1 for _ in libfec.open(benchmark_fec_file).itemizations)
+        n = sum(1 for _ in libfec.Filing(benchmark_fec_file).itemizations)
         elapsed = time.monotonic() - started
         n1 = len(ticks)
     finally:
@@ -106,7 +106,7 @@ def test_background_thread_progresses_during_parse(benchmark_fec_file):
 
 
 # The subprocess the zero-copy test measures: read the filing into a `bytes`,
-# iterate it through `open()`, report peak RSS alongside the size of the bytes.
+# iterate it through `Filing()`, report peak RSS alongside the size of the bytes.
 # Moved here from test_reader.py (ticket 15) to share this module's RSS harness.
 _ZERO_COPY_SCRIPT = """
 import resource, sys
@@ -114,7 +114,7 @@ import libfec
 
 with open(sys.argv[1], "rb") as f:
     data = f.read()
-rows = sum(1 for _ in libfec.open(data).itemizations)
+rows = sum(1 for _ in libfec.Filing(data).itemizations)
 peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
 # ru_maxrss is bytes on macOS, kilobytes on Linux.
 if sys.platform != "darwin":

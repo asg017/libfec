@@ -6,13 +6,12 @@ from . import fecfile, parser, rss
 from .parser import (
     FecError,
     FecParseError,
-    FilingReader,
+    Filing,
     Header,
     MissingMappingError,
     Record,
     Unknown,
     fec_header,
-    open,
 )
 
 __version__ = _version("libfec")
@@ -23,11 +22,10 @@ __all__ = [
     "rss",
     "FecError",
     "FecParseError",
-    "FilingReader",
+    "Filing",
     "Header",
     "MissingMappingError",
     "Record",
     "Unknown",
     "fec_header",
-    "open",
 ]

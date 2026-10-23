@@ -1,8 +1,5 @@
 """Parsing primitives for FEC electronic filings."""
 
-# `open` below shadows the builtin for the rest of this module; reach the real one
-# through `builtins.open`.
-import builtins  # noqa: F401  (kept for modules that need the real `open`)
 import mmap
 import os
 from collections.abc import Mapping
@@ -13,13 +10,12 @@ from typing import Protocol, TypeAlias
 # `from ._native.parser import ...`.
 from ._native import parser as _parser
 
+Filing = _parser.Filing
 FilingIterator = _parser.FilingIterator
-FilingReader = _parser.FilingReader
 Header = _parser.Header
 Record = _parser.Record
 Unknown = _parser.Unknown
 fec_header = _parser.fec_header
-open = _parser.open
 
 FecError = _parser.FecError
 FecParseError = _parser.FecParseError
@@ -31,7 +27,7 @@ class _Readable(Protocol):
     def read(self, n: int, /) -> bytes: ...
 
 
-# The union `open()` accepts. Defined at runtime (not stub-only like `Value`) so
+# The union `Filing()` accepts. Defined at runtime (not stub-only like `Value`) so
 # callers can import it for their own annotations, and so `parser.pyi` can spell
 # it identically. `collections.abc.Buffer` would say
 # "bytes-like" in one word, but it is 3.12+ and the floor here is 3.11.
@@ -65,13 +61,12 @@ Mapping.register(Record)
 
 
 __all__ = [
+    "Filing",
     "FilingIterator",
-    "FilingReader",
     "Header",
     "Record",
     "Unknown",
     "fec_header",
-    "open",
     "FecError",
     "FecParseError",
     "MissingMappingError",

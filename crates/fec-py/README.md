@@ -10,7 +10,7 @@ import libfec
 
 from libfec.itemizations import ScheduleA
 
-with libfec.open("1721696.fec") as filing:
+with libfec.Filing("1721696.fec") as filing:
     filing.filer_name                          # 'PFIZER INC. PAC'
     filing.cover.summary.line6c_total_receipts.column_a   # 83741.93
     for item in filing.itemizations:
@@ -20,8 +20,8 @@ with libfec.open("1721696.fec") as filing:
 
 Two APIs are included:
 
-- [`libfec.parser`](#native-api) (also exported at the top level as `libfec.open`): the
-  primary API — a streaming `FilingReader` with typed covers and itemizations.
+- [`libfec.parser`](#native-api) (also exported at the top level as `libfec.Filing`): the
+  primary API — a streaming `Filing` with typed covers and itemizations.
 - [`libfec.fecfile`](#fecfile-api): rows as dicts keyed by column name, modeled on the
   [`fecfile`](https://pypi.org/project/fecfile/) package; strings only until Phase 3.
 
@@ -118,13 +118,12 @@ row = fecfile.parse_line(line, version)
 ## Native API
 
 ```python
-from libfec import open
+from libfec import Filing
 ```
 
-(`open` is also reachable as `libfec.parser.open`; it shadows the builtin, so reach the real one
-through `builtins.open` if you need both in the same scope.)
-
-`open(source)` returns a `FilingReader`. The `HDR` and cover records are parsed eagerly, so
+`Filing(source)` opens a filing from a path, bytes or a file object (see [Sources](#sources)), and
+`Filing.from_id(1721696)` downloads one from the FEC (see [`from_id`](#from_id)). The `HDR` and
+cover records are parsed eagerly, so
 `header`, `cover` and the filer attributes are available immediately; everything after the cover
 is streamed, a batch at a time with the GIL released, by one of two views of the same records:
 
@@ -138,16 +137,16 @@ comes back as an [`Unknown`](#unknown) rather than `None`, so the typed views ar
 one-to-one with the raw ones.
 
 ```python
-from libfec import open
+from libfec import Filing
 
-filing = open("1721696.fec")
+filing = Filing("1721696.fec")
 next(filing.itemizations)           # ScheduleA(form_type='SA11AI', …)
 next(filing.itemization_records)    # Record(row_type='SA11AI', line=3, 45 fields)
 ```
 
 ### Sources
 
-`open()` and `fec_header()` accept the same kinds of source:
+`Filing()` and `fec_header()` accept the same kinds of source:
 
 - a filesystem path — `str` or `os.PathLike`. **A `str` is always a path**, never the filing's
   contents — pass `bytes` if you already have the data in memory.
@@ -161,17 +160,17 @@ A text-mode file (or anything else whose `read()` returns `str`) raises `TypeErr
 import io
 import libfec
 
-with open("1721696.fec", "rb") as f:      # builtin `open`, binary mode
-    libfec.open(f)
+with open("1721696.fec", "rb") as f:      # binary mode
+    libfec.Filing(f)
 
-libfec.open(io.StringIO("not bytes"))
+libfec.Filing(io.StringIO("not bytes"))
 # TypeError: file must be opened in binary mode, e.g. open(path, 'rb')
 ```
 
-### `FilingReader`
+### `Filing`
 
 ```python
-with libfec.open("1721696.fec") as filing:
+with libfec.Filing("1721696.fec") as filing:
     filing.id              # '1721696' — the file stem, or a file object's `name`
     filing.fec_version     # '8.4' — shortcut for filing.header.fec_version
     filing.form_type       # 'F3XN'
@@ -196,6 +195,25 @@ dates are `None` for forms that are not periodic reports (F1, F2, F24, F99, …)
   `ValueError`. Use it as a context manager (as above) rather than calling it directly.
 - There is no `len()` — the record count isn't known without a full pass.
 
+### `from_id`
+
+`Filing.from_id()` downloads a filing from `docquery.fec.gov` by its id, as an `int` or a `str`
+(`1721696`, `"1721696"` and `"FEC-1721696"` all work), using only the standard library:
+
+```python
+from libfec import Filing
+
+with Filing.from_id(1721696) as filing:      # Filing.from_id(1721696, timeout=60.0)
+    filing.id                                 # '1721696'
+    filing.filer_name                         # 'PFIZER INC. PAC'
+```
+
+The download is streamed into an anonymous temporary file, which is memory-mapped rather than read
+into Python, so even a multi-gigabyte filing costs little memory and can be read in as many passes
+as a path. The whole file is downloaded before parsing starts. HTTP and network errors propagate
+as `urllib.error` exceptions — an unknown id is an `HTTPError` with `.code == 404` — and a
+malformed id raises `ValueError` without making a request.
+
 ### Typed covers
 
 `filing.cover` is the cover as a typed object: one class per form (`Form1`, `Form3`, `Form3P`,
@@ -208,7 +226,7 @@ amounts, `datetime.date`s, `bool` checkboxes, `str | None` text):
 import libfec as fec
 from libfec.covers import Form3, Form3X
 
-with fec.open("1926068.fec") as filing:
+with fec.Filing("1926068.fec") as filing:
     match filing.cover:
         case Form3X() as f3x:
             f3x.committee_name                               # 'Ohio Democratic Party - Federal'
@@ -238,7 +256,7 @@ annotations, and type checkers narrow it on `match`/`isinstance`.
 ```python
 from libfec.itemizations import ScheduleA, ScheduleB
 
-with libfec.open("1721696.fec") as filing:
+with libfec.Filing("1721696.fec") as filing:
     for item in filing.itemizations:
         match item:
             case ScheduleA(memo=False):
@@ -327,7 +345,7 @@ typed on demand (or `None`). Two `Record`s compare and hash equal when their
 
 | Exception | Raised when |
 | --- | --- |
-| `FileNotFoundError` | the source is a path that doesn't exist (`errno`/`filename` set, like `open()`) |
+| `FileNotFoundError` | the source is a path that doesn't exist (`errno`/`filename` set, like the builtin `open()`) |
 | `FecParseError` (a `FecError`, a `ValueError`) | the input isn't a parseable `.fec` filing |
 | `MissingMappingError` (a `FecError`) | a record's `(row_type, fec_version)` has no column mapping — has `.row_type`, `.version`, `.line` |
 
@@ -337,9 +355,9 @@ loop can't, because the exception comes out of the `for` statement's own call to
 before your loop body ever runs:
 
 ```python
-from libfec import MissingMappingError, open
+from libfec import Filing, MissingMappingError
 
-items = open("1721696.fec").itemizations
+items = Filing("1721696.fec").itemizations
 kept = []
 while True:
     try:
@@ -352,9 +370,9 @@ while True:
 
 ### `fec_header(source, /)`
 
-Returns just the `fec_version` of a filing, from anything `open()` accepts. It reads only the
+Returns just the `fec_version` of a filing, from anything `Filing()` accepts. It reads only the
 `HDR` record — the first line — so it works even when the rest of the file (say, an unmapped
-cover form) would make `open()` raise:
+cover form) would make `Filing()` raise:
 
 ```python
 libfec.fec_header("1721696.fec")   # '8.4'
@@ -367,9 +385,9 @@ libfec.fec_header("1721696.fec")   # '8.4'
 
 ```python
 import pandas as pd
-from libfec import open
+from libfec import Filing
 
-df = pd.DataFrame(open("1721696.fec").itemization_records)
+df = pd.DataFrame(Filing("1721696.fec").itemization_records)
 df["contribution_amount"].dtype   # dtype('float64')
 ```
 
@@ -408,7 +426,7 @@ measured 2026-10-23, the PyPI `fecfile` rows 2026-09-18.
 | --- | --- | --- |
 | `itemization_records`, streamed | 0.20 s | 38.0 MB |
 | `itemizations` (typed), streamed | 0.80 s | 38.0 MB |
-| `pd.DataFrame(open(p).itemization_records)` | 6.31 s | 2,276 MB |
+| `pd.DataFrame(Filing(p).itemization_records)` | 6.31 s | 2,276 MB |
 | PyPI `fecfile.from_file` | 7.14 s | 1,403 MB |
 | PyPI `fecfile.iter_file` | 6.87 s | 36.4 MB |
 

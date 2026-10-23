@@ -1,4 +1,4 @@
-"""`libfec.covers`: the typed cover classes behind `FilingReader.cover`.
+"""`libfec.covers`: the typed cover classes behind `Filing.cover`.
 
 The classes are `fec-parser`'s own Rust structs, so the main check is a
 differential one: for every cover fixture `fec-parser`'s tests snapshot as JSON
@@ -80,7 +80,7 @@ def test_every_cover_snapshot_is_found():
 
 @pytest.mark.parametrize("snap", SNAPSHOTS, ids=lambda s: s.fixture.name)
 def test_cover_matches_fec_parser_snapshot(snap: Snapshot):
-    with fec.open(snap.fixture) as filing:
+    with fec.Filing(snap.fixture) as filing:
         cover = filing.cover
     assert type(cover).__name__ == snap.form
     assert cover is not None
@@ -90,17 +90,17 @@ def test_cover_matches_fec_parser_snapshot(snap: Snapshot):
 
 
 def test_cover_is_the_same_object_every_time():
-    with fec.open(FIXTURES["cover"] / "F3XN_1926068.fec") as filing:
+    with fec.Filing(FIXTURES["cover"] / "F3XN_1926068.fec") as filing:
         assert filing.cover is filing.cover
 
 
 def test_reader_carries_typed_cover():
-    with fec.open(FIXTURES["cover"] / "F1N_1906351.fec") as filing:
+    with fec.Filing(FIXTURES["cover"] / "F1N_1906351.fec") as filing:
         assert isinstance(filing.cover, Form1)
 
 
 def test_typed_fields():
-    with fec.open(FIXTURES["cover"] / "F3XN_1926068.fec") as filing:
+    with fec.Filing(FIXTURES["cover"] / "F3XN_1926068.fec") as filing:
         cover = filing.cover
     # Narrowing with `match` (and `isinstance`) is what the `CoverData` union is
     # for; mypy checks every attribute access below against the generated stubs.
@@ -114,7 +114,7 @@ def test_typed_fields():
 
 
 def test_typed_field_values():
-    with fec.open(FIXTURES["cover"] / "F3XN_1926068.fec") as filing:
+    with fec.Filing(FIXTURES["cover"] / "F3XN_1926068.fec") as filing:
         cover = filing.cover
     assert isinstance(cover, Form3X)
     assert cover.form_type == "F3XN"
@@ -134,14 +134,14 @@ def test_typed_field_values():
 
 def test_form99_text():
     fixture = next(s.fixture for s in SNAPSHOTS if s.form == "Form99")
-    with fec.open(fixture) as filing:
+    with fec.Filing(fixture) as filing:
         cover = filing.cover
     assert isinstance(cover, Form99)
     assert cover.text is None or isinstance(cover.text, str)
 
 
 def test_frozen():
-    with fec.open(FIXTURES["cover"] / "F3XN_1926068.fec") as filing:
+    with fec.Filing(FIXTURES["cover"] / "F3XN_1926068.fec") as filing:
         cover = filing.cover
     assert isinstance(cover, Form3X)
     with pytest.raises(AttributeError):
@@ -152,7 +152,7 @@ def test_frozen():
 
 def test_eq_and_repr():
     path = FIXTURES["cover"] / "F3XN_1926068.fec"
-    with fec.open(path) as a, fec.open(path) as b:
+    with fec.Filing(path) as a, fec.Filing(path) as b:
         assert a.cover == b.cover
         assert a.cover is not b.cover
         assert a.cover != a.cover.treasurer  # type: ignore[union-attr]
@@ -167,7 +167,7 @@ def test_eq_compares_amounts_as_floats():
     assert b"1976082.12" in raw  # Line 6(b), cash on hand at the beginning of the period
 
     def cover(amount: bytes) -> Any:
-        with fec.open(raw.replace(b"1976082.12", amount)) as filing:
+        with fec.Filing(raw.replace(b"1976082.12", amount)) as filing:
             return filing.cover
 
     assert cover(b"inf") == cover(b"inf")

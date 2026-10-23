@@ -1,4 +1,4 @@
-//! `open(src)` → [`FilingReader`]: a streaming reader over a filing.
+//! `Filing(src)` / `Filing.from_id(id)`: a streaming reader over a filing.
 //!
 //! The HDR and cover records are parsed eagerly so `.header`/`.cover` are
 //! available up front.  Every record after them is streamed by a [`Pass`]: each
@@ -206,7 +206,7 @@ impl Pass {
         if self.pulling_here() {
             return Err(PyRuntimeError::new_err(
                 "filing is already being read on this thread: a source's read() \
-                 must not call back into the FilingReader reading it",
+                 must not call back into the Filing reading it",
             ));
         }
         Ok(())
@@ -324,8 +324,8 @@ impl Pass {
     }
 }
 
-/// The iterator behind `FilingReader.itemizations` and
-/// `FilingReader.itemization_records`: one pass over the filing.
+/// The iterator behind `Filing.itemizations` and
+/// `Filing.itemization_records`: one pass over the filing.
 #[pyclass(module = "libfec.parser", frozen)]
 pub struct FilingIterator {
     pass: Arc<Pass>,
@@ -359,11 +359,11 @@ impl FilingIterator {
 /// Lock order is `first` → `passes`, then a pass's own locks; `source` is a leaf.
 /// Every lock here is taken with [`lock_attached`].
 #[pyclass(module = "libfec.parser", frozen)]
-pub struct FilingReader {
-    /// The stream `open()` parsed the header and cover from, positioned at the
+pub struct Filing {
+    /// The stream the constructor parsed the header and cover from, positioned at the
     /// first record after the cover; the first pass takes it, so it is not reparsed.
     first: Mutex<Option<(Stream, ErrorSlot)>>,
-    /// The object `open()` was called with, for reopening; `None` for a file
+    /// The source the filing was opened from, for reopening; `None` for a file
     /// object (which cannot be reread) and once closed.
     source: Mutex<Option<Py<PyAny>>>,
     /// Every pass started so far that is still alive, so `close()` can shut them.
@@ -385,7 +385,7 @@ pub struct FilingReader {
     source_length: usize,
 }
 
-impl FilingReader {
+impl Filing {
     /// The live passes, pruning the ones whose iterator has been dropped.
     fn live_passes(&self, py: Python<'_>) -> Vec<Arc<Pass>> {
         let mut passes = lock_attached(py, &self.passes);
@@ -393,7 +393,7 @@ impl FilingReader {
         passes.iter().filter_map(Weak::upgrade).collect()
     }
 
-    /// Start a pass: on the stream `open()` left behind if it is unused, else on
+    /// Start a pass: on the stream the constructor left behind if it is unused, else on
     /// a fresh parse of the source.
     fn start_pass(&self, py: Python<'_>, typed: bool) -> PyResult<FilingIterator> {
         if self.closed.load(Ordering::Acquire) {
@@ -409,7 +409,7 @@ impl FilingReader {
                 let Some(source) = source else {
                     return Err(PyValueError::new_err(
                         "a filing opened from a file object can only be read once; \
-                         open() a path or bytes to read it again",
+                         pass a path or bytes to read it again",
                     ));
                 };
                 let SourceReader {
@@ -462,7 +462,69 @@ impl FilingReader {
 }
 
 #[pymethods]
-impl FilingReader {
+impl Filing {
+    /// Open a filing for streaming.
+    ///
+    /// Parses the `HDR` and cover records eagerly; everything after them is
+    /// pulled on demand by `itemizations` / `itemization_records`.
+    #[new]
+    #[pyo3(signature = (source, /))]
+    fn new(py: Python<'_>, source: &Bound<'_, PyAny>) -> PyResult<Self> {
+        open_source(py, source, None)
+    }
+
+    /// Download a filing from docquery.fec.gov by its id (`1721696`,
+    /// `"1721696"` or `"FEC-1721696"`).
+    ///
+    /// Stdlib only: `urllib` streams the download into an anonymous temporary
+    /// file, which is memory-mapped, so the filing is never held in Python
+    /// memory and can be read in as many passes as a path can.  HTTP and network
+    /// errors propagate as `urllib.error` exceptions (`HTTPError` 404 for an
+    /// unknown id).
+    #[staticmethod]
+    #[pyo3(signature = (filing_id, /, *, timeout = 60.0))]
+    fn from_id(py: Python<'_>, filing_id: &Bound<'_, PyAny>, timeout: f64) -> PyResult<Self> {
+        let id = normalize_filing_id(filing_id)?;
+        let url = format!("https://docquery.fec.gov/dcdev/posted/{id}.fec");
+
+        let urllib = py.import("urllib.request")?;
+        let headers = PyDict::new(py);
+        headers.set_item(
+            "User-Agent",
+            concat!("libfec-python/", env!("CARGO_PKG_VERSION")),
+        )?;
+        let request = urllib.call_method1("Request", (url, py.None(), headers))?;
+        let kwargs = PyDict::new(py);
+        kwargs.set_item("timeout", timeout)?;
+        let response = urllib.call_method("urlopen", (request,), Some(&kwargs))?;
+
+        let spooled = (|| -> PyResult<Bound<'_, PyAny>> {
+            let tmp = py.import("tempfile")?.call_method0("TemporaryFile")?;
+            py.import("shutil")?
+                .call_method1("copyfileobj", (&response, &tmp, 1 << 20))?;
+            tmp.call_method0("flush")?;
+            Ok(tmp)
+        })();
+        response.call_method0("close")?;
+        let tmp = spooled?;
+
+        // `mmap` refuses an empty file; an empty download is just an unparseable
+        // filing, so let the parser say so.
+        let size: u64 = tmp.call_method0("tell")?.extract()?;
+        let source = if size == 0 {
+            pyo3::types::PyBytes::new(py, b"").into_any()
+        } else {
+            let mmap = py.import("mmap")?;
+            let access = mmap.getattr("ACCESS_READ")?;
+            let kwargs = PyDict::new(py);
+            kwargs.set_item("access", access)?;
+            mmap.call_method("mmap", (tmp.call_method0("fileno")?, 0), Some(&kwargs))?
+        };
+        // The mapping keeps the data alive; closing the file deletes its last name.
+        tmp.call_method0("close")?;
+        open_source(py, &source, Some(id))
+    }
+
     /// The filing's `HDR` record — the same object every time.
     #[getter]
     fn header(&self, py: Python<'_>) -> Py<Header> {
@@ -588,19 +650,21 @@ impl FilingReader {
             None => "None".to_owned(),
         };
         format!(
-            "FilingReader(id={}, form_type='{}', filer_id='{}')",
+            "Filing(id={}, form_type='{}', filer_id='{}')",
             id, self.form_type, self.filer_id
         )
     }
 }
 
-/// Open a filing for streaming.
+/// Parse the `HDR` and cover records of `source`, leaving the rest for the passes.
 ///
-/// Parses the `HDR` and cover records eagerly; everything after them is pulled on
-/// demand by `itemizations` / `itemization_records`.
-#[pyfunction]
-#[pyo3(name = "open", signature = (source, /))]
-pub fn open_filing(py: Python<'_>, source: &Bound<'_, PyAny>) -> PyResult<FilingReader> {
+/// `id_override` names a source that cannot name itself, such as the download
+/// behind `Filing.from_id`.
+fn open_source(
+    py: Python<'_>,
+    source: &Bound<'_, PyAny>,
+    id_override: Option<String>,
+) -> PyResult<Filing> {
     let SourceReader {
         reader,
         length: source_length,
@@ -608,6 +672,7 @@ pub fn open_filing(py: Python<'_>, source: &Bound<'_, PyAny>) -> PyResult<Filing
         raised,
         reopenable,
     } = resolve(source)?;
+    let id = id_override.or(id);
 
     let filing_id = id.clone().unwrap_or_default();
     let filing = py
@@ -642,7 +707,7 @@ pub fn open_filing(py: Python<'_>, source: &Bound<'_, PyAny>) -> PyResult<Filing
         None => Py::new(py, Unknown::new(cover_record.clone_ref(py)))?.into_any(),
     };
 
-    Ok(FilingReader {
+    Ok(Filing {
         form_type: cover.form_type.clone(),
         filer_id: cover.filer_id.clone(),
         filer_name: cover.filer_name.clone(),
@@ -663,7 +728,38 @@ pub fn open_filing(py: Python<'_>, source: &Bound<'_, PyAny>) -> PyResult<Filing
     })
 }
 
-/// The `fec_version` of a filing, from any source `open()` accepts.
+/// `1721696`, `"1721696"` or `"FEC-1721696"` → `"1721696"`.
+fn normalize_filing_id(filing_id: &Bound<'_, PyAny>) -> PyResult<String> {
+    // An `int` goes through its `str()`, so a negative one fails the digit check
+    // below like any other malformed id.
+    let raw = if filing_id.is_instance_of::<pyo3::types::PyInt>() {
+        filing_id.str()?.to_string()
+    } else {
+        filing_id.extract::<String>().map_err(|_| {
+            pyo3::exceptions::PyTypeError::new_err(format!(
+                "filing id must be an int or str, not {}",
+                filing_id
+                    .get_type()
+                    .name()
+                    .map(|n| n.to_string())
+                    .unwrap_or_default()
+            ))
+        })?
+    };
+    let trimmed = raw.trim();
+    let id = trimmed
+        .strip_prefix("FEC-")
+        .or_else(|| trimmed.strip_prefix("FEC"))
+        .unwrap_or(trimmed);
+    if id.is_empty() || !id.bytes().all(|b| b.is_ascii_digit()) {
+        return Err(PyValueError::new_err(format!(
+            "not an FEC filing id: {raw:?}"
+        )));
+    }
+    Ok(id.to_owned())
+}
+
+/// The `fec_version` of a filing, from any source `Filing()` accepts.
 ///
 /// Reads only the header — the `HDR` record — so this works even on a
 /// filing whose cover has no column mapping, and never touches the rest of

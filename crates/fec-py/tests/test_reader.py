@@ -1,5 +1,5 @@
 """
-Tests for ``libfec.open()`` and the ``FilingReader`` it returns.
+Tests for ``libfec.Filing``: its sources, passes, threading and ``from_id``.
 
 The fixtures (``sample_fec_file``, ``pac_fec_file``, …) live in conftest.py.
 The primary one is tests/fixtures/1921705.fec: v8.5, F3N, filer C00900860
@@ -14,6 +14,8 @@ import subprocess
 import sys
 import threading
 import time
+import urllib.error
+import urllib.request
 from array import array
 from datetime import date
 
@@ -22,29 +24,28 @@ from libfec.covers import Form3
 from libfec.itemizations import ScheduleA, ScheduleB
 from libfec.parser import (
     FecParseError,
-    FilingReader,
+    Filing,
     Header,
     MissingMappingError,
     Record,
     Unknown,
-    open,
 )
 
 ROW_TYPES = ["SA11AI"] + ["SA11C"] * 13 + ["SA11D"] + ["SB17"] * 5
 
 
 def records(source) -> list[Record]:
-    """Every raw record of a fresh `open(source)`."""
-    return list(open(source).itemization_records)
+    """Every raw record of a fresh `Filing(source)`."""
+    return list(Filing(source).itemization_records)
 
 
 class TestOpen:
-    """Accepted sources, and what `open()` hands back"""
+    """Accepted sources, and what `Filing()` hands back"""
 
     def test_open_path_str(self, sample_fec_file):
-        reader = open(str(sample_fec_file))
+        reader = Filing(str(sample_fec_file))
 
-        assert isinstance(reader, FilingReader)
+        assert isinstance(reader, Filing)
         assert len(list(reader.itemizations)) == 20
 
     def test_open_pathlib_path(self, sample_fec_file):
@@ -56,36 +57,36 @@ class TestOpen:
 
     def test_open_rejects_other_types(self):
         with pytest.raises(TypeError):
-            open(12345)  # type: ignore[arg-type]  # invalid type, on purpose
+            Filing(12345)  # type: ignore[arg-type]  # invalid type, on purpose
 
     def test_open_missing_path_is_file_not_found(self, tmp_path):
         with pytest.raises(FileNotFoundError):
-            open(str(tmp_path / "nope.fec"))
+            Filing(str(tmp_path / "nope.fec"))
 
     def test_open_garbage_is_parse_error(self):
         with pytest.raises(ValueError):
-            open(b"invalid fec data")
+            Filing(b"invalid fec data")
 
     def test_repr(self, sample_fec_file):
-        assert repr(open(sample_fec_file)) == (
-            "FilingReader(id='1921705', form_type='F3N', filer_id='C00900860')"
+        assert repr(Filing(sample_fec_file)) == (
+            "Filing(id='1921705', form_type='F3N', filer_id='C00900860')"
         )
 
     def test_no_len(self, sample_fec_file):
         """The record count is unknown without a full pass, so there is no __len__"""
         with pytest.raises(TypeError):
-            len(open(sample_fec_file))  # type: ignore[arg-type]  # no __len__, on purpose
+            len(Filing(sample_fec_file))  # type: ignore[arg-type]  # no __len__, on purpose
 
     def test_source_length(self, sample_fec_file):
-        assert open(sample_fec_file).source_length == sample_fec_file.stat().st_size
+        assert Filing(sample_fec_file).source_length == sample_fec_file.stat().st_size
 
     def test_reader_is_not_iterable(self, sample_fec_file):
         """`itemizations` / `itemization_records` are the only ways in"""
         with pytest.raises(TypeError):
-            iter(open(sample_fec_file))  # type: ignore[call-overload]  # on purpose
+            iter(Filing(sample_fec_file))  # type: ignore[call-overload]  # on purpose
 
     def test_fec_version(self, sample_fec_file):
-        reader = open(sample_fec_file)
+        reader = Filing(sample_fec_file)
 
         assert reader.fec_version == "8.5"
         assert reader.fec_version == reader.header.fec_version
@@ -95,24 +96,24 @@ class TestItemizations:
     """`itemizations`: typed, in file order, one object per record"""
 
     def test_types_and_order(self, sample_fec_file):
-        items = list(open(sample_fec_file).itemizations)
+        items = list(Filing(sample_fec_file).itemizations)
 
         assert [type(i) for i in items] == [ScheduleA] * 15 + [ScheduleB] * 5
         assert [i.form_type for i in items] == ROW_TYPES
 
     def test_typed_values(self, sample_fec_file):
-        item = next(open(sample_fec_file).itemizations)
+        item = next(Filing(sample_fec_file).itemizations)
 
         assert isinstance(item, ScheduleA)
         assert item.contribution_amount == 500.0
         assert item.contribution_date == date(2025, 7, 7)
 
     def test_pac_count(self, pac_fec_file):
-        assert sum(1 for _ in open(pac_fec_file).itemizations) == 1387
+        assert sum(1 for _ in Filing(pac_fec_file).itemizations) == 1387
 
     def test_f99_zero_itemizations(self, f99_fec_file):
         """The F99 fixture is a [BEGINTEXT] filing with no itemizations"""
-        reader = open(f99_fec_file)
+        reader = Filing(f99_fec_file)
 
         assert reader.form_type == "F99"
         assert list(reader.itemizations) == []
@@ -120,7 +121,7 @@ class TestItemizations:
     def test_untyped_record_is_unknown(self, sample_fec_bytes):
         """A mapped record with no typed class comes back as `Unknown`, not `None`"""
         raw = sample_fec_bytes.replace(b"\nSB17\x1c", b"\nF3S\x1c", 1)
-        items = list(open(raw).itemizations)
+        items = list(Filing(raw).itemizations)
 
         unknown = [i for i in items if isinstance(i, Unknown)]
         assert len(unknown) == 1
@@ -151,7 +152,7 @@ class TestItemizationRecords:
         assert record["contribution_date"] == date(2025, 7, 7)
 
     def test_one_to_one_with_itemizations(self, pac_fec_file):
-        reader = open(pac_fec_file)
+        reader = Filing(pac_fec_file)
         pairs = list(zip(reader.itemizations, reader.itemization_records, strict=True))
 
         assert len(pairs) == 1387
@@ -163,21 +164,21 @@ class TestPasses:
     """Each property access is its own pass from the top of the filing"""
 
     def test_each_access_starts_over(self, sample_fec_file):
-        reader = open(sample_fec_file)
+        reader = Filing(sample_fec_file)
 
         assert len(list(reader.itemizations)) == 20
         assert len(list(reader.itemizations)) == 20
         assert len(list(reader.itemization_records)) == 20
 
     def test_a_pass_is_single_use(self, sample_fec_file):
-        items = open(sample_fec_file).itemizations
+        items = Filing(sample_fec_file).itemizations
 
         assert iter(items) is items
         assert len(list(items)) == 20
         assert list(items) == []
 
     def test_passes_are_independent(self, sample_fec_bytes):
-        reader = open(sample_fec_bytes)
+        reader = Filing(sample_fec_bytes)
         first, second = reader.itemization_records, reader.itemization_records
 
         assert next(first).line == 3
@@ -185,14 +186,14 @@ class TestPasses:
         assert next(second).line == 3
 
     def test_file_object_reads_once(self, sample_fec_bytes):
-        reader = open(io.BytesIO(sample_fec_bytes))
+        reader = Filing(io.BytesIO(sample_fec_bytes))
 
         assert len(list(reader.itemizations)) == 20
         with pytest.raises(ValueError, match="only be read once"):
             reader.itemization_records
 
     def test_reopen_sees_the_same_records(self, pac_fec_file):
-        reader = open(pac_fec_file)
+        reader = Filing(pac_fec_file)
 
         assert list(reader.itemization_records) == list(reader.itemization_records)
 
@@ -201,21 +202,21 @@ class TestHeaderAndCover:
     """`header`/`cover`/`cover_record` and the filer attributes, parsed eagerly"""
 
     def test_available_before_iteration(self, sample_fec_file):
-        reader = open(sample_fec_file)
+        reader = Filing(sample_fec_file)
 
         assert isinstance(reader.header, Header)
         assert isinstance(reader.cover, Form3)
         assert isinstance(reader.cover_record, Record)
 
     def test_identity(self, sample_fec_file):
-        reader = open(sample_fec_file)
+        reader = Filing(sample_fec_file)
 
         assert reader.header is reader.header
         assert reader.cover is reader.cover
         assert reader.cover_record is reader.cover_record
 
     def test_filer_attributes(self, sample_fec_file):
-        reader = open(sample_fec_file)
+        reader = Filing(sample_fec_file)
 
         assert reader.form_type == "F3N"
         assert reader.filer_id == "C00900860"
@@ -225,14 +226,14 @@ class TestHeaderAndCover:
         assert reader.coverage_through_date == date(2025, 9, 30)
 
     def test_non_periodic_form_has_no_report_code(self, f99_fec_file):
-        reader = open(f99_fec_file)
+        reader = Filing(f99_fec_file)
 
         assert reader.form_type == "F99"
         assert reader.report_code is None
         assert reader.coverage_from_date is None
 
     def test_cover_record_is_the_cover_line(self, sample_fec_file):
-        cover_record = open(sample_fec_file).cover_record
+        cover_record = Filing(sample_fec_file).cover_record
 
         assert cover_record.row_type == "F3N"
         assert cover_record.line == 2
@@ -241,7 +242,7 @@ class TestHeaderAndCover:
     def test_cover_record_values(self, pac_fec_file):
         """`cover_record` follows the same rules as any Record (Q14-Q16, Q6):
         typed by name, raw by position, `row_type`/`line` from the record."""
-        cover_record = open(pac_fec_file).cover_record
+        cover_record = Filing(pac_fec_file).cover_record
 
         assert cover_record["col_a_total_receipts"] == 83741.93
         assert cover_record["coverage_from_date"] == date(2023, 7, 1)
@@ -253,11 +254,11 @@ class TestHeaderAndCover:
         """pac_fec_file is F3XN/8.4; column_names_for_field("F3XN", "8.4")
         (checked directly against fec_parser::mappings on this tip) returns
         123 columns, including the deferred `_TODO_DUP` names."""
-        assert len(open(pac_fec_file).cover_record) == 123
+        assert len(Filing(pac_fec_file).cover_record) == 123
 
     def test_header_and_cover_survive_close(self, sample_fec_file):
         """They are parsed up front, so closing the source does not lose them"""
-        reader = open(sample_fec_file)
+        reader = Filing(sample_fec_file)
         reader.close()
 
         assert reader.header.fec_version == "8.5"
@@ -269,35 +270,35 @@ class TestId:
     """`reader.id`"""
 
     def test_id_from_path(self, sample_fec_file):
-        assert open(sample_fec_file).id == "1921705"
+        assert Filing(sample_fec_file).id == "1921705"
 
     def test_id_none_for_bytes(self, sample_fec_bytes):
-        assert open(sample_fec_bytes).id is None
+        assert Filing(sample_fec_bytes).id is None
 
     def test_id_strips_fec_prefix(self, sample_fec_file, tmp_path):
         prefixed = tmp_path / "FEC-1921705.fec"
         shutil.copyfile(sample_fec_file, prefixed)
 
-        assert open(prefixed).id == "1921705"
+        assert Filing(prefixed).id == "1921705"
 
 
 class TestCloseAndContextManager:
     def test_context_manager_yields_self_and_closes(self, sample_fec_file):
-        with open(sample_fec_file) as reader:
-            assert isinstance(reader, FilingReader)
+        with Filing(sample_fec_file) as reader:
+            assert isinstance(reader, Filing)
             assert not reader.closed
 
         assert reader.closed
 
     def test_new_pass_after_close_raises(self, sample_fec_file):
-        reader = open(sample_fec_file)
+        reader = Filing(sample_fec_file)
         reader.close()
 
         with pytest.raises(ValueError, match="closed filing"):
             reader.itemizations
 
     def test_close_stops_live_passes(self, sample_fec_file):
-        reader = open(sample_fec_file)
+        reader = Filing(sample_fec_file)
         items = reader.itemizations
         next(items)
         reader.close()
@@ -306,21 +307,21 @@ class TestCloseAndContextManager:
             next(items)
 
     def test_close_idempotent(self, sample_fec_file):
-        reader = open(sample_fec_file)
+        reader = Filing(sample_fec_file)
         reader.close()
         reader.close()
 
         assert reader.closed
 
     def test_closed_is_false_while_open(self, sample_fec_file):
-        assert open(sample_fec_file).closed is False
+        assert Filing(sample_fec_file).closed is False
 
 
 class TestMissingMapping:
     def test_missing_mapping_is_raised_and_iteration_continues(self, sample_fec_bytes):
         """An unmapped row type raises, but the pass stays usable"""
         raw = sample_fec_bytes.replace(b"\nSA11C\x1c", b"\nZZZZ\x1c", 1)
-        records = open(raw).itemization_records
+        records = Filing(raw).itemization_records
         rows, errors = [], []
 
         while True:
@@ -347,7 +348,7 @@ class TestMissingMapping:
         raw = sample_fec_bytes.replace(b"\nSA11C\x1c", b"\nZZZZ\x1c", 1)
 
         with pytest.raises(MissingMappingError):
-            list(open(raw).itemizations)
+            list(Filing(raw).itemizations)
 
 
 class TestThreading:
@@ -374,7 +375,7 @@ class TestThreading:
         try:
             started = time.monotonic()
             while time.monotonic() - started < parse_for:
-                assert sum(1 for _ in open(pac_fec_file).itemizations) == 1387
+                assert sum(1 for _ in Filing(pac_fec_file).itemizations) == 1387
             elapsed = time.monotonic() - started
         finally:
             stop.set()
@@ -391,7 +392,7 @@ class TestThreading:
         lock = threading.Lock()
 
         def run() -> None:
-            n = sum(1 for _ in open(pac_fec_file).itemizations)
+            n = sum(1 for _ in Filing(pac_fec_file).itemizations)
             with lock:
                 counts.append(n)
 
@@ -431,16 +432,16 @@ class TestBufferSources:
                 assert len(records(mapped)) == 20
 
     def test_buffer_source_length(self, sample_fec_bytes):
-        assert open(bytearray(sample_fec_bytes)).source_length == len(sample_fec_bytes)
+        assert Filing(bytearray(sample_fec_bytes)).source_length == len(sample_fec_bytes)
 
     def test_buffer_source_has_no_id(self, sample_fec_bytes):
         """A buffer does not name itself"""
-        assert open(memoryview(sample_fec_bytes)).id is None
+        assert Filing(memoryview(sample_fec_bytes)).id is None
 
     def test_non_byte_buffer_raises_typeerror(self):
         """`array('i')`, a NumPy float array, `memoryview(...).cast('I')`: not bytes-like"""
         with pytest.raises(TypeError, match="bytes-like"):
-            open(array("i", [1, 2, 3]))  # type: ignore[arg-type]  # on purpose
+            Filing(array("i", [1, 2, 3]))  # type: ignore[arg-type]  # on purpose
 
 
 class TestFileObjectSources:
@@ -475,18 +476,18 @@ class TestFileObjectSources:
 
     def test_id_from_file_object_name(self, sample_fec_file):
         with builtins.open(sample_fec_file, "rb") as f:
-            assert open(f).id == "1921705"
+            assert Filing(f).id == "1921705"
 
     def test_id_none_without_a_name(self, sample_fec_bytes):
-        assert open(io.BytesIO(sample_fec_bytes)).id is None
+        assert Filing(io.BytesIO(sample_fec_bytes)).id is None
 
     def test_source_length_from_fileno(self, sample_fec_file):
         with builtins.open(sample_fec_file, "rb") as f:
-            assert open(f).source_length == sample_fec_file.stat().st_size
+            assert Filing(f).source_length == sample_fec_file.stat().st_size
 
     def test_source_length_unknown_without_fileno(self, sample_fec_bytes):
         """`BytesIO.fileno()` raises; an unknown length is 0, not an error"""
-        assert open(io.BytesIO(sample_fec_bytes)).source_length == 0
+        assert Filing(io.BytesIO(sample_fec_bytes)).source_length == 0
 
 
 class TestSourceErrors:
@@ -495,11 +496,11 @@ class TestSourceErrors:
     def test_text_mode_file_raises_typeerror(self, sample_fec_file):
         with builtins.open(sample_fec_file) as f:
             with pytest.raises(TypeError, match="'rb'"):
-                open(f)  # type: ignore[arg-type]  # text mode, on purpose
+                Filing(f)  # type: ignore[arg-type]  # text mode, on purpose
 
     def test_stringio_raises_typeerror(self, sample_fec_content):
         with pytest.raises(TypeError, match="'rb'"):
-            open(io.StringIO(sample_fec_content))  # type: ignore[arg-type]  # on purpose
+            Filing(io.StringIO(sample_fec_content))  # type: ignore[arg-type]  # on purpose
 
     def test_read_returning_str_raises_typeerror(self, sample_fec_content):
         """Not an `io.TextIOBase`, but still hands back `str`: same message"""
@@ -509,7 +510,7 @@ class TestSourceErrors:
                 return "HDR\x1cFEC\x1c8.5"
 
         with pytest.raises(TypeError, match="'rb'"):
-            open(TextLike())  # type: ignore[arg-type]  # on purpose
+            Filing(TextLike())  # type: ignore[arg-type]  # on purpose
 
     def test_read_returning_junk_raises_typeerror(self):
         class Junk:
@@ -517,7 +518,7 @@ class TestSourceErrors:
                 return [1, 2, 3]
 
         with pytest.raises(TypeError, match="must return bytes"):
-            open(Junk())  # type: ignore[arg-type]  # on purpose
+            Filing(Junk())  # type: ignore[arg-type]  # on purpose
 
     def test_read_error_propagates(self):
         """The source's exception comes back as itself, not as FecParseError"""
@@ -527,13 +528,13 @@ class TestSourceErrors:
                 raise ZeroDivisionError("boom")
 
         with pytest.raises(ZeroDivisionError, match="boom"):
-            open(Boom())  # type: ignore[arg-type]  # on purpose
+            Filing(Boom())  # type: ignore[arg-type]  # on purpose
 
     def test_read_error_mid_iteration_propagates(self, sample_fec_bytes):
         """Same when the source fails after the header and cover are already parsed"""
 
         # The header and cover records end at byte 599 of the fixture, so 1 KB is
-        # enough for `open()` to succeed and not enough to finish iterating.
+        # enough for `Filing()` to succeed and not enough to finish iterating.
         class BoomLater:
             def __init__(self, data):
                 self._buf = io.BytesIO(data)
@@ -543,7 +544,7 @@ class TestSourceErrors:
                     raise ZeroDivisionError("late boom")
                 return self._buf.read(min(n, 512))
 
-        reader = open(BoomLater(sample_fec_bytes))  # type: ignore[arg-type]  # on purpose
+        reader = Filing(BoomLater(sample_fec_bytes))  # type: ignore[arg-type]  # on purpose
 
         with pytest.raises(ZeroDivisionError, match="late boom"):
             list(reader.itemizations)
@@ -556,7 +557,7 @@ class TestSourceErrors:
                 return sample_fec_bytes * 100
 
         with pytest.raises(ValueError, match="more than asked for"):
-            open(TooMuch())  # type: ignore[arg-type]  # on purpose
+            Filing(TooMuch())  # type: ignore[arg-type]  # on purpose
 
 
 class TestSharedReaderThreading:
@@ -583,7 +584,7 @@ class TestSharedReaderThreading:
                 self._f.close()
 
         source = SlowFile(pac_fec_file)
-        records = open(source).itemization_records  # type: ignore[arg-type]  # a binary file object
+        records = Filing(source).itemization_records  # type: ignore[arg-type]  # a binary file object
         lines: list[int] = []
         guard = threading.Lock()
         failures: list[BaseException] = []
@@ -629,7 +630,7 @@ class TestSharedReaderThreading:
                 time.sleep(0.001)
                 return self._f.read(n)
 
-        reader = open(SlowFile(pac_fec_file))  # type: ignore[arg-type]  # file object
+        reader = Filing(SlowFile(pac_fec_file))  # type: ignore[arg-type]  # file object
         started = threading.Event()
 
         def drain() -> None:
@@ -657,7 +658,7 @@ def test_shared_reader_across_threads(pac_fec_file):
     GIL to serialize `__next__`, so this is the one that actually exercises
     concurrent Rust-side access to `pending`.
     """
-    records = open(pac_fec_file).itemization_records
+    records = Filing(pac_fec_file).itemization_records
     seen: list[Record] = []
     lock = threading.Lock()
 
@@ -707,7 +708,7 @@ class Reentrant:
 
 
 source = Reentrant(sys.argv[1], sys.argv[2])
-source.reader = libfec.open(source)
+source.reader = libfec.Filing(source)
 source.records = source.reader.itemization_records
 print("ROWS", sum(1 for _ in source.records))
 """
@@ -747,10 +748,75 @@ class TestReentrantSource:
                 return self._f.read(n)
 
         source = Peeking(sample_fec_file)
-        source.reader = open(source)  # type: ignore[arg-type]  # a binary file object
+        source.reader = Filing(source)  # type: ignore[arg-type]  # a binary file object
 
         assert sum(1 for _ in source.reader.itemizations) == 20
         assert source.seen and not any(source.seen)
+
+
+class TestFromId:
+    """`Filing.from_id`: urllib → anonymous temp file → mmap"""
+
+    @pytest.fixture
+    def fake_urlopen(self, monkeypatch, sample_fec_bytes):
+        requests: list[tuple[urllib.request.Request, float]] = []
+
+        def urlopen(request, timeout):
+            requests.append((request, timeout))
+            return io.BytesIO(sample_fec_bytes)
+
+        monkeypatch.setattr(urllib.request, "urlopen", urlopen)
+        return requests
+
+    @pytest.mark.parametrize("filing_id", [1921705, "1921705", "FEC-1921705", " FEC1921705 "])
+    def test_id_spellings(self, fake_urlopen, filing_id):
+        filing = Filing.from_id(filing_id)
+
+        (request, timeout), = fake_urlopen
+        assert request.full_url == "https://docquery.fec.gov/dcdev/posted/1921705.fec"
+        assert request.get_header("User-agent").startswith("libfec-python/")
+        assert timeout == 60.0
+        assert filing.id == "1921705"
+
+    def test_reads_like_a_path(self, fake_urlopen):
+        filing = Filing.from_id(1921705, timeout=5)
+
+        assert fake_urlopen[0][1] == 5
+        assert repr(filing) == "Filing(id='1921705', form_type='F3N', filer_id='C00900860')"
+        # Reopenable: the download is an mmap, not a one-shot file object.
+        assert [r.row_type for r in filing.itemization_records] == ROW_TYPES
+        assert len(list(filing.itemizations)) == 20
+
+    @pytest.mark.parametrize("bad", ["", "FEC-", "12a4", "C00900860", -5])
+    def test_malformed_id_is_value_error(self, fake_urlopen, bad):
+        with pytest.raises(ValueError, match="not an FEC filing id"):
+            Filing.from_id(bad)
+        assert fake_urlopen == []
+
+    def test_non_id_type_is_type_error(self, fake_urlopen):
+        with pytest.raises(TypeError):
+            Filing.from_id(1.5)  # type: ignore[arg-type]  # on purpose
+
+    def test_http_error_propagates(self, monkeypatch):
+        def urlopen(request, timeout):
+            raise urllib.error.HTTPError(request.full_url, 404, "Not Found", {}, None)  # type: ignore[arg-type]
+
+        monkeypatch.setattr(urllib.request, "urlopen", urlopen)
+        with pytest.raises(urllib.error.HTTPError) as ei:
+            Filing.from_id(99999999999)
+        assert ei.value.code == 404
+
+    def test_empty_download_is_parse_error(self, monkeypatch):
+        monkeypatch.setattr(urllib.request, "urlopen", lambda request, timeout: io.BytesIO(b""))
+        with pytest.raises(FecParseError):
+            Filing.from_id(1)
+
+    @pytest.mark.network
+    def test_live_download(self):
+        filing = Filing.from_id(1721696)
+
+        assert filing.filer_name == "PFIZER INC. PAC"
+        assert sum(1 for _ in filing.itemizations) == 1387
 
 
 @pytest.fixture

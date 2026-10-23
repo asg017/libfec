@@ -1,6 +1,6 @@
 //! Turning a Python object into something the parser can `Read`.
 //!
-//! [`resolve`] is the one place that decides what `open()` and `fec_header()`
+//! [`resolve`] is the one place that decides what `Filing()` and `fec_header()`
 //! accept.  Resolution order, first match wins:
 //!
 //! 1. the **buffer protocol** (`bytes`, `bytearray`, `memoryview`, `mmap`, …) —

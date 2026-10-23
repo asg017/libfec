@@ -467,27 +467,27 @@ class TestLegacyFormats:
 
 
 class TestLegacyParserHeader:
-    """libfec.parser.FilingReader header exposes legacy fields"""
+    """libfec.parser.Filing header exposes legacy fields"""
 
     def test_v5_comma(self):
-        from libfec.parser import open as open_filing
+        from libfec.parser import Filing
 
-        h = open_filing(str(LEGACY_FIXTURES / "5.00_102196.fec")).header
+        h = Filing(str(LEGACY_FIXTURES / "5.00_102196.fec")).header
         assert (h.style, h.delimiter, h.is_paper) == ("hdr", "comma", False)
         assert h.legacy_fields == {}
 
     def test_paper(self):
-        from libfec.parser import open as open_filing
+        from libfec.parser import Filing
 
-        h = open_filing(str(LEGACY_FIXTURES / "P3.4_1215766.fec")).header
+        h = Filing(str(LEGACY_FIXTURES / "P3.4_1215766.fec")).header
         assert (h.style, h.delimiter, h.is_paper) == ("paper", "fs", True)
         assert (h.batch_number, h.received_date) == ("1", "20180322")
         assert h.fec_version == "P3.4"
 
     def test_legacy_block(self):
-        from libfec.parser import open as open_filing
+        from libfec.parser import Filing
 
-        h = open_filing(str(LEGACY_FIXTURES / "2.02_10665.fec")).header
+        h = Filing(str(LEGACY_FIXTURES / "2.02_10665.fec")).header
         assert (h.style, h.delimiter, h.record_type) == ("legacy_block", "comma", "/*")
         assert h.name_delimiter == "^"
         assert h.legacy_fields["FEC_VER_#"] == "2.02"

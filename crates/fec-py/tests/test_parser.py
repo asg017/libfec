@@ -9,13 +9,11 @@ from datetime import date
 
 import pytest
 
-# `open` here is `libfec.parser.open`, not the builtin — reach the real
-# one through `builtins.open`, exactly as `parser.py` itself has to.
 from libfec.parser import (
     fec_header,
     Header,
     Record,
-    open,
+    Filing,
     FecError,
     FecParseError,
     MissingMappingError,
@@ -28,8 +26,8 @@ from libfec.parser import (
 
 
 def records(source) -> list[Record]:
-    """Every raw record of a fresh `open(source)`."""
-    return list(open(source).itemization_records)
+    """Every raw record of a fresh `Filing(source)`."""
+    return list(Filing(source).itemization_records)
 
 
 class TestFecHeader:
@@ -52,7 +50,7 @@ class TestFecHeader:
             fec_header(b"")
 
     def test_fec_header_accepts_path_and_file(self, sample_fec_file, sample_fec_bytes):
-        """`fec_header()` takes every source `open()` does"""
+        """`fec_header()` takes every source `Filing()` does"""
         assert fec_header(sample_fec_bytes) == "8.5"
         assert fec_header(str(sample_fec_file)) == "8.5"
         assert fec_header(sample_fec_file) == "8.5"
@@ -61,13 +59,13 @@ class TestFecHeader:
 
     def test_fec_header_ignores_cover(self):
         """Reads only the HDR record: a filing whose cover has no mapping still
-        fails `open()` but `fec_header()` reads past it."""
+        fails `Filing()` but `fec_header()` reads past it."""
         hdr = b"HDR\x1cFEC\x1c8.5\x1cFECfile\x1c8.5.0.0(f33)\x1c\x1c\n"
         garbage_cover = b"ZZZZ\x1cwhatever\n"
         filing = hdr + garbage_cover
 
         with pytest.raises(FecParseError):
-            open(filing)
+            Filing(filing)
 
         assert fec_header(filing) == "8.5"
 
@@ -77,7 +75,7 @@ class TestHeader:
     
     def test_header_attributes(self, sample_fec_file):
         """Test that Header has expected attributes"""
-        filing = open(sample_fec_file)
+        filing = Filing(sample_fec_file)
         header = filing.header
         
         assert isinstance(header, Header)
@@ -92,7 +90,7 @@ class TestHeader:
 
     def test_header_values(self, sample_fec_file):
         """Test Header values for the known fixture 1921705.fec"""
-        header = open(sample_fec_file).header
+        header = Filing(sample_fec_file).header
 
         assert header.fec_version == "8.5"
         assert header.record_type == "HDR"
@@ -101,7 +99,7 @@ class TestHeader:
 
     def test_header_repr(self, sample_fec_file):
         """Test Header __repr__"""
-        filing = open(sample_fec_file)
+        filing = Filing(sample_fec_file)
         header = filing.header
         repr_str = repr(header)
         
@@ -354,7 +352,7 @@ class TestRecord:
 
     def test_unicode_replacement_row_has_line(self, fec_fixture):
         """Every row of every fixture knows its line, even after lossy decoding"""
-        for row in open(fec_fixture).itemization_records:
+        for row in Filing(fec_fixture).itemization_records:
             assert row.line >= 3
 
 
@@ -364,17 +362,17 @@ class TestErrors:
     def test_missing_file_is_file_not_found(self, tmp_path):
         missing = tmp_path / "nope.fec"
         with pytest.raises(FileNotFoundError) as ei:
-            open(str(missing))
+            Filing(str(missing))
         assert ei.value.errno == errno.ENOENT
         assert ei.value.filename == str(missing)
 
     def test_invalid_source_type_is_type_error(self):
         with pytest.raises(TypeError):
-            open(12345)  # type: ignore[arg-type]  # invalid type, on purpose
+            Filing(12345)  # type: ignore[arg-type]  # invalid type, on purpose
 
     def test_garbage_is_parse_error(self):
         with pytest.raises(FecParseError):
-            open(b"invalid fec data")
+            Filing(b"invalid fec data")
 
     def test_hierarchy(self):
         assert issubclass(FecParseError, FecError) and issubclass(FecError, ValueError)

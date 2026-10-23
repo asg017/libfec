@@ -1,4 +1,4 @@
-"""`libfec.itemizations`: the typed classes behind `FilingReader.itemizations`.
+"""`libfec.itemizations`: the typed classes behind `Filing.itemizations`.
 
 Like `test_covers.py`, the main check is differential: for every itemization
 fixture `fec-parser`'s tests snapshot as JSON
@@ -59,7 +59,7 @@ def test_every_itemization_snapshot_is_found():
 
 @pytest.mark.parametrize("fixture,expected", SNAPSHOTS, ids=lambda s: getattr(s, "name", ""))
 def test_itemization_matches_fec_parser_snapshot(fixture: Path, expected: list[dict[str, Any] | None]):
-    with fec.open(fixture) as filing:
+    with fec.Filing(fixture) as filing:
         got = [record.itemization for record in filing.itemization_records]
         typed = list(filing.itemizations)
     assert len(got) == len(expected) == len(typed)
@@ -79,7 +79,7 @@ def test_itemization_matches_fec_parser_snapshot(fixture: Path, expected: list[d
 
 
 def test_typed_fields():
-    with fec.open(FIXTURES / "SA_1907925.fec") as filing:
+    with fec.Filing(FIXTURES / "SA_1907925.fec") as filing:
         items = [item for item in filing.itemizations if isinstance(item, ScheduleA)]
     match items[0]:
         case ScheduleA(memo=False) as sa:
@@ -99,25 +99,25 @@ def test_typed_fields():
 
 
 def test_cover_record_is_not_an_itemization():
-    with fec.open(FIXTURES / "SA_1907925.fec") as filing:
+    with fec.Filing(FIXTURES / "SA_1907925.fec") as filing:
         assert filing.cover_record.itemization is None
 
 
 def test_legacy_combined_name_is_split():
-    with fec.open(FIXTURES / "SA_42174.fec") as filing:
+    with fec.Filing(FIXTURES / "SA_42174.fec") as filing:
         sa = next(filing.itemizations)
     assert isinstance(sa, ScheduleA)
     assert (sa.contributor.name.last_name, sa.contributor.name.first_name) == ("Amir", "Michael")
 
 
 def test_pickled_row_keeps_its_itemization():
-    with fec.open(FIXTURES / "SA_42174.fec") as filing:
+    with fec.Filing(FIXTURES / "SA_42174.fec") as filing:
         row = next(filing.itemization_records)
     assert pickle.loads(pickle.dumps(row)).itemization == row.itemization
 
 
 def test_classes_are_frozen():
-    with fec.open(FIXTURES / "SA_1907925.fec") as filing:
+    with fec.Filing(FIXTURES / "SA_1907925.fec") as filing:
         sa = next(filing.itemizations)
     assert isinstance(sa, ScheduleA)
     with pytest.raises(AttributeError):

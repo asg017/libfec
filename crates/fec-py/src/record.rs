@@ -348,8 +348,8 @@ impl Record {
 /// A record with no typed class: a cover `libfec.covers` has no struct for, a
 /// summary record (`F3PS`, …), or an itemization schedule not typed yet.
 ///
-/// Stands in for the typed object in `FilingReader.cover` and
-/// `FilingReader.itemizations`, so neither ever yields `None`.
+/// Stands in for the typed object in `Filing.cover` and
+/// `Filing.itemizations`, so neither ever yields `None`.
 #[pyclass(module = "libfec.parser", frozen)]
 pub struct Unknown {
     record: Py<Record>,
