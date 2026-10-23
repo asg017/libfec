@@ -8,8 +8,7 @@ import { errnoOf, messagePath } from "./native.js";
  * |---|---|
  * | `FEC_PARSE` | {@link FecParseError}: the header, cover or a row can't be parsed |
  * | `FEC_MISSING_MAPPING` | {@link MissingMappingError}: no column mapping for a row type |
- * | `ERR_FILING_CLOSED` | reading a {@link FilingReader} after `close()` |
- * | `ERR_FILING_CONSUMED` | a second `itemizations()`, `rows()`, `records()` or `for…of` on one reader |
+ * | `ERR_FILING_CLOSED` | reading a {@link Filing} after `close()` |
  *
  * A missing or unreadable path is not a `FecError`: it throws the same error
  * Node's `fs.openSync` would (`code: "ENOENT"`, `path`, `syscall: "open"`).
@@ -40,8 +39,9 @@ export class FecParseError extends FecError {
 
 /**
  * A row's type has no column mapping in the filing's FEC version, so its
- * columns can't be named. Raised by `rows()` (unless `unknownRows: "skip"`)
- * and {@link columns}. `code: "FEC_MISSING_MAPPING"`.
+ * columns can't be named. Raised by `itemizationRecords()`, by
+ * `itemizations()` for a record with no typed class, and by {@link columns}.
+ * `code: "FEC_MISSING_MAPPING"`.
  *
  * @category Errors
  */
@@ -99,7 +99,6 @@ export function fromNative(e: unknown, context: { path?: string } = {}): unknown
     case "FEC_PARSE":
       return new FecParseError(msg);
     case "ERR_FILING_CLOSED":
-    case "ERR_FILING_CONSUMED":
     case "FEC_MISSING_MAPPING":
       return new FecError(msg, { code });
     default:

@@ -1,103 +1,109 @@
-// Rows: the public `Row` class, and the internal builder that turns native
-// batches (src/reader.rs) into rows.
+// Records: the public `Record` class, and the internal builder that turns
+// native batches (src/reader.rs) into records.
 //
-// `row.values` is built by one compiled factory per (row type, FEC version):
-// an object literal with the columns in order, so every row of a type shares
-// one object shape (plans/nodejs/01-bindings.md: ~2x faster than a loop).
-// Where code generation is blocked the factory is a loop with the same output.
+// `record.values` is built by one compiled factory per (row type, FEC
+// version): an object literal with the columns in order, so every record of a
+// type shares one object shape (plans/nodejs/01-bindings.md: ~2x faster than
+// a loop). Where code generation is blocked the factory is a loop with the
+// same output.
+//
+// The class is named `Record`, like Python's, so inside this module (and any
+// module that imports it) TypeScript's global `Record<K, V>` utility type is
+// shadowed: write `{ [k: string]: V }` instead.
 
 import * as native from "./native.js";
-import { callNative } from "./errors.js";
+import { callNative, MissingMappingError } from "./errors.js";
 import type { Itemization } from "./generated/index.js";
-import type { TokenDecoder } from "./tokens.js";
+import { TokenDecoder } from "./tokens.js";
 
 /**
- * A value in {@link Row.values}:
+ * A value in {@link Record.values}:
  *
  * | Column kind | Value |
  * |---|---|
  * | text | the raw string, untrimmed (`""` stays `""`) |
  * | amount | a `number`; `null` if blank; the raw string if it doesn't parse |
  * | date | `"YYYY-MM-DD"` (or a `Date` with `dates: "date"`); `null` if blank or invalid |
- * | any, past the end of a short row | `null` |
+ * | any, past the end of a short record | `null` |
  *
- * Unparseable amounts and invalid dates are also listed in the reader's
- * `invalidValues`.
+ * An unparseable amount keeps its raw string, so it stays detectable
+ * (`typeof v === "string"` in an amount column).
  */
 export type Value = string | number | Date | null;
 
-/** A row's values by FEC column name (snake_case), in column order. */
-export type RowValues = Record<string, Value>;
+/** A record's values by FEC column name (snake_case), in column order. */
+export type RecordValues = { [column: string]: Value };
 
-/** An amount or date that didn't parse; see `invalidValues` on a reader. */
-export interface InvalidValue {
-  /** The row's 1-based line. */
-  line: number;
-  /** The column name. */
-  column: string;
-  /** The field exactly as filed. */
-  raw: string;
-}
-
-/** How {@link Row.toJSON} serializes a row. */
-export interface RowJSON<I extends Itemization | null = Itemization | null> {
-  /** {@link Row.rowType} */
+/** How {@link Record.toJSON} serializes a record. */
+export interface RecordJSON {
+  /** {@link Record.rowType} */
   rowType: string;
-  /** {@link Row.line} */
+  /** {@link Record.line} */
   line: number;
-  /** {@link Row.values} */
-  values: RowValues;
-  /** {@link Row.itemization} */
-  itemization: I;
+  /** {@link Record.values} */
+  values: RecordValues;
 }
 
 /**
- * One row of a filing after the cover: an itemization (`SA11AI`, `SB17`, …),
- * a text record, or a summary row, mirroring Python's `libfec_parser.Row`.
+ * One raw record of a filing: the cover line ({@link Filing.coverRecord}) or
+ * a record after it ({@link Filing.itemizationRecords}): an itemization
+ * (`SA11AI`, `SB17`, …), a text record or a summary record. Mirrors Python's
+ * `libfec.Record`.
  *
- * - From `itemizations()`, a row is a `Row<Itemization>`: {@link itemization}
- *   is the typed record, narrowed with `switch (row.itemization.type)`.
- * - From `rows()` it is a `Row<null>`: only the column-keyed {@link values}.
- *
- * All data is in own enumerable properties, so `{ ...row }` and
- * `structuredClone(row)` give plain objects (without the methods).
+ * All data is in own enumerable properties, so `{ ...record }` and
+ * `structuredClone(record)` give plain objects (without the methods and the
+ * lazy {@link itemization}).
  */
-export class Row<I extends Itemization | null = Itemization | null> {
+export class Record {
   /**
    * The row type as filed, field 0: `"SA11AI"`, `"SB17"`, `"TEXT"`. A `TEXT`
-   * row's first column is named `rec_type`, not `form_type`, so test
+   * record's first column is named `rec_type`, not `form_type`, so test
    * `rowType` rather than `values.form_type`.
    */
   readonly rowType: string;
-  /** The row's 1-based physical line in the file. */
+  /** The record's 1-based physical line in the file. */
   readonly line: number;
-  /** The row's values by FEC column name, in column order; see {@link Value}. */
-  readonly values: RowValues;
-  /**
-   * The row as a typed record, from `itemizations()`; `null` from `rows()`.
-   *
-   * Values are the parser's: an unparseable amount reads `0` (or `null`
-   * where the field is optional) and an invalid date `null`, the same as
-   * Python's typed classes. {@link values} keeps the raw text of such
-   * fields and the reader lists them in `invalidValues`.
-   */
-  readonly itemization: I;
-  /** Every raw field of the row, in file order. */
+  /** The record's values by FEC column name, in column order; see {@link Value}. */
+  readonly values: RecordValues;
+  /** Every raw field of the record, in file order. */
   readonly fields: readonly string[];
 
-  /** @internal Built by the readers; not meant to be constructed directly. */
+  readonly #fecVersion: string;
+  readonly #nameDelimiter: string | null;
+
+  /** @internal Built by {@link Filing}; not meant to be constructed directly. */
   constructor(
     rowType: string,
     line: number,
-    values: RowValues,
-    itemization: I,
+    values: RecordValues,
     fields: readonly string[],
+    fecVersion: string,
+    nameDelimiter: string | null,
   ) {
     this.rowType = rowType;
     this.line = line;
     this.values = values;
-    this.itemization = itemization;
     this.fields = fields;
+    this.#fecVersion = fecVersion;
+    this.#nameDelimiter = nameDelimiter;
+  }
+
+  /**
+   * The record as a typed itemization (`ScheduleA`, …), or `null` for a
+   * record that is not one or whose schedule has no type yet. Typed anew on
+   * every access (a new object each time); {@link Filing.itemizations} is
+   * the fast path for typing every record.
+   *
+   * Values are the parser's: an unparseable amount reads `0` (or `null`
+   * where the field is optional) and an invalid date `null`, the same as
+   * Python's typed classes. {@link values} keeps the raw text of such fields.
+   */
+  get itemization(): Itemization | null {
+    const batch = callNative(() =>
+      native.typeRecord(this.fields as string[], this.#fecVersion, this.#nameDelimiter),
+    );
+    // One value: the loop factories, not codegen, which only pays off over many.
+    return new TokenDecoder({ codegen: false }).decode(batch)[0] as Itemization | null;
   }
 
   /**
@@ -109,19 +115,14 @@ export class Row<I extends Itemization | null = Itemization | null> {
     return extra.some((f) => f !== "") ? extra : [];
   }
 
-  /** The value of `column`, or `undefined` if the row has no such column. */
+  /** The value of `column`, or `undefined` if the record has no such column. */
   get(column: string): Value | undefined {
     return Object.hasOwn(this.values, column) ? this.values[column] : undefined;
   }
 
-  /** `{ rowType, line, values, itemization }` (`fields` is left out). */
-  toJSON(): RowJSON<I> {
-    return {
-      rowType: this.rowType,
-      line: this.line,
-      values: this.values,
-      itemization: this.itemization,
-    };
+  /** `{ rowType, line, values }` (`fields` is left out). */
+  toJSON(): RecordJSON {
+    return { rowType: this.rowType, line: this.line, values: this.values };
   }
 }
 
@@ -131,18 +132,6 @@ export class Row<I extends Itemization | null = Itemization | null> {
 // `Number()`, which also takes "0x10", "0b1", "" and "Infinity".
 const AMOUNT = /^[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?$/;
 const SPECIAL = /^([+-]?)(inf|infinity|nan)$/i;
-
-/** Collects invalid amounts and dates: the first 1,000, plus a total count. */
-export class InvalidValueSink {
-  static readonly CAP = 1000;
-  readonly list: InvalidValue[] = [];
-  count = 0;
-
-  push(line: number, column: string, raw: string): void {
-    this.count++;
-    if (this.list.length < InvalidValueSink.CAP) this.list.push({ line, column, raw });
-  }
-}
 
 /** Rust-grammar amount, or `undefined` if `t` (trimmed, non-empty) isn't one. */
 export function parseAmount(t: string): number | undefined {
@@ -189,36 +178,28 @@ export function parseDate(t: string): [number, number, number] | undefined {
   return [Math.floor(n / 10000), Math.floor(n / 100) % 100, n % 100];
 }
 
-/** How date columns of {@link Row.values} come out: ISO strings or `Date`s. */
+/** How date columns of {@link Record.values} come out: ISO strings or `Date`s. */
 export type DatesOption = "iso" | "date";
 
-/** The converters a values factory calls; one per reader (it owns the sink). */
+/** The converters a values factory calls; one per filing. */
 export class Converters {
-  constructor(
-    readonly sink: InvalidValueSink,
-    readonly dates: DatesOption,
-  ) {}
+  constructor(readonly dates: DatesOption) {}
 
-  amount(raw: string | undefined, column: string, line: number): Value {
+  amount(raw: string | undefined): Value {
     if (raw === undefined || raw === "") return null;
     const t = raw.trim();
     if (t === "") return null;
     const n = parseAmount(t);
-    if (n !== undefined) return n;
-    this.sink.push(line, column, raw);
-    return raw;
+    return n !== undefined ? n : raw;
   }
 
-  date(raw: string | undefined, column: string, line: number): Value {
+  date(raw: string | undefined): Value {
     if (raw === undefined || raw === "") return null;
     // Trim only when needed: almost every date is exactly 8 digits.
     const t = raw.length === 8 ? raw : raw.trim();
     if (t === "") return null;
     const n = dateNumber(t);
-    if (n < 0) {
-      this.sink.push(line, column, raw);
-      return null;
-    }
+    if (n < 0) return null;
     if (this.dates === "date") {
       const date = new Date(0);
       date.setUTCFullYear(Math.floor(n / 10000), (Math.floor(n / 100) % 100) - 1, n % 100);
@@ -230,7 +211,7 @@ export class Converters {
 
 // ---- factories --------------------------------------------------------------------
 
-type ValuesFactory = (a: readonly string[], line: number) => RowValues;
+type ValuesFactory = (a: readonly string[]) => RecordValues;
 
 interface Schema {
   names: string[];
@@ -253,16 +234,12 @@ export function canCodegen(): boolean {
 
 function compileValues(columns: native.Column[], c: Converters, codegen: boolean): ValuesFactory {
   if (!codegen) {
-    return (a, line) => {
-      const o: RowValues = {};
+    return (a) => {
+      const o: RecordValues = {};
       for (let i = 0; i < columns.length; i++) {
         const { name, kind } = columns[i]!;
         o[name] =
-          kind === "amount"
-            ? c.amount(a[i], name, line)
-            : kind === "date"
-              ? c.date(a[i], name, line)
-              : (a[i] ?? null);
+          kind === "amount" ? c.amount(a[i]) : kind === "date" ? c.date(a[i]) : (a[i] ?? null);
       }
       return o;
     };
@@ -271,35 +248,32 @@ function compileValues(columns: native.Column[], c: Converters, codegen: boolean
     const key = JSON.stringify(name);
     switch (kind) {
       case "amount":
-        return `${key}: c.amount(a[${i}], ${key}, line)`;
+        return `${key}: c.amount(a[${i}])`;
       case "date":
-        return `${key}: c.date(a[${i}], ${key}, line)`;
+        return `${key}: c.date(a[${i}])`;
       default:
         return `${key}: a[${i}] ?? null`;
     }
   });
-  return new Function("c", `return (a, line) => ({${props.join(", ")}});`)(c) as ValuesFactory;
+  return new Function("c", `return (a) => ({${props.join(", ")}});`)(c) as ValuesFactory;
 }
 
-/** What to do with a row whose type has no column mapping. */
-export type OnUnmapped = (rowType: string, line: number) => "skip";
-
 /**
- * Builds rows from native batches for one reader: owns the schema cache,
- * the converters (and so the invalid-value sink) and, in typed mode, the
- * token decoder. @internal
+ * Builds records for one filing, from raw fields or native batches: owns the
+ * schema cache and the converters. Shared by every pass. @internal
  */
-export class RowBuilder {
+export class RecordBuilder {
   readonly #schemas = new Map<string, Schema | null>();
   readonly #converters: Converters;
   readonly #codegen: boolean;
 
   constructor(
     readonly fecVersion: string,
-    converters: Converters,
+    readonly nameDelimiter: string | null,
+    dates: DatesOption,
     options: { codegen?: boolean } = {},
   ) {
-    this.#converters = converters;
+    this.#converters = new Converters(dates);
     this.#codegen = options.codegen ?? canCodegen();
   }
 
@@ -326,35 +300,23 @@ export class RowBuilder {
     return s;
   }
 
-  /** One row from its raw fields (the cover row, tests). */
-  row<I extends Itemization | null>(
-    fields: string[],
-    line: number,
-    itemization: I,
-    onUnmapped: OnUnmapped,
-  ): Row<I> | null {
+  /** One record from its raw fields, or the error for a row type with no mapping. */
+  record(fields: string[], line: number): Record | MissingMappingError {
     // Trimmed: paper P2.3–P3.1 pad row types (`SB23 `), as the parser does.
     const rowType = (fields[0] ?? "").trim();
     const schema = this.schema(rowType);
-    if (schema === null) {
-      onUnmapped(rowType, line);
-      return null;
-    }
-    return new Row(rowType, line, schema.build(fields, line), itemization, fields);
+    if (schema === null) return new MissingMappingError(rowType, this.fecVersion, line);
+    return new Record(rowType, line, schema.build(fields), fields, this.fecVersion, this.nameDelimiter);
   }
 
   /**
-   * Every row of a batch. With a `decoder`, the batch must be typed and each
-   * row gets its decoded itemization; without, `itemization` is `null`.
+   * Every record of a batch, in order. A row with no mapping comes out as
+   * its {@link MissingMappingError}, for the pass to throw when it gets
+   * there (so the records before it are still yielded).
    */
-  build(
-    batch: native.Batch,
-    decoder: TokenDecoder | null,
-    onUnmapped: OnUnmapped,
-  ): Row<Itemization | null>[] {
+  build(batch: native.Batch): (Record | MissingMappingError)[] {
     const { text, ends, rowEnds, lines } = batch;
-    const items = decoder === null ? null : decoder.decode(batch.typed!);
-    const out: Row<Itemization | null>[] = [];
+    const out = new Array<Record | MissingMappingError>(rowEnds.length);
     let f = 0;
     let pos = 0;
     for (let i = 0; i < rowEnds.length; i++) {
@@ -365,14 +327,23 @@ export class RowBuilder {
         fields[k] = text.slice(pos, e);
         pos = e;
       }
-      const row = this.row(
-        fields,
-        lines[i]!,
-        (items === null ? null : items[i]) as Itemization | null,
-        onUnmapped,
-      );
-      if (row !== null) out.push(row);
+      out[i] = this.record(fields, lines[i]!);
     }
     return out;
   }
+}
+
+/** Row `i`'s raw fields in a batch (random access, for the rare row that needs them). @internal */
+export function batchFields(batch: native.Batch, i: number): string[] {
+  const { text, ends, rowEnds } = batch;
+  const start = i === 0 ? 0 : rowEnds[i - 1]!;
+  const end = rowEnds[i]!;
+  const fields = new Array<string>(end - start);
+  let pos = start === 0 ? 0 : ends[start - 1]!;
+  for (let f = start, k = 0; f < end; f++, k++) {
+    const e = ends[f]!;
+    fields[k] = text.slice(pos, e);
+    pos = e;
+  }
+  return fields;
 }

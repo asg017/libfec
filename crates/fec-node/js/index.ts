@@ -2,17 +2,15 @@
  * Parse FEC electronic filings (`.fec`) in Node, Deno and Bun.
  *
  * ```ts
- * import { open } from "@alex.garcia/libfec";
+ * import { Filing } from "@alex.garcia/libfec";
  *
- * const filing = open("1805248.fec");
- * try {
- *   for (const row of filing.itemizations()) {
- *     switch (row.itemization.type) {
- *       case "ScheduleA": console.log(row.itemization.contribution_amount); break;
- *     }
+ * using filing = new Filing("1805248.fec");
+ * console.log(filing.formType, filing.filerName);
+ * for (const item of filing.itemizations()) {
+ *   switch (item.type) {
+ *     case "ScheduleA": console.log(item.contribution_amount); break;
+ *     case "Unknown": break; // a record with no typed class
  *   }
- * } finally {
- *   filing.close();
  * }
  * ```
  *
@@ -20,23 +18,9 @@
  */
 import * as native from "./native.js";
 
-export {
-  open,
-  FilingReader,
-  type OpenOptions,
-  type CoverSummary,
-  type RawRecord,
-  type SkippedRow,
-} from "./reader.js";
-export {
-  Row,
-  type Value,
-  type RowValues,
-  type RowJSON,
-  type InvalidValue,
-  type DatesOption,
-} from "./row.js";
-export { read, Filing, columns, type Column } from "./filing.js";
+export { Filing, columns, type FilingOptions, type Column } from "./filing.js";
+export { Record, type Value, type RecordValues, type RecordJSON, type DatesOption } from "./record.js";
+export { Unknown, type UnknownJSON } from "./unknown.js";
 export { readHeader, type Header } from "./header.js";
 export { FecError, FecParseError, MissingMappingError } from "./errors.js";
 export type { Source } from "./source.js";

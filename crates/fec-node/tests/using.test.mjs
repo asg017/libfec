@@ -2,7 +2,7 @@
 // out there; it runs on Node 24+, Deno and Bun.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { open } from "../dist/index.js";
+import { Filing } from "../dist/index.js";
 import { fixture } from "./helpers.mjs";
 
 test("using disposes at block exit", () => {
@@ -14,12 +14,12 @@ test("using disposes at block exit", () => {
   assert.deepEqual(log, ["body", "disposed"]);
 });
 
-test("using closes a FilingReader", () => {
-  let reader;
+test("using closes a Filing", () => {
+  let filing;
   {
-    using f = open(fixture("1921705.fec"));
-    reader = f;
+    using f = new Filing(fixture("1921705.fec"));
+    filing = f;
     assert.equal([...f.itemizations()].length, 20);
   }
-  assert.equal(reader.closed, true);
+  assert.equal(filing.closed, true);
 });
