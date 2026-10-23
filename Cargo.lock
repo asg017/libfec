@@ -891,7 +891,7 @@ dependencies = [
 
 [[package]]
 name = "fec-cli"
-version = "0.0.35-alpha.4"
+version = "0.0.35-alpha.5"
 dependencies = [
  "anyhow",
  "arboard",
@@ -940,7 +940,7 @@ dependencies = [
 
 [[package]]
 name = "fec-node"
-version = "0.0.35-alpha.4"
+version = "0.0.35-alpha.5"
 dependencies = [
  "csv",
  "fec-js-core",
@@ -989,7 +989,7 @@ dependencies = [
 
 [[package]]
 name = "fec-py"
-version = "0.0.35-alpha.4"
+version = "0.0.35-alpha.5"
 dependencies = [
  "csv",
  "fec-cli",
@@ -1010,7 +1010,7 @@ dependencies = [
 
 [[package]]
 name = "fec-wasm"
-version = "0.0.35-alpha.4"
+version = "0.0.35-alpha.5"
 dependencies = [
  "csv",
  "fec-js-core",
