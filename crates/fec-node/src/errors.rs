@@ -7,8 +7,7 @@
 //! | `ENOENT`, `EACCES`, `EISDIR`, `EIO` | opening a path failed (Node-style) |
 //! | `FEC_PARSE` | header, cover or row could not be parsed |
 //! | `FEC_MISSING_MAPPING` | no column mapping for a row type and version |
-//! | `ERR_FILING_CLOSED` | the reader was closed |
-//! | `ERR_FILING_CONSUMED` | the reader was already read |
+//! | `ERR_FILING_CLOSED` | the source or reader was closed |
 
 /// Named `Result` so `#[napi]` recognizes it as a fallible return.
 pub type Result<T> = std::result::Result<T, napi::Error<String>>;

@@ -21,3 +21,4 @@ fec-js-core = { path = "../fec-js-core" }
 fec-rss = { path = "../fec-rss" }
 jiff = { version = "0.2.5", default-features = false, features = ["std"] }
 indexmap = "2.9.0"
+csv = "1.2.2"

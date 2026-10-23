@@ -1,5 +1,6 @@
-// A module worker parsing a filing with the wasm build; rows go back to the
-// page by structured clone (Row's data are own properties, so they survive).
+// A module worker parsing a filing with the wasm build; items and records go
+// back to the page by structured clone (a Record's data are own properties,
+// so they survive).
 //
 // The library is imported dynamically and `onmessage` is set synchronously:
 // the browser build initializes its wasm with top-level await, and a message
@@ -9,9 +10,10 @@ const lib = import("../../dist/index.js");
 
 self.onmessage = async (e) => {
   try {
-    const { open } = await lib;
-    const f = open(e.data, { id: "1721696" });
-    const rows = [...f.itemizations()];
+    const { Filing } = await lib;
+    const f = new Filing(e.data, { id: "1721696" });
+    const items = [...f.itemizations()];
+    const [firstRecord] = f.itemizationRecords();
     f.close();
     let codegen;
     try {
@@ -19,7 +21,7 @@ self.onmessage = async (e) => {
     } catch {
       codegen = false;
     }
-    self.postMessage({ n: rows.length, first: rows[0], rows, codegen });
+    self.postMessage({ n: items.length, first: items[0], items, firstRecord, codegen });
   } catch (err) {
     self.postMessage({ error: String(err) });
   }

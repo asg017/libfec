@@ -8,18 +8,26 @@
 // turns off the codegen paths), and checks:
 // - every committed fixture summarizes identically to the napi build in Node;
 // - a module worker, a File source, ERR_UNSUPPORTED_SOURCE;
+// - wasm memory doesn't grow by the file size per pass (memory.mjs);
 // - rss.fetch through the proxy, and the CORS explanation without one.
 import assert from "node:assert/strict";
 import { fileURLToPath } from "node:url";
 import puppeteer from "puppeteer-core";
 import { serve } from "../../scripts/serve.mjs";
 import { FIXTURES, bytes, napi } from "../helpers.mjs";
+import { memoryProblems } from "./memory.mjs";
 import { summarize } from "./summarize.mjs";
 import { findChrome } from "./chrome.mjs";
 
 const CRATES = fileURLToPath(new URL("../../../", import.meta.url));
 const fixtures = FIXTURES.map(([label]) => `/${label.replaceAll("\\", "/")}`);
 const expected = Object.fromEntries(FIXTURES.map(([label, path]) => [`/${label.replaceAll("\\", "/")}`, summarize(napi, bytes(path))]));
+// Matching the napi build means nothing if both just throw (an API that's
+// gone is a TypeError): every fixture must summarize without one.
+for (const [path, summary] of Object.entries(expected)) {
+  assert.notEqual(summary.error?.name, "TypeError", `${path}: ${summary.error?.message}`);
+  assert.ok(summary.error || summary.itemizationRecords, `${path}: no records`);
+}
 
 const FEED = fileURLToPath(new URL("../../../fec-rss/tests/fixtures/all.xml", import.meta.url));
 const browser = await puppeteer.launch({ executablePath: findChrome(), headless: true, args: ["--no-sandbox"], protocolTimeout: 300_000 });
@@ -63,7 +71,7 @@ try {
       codegen: !csp,
       version: napi.version,
       "a path is ERR_UNSUPPORTED_SOURCE": "true ERR_UNSUPPORTED_SOURCE",
-      "File source via arrayBuffer()": { id: "1721696", n: 1387 },
+      "File source via arrayBuffer()": { id: "1721696", n: 1387, m: 1387 },
       "rss.fetch via proxy": { n: 30, first: "ALLIED UNIVERSAL PAC", pubDate: true },
       "rss.fetch without a proxy explains CORS": "TypeError: true",
     };
@@ -78,16 +86,27 @@ try {
         console.error(`FAIL ${label}: ${name}: ${e.message}`);
       }
     }
+    const mem = byName["memory per pass"];
+    try {
+      assert.ok(mem.ok, mem.error);
+      assert.deepEqual(memoryProblems(mem.value), [], JSON.stringify(mem.value));
+      console.log(`ok   ${label}: memory per pass`);
+    } catch (e) {
+      failed++;
+      console.error(`FAIL ${label}: memory per pass: ${e.message}`);
+    }
     const worker = byName.worker;
     try {
       assert.ok(worker.ok, worker.error);
-      const f = napi.open(bytes(FIXTURES.find(([l]) => l.endsWith("fec-py/tests/fixtures/1721696.fec"))[1]));
+      const f = new napi.Filing(bytes(FIXTURES.find(([l]) => l.endsWith("fec-py/tests/fixtures/1721696.fec"))[1]));
       const [first] = f.itemizations();
+      const [firstRecord] = f.itemizationRecords();
       f.close();
       assert.equal(worker.value.n, 1387);
       assert.equal(worker.value.codegen, !csp, "the worker runs under the page's CSP mode");
+      assert.deepEqual(worker.value.first, JSON.parse(JSON.stringify(first)));
       // A structured clone keeps the own properties (fields included), not toJSON()'s shape.
-      assert.deepEqual(worker.value.first, JSON.parse(JSON.stringify({ ...first })));
+      assert.deepEqual(worker.value.firstRecord, JSON.parse(JSON.stringify({ ...firstRecord })));
       console.log(`ok   ${label}: worker`);
     } catch (e) {
       failed++;

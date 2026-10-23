@@ -50,62 +50,42 @@ function busy(on) {
 
 // ---- sources ----------------------------------------------------------------
 
-async function download(url, label) {
-  setStatus(`Downloading ${label}…`);
-  const res = await fetch(PROXY + encodeURIComponent(url));
-  if (!res.ok) throw new Error(`${label}: HTTP ${res.status}${res.status === 404 ? " (no such filing)" : ""}`);
-  const total = Number(res.headers.get("content-length")) || 0;
-  const reader = res.body.getReader();
-  const chunks = [];
-  let got = 0;
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    chunks.push(value);
-    got += value.length;
-    setStatus(`Downloading ${label}… ${mb(got)}${total ? ` of ${mb(total)}` : ""}`);
-  }
-  const bytes = new Uint8Array(got);
-  let at = 0;
-  for (const c of chunks) {
-    bytes.set(c, at);
-    at += c.length;
-  }
-  return bytes;
-}
-
 let loading = false;
 
-async function load(getBytes, id) {
+/** Have the worker parse a filing: `{ kind: "parse", bytes }` or `{ kind: "fromId" }`. */
+async function load(msg, label, transfer = []) {
   // One load at a time: the feed list and the inputs are ignored meanwhile.
   if (loading) return;
   loading = true;
   busy(true);
   try {
-    const bytes = await getBytes();
-    setStatus(`Parsing ${mb(bytes.length)}…`);
-    const size = bytes.length;
-    const result = await ask({ kind: "parse", bytes, filingId: id }, [bytes.buffer]);
-    render(result, size);
+    setStatus(msg.kind === "fromId" ? `Downloading ${label}…` : `Parsing ${label}…`);
+    const result = await ask(msg, transfer);
+    render(result);
     const secs = (result.timings.open + result.timings.itemizations) / 1000;
+    const download = result.timings.download ? ` (downloaded in ${(result.timings.download / 1000).toFixed(2)} s)` : "";
     setStatus(
-      `Parsed ${int.format(result.itemizations)} itemizations from ${mb(size)} in ${secs.toFixed(2)} s ` +
-        `(${int.format(Math.round(result.itemizations / Math.max(secs, 1e-3)))} rows/s) in a Web Worker.`,
+      `Parsed ${int.format(result.itemizations)} itemizations from ${mb(result.bytes)} in ${secs.toFixed(2)} s ` +
+        `(${int.format(Math.round(result.itemizations / Math.max(secs, 1e-3)))} rows/s) in a Web Worker${download}.`,
     );
   } catch (e) {
-    setStatus(e.message, true);
+    // Filing.fromId: ERR_FILING_NOT_FOUND for a 404, ERR_HTTP for another status.
+    setStatus(e.code === "ERR_FILING_NOT_FOUND" ? `${label}: no such filing on docquery.fec.gov.` : e.message, true);
   } finally {
     loading = false;
     busy(false);
   }
 }
 
-function loadFile(file) {
-  load(async () => new Uint8Array(await file.arrayBuffer()), file.name.replace(/\.fec$/i, "").replace(/^FEC-/, ""));
+async function loadFile(file) {
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const id = file.name.replace(/\.fec$/i, "").replace(/^FEC-/, "");
+  load({ kind: "parse", bytes, filingId: id }, mb(bytes.length), [bytes.buffer]);
 }
 
 function loadId(id) {
-  load(() => download(`https://docquery.fec.gov/dcdev/posted/${id}.fec`, `filing ${id}`), id);
+  // docquery.fec.gov sends no CORS headers, so fromId goes through the proxy.
+  load({ kind: "fromId", filingId: id, proxy: PROXY }, `filing ${id}`);
 }
 
 const drop = $("drop");
@@ -180,9 +160,9 @@ function ranked(el, list, label) {
   );
 }
 
-function render(r, size) {
+function render(r) {
   $("result").hidden = false;
-  const s = r.coverSummary;
+  const s = r.filer;
   $("filer-name").textContent = s.filerName || "(no name)";
   const coverage = s.coverageFromDate ? `${s.coverageFromDate} to ${s.coverageThroughDate}` : "no coverage period";
   $("filer-meta").textContent =
@@ -200,7 +180,7 @@ function render(r, size) {
   if (c?.type === "Form3X") kpis.push(["Cash on hand", usd.format(c.summary.line8_cash_on_hand_close_of_period.column_a)]);
   if (c?.type === "Form3") kpis.push(["Cash on hand", usd.format(c.summary.line8_cash_on_hand_close_of_period)]);
   if (c?.type === "Form3P") kpis.push(["Cash on hand", usd.format(c.summary.line10_cash_on_hand_end_period)]);
-  kpis.push(["Parse time", `${((r.timings.open + r.timings.itemizations) / 1000).toFixed(2)} s`], ["Size", mb(size)]);
+  kpis.push(["Parse time", `${((r.timings.open + r.timings.itemizations) / 1000).toFixed(2)} s`], ["Size", mb(r.bytes)]);
   $("kpis").innerHTML = kpis.map(([k, v]) => `<div class="kpi"><div class="v">${esc(v)}</div><div class="k">${esc(k)}</div></div>`).join("");
 
   const counts = Object.entries(r.counts);

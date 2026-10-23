@@ -1,4 +1,4 @@
-.PHONY: install build build-release build-browser test test-node test-deno test-bun test-slow bench typecheck gen-types docs examples clean
+.PHONY: install build build-release build-browser test test-node test-deno test-bun test-slow test-network bench typecheck gen-types docs examples examples-network clean
 
 install:                       ## one-time: npm ci
 	npm ci
@@ -28,6 +28,11 @@ test-slow: build-release        ## perf guards on benchmarks/1805248.fec (all th
 	node scripts/test.mjs deno --slow
 	node scripts/test.mjs bun --slow
 
+test-network:                  ## live requests to fec.gov (Filing.fromId), all three runtimes
+	node scripts/test.mjs node --network
+	node scripts/test.mjs deno --network
+	node scripts/test.mjs bun --network
+
 BENCH_FILE ?= ../../benchmarks/1805248.fec
 
 bench: build-release           ## benchmarks/node/bench.mjs on BENCH_FILE under node, deno, bun
@@ -42,6 +47,11 @@ examples:                      ## run every examples/*.mjs under node, deno and 
 	node scripts/examples.mjs node
 	node scripts/examples.mjs deno
 	node scripts/examples.mjs bun
+
+examples-network:              ## the examples too, including the ones that fetch from fec.gov
+	node scripts/examples.mjs node --network
+	node scripts/examples.mjs deno --network
+	node scripts/examples.mjs bun --network
 
 GEN_SCRATCH := ../../target/gen-types
 

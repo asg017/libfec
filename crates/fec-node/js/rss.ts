@@ -18,6 +18,7 @@
  */
 import * as native from "./native.js";
 import { callNative } from "./errors.js";
+import { fetchExplained, proxied, withTimeout, type ProxyOption } from "./fetch.js";
 
 /** One new filing in the feed. */
 export interface Item {
@@ -33,7 +34,7 @@ export interface Item {
   readonly guid: string;
   /** The filer's committee ID (`"C00536425"`). */
   readonly committeeId: string | null;
-  /** The filing ID (`"2019253"`): `open()` the `.fec` at {@link Item.link}. */
+  /** The filing ID (`"2019253"`), for `Filing.fromId()` (which downloads the `.fec` at {@link Item.link}). */
   readonly filingId: string | null;
   /** The form type as filed (`"F3XN"`). */
   readonly formType: string | null;
@@ -97,21 +98,7 @@ export interface FetchOptions extends FeedOptions {
    *   (`"https://proxy.example/?url="`);
    * - a function: given the feed URL, returns the URL to fetch.
    */
-  proxy?: string | ((url: string) => string);
-}
-
-/** The URL {@link fetch} requests for `url`, given the `proxy` option. */
-function proxied(url: string, proxy: FetchOptions["proxy"]): string {
-  if (proxy === undefined) return url;
-  if (typeof proxy === "function") return proxy(url);
-  if (typeof proxy !== "string") throw new TypeError(`proxy must be a string or a function, got ${typeof proxy}`);
-  const encoded = encodeURIComponent(url);
-  return proxy.includes("{url}") ? proxy.replaceAll("{url}", encoded) : proxy + encoded;
-}
-
-/** A browser page or worker, where cross-origin requests need CORS. (Deno defines `WorkerGlobalScope` in its workers, but has no CORS.) */
-function inBrowser(): boolean {
-  return ("document" in globalThis || "WorkerGlobalScope" in globalThis) && !("Deno" in globalThis);
+  proxy?: ProxyOption;
 }
 
 function join(value: string | Iterable<string> | undefined): string | null {
@@ -166,29 +153,26 @@ export function parseFeed(xml: string | Uint8Array | ArrayBuffer): Feed {
  * {@link FeedOptions} for the filters.
  *
  * In a browser, pass a {@link FetchOptions.proxy}: the FEC sends no CORS
- * headers. Without one, the request fails with a `TypeError` that says so.
+ * headers. Without one, the request fails with a `TypeError` that says so
+ * (`code: "ERR_CORS"`).
  *
  * @throws The `fetch()` error on a network failure or abort; an `Error` for
  * a non-2xx response; {@link FecParseError} if the body isn't a feed.
  */
 export async function fetch(options: FetchOptions = {}): Promise<Feed> {
   const url = proxied(feedUrl(options), options.proxy);
-  let response: Response;
+  // The caller's signal as is; without one, a 60 s timeout.
+  const deadline = withTimeout(options.signal, options.signal === undefined ? 60_000 : Infinity);
+  let body: Uint8Array;
   try {
-    response = await globalThis.fetch(url, { signal: options.signal ?? AbortSignal.timeout(60_000) });
-  } catch (e) {
-    // A CORS block surfaces as a bare "Failed to fetch" TypeError; say why.
-    if (e instanceof TypeError && options.proxy === undefined && inBrowser()) {
-      throw new TypeError(
-        `fetching ${url} failed, probably because the FEC sends no CORS headers and the browser ` +
-          "blocked the response. Pass a `proxy` that adds them (see FetchOptions.proxy). The original error is the `cause`.",
-        { cause: e },
-      );
+    const response = await fetchExplained(url, { signal: deadline.signal }, options.proxy);
+    if (!response.ok) {
+      void response.body?.cancel().catch(() => {});
+      throw new Error(`GET ${url}: ${response.status} ${response.statusText}`);
     }
-    throw e;
+    body = new Uint8Array(await response.arrayBuffer());
+  } finally {
+    deadline.cleanup();
   }
-  if (!response.ok) {
-    throw new Error(`GET ${url}: ${response.status} ${response.statusText}`);
-  }
-  return parseFeed(new Uint8Array(await response.arrayBuffer()));
+  return parseFeed(body);
 }

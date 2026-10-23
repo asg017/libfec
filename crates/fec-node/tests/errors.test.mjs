@@ -1,7 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { openSync } from "node:fs";
-import { FecError, FecParseError, MissingMappingError, readHeader } from "../dist/index.js";
+import { FecError, FecParseError, Filing, MissingMappingError, readHeader } from "../dist/index.js";
+import { fixture } from "./helpers.mjs";
 
 test("a missing path is a Node-style ENOENT, not a FecError", () => {
   let err;
@@ -52,11 +53,37 @@ test("MissingMappingError carries its context", () => {
   assert.ok(e instanceof FecError);
 });
 
-test("FecError keeps its code and subclass names", () => {
+test("FecError keeps its code, status and subclass names", () => {
   const e = new FecError("x", { code: "ERR_FILING_CLOSED" });
   assert.equal(e.name, "FecError");
   assert.equal(e.code, "ERR_FILING_CLOSED");
+  assert.equal(e.status, undefined);
   assert.equal(new FecError("y").code, undefined);
+  for (const [code, status] of [["ERR_FILING_NOT_FOUND", 404], ["ERR_HTTP", 503]]) {
+    const http = new FecError("z", { code, status });
+    assert.equal(http.code, code);
+    assert.equal(http.status, status);
+  }
+});
+
+test("ERR_FILING_CLOSED from a closed Filing", () => {
+  const f = new Filing(fixture("1921705.fec"));
+  f.close();
+  for (const view of ["itemizations", "itemizationRecords"]) {
+    assert.throws(() => f[view](), (e) => e instanceof FecError && e.name === "FecError" && e.code === "ERR_FILING_CLOSED");
+  }
+});
+
+test("ERR_FILING_NOT_FOUND and ERR_HTTP from fromId()", async () => {
+  const real = globalThis.fetch;
+  try {
+    for (const [status, code] of [[404, "ERR_FILING_NOT_FOUND"], [500, "ERR_HTTP"]]) {
+      globalThis.fetch = async () => new Response("", { status });
+      await assert.rejects(Filing.fromId(1), (e) => e instanceof FecError && e.code === code && e.status === status);
+    }
+  } finally {
+    globalThis.fetch = real;
+  }
 });
 
 test("fromNative maps on `code` alone, whatever threw it", async () => {

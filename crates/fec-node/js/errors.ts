@@ -8,22 +8,29 @@ import { errnoOf, messagePath } from "./native.js";
  * |---|---|
  * | `FEC_PARSE` | {@link FecParseError}: the header, cover or a row can't be parsed |
  * | `FEC_MISSING_MAPPING` | {@link MissingMappingError}: no column mapping for a row type |
- * | `ERR_FILING_CLOSED` | reading a {@link FilingReader} after `close()` |
- * | `ERR_FILING_CONSUMED` | a second `itemizations()`, `rows()`, `records()` or `for…of` on one reader |
+ * | `ERR_FILING_CLOSED` | reading a {@link Filing} after `close()` |
+ * | `ERR_FILING_NOT_FOUND` | {@link Filing.fromId}: docquery has no such filing (HTTP 404); `status` is set |
+ * | `ERR_HTTP` | {@link Filing.fromId}: any other non-2xx response; `status` is set |
  *
  * A missing or unreadable path is not a `FecError`: it throws the same error
  * Node's `fs.openSync` would (`code: "ENOENT"`, `path`, `syscall: "open"`).
+ * Nor is a network failure: {@link Filing.fromId} and `rss.fetch` let the
+ * runtime's `fetch()` error through, except that a browser's CORS block
+ * becomes a `TypeError` with `code: "ERR_CORS"` that explains it.
  *
  * @category Errors
  */
 export class FecError extends Error {
   /** What went wrong; see the table above. */
   code?: string;
+  /** The HTTP status, for `ERR_FILING_NOT_FOUND` and `ERR_HTTP`. */
+  status?: number;
 
-  constructor(message: string, options?: { code?: string; cause?: unknown }) {
+  constructor(message: string, options?: { code?: string; status?: number; cause?: unknown }) {
     super(message, options?.cause === undefined ? undefined : { cause: options.cause });
     this.name = new.target.name;
     if (options?.code !== undefined) this.code = options.code;
+    if (options?.status !== undefined) this.status = options.status;
   }
 }
 
@@ -40,8 +47,9 @@ export class FecParseError extends FecError {
 
 /**
  * A row's type has no column mapping in the filing's FEC version, so its
- * columns can't be named. Raised by `rows()` (unless `unknownRows: "skip"`)
- * and {@link columns}. `code: "FEC_MISSING_MAPPING"`.
+ * columns can't be named. Raised by `itemizationRecords()`, by
+ * `itemizations()` for a record with no typed class, and by {@link columns}.
+ * `code: "FEC_MISSING_MAPPING"`.
  *
  * @category Errors
  */
@@ -71,9 +79,23 @@ const IO_CODES: Record<string, string> = {
   EIO: "i/o error",
 };
 
+/**
+ * What a native call that may open a path needs for its errors: the path as
+ * given, and optionally how its message prints it, fixed at an earlier time
+ * (see {@link messagePath}: Node on Windows resolves it against the cwd).
+ *
+ * @internal
+ */
+export interface PathContext {
+  path?: string;
+  messagePath?: string;
+}
+
 /** A Node-style system error, shaped like `fs.openSync`'s. */
-function systemError(code: string, path: string, cause: unknown): Error {
-  const err = new Error(`${code}: ${IO_CODES[code]}, open '${messagePath(path)}'`, { cause });
+function systemError(code: string, context: PathContext, cause: unknown): Error {
+  const path = context.path ?? "";
+  const shown = context.messagePath ?? messagePath(path);
+  const err = new Error(`${code}: ${IO_CODES[code]}, open '${shown}'`, { cause });
   const errno = errnoOf(code);
   return Object.assign(err, {
     code,
@@ -89,7 +111,7 @@ function systemError(code: string, path: string, cause: unknown): Error {
  *
  * @internal
  */
-export function fromNative(e: unknown, context: { path?: string } = {}): unknown {
+export function fromNative(e: unknown, context: PathContext = {}): unknown {
   // Only the `code` matters, not how the binding built the error, so any
   // backend that throws `{ code, message }` (napi, a wasm adapter) maps alike.
   if (e === null || typeof e !== "object" || e instanceof FecError) return e;
@@ -99,19 +121,18 @@ export function fromNative(e: unknown, context: { path?: string } = {}): unknown
     case "FEC_PARSE":
       return new FecParseError(msg);
     case "ERR_FILING_CLOSED":
-    case "ERR_FILING_CONSUMED":
     case "FEC_MISSING_MAPPING":
       return new FecError(msg, { code });
     default:
       if (typeof code === "string" && code in IO_CODES) {
-        return systemError(code, context.path ?? "", e);
+        return systemError(code, context, e);
       }
       return e;
   }
 }
 
 /** Run a native call, converting what it throws. @internal */
-export function callNative<T>(f: () => T, context?: { path?: string }): T {
+export function callNative<T>(f: () => T, context?: PathContext): T {
   try {
     return f();
   } catch (e) {

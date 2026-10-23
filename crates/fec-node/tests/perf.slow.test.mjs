@@ -6,7 +6,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { open } from "../dist/index.js";
+import { Filing } from "../dist/index.js";
 
 const FILE =
   process.env.FEC_BENCH_FILE ??
@@ -21,7 +21,7 @@ function measure(method) {
   const t0 = performance.now();
   let peak = 0;
   let n = 0;
-  const f = open(FILE);
+  const f = new Filing(FILE);
   try {
     for (const _ of f[method]()) {
       if (++n % 10000 === 0) peak = Math.max(peak, process.memoryUsage().rss);
@@ -32,8 +32,8 @@ function measure(method) {
   return [n, (performance.now() - t0) / 1000, peak / 2 ** 20];
 }
 
-test("rows(): all 408,160 rows, under 1 s and 400 MB", { skip }, () => {
-  const [n, s, mb] = measure("rows");
+test("itemizationRecords(): all 408,160 rows, under 1 s and 400 MB", { skip }, () => {
+  const [n, s, mb] = measure("itemizationRecords");
   assert.equal(n, 408160);
   assert.ok(s < 1, `${s.toFixed(2)} s`);
   assert.ok(mb < 400, `${mb.toFixed(0)} MB`);

@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { FecParseError, rss } from "../dist/index.js";
+import { leftovers } from "./helpers.mjs";
 
 // A trimmed copy of the live ?preDefinedFilingType=ALL feed (2026-10-10),
 // shared with the fec-rss crate's and the Python bindings' tests.
@@ -99,6 +100,15 @@ test("fetch: a non-2xx response is an Error; the caller's signal is passed throu
     await assert.rejects(rss.fetch({ signal }), /503 Service Unavailable/);
   });
   assert.equal(seen, signal);
+});
+
+test("fetch: its default 60 s timeout is cleared once the feed is read", async () => {
+  for (const response of [() => new Response(FEED), () => new Response("nope", { status: 503 })]) {
+    const left = await leftovers(60_000, undefined, () =>
+      withFetch(response, () => rss.fetch().catch(() => {})),
+    );
+    assert.equal(left.timers, 0);
+  }
 });
 
 test("fetch: proxy as a prefix, a {url} template or a function", async () => {

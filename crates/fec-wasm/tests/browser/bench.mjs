@@ -29,7 +29,7 @@ try {
   const r = await page.evaluate((runs) => window.__bench("/bench.fec", runs), runs);
   console.log(`\n${version} — wasm build — ${file} (${r.mb.toFixed(0)} MB, best of ${runs})\n`);
   console.log("| scenario | rows | seconds |\n|---|---:|---:|");
-  for (const name of ["itemizations", "rows", "records", "read"]) {
+  for (const name of ["itemizations", "itemizationRecords"]) {
     console.log(`| ${name} | ${r[name].rows} | ${r[name].seconds.toFixed(2)} |`);
   }
 } finally {

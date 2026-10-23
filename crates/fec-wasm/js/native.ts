@@ -100,6 +100,70 @@ export function readHeaderBytes(bytes: Uint8Array): NativeHeader {
   }
 }
 
+export function typeRecord(fields: string[], fecVersion: string, nameDelimiter: string | null): TokenBatch {
+  try {
+    return wasm.typeRecord(fields, fecVersion, nameDelimiter ?? undefined);
+  } catch (e) {
+    throw trapped(e);
+  }
+}
+
+/** Runs `f` on a wasm object, marking `dead` after a trap. */
+function guarded<O, T>(self: { inner: O; dead: boolean }, f: (o: O) => T): T {
+  if (self.dead) {
+    throw Object.assign(new Error("this reader stopped after a WebAssembly trap"), { code: "ERR_WASM_TRAP" });
+  }
+  try {
+    return f(self.inner);
+  } catch (e) {
+    if (e instanceof WebAssembly.RuntimeError) self.dead = true;
+    throw trapped(e);
+  }
+}
+
+/**
+ * The wasm `NativeSource`: the bytes, copied into wasm memory once, for any
+ * number of {@link NativeReader} passes. Inputs over {@link MAX_BYTES} are
+ * refused up front; after a trap it is marked dead, as a reader is.
+ */
+export class NativeSource {
+  readonly #s: { inner: wasm.NativeSource; dead: boolean };
+
+  private constructor(inner: wasm.NativeSource) {
+    this.#s = { inner, dead: false };
+  }
+
+  static openPath(path: string): NativeSource {
+    return new NativeSource(wasm.NativeSource.openPath(path));
+  }
+
+  static openBytes(bytes: Uint8Array): NativeSource {
+    if (bytes.length > MAX_BYTES) throw tooLarge(bytes.length);
+    try {
+      return new NativeSource(wasm.NativeSource.openBytes(bytes));
+    } catch (e) {
+      throw trapped(e);
+    }
+  }
+
+  reader(typed: boolean): NativeReader {
+    return NativeReader.wrap(guarded(this.#s, (s) => s.reader(typed)));
+  }
+  get id(): string | null {
+    return guarded(this.#s, (s) => s.id);
+  }
+  get sourceLength(): number {
+    return guarded(this.#s, (s) => s.sourceLength);
+  }
+  get closed(): boolean {
+    return this.#s.dead || guarded(this.#s, (s) => s.closed);
+  }
+  /** Idempotent, and a no-op after a trap. */
+  close(): void {
+    if (!this.#s.dead) guarded(this.#s, (s) => s.close());
+  }
+}
+
 /**
  * The wasm `NativeReader`, with the browser's limits: inputs over
  * {@link MAX_BYTES} are refused up front, and after a trap the reader is
@@ -107,11 +171,15 @@ export function readHeaderBytes(bytes: Uint8Array): NativeHeader {
  * the real error with wasm-bindgen's "recursive use of an object".
  */
 export class NativeReader {
-  #inner: wasm.NativeReader;
-  #dead = false;
+  readonly #r: { inner: wasm.NativeReader; dead: boolean };
 
   private constructor(inner: wasm.NativeReader) {
-    this.#inner = inner;
+    this.#r = { inner, dead: false };
+  }
+
+  /** @internal A reader made by {@link NativeSource.reader}. */
+  static wrap(inner: wasm.NativeReader): NativeReader {
+    return new NativeReader(inner);
   }
 
   static openPath(path: string): NativeReader {
@@ -128,15 +196,7 @@ export class NativeReader {
   }
 
   #call<T>(f: (r: wasm.NativeReader) => T): T {
-    if (this.#dead) {
-      throw Object.assign(new Error("this reader stopped after a WebAssembly trap"), { code: "ERR_WASM_TRAP" });
-    }
-    try {
-      return f(this.#inner);
-    } catch (e) {
-      if (e instanceof WebAssembly.RuntimeError) this.#dead = true;
-      throw trapped(e);
-    }
+    return guarded(this.#r, f);
   }
 
   get id(): string | null {
@@ -157,20 +217,20 @@ export class NativeReader {
   get coverLine(): number {
     return this.#call((r) => r.coverLine);
   }
+  get typed(): boolean {
+    return this.#call((r) => r.typed);
+  }
   get closed(): boolean {
-    return this.#dead || this.#call((r) => r.closed);
+    return this.#r.dead || this.#call((r) => r.closed);
   }
   coverData(): TokenBatch {
     return this.#call((r) => r.coverData());
-  }
-  setTyped(typed: boolean): void {
-    this.#call((r) => r.setTyped(typed));
   }
   nextBatch(n: number): Batch | null {
     return this.#call((r) => r.nextBatch(n));
   }
   /** Idempotent, and a no-op on a reader that trapped (its memory is lost until the page reloads). */
   close(): void {
-    if (!this.#dead) this.#call((r) => r.close());
+    if (!this.#r.dead) this.#call((r) => r.close());
   }
 }

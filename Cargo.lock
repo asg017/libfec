@@ -942,6 +942,7 @@ dependencies = [
 name = "fec-node"
 version = "0.0.35-alpha.1"
 dependencies = [
+ "csv",
  "fec-js-core",
  "fec-parser",
  "fec-rss",
@@ -1011,6 +1012,7 @@ dependencies = [
 name = "fec-wasm"
 version = "0.0.35-alpha.1"
 dependencies = [
+ "csv",
  "fec-js-core",
  "fec-parser",
  "fec-rss",
