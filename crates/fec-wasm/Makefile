@@ -1,4 +1,4 @@
-.PHONY: install install-tools build build-dev build-js test test-node test-deno test-bun test-browser bench-browser demo clean
+.PHONY: install install-tools build build-dev build-js test test-node test-deno test-bun test-browser test-workers bench-browser demo clean
 
 install:                       ## one-time: npm ci
 	npm ci
@@ -31,6 +31,9 @@ test-bun:
 test-browser:                  ## headless Chrome (CHROME_PATH=...): the API vs the napi build (default and strict CSP), then the demo
 	node tests/browser/run.mjs
 	node tests/browser/demo.mjs
+
+test-workers:                  ## the packed package in Cloudflare's workerd (wrangler via npx): bundled wasm, parity with the napi build
+	node tests/workers/run.mjs
 
 bench-browser:                 ## the browser build in headless Chrome on BENCH_FILE (default benchmarks/1805248.fec)
 	node tests/browser/bench.mjs $(BENCH_FILE)

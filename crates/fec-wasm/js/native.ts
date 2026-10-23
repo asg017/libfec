@@ -2,32 +2,82 @@
 // instead of the napi addon. scripts/build.mjs puts this file in place of
 // crates/fec-node/js/native.ts; every other module in js/ is shared as is.
 //
-// The module initializes the wasm with top-level await, so once
-// `import ... from "@alex.garcia/libfec-wasm"` resolves, everything is synchronous,
-// as in Node.
+// Importing this module doesn't load the wasm: the entry points do (js/index.ts
+// with `await init()`, js/workerd.ts with `initSync()`), or the caller does
+// (js/manual.ts). Once it is loaded everything is synchronous, as in Node.
 
-import init, * as wasm from "../wasm/libfec.js";
-import type { Batch, NativeCoverSummary, NativeHeader, TokenBatch } from "../wasm/libfec.js";
+import initGlue, * as wasm from "../wasm/libfec.js";
+import type { Batch, InitInput, NativeCoverSummary, NativeHeader, SyncInitInput, TokenBatch } from "../wasm/libfec.js";
+import { VERSION } from "./version.js";
 
 export type {
   Batch,
   Column,
+  InitInput,
   NativeCoverSummary,
   NativeHeader,
   NativeHeaderField,
   NativeRssFeed,
   NativeRssItem,
+  SyncInitInput,
   TokenBatch,
 } from "../wasm/libfec.js";
-export { parseRssBytes, parseRssText, readHeaderPath, rssFeedUrl, schema, version } from "../wasm/libfec.js";
 
-// `new URL(..., import.meta.url)`, written out, so bundlers (Vite, webpack,
-// esbuild with a loader) see the asset and copy it.
-const WASM_URL = new URL("../wasm/libfec_bg.wasm", import.meta.url);
+// ---- loading the wasm ------------------------------------------------------
 
-await init({
-  module_or_path: WASM_URL.protocol === "file:" ? await readFileUrl(WASM_URL) : WASM_URL,
-});
+let ready = false;
+
+/**
+ * Loads the wasm from `input` (a URL, `Response`, bytes or a compiled
+ * `WebAssembly.Module`), by default `libfec_bg.wasm` next to this package's
+ * `wasm/libfec.js`. A no-op once the wasm is loaded.
+ */
+export async function init(input?: InitInput | Promise<InitInput>): Promise<void> {
+  if (ready) return;
+  if (input === undefined) {
+    // `new URL(..., import.meta.url)`, written out, so bundlers (Vite, webpack,
+    // esbuild with a loader) see the asset and copy it.
+    const url = new URL("../wasm/libfec_bg.wasm", import.meta.url);
+    input = url.protocol === "file:" ? await readFileUrl(url) : url;
+  }
+  await initGlue({ module_or_path: input });
+  ready = true;
+}
+
+/**
+ * Loads the wasm synchronously from its bytes or a compiled
+ * `WebAssembly.Module`: in Cloudflare Workers, where wasm can't be compiled
+ * at run time, `import wasm from "@alex.garcia/libfec-wasm/libfec_bg.wasm"`
+ * gives a module to pass here. A no-op once the wasm is loaded.
+ */
+export function initSync(input: SyncInitInput): void {
+  if (ready) return;
+  wasm.initSync({ module: input });
+  ready = true;
+}
+
+/** Throws `ERR_NOT_INITIALIZED` before {@link init} or {@link initSync}. */
+function need(): void {
+  if (ready) return;
+  throw Object.assign(
+    new Error(
+      "the libfec wasm isn't loaded: call init() or initSync() from @alex.garcia/libfec-wasm/manual first, " +
+        "or import @alex.garcia/libfec-wasm, which loads it",
+    ),
+    { code: "ERR_NOT_INITIALIZED" },
+  );
+}
+
+/** The crate version, recorded at build time so reading it needs no wasm. */
+export function version(): string {
+  return VERSION;
+}
+
+export const parseRssBytes: typeof wasm.parseRssBytes = (...a) => (need(), wasm.parseRssBytes(...a));
+export const parseRssText: typeof wasm.parseRssText = (...a) => (need(), wasm.parseRssText(...a));
+export const readHeaderPath: typeof wasm.readHeaderPath = (...a) => (need(), wasm.readHeaderPath(...a));
+export const rssFeedUrl: typeof wasm.rssFeedUrl = (...a) => (need(), wasm.rssFeedUrl(...a));
+export const schema: typeof wasm.schema = (...a) => (need(), wasm.schema(...a));
 
 /**
  * Node, Deno and Bun importing the browser build from disk (tests, SSR):
@@ -93,6 +143,7 @@ function trapped(e: unknown): unknown {
 }
 
 export function readHeaderBytes(bytes: Uint8Array): NativeHeader {
+  need();
   try {
     return wasm.readHeaderBytes(bytes.length > HEADER_BYTES ? bytes.subarray(0, HEADER_BYTES) : bytes);
   } catch (e) {
@@ -101,6 +152,7 @@ export function readHeaderBytes(bytes: Uint8Array): NativeHeader {
 }
 
 export function typeRecord(fields: string[], fecVersion: string, nameDelimiter: string | null): TokenBatch {
+  need();
   try {
     return wasm.typeRecord(fields, fecVersion, nameDelimiter ?? undefined);
   } catch (e) {
@@ -134,10 +186,12 @@ export class NativeSource {
   }
 
   static openPath(path: string): NativeSource {
+    need();
     return new NativeSource(wasm.NativeSource.openPath(path));
   }
 
   static openBytes(bytes: Uint8Array): NativeSource {
+    need();
     if (bytes.length > MAX_BYTES) throw tooLarge(bytes.length);
     try {
       return new NativeSource(wasm.NativeSource.openBytes(bytes));
@@ -183,10 +237,12 @@ export class NativeReader {
   }
 
   static openPath(path: string): NativeReader {
+    need();
     return new NativeReader(wasm.NativeReader.openPath(path));
   }
 
   static openBytes(bytes: Uint8Array): NativeReader {
+    need();
     if (bytes.length > MAX_BYTES) throw tooLarge(bytes.length);
     try {
       return new NativeReader(wasm.NativeReader.openBytes(bytes));

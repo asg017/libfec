@@ -6,9 +6,9 @@
 //   node scripts/build.mjs --dev     # unoptimized wasm, no wasm-opt (fast rebuilds)
 //   node scripts/build.mjs --js      # only the TypeScript step
 import { spawnSync } from "node:child_process";
-import { cpSync, existsSync, mkdirSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { jsSourceHash } from "./source-hash.mjs";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { join } from "node:path";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
@@ -60,16 +60,24 @@ if (!jsOnly) {
   writeFileSync(join(ROOT, "wasm", "build.json"), JSON.stringify({ release: !dev }) + "\n");
 }
 
-// The shared JS layer, with this package's native.ts in place of the napi one.
+// The shared JS layer, with this package's js/ on top: native.ts in place of
+// the napi one, and the entry points (index.ts, manual.ts, workerd.ts) around
+// the shared index.ts, which becomes api.ts.
 const src = join(ROOT, "build", "src");
 rmSync(join(ROOT, "build"), { recursive: true, force: true });
 mkdirSync(src, { recursive: true });
 cpSync(join(WORKSPACE, "crates", "fec-node", "js"), src, { recursive: true });
-cpSync(join(ROOT, "js", "native.ts"), join(src, "native.ts"));
+renameSync(join(src, "index.ts"), join(src, "api.ts"));
+cpSync(join(ROOT, "js"), src, { recursive: true });
 if (!existsSync(join(ROOT, "wasm", "libfec.js"))) {
   console.error("wasm/ is missing: run without --js first");
   process.exit(1);
 }
+// The crate version, read from the wasm here so `version` needs no wasm
+// loaded at run time (the shared api.ts reads it on import).
+const glue = await import(pathToFileURL(join(ROOT, "wasm", "libfec.js")).href);
+glue.initSync({ module: readFileSync(join(ROOT, "wasm", "libfec_bg.wasm")) });
+writeFileSync(join(src, "version.ts"), `export const VERSION = ${JSON.stringify(glue.version())};\n`);
 // native.ts imports "../wasm/libfec.js": the same relative path from
 // build/src (for tsc) as from dist/ (at runtime).
 cpSync(join(ROOT, "wasm"), join(ROOT, "build", "wasm"), { recursive: true });

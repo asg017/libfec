@@ -7,11 +7,18 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
+      "workerd": "./dist/workerd.js",
       "default": "./dist/index.js"
-    }
+    },
+    "./manual": {
+      "types": "./dist/manual.d.ts",
+      "default": "./dist/manual.js"
+    },
+    "./libfec_bg.wasm": "./wasm/libfec_bg.wasm"
   },
   "sideEffects": [
-    "./dist/native.js"
+    "./dist/index.js",
+    "./dist/workerd.js"
   ],
   "files": [
     "dist",

@@ -58,6 +58,32 @@ Without a bundler, serve the package directory and import `dist/index.js` from a
 **Loading:** the module initializes the wasm with top-level await. Once
 `import "@alex.garcia/libfec-wasm"` resolves, every call is synchronous, as in Node.
 
+### Cloudflare Workers, and loading the wasm yourself
+
+In Cloudflare Workers the plain import just works: wrangler resolves the package's
+`"workerd"` export condition to an entry that imports `libfec_bg.wasm` (which wrangler
+bundles as a compiled `WebAssembly.Module`) and instantiates it with `initSync`. Workers
+can't fetch the wasm relative to `import.meta.url` or compile it from bytes at run time,
+so the default entry can't work there.
+
+```ts
+import { Filing } from "@alex.garcia/libfec-wasm"; // in a Worker
+```
+
+For any other runtime where the package can't find or compile the wasm itself,
+`@alex.garcia/libfec-wasm/manual` exports the same API plus `init()` and `initSync()`,
+and loads nothing on import. Call one of them once, before anything else; until then
+every call throws an `Error` with `code: "ERR_NOT_INITIALIZED"` (`version` aside). The
+wasm is exported as `@alex.garcia/libfec-wasm/libfec_bg.wasm`.
+
+```ts
+import { initSync, Filing } from "@alex.garcia/libfec-wasm/manual";
+import wasm from "@alex.garcia/libfec-wasm/libfec_bg.wasm";
+
+initSync(wasm); // a WebAssembly.Module, or the file's bytes
+// or: await init(url | Response | bytes | WebAssembly.Module), by default the packaged file
+```
+
 ## Differences from the Node build
 
 | | Node/Deno/Bun (`@alex.garcia/libfec`) | Browser (`@alex.garcia/libfec-wasm`) |
@@ -73,7 +99,7 @@ Without a bundler, serve the package directory and import `dist/index.js` from a
 
 "Identical" is tested. The test suite compares the two builds through the public API on
 every committed fixture (157 filings, from v1 to v8.5 and paper), value for value and
-error for error. It does so in Node, Deno and Bun, and in headless Chrome.
+error for error. It does so in Node, Deno and Bun, in headless Chrome, and (both entries) in Cloudflare's workerd.
 
 ## Web Workers
 
@@ -156,12 +182,14 @@ Optimization choices: `[profile.wasm-release]` (fat LTO, one codegen unit, `opt-
 `crates/fec-wasm` is the wasm-bindgen twin of `crates/fec-node`'s napi layer. It has the
 same `NativeSource`/`NativeReader`, `schema`, `typeRecord`, `readHeader*`, RSS functions and error codes, over the same
 batch encodings (`crates/fec-js-core`). The TypeScript layer in `crates/fec-node/js` is
-shared unchanged. `scripts/build.mjs` copies it into `build/src`, swaps in this package's
-`js/native.ts` (the wasm loader instead of the napi addon), and compiles to `dist/`.
+shared unchanged. `scripts/build.mjs` copies it into `build/src`, renames its `index.ts`
+to `api.ts`, adds this package's `js/` (`native.ts`, the wasm loader instead of the napi
+addon, and the entry points `index.ts`, `manual.ts` and `workerd.ts`, which load the wasm
+or don't and re-export `api.ts`), and compiles to `dist/`.
 
 ```
 crates/fec-node/js/*.ts ──────┐  (shared: Filing/Record/Unknown/tokens/errors/rss/generated types)
-crates/fec-wasm/js/native.ts ─┴─► tsc ─► dist/ ──────────────────────────┐
+crates/fec-wasm/js/*.ts ──────┴─► tsc ─► dist/ ──────────────────────────┐
 crates/fec-wasm/src ─► cargo + wasm-bindgen + wasm-opt ─► wasm/ ─────────┴─► @alex.garcia/libfec-wasm
                                                                            └─► @alex.garcia/libfec (browser/)
 ```
@@ -175,6 +203,7 @@ make build           # optimized wasm + JS; `make build-dev` for fast unoptimize
 make test            # parity with the napi build + browser-only behavior, under node/deno/bun
                      # (needs `make build` in ../fec-node)
 make test-browser    # headless Chrome (CHROME_PATH=...): parity, worker, CSP, rss, then the demo
+make test-workers    # the packed package in workerd (wrangler via npx): bundling, then parity
 make bench-browser   # the modes in headless Chrome on benchmarks/1805248.fec
 make demo            # the demo on http://127.0.0.1:8000/fec-wasm/demo/
 ```

@@ -73,6 +73,9 @@ jobs:
           export CHROME_PATH="$(command -v google-chrome || command -v google-chrome-stable)"
           node tests/browser/run.mjs
           node tests/browser/demo.mjs
+      - name: Test in Cloudflare workerd
+        working-directory: crates/fec-wasm
+        run: node tests/workers/run.mjs
       - name: Pack @alex.garcia/libfec-wasm
         working-directory: crates/fec-wasm
         run: npm pack
