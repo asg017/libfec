@@ -65,10 +65,10 @@ jobs:
         run: |
           uv pip install --python .venv pandas nbconvert ipykernel
           uv run --python .venv --no-project jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=120 --output /tmp/quickstart-out.ipynb examples/quickstart.ipynb
-      - name: Smoke test - construct a Filing (guards against the pyo3 0.22 3.14 segfault)
+      - name: Smoke test - open a filing (guards against the pyo3 0.22 3.14 segfault)
         shell: bash
         working-directory: crates/fec-py
-        run: uv run --python .venv --no-project python -c "from libfec.parser import Filing; print(Filing('tests/fixtures/1921705.fec'))"
+        run: uv run --python .venv --no-project python -c "import libfec; r = libfec.open('tests/fixtures/1921705.fec'); print(r, r.cover, sum(1 for _ in r.itemizations))"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: matrix.python == '3.11'
         with:

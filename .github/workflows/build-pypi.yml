@@ -53,7 +53,7 @@ jobs:
         run: |
           uv venv .venv-smoke --python cpython-3.11
           uv pip install --python .venv-smoke crates/fec-py/dist/*.whl
-          uv run --python .venv-smoke --no-project python -c "from libfec.parser import Filing; print(Filing('crates/fec-py/tests/fixtures/1921705.fec'))"
+          uv run --python .venv-smoke --no-project python -c "import libfec; r = libfec.open('crates/fec-py/tests/fixtures/1921705.fec'); print(r, r.cover, sum(1 for _ in r.itemizations))"
           uv run --python .venv-smoke --no-project libfec --version
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
@@ -109,7 +109,7 @@ jobs:
         run: |
           uv venv .venv-smoke --python cpython-3.11
           uv pip install --python .venv-smoke crates/fec-py/dist/*.whl
-          uv run --python .venv-smoke --no-project python -c "from libfec.parser import Filing; print(Filing('crates/fec-py/tests/fixtures/1921705.fec'))"
+          uv run --python .venv-smoke --no-project python -c "import libfec; r = libfec.open('crates/fec-py/tests/fixtures/1921705.fec'); print(r, r.cover, sum(1 for _ in r.itemizations))"
           uv run --python .venv-smoke --no-project libfec --version
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
@@ -141,7 +141,7 @@ jobs:
         run: |
           uv venv .venv-smoke --python cpython-3.11
           uv pip install --python .venv-smoke crates/fec-py/dist/*.whl
-          uv run --python .venv-smoke --no-project python -c "from libfec.parser import Filing; print(Filing('crates/fec-py/tests/fixtures/1921705.fec'))"
+          uv run --python .venv-smoke --no-project python -c "import libfec; r = libfec.open('crates/fec-py/tests/fixtures/1921705.fec'); print(r, r.cover, sum(1 for _ in r.itemizations))"
           uv run --python .venv-smoke --no-project libfec --version
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
