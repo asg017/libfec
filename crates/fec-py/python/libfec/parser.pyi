@@ -16,14 +16,13 @@ from .covers import CoverData
 from .itemizations import Itemization
 
 __all__ = [
-    "Cover",
-    "Filing",
+    "FilingIterator",
     "FilingReader",
     "Header",
-    "Row",
+    "Record",
+    "Unknown",
     "fec_header",
     "open",
-    "read",
     "FecError",
     "FecParseError",
     "MissingMappingError",
@@ -40,7 +39,7 @@ class _Readable(Protocol):
 Source: TypeAlias = (
     str | os.PathLike[str] | bytes | bytearray | memoryview | mmap.mmap | _Readable
 )
-"""What `open()`/`read()`/`Filing()`/`fec_header()` accept as a filing source.
+"""What `open()`/`fec_header()` accept as a filing source.
 
 A path, any bytes-like object (read without copying), or a binary file object
 (read in chunks).  A text-mode file raises `TypeError`.
@@ -93,43 +92,24 @@ class Header:
     def __repr__(self) -> str: ...
 
 @final
-class Cover:
-    """The filing's cover record (F3, F3X, …)."""
-
-    @property
-    def form_type(self) -> str: ...
-    @property
-    def filer_id(self) -> str: ...
-    @property
-    def filer_name(self) -> str: ...
-    @property
-    def report_code(self) -> str | None: ...
-    @property
-    def coverage_from_date(self) -> date | None: ...
-    @property
-    def coverage_through_date(self) -> date | None: ...
-    def fields(self) -> dict[str, str | date | None]:
-        """The six cover attributes above as a dict."""
-
-@final
-class Row:
-    """One itemization row: a mapping from column name to typed value.
+class Record:
+    """One raw record of a filing: a mapping from column name to typed value.
 
     By name the value follows the value rule (`Value` above); by position it is
-    the raw `str` exactly as it appears in the file.  `len(row)` is the number of
-    mapped columns — `len(row.fields())` is the raw field count.
+    the raw `str` exactly as it appears in the file.  `len(record)` is the number
+    of mapped columns — `len(record.fields())` is the raw field count.
     """
 
     @property
     def row_type(self) -> str: ...
     @property
     def line(self) -> int:
-        """The row's 1-based physical line in the file."""
+        """The record's 1-based physical line in the file."""
 
     @property
     def itemization(self) -> Itemization | None:
-        """The row as a typed itemization (`ScheduleA`, … from
-        `libfec.itemizations`), or `None` for a row that is not one or
+        """The record as a typed itemization (`ScheduleA`, … from
+        `libfec.itemizations`), or `None` for a record that is not one or
         whose schedule has no class yet.  Typed anew on every access."""
 
     @property
@@ -150,31 +130,64 @@ class Row:
     def items(self) -> list[tuple[str, Value]]: ...
     def get(self, key: str, default: Value = None, /) -> Value: ...
     def fields(self) -> list[str]:
-        """Every raw field of the row, in file order."""
+        """Every raw field of the record, in file order."""
 
     def __eq__(self, other: object, /) -> bool: ...
     def __hash__(self) -> int: ...
     def __reduce__(self) -> tuple[Any, ...]: ...
     def __repr__(self) -> str: ...
 
-def _row_from_parts(
+def _record_from_parts(
     row_type: str,
     version: str,
     fields: list[str],
     line: int,
     name_delimiter: str | None = None,
     /,
-) -> Row:
-    """Rebuild a `Row` from its pickled parts; named by `Row.__reduce__`."""
+) -> Record:
+    """Rebuild a `Record` from its pickled parts; named by `Record.__reduce__`."""
+
+@final
+class Unknown:
+    """A record with no typed class: a cover `libfec.covers` has no struct for,
+    a summary record (`F3PS`, …), or an itemization schedule not typed yet.
+
+    Stands in for the typed object in `FilingReader.cover` and
+    `FilingReader.itemizations`, so neither is ever `None`.
+    """
+
+    @property
+    def form_type(self) -> str:
+        """The row type as filed, e.g. `F3PS`."""
+
+    @property
+    def record(self) -> Record:
+        """The underlying raw `Record`."""
+
+    def to_dict(self) -> dict[str, Value]:
+        """The record's typed values by column name."""
+
+    def __eq__(self, other: object, /) -> bool: ...
+    def __repr__(self) -> str: ...
+
+@final
+class FilingIterator:
+    """One pass over a filing's records after the cover; see
+    `FilingReader.itemizations` and `FilingReader.itemization_records`."""
+
+    def __iter__(self) -> Self: ...
+    def __next__(self) -> Any: ...
+    def __repr__(self) -> str: ...
 
 @final
 class FilingReader:
-    """A streaming, single-pass reader over one filing.
+    """A streaming reader over one filing.
 
     Built by `open()`.  The `HDR` and cover records are parsed eagerly, so
-    `header`, `cover` and `cover_row` are available before iteration; the
-    itemization rows are pulled lazily, a batch at a time, with the GIL released.
-    There is no `len()` — the row count is unknown without a full pass.
+    `header`, `cover` and the filer attributes are available up front.  The
+    records after the cover are streamed by `itemizations` (typed) or
+    `itemization_records` (raw), a batch at a time with the GIL released.
+    There is no `len()` — the record count is unknown without a full pass.
     """
 
     @property
@@ -182,18 +195,52 @@ class FilingReader:
         """The filing's `HDR` record; the same object every time."""
 
     @property
-    def cover(self) -> Cover:
-        """The six normalized cover attributes; the same object every time."""
+    def cover(self) -> CoverData | Unknown:
+        """The typed cover (`Form3X`, `Form1`, … from `libfec.covers`), or
+        `Unknown` for a form with no typed class; the same object every time."""
 
     @property
-    def cover_row(self) -> Row:
-        """The full cover line as a `Row`; the same object every time."""
+    def cover_record(self) -> Record:
+        """The cover line as a raw `Record`; the same object every time."""
 
     @property
-    def cover_data(self) -> CoverData | None:
-        """The typed cover record (`Form3X`, `Form1`, … from `libfec.covers`),
-        `None` for a form with no typed struct; the same object every time."""
+    def itemizations(self) -> Iterator[Itemization | Unknown]:
+        """Every record after the cover, typed, in file order: `ScheduleA`, …
+        from `libfec.itemizations`, or `Unknown` for a record with no class.
 
+        Each access starts a new pass from the top of the filing.  A filing
+        opened from a file object can be read only once; a second pass raises
+        `ValueError`.
+        """
+
+    @property
+    def itemization_records(self) -> Iterator[Record]:
+        """Every record after the cover as a raw `Record`, in file order — the
+        same records as `itemizations`, one-to-one.
+
+        Each access starts a new pass, as with `itemizations`.
+        """
+
+    @property
+    def form_type(self) -> str:
+        """The cover's form type, e.g. `F3XN`."""
+
+    @property
+    def filer_id(self) -> str:
+        """The filer's FEC id, whatever the form calls it."""
+
+    @property
+    def filer_name(self) -> str:
+        """The filer's name, whatever the form calls it."""
+
+    @property
+    def report_code(self) -> str | None:
+        """`Q1`, `M8`, …; `None` for a form that is not a periodic report."""
+
+    @property
+    def coverage_from_date(self) -> date | None: ...
+    @property
+    def coverage_through_date(self) -> date | None: ...
     @property
     def id(self) -> str | None:
         """The file stem of a path source, or of a file object's `name`
@@ -209,15 +256,9 @@ class FilingReader:
 
     @property
     def closed(self) -> bool: ...
-    def rows(self, *prefixes: str) -> Self:
-        """Only yield rows whose type starts with one of `prefixes` (case-insensitive).
-
-        Returns the reader itself.  A second call replaces the filter; `rows()`
-        with no arguments clears it.
-        """
-
     def close(self) -> None:
-        """Drop the source.  Idempotent; iterating afterwards raises `ValueError`."""
+        """Drop the source and stop every pass.  Idempotent; iterating
+        afterwards raises `ValueError`."""
 
     def __enter__(self) -> Self: ...
     def __exit__(
@@ -227,8 +268,6 @@ class FilingReader:
         traceback: TracebackType | None,
         /,
     ) -> None: ...
-    def __iter__(self) -> Self: ...
-    def __next__(self) -> Row: ...
     def __repr__(self) -> str: ...
 
 def open(source: Source, /) -> FilingReader:
@@ -241,34 +280,6 @@ def open(source: Source, /) -> FilingReader:
     input raises `FecParseError`.  An exception raised by the source's own
     `read()` propagates unchanged.
     """
-
-class Filing:
-    """A whole filing in memory: header, cover and every row, parsed once.
-
-    `read(source)` is the same thing as a function.  For filings too large to
-    hold, use `open()`, which streams.
-    """
-
-    id: str | None
-    header: Header
-    cover: Cover
-    cover_row: Row
-    cover_data: CoverData | None
-    rows: list[Row]
-
-    def __init__(self, source: Source) -> None: ...
-    @property
-    def fec_version(self) -> str: ...
-    @property
-    def itemizations(self) -> list[Row]:
-        """Deprecated alias of `rows`; warns with `DeprecationWarning`."""
-
-    def __iter__(self) -> Iterator[Row]: ...
-    def __len__(self) -> int: ...
-    def __repr__(self) -> str: ...
-
-def read(source: Source) -> Filing:
-    """Parse `source` eagerly; see `Filing`."""
 
 def fec_header(source: Source, /) -> str:
     """The `fec_version` of a filing, from anything `open()` accepts."""

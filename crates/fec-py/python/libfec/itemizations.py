@@ -2,14 +2,16 @@
 
 The classes are `fec-parser`'s own Rust structs
 (`crates/fec-parser/src/itemizations/`), exposed as-is, like
-:mod:`libfec.covers`.  Get one from ``Row.itemization``::
+:mod:`libfec.covers`.  ``FilingReader.itemizations`` yields one per record
+(or a :class:`libfec.Unknown` for a record with no class), and
+``Record.itemization`` types a single raw record::
 
     import libfec as fec
     from libfec.itemizations import ScheduleA
 
     with fec.open("1926068.fec") as filing:
-        for row in filing.rows("SA"):
-            match row.itemization:
+        for item in filing.itemizations:
+            match item:
                 case ScheduleA(memo=False) as sa:
                     print(sa.contributor.display_name(), sa.contribution_amount)
 

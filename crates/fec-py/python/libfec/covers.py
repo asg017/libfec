@@ -3,16 +3,16 @@
 The classes are `fec-parser`'s own Rust structs (`crates/fec-parser/src/covers/`),
 exposed as-is: the same names, the same fields, the same field docs, and the
 same shape as ``libfec info -f json``'s ``cover_data``.  Get one from
-``FilingReader.cover_data`` / ``Filing.cover_data``::
+``FilingReader.cover``::
 
     import libfec as fec
     from libfec.covers import Form3X
 
     with fec.open("1926068.fec") as filing:
-        match filing.cover_data:
+        match filing.cover:
             case Form3X() as f3x:
                 print(f3x.summary.line6c_total_receipts.column_a)
-            case None:
+            case fec.Unknown():
                 ...  # a form with no typed struct
 
 Every class is frozen (read-only) and has ``to_dict()``, ``__eq__`` and a short

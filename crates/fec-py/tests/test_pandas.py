@@ -1,5 +1,5 @@
 """
-pandas interop for Filing.rows (Mapping.register(Row), ticket 13).
+pandas interop for FilingReader.itemization_records (Mapping.register(Record), ticket 13).
 
 No `importorskip`: a skipped test is a test that never runs (tests/conftest.py).
 CI installs pandas alongside the wheel for the pytest step (test-python.yml).
@@ -7,12 +7,12 @@ CI installs pandas alongside the wheel for the pytest step (test-python.yml).
 import pandas as pd  # type: ignore[import-untyped]  # no pandas-stubs dev dependency
 from datetime import date
 
-from libfec import read
+from libfec import open
 
 
 def test_dataframe_from_rows_has_typed_columns(pac_fec_file):
-    """pd.DataFrame(filing.rows) gets typed amount/date columns via Mapping.register(Row)"""
-    df = pd.DataFrame(read(pac_fec_file).rows)
+    """pd.DataFrame(itemization_records) gets typed amount/date columns via Mapping.register(Record)"""
+    df = pd.DataFrame(open(pac_fec_file).itemization_records)
 
     assert list(df.columns)[:3] == ["form_type", "filer_committee_id_number", "transaction_id"]
     assert df["contribution_amount"].dtype == "float64"  # all SA rows have a float or None

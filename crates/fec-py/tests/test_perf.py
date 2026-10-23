@@ -15,7 +15,6 @@ import time
 
 import pytest
 
-from libfec import read
 
 
 def _run(code: str) -> str:
@@ -54,21 +53,11 @@ def test_open_streams_under_100mb(benchmark_fec_file):
     """
     body = (
         "import libfec\n"
-        f"n = sum(1 for _ in libfec.open({str(benchmark_fec_file)!r}))\n"
+        f"n = sum(1 for _ in libfec.open({str(benchmark_fec_file)!r}).itemizations)\n"
         "assert n == 408160"
     )
     peak = _peak_mb(body)
     assert peak < 64, f"peak RSS {peak:.1f} MB"
-
-
-@pytest.mark.slow
-def test_read_rows_access_is_free(benchmark_fec_file):
-    """N2 regression guard: 20 accesses to `.rows` cost ~nothing (it's a cached list)."""
-    f = read(benchmark_fec_file)
-    t = time.perf_counter()
-    for _ in range(20):
-        len(f.rows)
-    assert time.perf_counter() - t < 0.01
 
 
 @pytest.mark.slow
@@ -101,7 +90,7 @@ def test_background_thread_progresses_during_parse(benchmark_fec_file):
         time.sleep(0.05)  # let the ticker warm up before starting the clock
         n0 = len(ticks)
         started = time.monotonic()
-        n = sum(1 for _ in libfec.open(benchmark_fec_file))
+        n = sum(1 for _ in libfec.open(benchmark_fec_file).itemizations)
         elapsed = time.monotonic() - started
         n1 = len(ticks)
     finally:
@@ -125,7 +114,7 @@ import libfec
 
 with open(sys.argv[1], "rb") as f:
     data = f.read()
-rows = sum(1 for _ in libfec.open(data))
+rows = sum(1 for _ in libfec.open(data).itemizations)
 peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
 # ru_maxrss is bytes on macOS, kilobytes on Linux.
 if sys.platform != "darwin":

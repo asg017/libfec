@@ -8,17 +8,20 @@ The [libfec](https://github.com/asg017/libfec) command-line tool and Python bind
 ```python
 import libfec
 
+from libfec.itemizations import ScheduleA
+
 with libfec.open("1721696.fec") as filing:
-    filing.cover.filer_name                    # 'PFIZER INC. PAC'
-    filing.cover_row["col_a_total_receipts"]   # 83741.93
-    for row in filing.rows("SA"):
-        print(row["contributor_last_name"], row["contribution_amount"], row["contribution_date"])
+    filing.filer_name                          # 'PFIZER INC. PAC'
+    filing.cover.summary.line6c_total_receipts.column_a   # 83741.93
+    for item in filing.itemizations:
+        if isinstance(item, ScheduleA):
+            print(item.contributor.display_name(), item.contribution_amount, item.contribution_date)
 ```
 
 Two APIs are included:
 
-- [`libfec.parser`](#native-api) (also exported at the top level as `open`/`read`): the
-  primary API — a streaming `FilingReader` or an eager `Filing`, both with typed values.
+- [`libfec.parser`](#native-api) (also exported at the top level as `libfec.open`): the
+  primary API — a streaming `FilingReader` with typed covers and itemizations.
 - [`libfec.fecfile`](#fecfile-api): rows as dicts keyed by column name, modeled on the
   [`fecfile`](https://pypi.org/project/fecfile/) package; strings only until Phase 3.
 
@@ -108,43 +111,43 @@ row = fecfile.parse_line(line, version)
 
 ### Differences from `fecfile`
 
-- **Every value is a string.** Amounts are not converted to `float`, and dates stay as `YYYYMMDD`. The `as_strings` option is accepted and ignored — the native `Row` API returns typed values.
+- **Every value is a string.** Amounts are not converted to `float`, and dates stay as `YYYYMMDD`. The `as_strings` option is accepted and ignored — the native API returns typed values.
 - Only the ASCII 28-delimited format (FEC version 6 and later) is supported by `parse_header()` and `parse_line()`.
 - `from_http()` reads the whole response into memory before parsing, and there is no `iter_file()` / `iter_http()` yet.
 
 ## Native API
 
 ```python
-from libfec import open, read
+from libfec import open
 ```
 
-(`open`/`read` are also reachable as `libfec.parser.open`/`.read`; `open` shadows the
-builtin, so reach the real one through `builtins.open` if you need both in the same scope.)
+(`open` is also reachable as `libfec.parser.open`; it shadows the builtin, so reach the real one
+through `builtins.open` if you need both in the same scope.)
 
-### `open()` vs `read()`
+`open(source)` returns a `FilingReader`. The `HDR` and cover records are parsed eagerly, so
+`header`, `cover` and the filer attributes are available immediately; everything after the cover
+is streamed, a batch at a time with the GIL released, by one of two views of the same records:
 
-`open(source)` returns a `FilingReader`: `header`, `cover` and `cover_row` are parsed eagerly, so
-they're available immediately, and the itemization rows are pulled lazily as you iterate. Use it
-for large filings, or when `rows(*prefixes)` lets you skip most of the file.
+| | Typed | Raw |
+| --- | --- | --- |
+| Cover | `filing.cover` — `Form3X`, `Form1`, … | `filing.cover_record` — a `Record` |
+| Everything after it | `filing.itemizations` — `ScheduleA`, `ScheduleB`, … | `filing.itemization_records` — `Record`s |
 
-`read(source)` (a thin function wrapper over the `Filing` class) parses the whole filing up front
-into a `Filing`, whose `rows` is a plain `list`. `Filing(source)` is exactly `read(source)` — pick
-whichever reads better. Use `read`/`Filing` when you want everything in memory at once, such as to
-build a `pandas.DataFrame`.
+Anything without a typed class (a summary record such as `F3PS`, a cover form with no class)
+comes back as an [`Unknown`](#unknown) rather than `None`, so the typed views are total and line up
+one-to-one with the raw ones.
 
 ```python
-from libfec import open, read
+from libfec import open
 
-reader = open("1721696.fec")
-next(reader).row_type          # 'SA11AI'
-
-filing = read("1721696.fec")   # same as Filing("1721696.fec")
-len(filing.rows)                # 1387
+filing = open("1721696.fec")
+next(filing.itemizations)           # ScheduleA(form_type='SA11AI', …)
+next(filing.itemization_records)    # Record(row_type='SA11AI', line=3, 45 fields)
 ```
 
 ### Sources
 
-Both `open()` and `read()` (and `Filing()` and `fec_header()`) accept the same kinds of source:
+`open()` and `fec_header()` accept the same kinds of source:
 
 - a filesystem path — `str` or `os.PathLike`. **A `str` is always a path**, never the filing's
   contents — pass `bytes` if you already have the data in memory.
@@ -169,34 +172,99 @@ libfec.open(io.StringIO("not bytes"))
 
 ```python
 with libfec.open("1721696.fec") as filing:
-    filing.id            # '1721696' — the file stem, or a file object's `name`
-    filing.fec_version    # '8.4' — shortcut for filing.header.fec_version
-
-    for row in filing.rows("SA11AI"):   # filters before a Row is even built
-        ...
+    filing.id              # '1721696' — the file stem, or a file object's `name`
+    filing.fec_version     # '8.4' — shortcut for filing.header.fec_version
+    filing.form_type       # 'F3XN'
+    filing.filer_id        # 'C00016683'
+    filing.filer_name      # 'PFIZER INC. PAC'
+    filing.report_code     # 'M8'
+    filing.coverage_from_date      # datetime.date(2023, 7, 1)
+    filing.coverage_through_date   # datetime.date(2023, 7, 31)
 ```
 
-- Iterating a `FilingReader` is single-pass: once exhausted, a second `for` yields nothing.
-- `rows(*prefixes)` keeps only rows whose type starts with one of `prefixes`
-  (case-insensitive) and returns the reader itself, so it chains into a `for`. A second call
-  replaces the filter; `rows()` with no arguments clears it.
-- `close()` drops the source; it's idempotent, and iterating afterwards raises `ValueError`.
-  Use it as a context manager (as above) rather than calling it directly.
-- There is no `len()` — the row count isn't known without a full pass.
+The six filer attributes are normalized across every form type, whatever the form itself calls
+them (`committee_name`, `filer_name`, `organization_name`, …). `report_code` and the coverage
+dates are `None` for forms that are not periodic reports (F1, F2, F24, F99, …).
 
-### `Filing`
+- **Each access of `itemizations` or `itemization_records` starts a new pass** from the top of the
+  filing, so you can iterate as many times as you like. A single pass is an ordinary iterator:
+  once exhausted, it stays exhausted.
+- **A file object can be read only once**: it is consumed as it is read, so a second pass over a
+  filing opened from one raises `ValueError`. Paths and bytes-like sources are reopened for every
+  pass.
+- `close()` drops the source and stops every pass; it's idempotent, and iterating afterwards raises
+  `ValueError`. Use it as a context manager (as above) rather than calling it directly.
+- There is no `len()` — the record count isn't known without a full pass.
+
+### Typed covers
+
+`filing.cover` is the cover as a typed object: one class per form (`Form1`, `Form3`, `Form3P`,
+`Form3X`, `Form24`, `Form99`, … — 15 forms, every cover libfec reads, legacy and paper included),
+from `libfec.covers`, or [`Unknown`](#unknown) for a form with no typed class. The fields are named
+for what they mean on the paper form, grouped the way the form groups them, and typed (`float`
+amounts, `datetime.date`s, `bool` checkboxes, `str | None` text):
 
 ```python
-from libfec import read
+import libfec as fec
+from libfec.covers import Form3, Form3X
 
-filing = read("1721696.fec")
-filing              # Filing(id='1721696', form_type='F3XN', filer_id='C00016683', 1387 rows)
-len(filing)          # 1387, same as len(filing.rows)
-list(filing)[0] is filing.rows[0]   # True — iterating a Filing iterates its rows
+with fec.open("1926068.fec") as filing:
+    match filing.cover:
+        case Form3X() as f3x:
+            f3x.committee_name                               # 'Ohio Democratic Party - Federal'
+            f3x.coverage_from_date                           # datetime.date(2025, 10, 1)
+            f3x.report_code_label()                          # 'November Monthly'
+            f3x.treasurer.last_name                          # 'Frost-Brooks'
+            f3x.summary.line6c_total_receipts.column_a       # 445072.35 (this period)
+            f3x.summary.line6c_total_receipts.column_b       # 3484593.19 (calendar year to date)
+        case Form3() as f3:
+            ...
+        case fec.Unknown():
+            ...
 ```
 
-`filing.itemizations` still works as an alias for `filing.rows`, but warns with
-`DeprecationWarning` — use `rows`.
+The classes are `fec-parser`'s own Rust cover structs, exposed as-is, so the names and values are
+exactly `libfec info -f json`'s `cover_data` (`to_dict()` gives the same shape, with `date`s).
+Every field's docstring cites the form line and FEC source it comes from. The objects are
+read-only; `==` compares field values. `CoverData` is the union of the form classes, for
+annotations, and type checkers narrow it on `match`/`isinstance`.
+
+### Typed itemizations
+
+`filing.itemizations` yields one typed object per record, in file order, from
+`libfec.itemizations`: `ScheduleA` through `ScheduleL`, the Form 5/6/7/9/13 itemizations, and
+`TextRecord` for `TEXT` records. Filter by class rather than by row type:
+
+```python
+from libfec.itemizations import ScheduleA, ScheduleB
+
+with libfec.open("1721696.fec") as filing:
+    for item in filing.itemizations:
+        match item:
+            case ScheduleA(memo=False):
+                item.contributor.display_name(), item.contribution_amount
+            case ScheduleB():
+                item.payee.display_name(), item.expenditure_amount
+```
+
+`item.form_type` is the row type as filed (`'SA11AI'`), and `item.line_number()` the line it
+was reported on (`'11AI'`) for the schedules that have one.
+
+Typing every record costs more than reading it raw (see [Performance](#performance)). When you
+only need a few columns, or the exact raw text, use `itemization_records`; `record.itemization`
+types a single `Record` on demand.
+
+### `Unknown`
+
+What the typed views yield for a record with no typed class:
+
+```python
+u.form_type     # 'F3PS' — the row type as filed, like the typed classes
+u.record        # the underlying Record
+u.to_dict()     # its typed values by column name, same as dict(u.record)
+```
+
+### `Header`
 
 ### `Header`
 
@@ -211,110 +279,49 @@ list(filing)[0] is filing.rows[0]   # True — iterating a Filing iterates its r
 | `report_number` | `str \| None` | |
 | `comment` | `str \| None` | |
 
-### `Cover`
+### `Record`
 
-| Attribute | Type | |
-| --- | --- | --- |
-| `form_type` | `str` | Such as `"F3XN"` or `"F3PA"` |
-| `filer_id` | `str` | Committee ID |
-| `filer_name` | `str` | |
-| `report_code` | `str \| None` | Such as `"Q1"`, `"M8"`, `"YE"` |
-| `coverage_from_date` | `date \| None` | |
-| `coverage_through_date` | `date \| None` | |
-
-`cover.fields()` returns those same six values as a `dict`, dates included as `datetime.date`.
-For every other column on the cover page, use `cover_row` (below).
+A `Record` is one raw line of the filing: a mapping from column name to a typed value, plus
+positional access to the raw fields. `itemization_records` yields them, and `cover_record` is the
+cover line as one — every column the form defines:
 
 ```python
-cover = filing.cover
-cover.coverage_from_date   # datetime.date(2023, 7, 1)
-cover.fields()
-# {'form_type': 'F3XN', 'filer_id': 'C00016683', 'filer_name': 'PFIZER INC. PAC',
-#  'report_code': 'M8', 'coverage_from_date': datetime.date(2023, 7, 1),
-#  'coverage_through_date': datetime.date(2023, 7, 31)}
+filing.cover_record["col_a_total_receipts"]   # 83741.93 (float)
+len(filing.cover_record)                       # 123 mapped columns, for an F3XN 8.4 cover
 ```
 
-### `cover_row`
-
-`filing.cover_row` is the cover line itself, as a full `Row` — every column the form defines, not
-just the six normalized ones above:
-
-```python
-filing.cover_row["col_a_total_receipts"]   # 83741.93 (float)
-len(filing.cover_row)                       # 123 mapped columns, for an F3XN 8.4 cover
-```
-
-It follows the same rules as any other `Row` (below). Note that an unparseable cover date comes
-back as `None` from `Cover.coverage_from_date`, but as its raw `str` from
-`cover_row["coverage_from_date"]` — the two are not reconciled.
-
-### `cover_data`: typed covers
-
-`filing.cover_data` is the cover as a typed object: one class per form (`Form1`, `Form3`, `Form3P`,
-`Form3X`, `Form24`, `Form99`, … — 15 forms, every cover libfec reads, legacy and paper included),
-from `libfec.covers`. It is `None` for a form with no typed class. The fields are named for
-what they mean on the paper form, grouped the way the form groups them, and typed (`float`
-amounts, `datetime.date`s, `bool` checkboxes, `str | None` text):
-
-```python
-import libfec as fec
-from libfec.covers import Form3, Form3X
-
-with fec.open("1926068.fec") as filing:
-    match filing.cover_data:
-        case Form3X() as f3x:
-            f3x.committee_name                               # 'Ohio Democratic Party - Federal'
-            f3x.coverage_from_date                           # datetime.date(2025, 10, 1)
-            f3x.report_code_label()                          # 'November Monthly'
-            f3x.treasurer.last_name                          # 'Frost-Brooks'
-            f3x.summary.line6c_total_receipts.column_a       # 445072.35 (this period)
-            f3x.summary.line6c_total_receipts.column_b       # 3484593.19 (calendar year to date)
-        case Form3() as f3:
-            ...
-        case None:
-            ...
-```
-
-The classes are `fec-parser`'s own Rust cover structs, exposed as-is, so the names and values are
-exactly `libfec info -f json`'s `cover_data` (`to_dict()` gives the same shape, with `date`s).
-Every field's docstring cites the form line and FEC source it comes from. The objects are
-read-only; `==` compares field values. `CoverData` is the union of the form classes, for
-annotations, and type checkers narrow it on `match`/`isinstance`.
-
-### `Row`
-
-A `Row` is a mapping from column name to a typed value, plus positional access to the raw fields.
-`len(row)` is the number of *mapped columns* — `len(row.fields())` is the raw field count, which
-can differ for a short or an over-long line.
+`len(record)` is the number of *mapped columns* — `len(record.fields())` is the raw field count,
+which can differ for a short or an over-long line.
 
 | Access | Result |
 | --- | --- |
-| `row["name"]`, amount/date column, parses | typed: `float` or `datetime.date` |
-| `row["name"]`, amount/date column, empty | `None` |
-| `row["name"]`, amount/date column, garbage (doesn't parse) | the raw `str` |
-| `row["name"]`, text column | the raw `str` (`""` if empty — text never becomes `None`) |
-| `row["name"]`, any column, past the end of a short row | `None` |
-| `row[i]` / `row[a:b]` (by position) | always the raw `str` / `list[str]`, whatever the column |
+| `record["name"]`, amount/date column, parses | typed: `float` or `datetime.date` |
+| `record["name"]`, amount/date column, empty | `None` |
+| `record["name"]`, amount/date column, garbage (doesn't parse) | the raw `str` |
+| `record["name"]`, text column | the raw `str` (`""` if empty — text never becomes `None`) |
+| `record["name"]`, any column, past the end of a short line | `None` |
+| `record[i]` / `record[a:b]` (by position) | always the raw `str` / `list[str]`, whatever the column |
 
 ```python
-row = filing.rows[0]
-row["contribution_amount"]      # 104.17 (float)
-row[20]                          # '104.17' (str) — same field, by position
-dict(row)["contributor_last_name"]   # 'Aaronson'
+record = next(filing.itemization_records)
+record["contribution_amount"]      # 104.17 (float)
+record[20]                          # '104.17' (str) — same field, by position
+dict(record)["contributor_last_name"]   # 'Aaronson'
 ```
 
 Because a garbage value comes back as `str` in place of the expected type, guard with
 `isinstance` rather than assuming every amount parsed:
 
 ```python
-value = row["contribution_amount"]
+value = record["contribution_amount"]
 if isinstance(value, str):
     ...  # the parser couldn't convert it; handle the raw text explicitly
 ```
 
-`row.extra_fields` holds any fields past the last mapped column (`[]` unless one is non-empty),
-and `row.line` is the row's 1-based physical line in the file. Two `Row`s compare and hash equal
-when their `(row_type, fec_version, raw fields)` match, and a `Row` pickles and unpickles cleanly.
+`record.extra_fields` holds any fields past the last mapped column (`[]` unless one is non-empty),
+`record.line` is its 1-based physical line in the file, and `record.itemization` is the record
+typed on demand (or `None`). Two `Record`s compare and hash equal when their
+`(row_type, fec_version, raw fields)` match, and a `Record` pickles and unpickles cleanly.
 
 ### Errors
 
@@ -322,25 +329,25 @@ when their `(row_type, fec_version, raw fields)` match, and a `Row` pickles and 
 | --- | --- |
 | `FileNotFoundError` | the source is a path that doesn't exist (`errno`/`filename` set, like `open()`) |
 | `FecParseError` (a `FecError`, a `ValueError`) | the input isn't a parseable `.fec` filing |
-| `MissingMappingError` (a `FecError`) | a row's `(row_type, fec_version)` has no column mapping — has `.row_type`, `.version`, `.line` |
+| `MissingMappingError` (a `FecError`) | a record's `(row_type, fec_version)` has no column mapping — has `.row_type`, `.version`, `.line` |
 
-`read()`/`Filing()` are strict: a missing mapping anywhere raises out of the call. `open()` raises
-it from the specific `next()` that reached that row, and the reader stays usable — but only a
-`while`/`next()` loop can catch it and keep going; a `for` loop can't, because the exception comes
-out of the `for` statement's own call to `__next__` before your loop body ever runs:
+A missing mapping is raised from the specific `next()` that reached that record, by either view,
+and the pass stays usable — but only a `while`/`next()` loop can catch it and keep going; a `for`
+loop can't, because the exception comes out of the `for` statement's own call to `__next__`
+before your loop body ever runs:
 
 ```python
 from libfec import MissingMappingError, open
 
-reader = open("1721696.fec")
-rows = []
+items = open("1721696.fec").itemizations
+kept = []
 while True:
     try:
-        rows.append(next(reader))
+        kept.append(next(items))
     except StopIteration:
         break
     except MissingMappingError:
-        continue   # skip this row; the reader is still usable
+        continue   # skip this record; the pass is still usable
 ```
 
 ### `fec_header(source, /)`
@@ -355,14 +362,14 @@ libfec.fec_header("1721696.fec")   # '8.4'
 
 ### pandas
 
-`Row` registers as a `collections.abc.Mapping`, so a list of them is exactly what `pd.DataFrame`
-wants — and because values are already typed, no per-column conversion is needed:
+`Record` registers as a `collections.abc.Mapping`, so `itemization_records` is exactly what
+`pd.DataFrame` wants — and because values are already typed, no per-column conversion is needed:
 
 ```python
 import pandas as pd
-from libfec import read
+from libfec import open
 
-df = pd.DataFrame(read("1721696.fec").rows)
+df = pd.DataFrame(open("1721696.fec").itemization_records)
 df["contribution_amount"].dtype   # dtype('float64')
 ```
 
@@ -384,7 +391,7 @@ differs from the `fecfile` package on exactly these points:
   never reaches `filing["text"]`.
 - **`_TODO_DUP` cover column names.** A few Form 3X and Form 3P cover-page columns come back
   with placeholder names such as `col_a_total_receipts_TODO_DUP` — this shows up in
-  `cover_row.keys()` (and `dict(cover_row)`) too, not just the `fecfile` API's `filing["filing"]`.
+  `cover_record.keys()` (and `dict(cover_record)`) too, not just the `fecfile` API's `filing["filing"]`.
 - **Non-UTF-8 bytes become U+FFFD.** Filings written in cp1252 (curly quotes, en dashes) decode
   lossily: the offending bytes are replaced with `�` rather than transcoded.
 
@@ -393,14 +400,15 @@ Background and the intended fixes are in [`plans/python/`](../../plans/python/) 
 
 ## Performance
 
-Measured 2026-09-18 on an Apple M4 Pro, CPython 3.13, release build, parsing the 91 MB, 408,160-row
-`1805248.fec` filing (gitignored; not one of the committed fixtures).
+Measured on an Apple M4 Pro, CPython 3.13, release build, parsing the 91 MB, 408,160-record
+`1805248.fec` filing (gitignored; not one of the committed fixtures). The `libfec` rows were
+measured 2026-10-23, the PyPI `fecfile` rows 2026-09-18.
 
 | Operation | Time | Peak RSS |
 | --- | --- | --- |
-| `open()`, streamed | 0.18 s | 31.6 MB |
-| `read()` (eager `Filing`) | 0.30 s | 1,007 MB |
-| `pd.DataFrame(read(p).rows)` | 5.32 s | 2,389 MB |
+| `itemization_records`, streamed | 0.20 s | 38.0 MB |
+| `itemizations` (typed), streamed | 0.80 s | 38.0 MB |
+| `pd.DataFrame(open(p).itemization_records)` | 6.31 s | 2,276 MB |
 | PyPI `fecfile.from_file` | 7.14 s | 1,403 MB |
 | PyPI `fecfile.iter_file` | 6.87 s | 36.4 MB |
 

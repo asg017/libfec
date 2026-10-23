@@ -1,20 +1,23 @@
-//! `open(src)` → [`FilingReader`]: a streaming, single-pass reader over a filing.
+//! `open(src)` → [`FilingReader`]: a streaming reader over a filing.
 //!
 //! The HDR and cover records are parsed eagerly so `.header`/`.cover` are
-//! available before iteration; every itemization row after them is pulled lazily,
-//! [`BATCH`] rows at a time, with the GIL released for the pull.
+//! available up front.  Every record after them is streamed by a [`Pass`]: each
+//! access of `.itemizations` or `.itemization_records` starts one, which pulls
+//! [`BATCH`] records at a time with the GIL released.
 
 use std::collections::VecDeque;
 use std::io::Read;
-use std::sync::{Arc, Mutex};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex, Weak};
 use std::thread::ThreadId;
 
+use fec_parser::itemizations::Itemization;
 use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
 
 use crate::errors::{missing_mapping, parse_error};
-use crate::row::{schema_for, Row};
+use crate::record::{schema_for, Record, Unknown};
 use crate::source::{lock, lock_attached, raised_or, resolve, ErrorSlot, SourceReader};
 
 /// The filing's `HDR` record.
@@ -118,101 +121,62 @@ impl Header {
     }
 }
 
-/// The six normalized cover attributes, shared by every form type (Q19).
-///
-/// The full cover line is `FilingReader.cover_row`.
-#[pyclass(module = "libfec.parser", frozen, get_all)]
-pub struct Cover {
-    pub form_type: String,
-    pub filer_id: String,
-    pub filer_name: String,
-    pub report_code: Option<String>,
-    pub coverage_from_date: Option<jiff::civil::Date>,
-    pub coverage_through_date: Option<jiff::civil::Date>,
-}
-
-#[pymethods]
-impl Cover {
-    fn __repr__(&self) -> String {
-        format!(
-            "Cover(form_type='{}', filer_id='{}', filer_name='{}')",
-            self.form_type, self.filer_id, self.filer_name
-        )
-    }
-
-    /// The six normalized attributes as a dict; for every column on the cover
-    /// page use `cover_row`.
-    fn fields<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
-        let dict = PyDict::new(py);
-        dict.set_item("form_type", &self.form_type)?;
-        dict.set_item("filer_id", &self.filer_id)?;
-        dict.set_item("filer_name", &self.filer_name)?;
-        dict.set_item("report_code", &self.report_code)?;
-        dict.set_item("coverage_from_date", self.coverage_from_date)?;
-        dict.set_item("coverage_through_date", self.coverage_through_date)?;
-        Ok(dict)
-    }
-}
-
 /// The parser's filing, over a type-erased reader.
 ///
 /// `Box<dyn Read + Send>` (not just `Read`) so the whole `Filing` is `Send` and can
 /// be pulled inside `Python::detach`.
-type Source = fec_parser::Filing<Box<dyn Read + Send>>;
+type Stream = fec_parser::Filing<Box<dyn Read + Send>>;
 
-type PendingRow = Result<fec_parser::FilingRow, fec_parser::FilingRowReadError>;
+/// A record pulled by [`Pass::refill`], typed already if the pass is typed and
+/// the record has a class.
+enum Pulled {
+    Raw(fec_parser::FilingRow),
+    Typed(Itemization),
+}
 
-/// How many rows one `detach` pull queues up before handing the GIL back.
+type Pending = Result<Pulled, fec_parser::FilingRowReadError>;
+
+/// How many records one `detach` pull queues up before handing the GIL back.
 const BATCH: usize = 256;
 
-/// A streaming reader over one filing.
-///
-/// `frozen` — the ticket's sketch says "not frozen", but `Bound::get()` (which the
-/// same sketch uses) is `T: PyClass<Frozen = True> + Sync`, and every field here is
-/// already behind a `Mutex` or a `Py<T>`, so `frozen` is both legal and cheaper than
-/// a runtime borrow flag.
+fn closed_error() -> PyErr {
+    PyValueError::new_err("I/O operation on closed filing")
+}
+
+/// One independent, single-pass walk over every record after the cover.
 ///
 /// # Locking
 ///
-/// Pulling a row can run arbitrary Python code (a file object's `read()`), so a
+/// Pulling a record can run arbitrary Python code (a file object's `read()`), so a
 /// thread can hold `inner` while waiting to attach to the interpreter.  Two rules
 /// keep that from deadlocking, and both are load-bearing:
 ///
 /// 1. **Never block on one of these mutexes while attached.**  Every lock taken
 ///    with the GIL held goes through [`lock_attached`]; only code running inside
-///    `py.detach` (i.e. [`FilingReader::refill`]) uses the plain [`lock`].
-/// 2. **Lock order is `inner` → `prefixes` → `pending`**, and `inner` is the only
-///    one ever held across another.  `puller` is a leaf, held for a single
-///    assignment or comparison and never across a call into Python.
-#[pyclass(module = "libfec.parser", frozen)]
-pub struct FilingReader {
-    /// `None` once closed.
-    inner: Mutex<Option<Source>>,
-    /// Rows pulled but not yet handed to Python, still as raw `FilingRow`s.
-    pending: Mutex<VecDeque<PendingRow>>,
-    /// The `rows(*prefixes)` filter; `None` means "every row".
-    prefixes: Mutex<Option<Vec<String>>>,
-    header: Py<Header>,
-    cover: Py<Cover>,
-    cover_row: Py<Row>,
-    /// The typed cover (`libfec.covers.Form3X`, …), `None` for a form
-    /// `fec-parser` has no struct for.
-    cover_data: Option<Py<PyAny>>,
-    id: Option<String>,
-    /// `header.fec_version`, needed for every `schema_for` lookup.
-    version: String,
-    /// `header.name_delimiter`, handed to every `Row` for its `itemization`.
-    name_delimiter: Option<Arc<str>>,
-    source_length: usize,
+///    `py.detach` (i.e. [`Pass::refill`]) uses the plain [`lock`].
+/// 2. **Lock order is `inner` → `pending`**, and `inner` is the only one ever
+///    held across another.  `puller` is a leaf, held for a single assignment or
+///    comparison and never across a call into Python.
+struct Pass {
+    /// `None` once shut.
+    inner: Mutex<Option<Stream>>,
+    /// Records pulled but not yet handed to Python.
+    pending: Mutex<VecDeque<Pending>>,
     /// An exception raised by a Python `read()` mid-pull, to re-raise as itself.
     raised: ErrorSlot,
     /// The thread currently inside a pull, if any.
     ///
     /// `inner` is a plain, non-reentrant `Mutex`, so a pathological source whose
-    /// `read()` calls `next()` or `close()` on the very reader reading it would
+    /// `read()` calls `next()` or `close()` on the very pass reading it would
     /// deadlock against itself.  Recording the puller turns that into a clean
     /// `RuntimeError`.
     puller: Mutex<Option<ThreadId>>,
+    /// Whether records are typed into `libfec.itemizations` classes.
+    typed: bool,
+    /// `header.fec_version`, needed for every `schema_for` lookup.
+    version: Arc<str>,
+    /// `header.name_delimiter`, for legacy combined names.
+    name_delimiter: Option<Arc<str>>,
 }
 
 /// Marks `puller` for the duration of a pull, and clears it however the pull ends.
@@ -231,29 +195,8 @@ impl Drop for PullMark<'_> {
     }
 }
 
-/// `row_type` matches if it starts with any of `prefixes`, case-insensitively.
-///
-/// Compared over bytes: slicing a `str` at `p.len()` would panic on a multi-byte
-/// boundary, and FEC row types are ASCII anyway.
-fn matches_prefix(prefixes: Option<&Vec<String>>, row_type: &str) -> bool {
-    match prefixes {
-        None => true,
-        Some(prefixes) => {
-            let row_type = row_type.as_bytes();
-            prefixes.iter().any(|p| {
-                let p = p.as_bytes();
-                row_type.len() >= p.len() && row_type[..p.len()].eq_ignore_ascii_case(p)
-            })
-        }
-    }
-}
-
-fn closed_error() -> PyErr {
-    PyValueError::new_err("I/O operation on closed filing")
-}
-
-impl FilingReader {
-    /// Whether this thread is already inside a pull on this reader.
+impl Pass {
+    /// Whether this thread is already inside a pull on this pass.
     fn pulling_here(&self) -> bool {
         *lock(&self.puller) == Some(std::thread::current().id())
     }
@@ -262,17 +205,18 @@ impl FilingReader {
     fn check_not_reentrant(&self) -> PyResult<()> {
         if self.pulling_here() {
             return Err(PyRuntimeError::new_err(
-                "reader is already being read on this thread: a source's read() \
+                "filing is already being read on this thread: a source's read() \
                  must not call back into the FilingReader reading it",
             ));
         }
         Ok(())
     }
 
-    /// Pull up to [`BATCH`] filter-passing rows into `pending`, **without the GIL**.
+    /// Pull up to [`BATCH`] records into `pending`, **without the GIL**.
     ///
-    /// Returns `true` when the source is exhausted.  Rejected rows never leave Rust,
-    /// which is the entire point of `rows(*prefixes)`.
+    /// A typed pass types each record here too, so only the conversion to a
+    /// Python object is left for the GIL.  Returns `true` when the source is
+    /// exhausted.
     fn refill(&self) -> PyResult<bool> {
         self.check_not_reentrant()?;
         let mut guard = lock(&self.inner);
@@ -280,7 +224,6 @@ impl FilingReader {
             return Err(closed_error());
         };
         let _mark = PullMark::set(&self.puller);
-        let prefixes = lock(&self.prefixes).clone();
 
         // Pull into a local queue rather than into `pending` directly: a batch can
         // mean hundreds of Python `read()` calls, and `pending` is what every other
@@ -289,14 +232,26 @@ impl FilingReader {
         let mut batch = VecDeque::with_capacity(BATCH);
         let mut exhausted = false;
         while batch.len() < BATCH {
-            match src.next_row() {
-                None => {
-                    exhausted = true;
-                    break;
+            let Some(item) = src.next_row() else {
+                exhausted = true;
+                break;
+            };
+            batch.push_back(item.map(|row| {
+                let typed = self
+                    .typed
+                    .then(|| {
+                        Itemization::from_record(
+                            &row.record,
+                            &self.version,
+                            self.name_delimiter.as_deref(),
+                        )
+                    })
+                    .flatten();
+                match typed {
+                    Some(item) => Pulled::Typed(item),
+                    None => Pulled::Raw(row),
                 }
-                Some(Ok(row)) if !matches_prefix(prefixes.as_ref(), &row.row_type) => continue,
-                Some(item) => batch.push_back(item),
-            }
+            }));
         }
         // `inner` stays held across this append — it is what serializes two
         // concurrent refills, so their batches cannot interleave out of file order.
@@ -304,7 +259,7 @@ impl FilingReader {
         Ok(exhausted)
     }
 
-    /// Drop the source and any rows already pulled.  Idempotent.
+    /// Drop the source and any records already pulled.  Idempotent.
     ///
     /// The caller must not be inside a pull on this thread; the public entry
     /// points check that first.
@@ -319,6 +274,191 @@ impl FilingReader {
         lock_attached(py, &self.pending).clear();
         drop(source);
     }
+
+    /// The next record as a Python object, or `None` at end of file.
+    ///
+    /// An unmapped row type raises `MissingMappingError` but leaves the pass usable —
+    /// the records queued behind it are still in `pending`.  A CSV error is terminal:
+    /// the underlying reader is poisoned, so the pass is shut before raising.
+    fn next(&self, py: Python<'_>) -> PyResult<Option<Py<PyAny>>> {
+        loop {
+            let queued = lock_attached(py, &self.pending).pop_front();
+            if let Some(item) = queued {
+                return match item {
+                    Ok(Pulled::Typed(item)) => Ok(Some(
+                        fec_parser::itemizations::python::itemization_to_py(py, item)?.unbind(),
+                    )),
+                    Ok(Pulled::Raw(row)) => {
+                        let Some(schema) = schema_for(py, &row.row_type, &self.version) else {
+                            return Err(missing_mapping(
+                                py,
+                                &row.row_type,
+                                &self.version,
+                                row.line,
+                            ));
+                        };
+                        let record = Py::new(
+                            py,
+                            Record::new(schema, row.record, row.line, self.name_delimiter.clone()),
+                        )?;
+                        if self.typed {
+                            Ok(Some(Py::new(py, Unknown::new(record))?.into_any()))
+                        } else {
+                            Ok(Some(record.into_any()))
+                        }
+                    }
+                    Err(e) => {
+                        // Not inside a pull here: `refill` has already returned.
+                        self.shut(py);
+                        // A `read()` that raised comes back here wrapped in a CSV
+                        // error; hand back the exception the source actually raised.
+                        Err(raised_or(&self.raised, parse_error(e)))
+                    }
+                };
+            }
+            let exhausted = py.detach(|| self.refill())?;
+            if exhausted && lock_attached(py, &self.pending).is_empty() {
+                return Ok(None);
+            }
+        }
+    }
+}
+
+/// The iterator behind `FilingReader.itemizations` and
+/// `FilingReader.itemization_records`: one pass over the filing.
+#[pyclass(module = "libfec.parser", frozen)]
+pub struct FilingIterator {
+    pass: Arc<Pass>,
+}
+
+#[pymethods]
+impl FilingIterator {
+    fn __iter__(slf: Bound<'_, Self>) -> Bound<'_, Self> {
+        slf
+    }
+
+    fn __next__(&self, py: Python<'_>) -> PyResult<Option<Py<PyAny>>> {
+        self.pass.next(py)
+    }
+
+    fn __repr__(&self) -> String {
+        let kind = if self.pass.typed {
+            "itemizations"
+        } else {
+            "itemization_records"
+        };
+        format!("<FilingIterator over {kind}>")
+    }
+}
+
+/// A streaming reader over one filing.
+///
+/// `frozen`: every mutable field is behind a `Mutex` or an atomic, so `Bound::get()`
+/// works and no runtime borrow flag is needed.
+///
+/// Lock order is `first` → `passes`, then a pass's own locks; `source` is a leaf.
+/// Every lock here is taken with [`lock_attached`].
+#[pyclass(module = "libfec.parser", frozen)]
+pub struct FilingReader {
+    /// The stream `open()` parsed the header and cover from, positioned at the
+    /// first record after the cover; the first pass takes it, so it is not reparsed.
+    first: Mutex<Option<(Stream, ErrorSlot)>>,
+    /// The object `open()` was called with, for reopening; `None` for a file
+    /// object (which cannot be reread) and once closed.
+    source: Mutex<Option<Py<PyAny>>>,
+    /// Every pass started so far that is still alive, so `close()` can shut them.
+    passes: Mutex<Vec<Weak<Pass>>>,
+    closed: AtomicBool,
+    header: Py<Header>,
+    /// The typed cover (`libfec.covers.Form3X`, …) or an `Unknown`.
+    cover: Py<PyAny>,
+    cover_record: Py<Record>,
+    form_type: String,
+    filer_id: String,
+    filer_name: String,
+    report_code: Option<String>,
+    coverage_from_date: Option<jiff::civil::Date>,
+    coverage_through_date: Option<jiff::civil::Date>,
+    id: Option<String>,
+    version: Arc<str>,
+    name_delimiter: Option<Arc<str>>,
+    source_length: usize,
+}
+
+impl FilingReader {
+    /// The live passes, pruning the ones whose iterator has been dropped.
+    fn live_passes(&self, py: Python<'_>) -> Vec<Arc<Pass>> {
+        let mut passes = lock_attached(py, &self.passes);
+        passes.retain(|p| p.strong_count() > 0);
+        passes.iter().filter_map(Weak::upgrade).collect()
+    }
+
+    /// Start a pass: on the stream `open()` left behind if it is unused, else on
+    /// a fresh parse of the source.
+    fn start_pass(&self, py: Python<'_>, typed: bool) -> PyResult<FilingIterator> {
+        if self.closed.load(Ordering::Acquire) {
+            return Err(closed_error());
+        }
+        let first = lock_attached(py, &self.first).take();
+        let (stream, raised) = match first {
+            Some(first) => first,
+            None => {
+                let source = lock_attached(py, &self.source)
+                    .as_ref()
+                    .map(|s| s.clone_ref(py));
+                let Some(source) = source else {
+                    return Err(PyValueError::new_err(
+                        "a filing opened from a file object can only be read once; \
+                         open() a path or bytes to read it again",
+                    ));
+                };
+                let SourceReader {
+                    reader,
+                    length,
+                    raised,
+                    ..
+                } = resolve(source.bind(py))?;
+                let filing_id = self.id.clone().unwrap_or_default();
+                let stream = py
+                    .detach(move || fec_parser::Filing::from_reader(reader, filing_id, length))
+                    .map_err(|e| raised_or(&raised, parse_error(e)))?;
+                (stream, raised)
+            }
+        };
+        let pass = Arc::new(Pass {
+            inner: Mutex::new(Some(stream)),
+            pending: Mutex::new(VecDeque::new()),
+            raised,
+            puller: Mutex::new(None),
+            typed,
+            version: Arc::clone(&self.version),
+            name_delimiter: self.name_delimiter.clone(),
+        });
+        lock_attached(py, &self.passes).push(Arc::downgrade(&pass));
+        // A `close()` on another thread may have run since the check above and
+        // missed this pass.
+        if self.closed.load(Ordering::Acquire) {
+            pass.shut(py);
+        }
+        Ok(FilingIterator { pass })
+    }
+
+    /// Drop the source, the unused first stream and every live pass.  Idempotent.
+    fn shut(&self, py: Python<'_>) -> PyResult<()> {
+        let passes = self.live_passes(py);
+        for pass in &passes {
+            pass.check_not_reentrant()?;
+        }
+        self.closed.store(true, Ordering::Release);
+        // Taken out and dropped after the guards, as in `Pass::shut`.
+        let first = lock_attached(py, &self.first).take();
+        let source = lock_attached(py, &self.source).take();
+        drop((first, source));
+        for pass in passes {
+            pass.shut(py);
+        }
+        Ok(())
+    }
 }
 
 #[pymethods]
@@ -329,24 +469,70 @@ impl FilingReader {
         self.header.clone_ref(py)
     }
 
-    /// The six normalized cover attributes — the same object every time.
+    /// The typed cover — `Form3X`, `Form1`, … from `libfec.covers` — or an
+    /// `Unknown` for a form with no typed class.  The same object every time.
     #[getter]
-    fn cover(&self, py: Python<'_>) -> Py<Cover> {
+    fn cover(&self, py: Python<'_>) -> Py<PyAny> {
         self.cover.clone_ref(py)
     }
 
-    /// The full cover line as a `Row` — the same object every time.
+    /// The cover line as a raw `Record` — the same object every time.
     #[getter]
-    fn cover_row(&self, py: Python<'_>) -> Py<Row> {
-        self.cover_row.clone_ref(py)
+    fn cover_record(&self, py: Python<'_>) -> Py<Record> {
+        self.cover_record.clone_ref(py)
     }
 
-    /// The typed cover record — `Form3X`, `Form1`, … from `libfec.covers` —
-    /// or `None` when `fec-parser` has no typed struct for the form.  The same
-    /// object every time.
+    /// Every record after the cover, typed (`ScheduleA`, … from
+    /// `libfec.itemizations`, or `Unknown`), in file order.
+    ///
+    /// Each access starts a new pass from the top of the filing.
     #[getter]
-    fn cover_data(&self, py: Python<'_>) -> Option<Py<PyAny>> {
-        self.cover_data.as_ref().map(|c| c.clone_ref(py))
+    fn itemizations(&self, py: Python<'_>) -> PyResult<FilingIterator> {
+        self.start_pass(py, true)
+    }
+
+    /// Every record after the cover as a raw `Record`, in file order.
+    ///
+    /// Each access starts a new pass from the top of the filing.
+    #[getter]
+    fn itemization_records(&self, py: Python<'_>) -> PyResult<FilingIterator> {
+        self.start_pass(py, false)
+    }
+
+    /// The cover's form type, e.g. `F3XN`.
+    #[getter]
+    fn form_type(&self) -> &str {
+        &self.form_type
+    }
+
+    /// The filer's FEC id (committee or candidate), whatever the form calls it.
+    #[getter]
+    fn filer_id(&self) -> &str {
+        &self.filer_id
+    }
+
+    /// The filer's name, whatever the form calls it.
+    #[getter]
+    fn filer_name(&self) -> &str {
+        &self.filer_name
+    }
+
+    /// The report code (`Q1`, `M8`, …); `None` for a form that is not a periodic report.
+    #[getter]
+    fn report_code(&self) -> Option<&str> {
+        self.report_code.as_deref()
+    }
+
+    /// The first day of the coverage period; `None` for a form without one.
+    #[getter]
+    fn coverage_from_date(&self) -> Option<jiff::civil::Date> {
+        self.coverage_from_date
+    }
+
+    /// The last day of the coverage period; `None` for a form without one.
+    #[getter]
+    fn coverage_through_date(&self) -> Option<jiff::civil::Date> {
+        self.coverage_through_date
     }
 
     /// The filing id: the file stem of a path, or of a file object's `name`
@@ -370,33 +556,14 @@ impl FilingReader {
 
     /// Whether `close()` has been called.
     #[getter]
-    fn closed(&self, py: Python<'_>) -> bool {
-        // Inside a pull on this thread we are the ones holding `inner`, and the
-        // source is open by definition; answer without touching the lock.
-        !self.pulling_here() && lock_attached(py, &self.inner).is_none()
+    fn closed(&self) -> bool {
+        self.closed.load(Ordering::Acquire)
     }
 
-    /// Only yield rows whose type starts with one of `prefixes` (case-insensitive).
-    ///
-    /// Returns the reader itself, so `for row in reader.rows("SA", "SB")` reads well.
-    /// The filter applies to the single remaining pass: a second call replaces it, and
-    /// `rows()` with no arguments clears it.
-    #[pyo3(signature = (*prefixes))]
-    fn rows<'py>(slf: Bound<'py, Self>, prefixes: Vec<String>) -> Bound<'py, Self> {
-        let filter = if prefixes.is_empty() {
-            None
-        } else {
-            Some(prefixes)
-        };
-        *lock_attached(slf.py(), &slf.get().prefixes) = filter;
-        slf
-    }
-
-    /// Drop the source.  Idempotent; iterating afterwards raises `ValueError`.
+    /// Drop the source and stop every pass.  Idempotent; iterating afterwards
+    /// raises `ValueError`.
     fn close(&self, py: Python<'_>) -> PyResult<()> {
-        self.check_not_reentrant()?;
-        self.shut(py);
-        Ok(())
+        self.shut(py)
     }
 
     fn __enter__(slf: Bound<'_, Self>) -> Bound<'_, Self> {
@@ -412,61 +579,17 @@ impl FilingReader {
         traceback: Option<&Bound<'_, PyAny>>,
     ) -> PyResult<()> {
         let (_, _, _) = (exc_type, exc_value, traceback);
-        self.check_not_reentrant()?;
-        self.shut(py);
-        Ok(())
-    }
-
-    fn __iter__(slf: Bound<'_, Self>) -> Bound<'_, Self> {
-        slf
-    }
-
-    /// The next row, or `StopIteration` at end of file.
-    ///
-    /// An unmapped row type raises `MissingMappingError` but leaves the reader usable —
-    /// the rows queued behind it are still in `pending`.  A CSV error is terminal: the
-    /// underlying reader is poisoned, so the reader is closed before raising.
-    fn __next__(slf: &Bound<'_, Self>) -> PyResult<Option<Py<Row>>> {
-        let py = slf.py();
-        let this = slf.get();
-        loop {
-            let queued = lock_attached(py, &this.pending).pop_front();
-            if let Some(item) = queued {
-                return match item {
-                    Ok(row) => match schema_for(py, &row.row_type, &this.version) {
-                        Some(schema) => Ok(Some(Py::new(
-                            py,
-                            Row::new(schema, row.record, row.line, this.name_delimiter.clone()),
-                        )?)),
-                        None => Err(missing_mapping(py, &row.row_type, &this.version, row.line)),
-                    },
-                    Err(e) => {
-                        // Not inside a pull here: `refill` has already returned.
-                        this.shut(py);
-                        // A `read()` that raised comes back here wrapped in a CSV
-                        // error; hand back the exception the source actually raised.
-                        Err(raised_or(&this.raised, parse_error(e)))
-                    }
-                };
-            }
-            // `&FilingReader` is `Send` (every field is behind a `Mutex`/`Py<T>`), which
-            // is what `Ungil` asks for; no `PyRef`/`Bound` crosses into the closure.
-            let exhausted = py.detach(|| this.refill())?;
-            if exhausted && lock_attached(py, &this.pending).is_empty() {
-                return Ok(None);
-            }
-        }
+        self.shut(py)
     }
 
     fn __repr__(&self) -> String {
-        let cover = self.cover.get();
         let id = match &self.id {
             Some(id) => format!("'{id}'"),
             None => "None".to_owned(),
         };
         format!(
             "FilingReader(id={}, form_type='{}', filer_id='{}')",
-            id, cover.form_type, cover.filer_id
+            id, self.form_type, self.filer_id
         )
     }
 }
@@ -474,7 +597,7 @@ impl FilingReader {
 /// Open a filing for streaming.
 ///
 /// Parses the `HDR` and cover records eagerly; everything after them is pulled on
-/// demand by iteration.
+/// demand by `itemizations` / `itemization_records`.
 #[pyfunction]
 #[pyo3(name = "open", signature = (source, /))]
 pub fn open_filing(py: Python<'_>, source: &Bound<'_, PyAny>) -> PyResult<FilingReader> {
@@ -483,6 +606,7 @@ pub fn open_filing(py: Python<'_>, source: &Bound<'_, PyAny>) -> PyResult<Filing
         length: source_length,
         id,
         raised,
+        reopenable,
     } = resolve(source)?;
 
     let filing_id = id.clone().unwrap_or_default();
@@ -491,16 +615,8 @@ pub fn open_filing(py: Python<'_>, source: &Bound<'_, PyAny>) -> PyResult<Filing
         .map_err(|e| raised_or(&raised, parse_error(e)))?;
 
     let header = Header::from(&filing.header);
-    let version = header.fec_version.clone();
-
-    let cover = Cover {
-        form_type: filing.cover.form_type.clone(),
-        filer_id: filing.cover.filer_id.clone(),
-        filer_name: filing.cover.filer_name.clone(),
-        report_code: filing.cover.report_code.clone(),
-        coverage_from_date: filing.cover.coverage_from_date,
-        coverage_through_date: filing.cover.coverage_through_date,
-    };
+    let version: Arc<str> = Arc::from(header.fec_version.as_str());
+    let cover = &filing.cover;
 
     // `from_reader` already failed if the cover's form type had no mapping
     // (`FilingCover::from_record` looks up its columns), so this cannot miss.
@@ -512,33 +628,38 @@ pub fn open_filing(py: Python<'_>, source: &Bound<'_, PyAny>) -> PyResult<Filing
     })?;
     // The cover record is always the filing's second line.
     let name_delimiter: Option<Arc<str>> = filing.header.name_delimiter.as_deref().map(Arc::from);
-    let cover_row = Row::new(
-        cover_schema,
-        filing.cover.record.clone(),
-        2,
-        name_delimiter.clone(),
-    );
-    let cover_data = filing
-        .cover
-        .cover_data
-        .as_ref()
-        .map(|c| fec_parser::covers::python::cover_to_py(py, c).map(Bound::unbind))
-        .transpose()?;
+    let cover_record = Py::new(
+        py,
+        Record::new(
+            cover_schema,
+            cover.record.clone(),
+            2,
+            name_delimiter.clone(),
+        ),
+    )?;
+    let typed_cover = match &cover.cover_data {
+        Some(c) => fec_parser::covers::python::cover_to_py(py, c)?.unbind(),
+        None => Py::new(py, Unknown::new(cover_record.clone_ref(py)))?.into_any(),
+    };
 
     Ok(FilingReader {
-        inner: Mutex::new(Some(filing)),
-        pending: Mutex::new(VecDeque::new()),
-        prefixes: Mutex::new(None),
+        form_type: cover.form_type.clone(),
+        filer_id: cover.filer_id.clone(),
+        filer_name: cover.filer_name.clone(),
+        report_code: cover.report_code.clone(),
+        coverage_from_date: cover.coverage_from_date,
+        coverage_through_date: cover.coverage_through_date,
+        first: Mutex::new(Some((filing, raised))),
+        source: Mutex::new(reopenable.then(|| source.clone().unbind())),
+        passes: Mutex::new(Vec::new()),
+        closed: AtomicBool::new(false),
         header: Py::new(py, header)?,
-        cover: Py::new(py, cover)?,
-        cover_row: Py::new(py, cover_row)?,
-        cover_data,
+        cover: typed_cover,
+        cover_record,
         id,
         version,
         name_delimiter,
         source_length,
-        raised,
-        puller: Mutex::new(None),
     })
 }
 
