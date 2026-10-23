@@ -174,24 +174,43 @@ pub(crate) fn date<F: Fields + ?Sized>(data: &F, key: &str) -> Option<Date> {
     }
     // Fast path for `YYYYMMDD`, the format of every v6+ date: `strptime`
     // re-reads its format string on each call, which shows on itemizations.
-    if let [y1, y2, y3, y4, m1, m2, d1, d2] = s.as_bytes() {
-        let digits = [y1, y2, y3, y4, m1, m2, d1, d2];
-        if digits.iter().all(|b| b.is_ascii_digit()) {
-            let n = |ds: &[&u8]| {
-                ds.iter()
-                    .fold(0i16, |acc, b| acc * 10 + i16::from(**b - b'0'))
-            };
-            return Date::new(
-                n(&digits[..4]),
-                n(&digits[4..6]) as i8,
-                n(&digits[6..]) as i8,
-            )
-            .ok();
-        }
+    if s.len() == 8 && s.bytes().all(|b| b.is_ascii_digit()) {
+        return yyyymmdd(s);
     }
     Date::strptime("%Y%m%d", s)
         .or_else(|_| Date::strptime("%m/%d/%Y", s))
         .ok()
+        .and_then(year_in_range)
+}
+
+/// Exactly eight digits `YYYYMMDD` as a date, if it is a real calendar date
+/// in years 1..=9999. The raw-record date rule every binding shares.
+pub fn yyyymmdd(s: &str) -> Option<Date> {
+    let [y1, y2, y3, y4, m1, m2, d1, d2] = s.as_bytes() else {
+        return None;
+    };
+    let digits = [y1, y2, y3, y4, m1, m2, d1, d2];
+    if !digits.iter().all(|b| b.is_ascii_digit()) {
+        return None;
+    }
+    let n = |ds: &[&u8]| {
+        ds.iter()
+            .fold(0i16, |acc, b| acc * 10 + i16::from(**b - b'0'))
+    };
+    Date::new(
+        n(&digits[..4]),
+        n(&digits[4..6]) as i8,
+        n(&digits[6..]) as i8,
+    )
+    .ok()
+    .and_then(year_in_range)
+}
+
+/// `d` if its year is in 1..=9999. jiff takes years from -9999, but Python's
+/// `datetime.date` can't hold one below 1, so no binding gets one: a date
+/// out of that range is unparseable everywhere.
+pub(crate) fn year_in_range(d: Date) -> Option<Date> {
+    (1..=9999).contains(&d.year()).then_some(d)
 }
 
 /// A checkbox. The FEC format marks checked boxes with `X`; anything else
@@ -297,6 +316,26 @@ mod tests {
         assert_eq!(date(&d, "a"), Some(jiff::civil::date(2024, 1, 31)));
         assert_eq!(date(&d, "b"), Some(jiff::civil::date(2024, 1, 31)));
         assert_eq!(date(&d, "c"), None);
+    }
+
+    #[test]
+    fn date_year_range() {
+        let d = data(&[
+            ("zero", "00000101"),
+            ("negative", "-0010101"),
+            ("zero_mdy", "01/01/0000"),
+            ("first", "00010101"),
+            ("last", "99991231"),
+        ]);
+        assert_eq!(date(&d, "zero"), None);
+        assert_eq!(date(&d, "negative"), None);
+        assert_eq!(date(&d, "zero_mdy"), None);
+        assert_eq!(date(&d, "first"), Some(jiff::civil::date(1, 1, 1)));
+        assert_eq!(date(&d, "last"), Some(jiff::civil::date(9999, 12, 31)));
+        assert_eq!(yyyymmdd("00000101"), None);
+        assert_eq!(yyyymmdd("-0010101"), None);
+        assert_eq!(yyyymmdd("2024013"), None);
+        assert_eq!(yyyymmdd("00010101"), Some(jiff::civil::date(1, 1, 1)));
     }
 
     #[test]

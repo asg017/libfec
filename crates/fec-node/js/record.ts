@@ -152,7 +152,7 @@ function digit(t: string, i: number): number {
 
 /**
  * `YYYYMMDD` (trimmed) as `y * 10000 + m * 100 + d` if it is a real
- * calendar date, else -1. Digit arithmetic, no regex: this runs for every
+ * calendar date in years 1..=9999, else -1. Digit arithmetic, no regex: this runs for every
  * date field.
  */
 function dateNumber(t: string): number {
@@ -166,7 +166,8 @@ function dateNumber(t: string): number {
   const y = Math.floor(n / 10000);
   const mo = Math.floor(n / 100) % 100;
   const d = n % 100;
-  if (mo < 1 || mo > 12 || d < 1) return -1;
+  // Years below 1 are invalid in every binding: Python's `date` can't hold them.
+  if (y < 1 || mo < 1 || mo > 12 || d < 1) return -1;
   const leap = mo === 2 && y % 4 === 0 && (y % 100 !== 0 || y % 400 === 0);
   return d > DAYS[mo - 1]! + (leap ? 1 : 0) ? -1 : n;
 }
