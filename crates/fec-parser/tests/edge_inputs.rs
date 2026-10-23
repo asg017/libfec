@@ -137,3 +137,27 @@ fn typed_cover_uses_header_name_delimiter() {
     assert_eq!(treasurer("", "Galis^George^^"), expected);
     assert_eq!(treasurer("^", "Galis^George^^"), expected);
 }
+
+/// FS filings that quote every field, `"HDR"` included (Mosaic e-filing),
+/// parse like their unquoted form.
+#[test]
+fn fs_quoted_hdr() {
+    let quoted = b"\"HDR\"\x1c\"FEC\"\x1c\"8.5\"\x1c\"Test\"\x1c\"1\"\n\"F3XN\"\x1c\"C00000001\"\x1c\"Committee\"\n\"SA11AI\"\x1c\"C00000001\"\x1c\"X\"\n";
+    let got = parse(quoted);
+    assert_eq!(
+        (
+            got.version.as_str(),
+            got.delimiter,
+            got.form_type.as_str(),
+            got.filer_id.as_str(),
+            got.rows,
+        ),
+        (
+            "8.5",
+            Delimiter::Fs,
+            "F3XN",
+            "C00000001",
+            vec![("SA11AI".into(), 3, 60)]
+        )
+    );
+}
